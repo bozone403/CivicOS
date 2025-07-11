@@ -116,8 +116,7 @@ export class PoliticianDataEnhancer {
           }
           
         } catch (error) {
-          const err = error as Error;
-          console.error("Error enhancing politician data:", err.message);
+          console.error("Error enhancing politician data:", error instanceof Error ? error.message : String(error));
         }
       }
       

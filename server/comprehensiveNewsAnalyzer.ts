@@ -65,7 +65,7 @@ export class ComprehensiveNewsAnalyzer {
       name: "CBC News",
       url: "https://www.cbc.ca",
       rssUrl: "https://www.cbc.ca/cmlink/rss-topstories",
-      bias: "center",
+      bias: "center" as const,
       credibilityScore: 85,
       type: "government"
     },
@@ -73,7 +73,7 @@ export class ComprehensiveNewsAnalyzer {
       name: "Global News",
       url: "https://globalnews.ca",
       rssUrl: "https://globalnews.ca/feed/",
-      bias: "center",
+      bias: "center" as const,
       credibilityScore: 82,
       type: "mainstream"
     },
@@ -81,7 +81,7 @@ export class ComprehensiveNewsAnalyzer {
       name: "CTV News",
       url: "https://www.ctvnews.ca",
       rssUrl: "https://www.ctvnews.ca/rss/ctvnews-ca-top-stories-public-rss-1.822009",
-      bias: "center",
+      bias: "center" as const,
       credibilityScore: 83,
       type: "mainstream"
     },
@@ -89,7 +89,7 @@ export class ComprehensiveNewsAnalyzer {
       name: "The Globe and Mail",
       url: "https://www.theglobeandmail.com",
       rssUrl: "https://www.theglobeandmail.com/arc/outboundfeeds/rss/category/politics/",
-      bias: "center",
+      bias: "center" as const,
       credibilityScore: 88,
       type: "mainstream"
     },
@@ -97,7 +97,7 @@ export class ComprehensiveNewsAnalyzer {
       name: "National Post",
       url: "https://nationalpost.com",
       rssUrl: "https://nationalpost.com/feed/",
-      bias: "right",
+      bias: "right" as const,
       credibilityScore: 78,
       type: "mainstream"
     },
@@ -105,7 +105,7 @@ export class ComprehensiveNewsAnalyzer {
       name: "Toronto Star",
       url: "https://www.thestar.com",
       rssUrl: "https://www.thestar.com/politics.rss",
-      bias: "left",
+      bias: "left" as const,
       credibilityScore: 79,
       type: "mainstream"
     },
@@ -115,7 +115,7 @@ export class ComprehensiveNewsAnalyzer {
       name: "Le Devoir",
       url: "https://www.ledevoir.com",
       rssUrl: "https://www.ledevoir.com/rss/section/politique.xml",
-      bias: "center",
+      bias: "center" as const,
       credibilityScore: 84,
       type: "mainstream"
     },
@@ -123,7 +123,7 @@ export class ComprehensiveNewsAnalyzer {
       name: "La Presse",
       url: "https://www.lapresse.ca",
       rssUrl: "https://www.lapresse.ca/actualites/politique.rss",
-      bias: "center",
+      bias: "center" as const,
       credibilityScore: 82,
       type: "mainstream"
     },
@@ -131,7 +131,7 @@ export class ComprehensiveNewsAnalyzer {
       name: "Radio-Canada",
       url: "https://ici.radio-canada.ca",
       rssUrl: "https://ici.radio-canada.ca/rss/73",
-      bias: "center",
+      bias: "center" as const,
       credibilityScore: 87,
       type: "government"
     },
@@ -139,7 +139,7 @@ export class ComprehensiveNewsAnalyzer {
       name: "Journal de Montréal",
       url: "https://www.journaldemontreal.com",
       rssUrl: "https://www.journaldemontreal.com/rss.xml",
-      bias: "center",
+      bias: "center" as const,
       credibilityScore: 71,
       type: "mainstream"
     },
@@ -149,7 +149,7 @@ export class ComprehensiveNewsAnalyzer {
       name: "The Canadian Press",
       url: "https://www.thecanadianpress.com",
       rssUrl: "https://www.thecanadianpress.com/feed/",
-      bias: "center",
+      bias: "center" as const,
       credibilityScore: 90,
       type: "government"
     },
@@ -157,7 +157,7 @@ export class ComprehensiveNewsAnalyzer {
       name: "Government of Canada News",
       url: "https://www.canada.ca",
       rssUrl: "https://www.canada.ca/en/news.rss",
-      bias: "center",
+      bias: "center" as const,
       credibilityScore: 95,
       type: "government"
     },
@@ -167,7 +167,7 @@ export class ComprehensiveNewsAnalyzer {
       name: "iPolitics",
       url: "https://ipolitics.ca",
       rssUrl: "https://ipolitics.ca/feed/",
-      bias: "center",
+      bias: "center" as const,
       credibilityScore: 81,
       type: "alternative"
     },
@@ -175,7 +175,7 @@ export class ComprehensiveNewsAnalyzer {
       name: "The Hill Times",
       url: "https://www.hilltimes.com",
       rssUrl: "https://www.hilltimes.com/feed/",
-      bias: "center",
+      bias: "center" as const,
       credibilityScore: 86,
       type: "alternative"
     },
@@ -183,7 +183,7 @@ export class ComprehensiveNewsAnalyzer {
       name: "Policy Options",
       url: "https://policyoptions.irpp.org",
       rssUrl: "https://policyoptions.irpp.org/feed/",
-      bias: "center",
+      bias: "center" as const,
       credibilityScore: 89,
       type: "alternative"
     },
@@ -193,7 +193,7 @@ export class ComprehensiveNewsAnalyzer {
       name: "Calgary Herald",
       url: "https://calgaryherald.com",
       rssUrl: "https://calgaryherald.com/feed/",
-      bias: "center",
+      bias: "center" as const,
       credibilityScore: 76,
       type: "mainstream"
     },
@@ -201,7 +201,7 @@ export class ComprehensiveNewsAnalyzer {
       name: "Edmonton Journal",
       url: "https://edmontonjournal.com",
       rssUrl: "https://edmontonjournal.com/feed/",
-      bias: "center",
+      bias: "center" as const,
       credibilityScore: 77,
       type: "mainstream"
     },
@@ -209,7 +209,7 @@ export class ComprehensiveNewsAnalyzer {
       name: "Vancouver Sun",
       url: "https://vancouversun.com",
       rssUrl: "https://vancouversun.com/feed/",
-      bias: "center",
+      bias: "center" as const,
       credibilityScore: 78,
       type: "mainstream"
     },
@@ -217,7 +217,7 @@ export class ComprehensiveNewsAnalyzer {
       name: "The Province",
       url: "https://theprovince.com",
       rssUrl: "https://theprovince.com/feed/",
-      bias: "center",
+      bias: "center" as const,
       credibilityScore: 74,
       type: "mainstream"
     },
@@ -225,7 +225,7 @@ export class ComprehensiveNewsAnalyzer {
       name: "Times Colonist",
       url: "https://www.timescolonist.com",
       rssUrl: "https://www.timescolonist.com/feed/",
-      bias: "center",
+      bias: "center" as const,
       credibilityScore: 75,
       type: "mainstream"
     },
@@ -233,7 +233,7 @@ export class ComprehensiveNewsAnalyzer {
       name: "Winnipeg Free Press",
       url: "https://www.winnipegfreepress.com",
       rssUrl: "https://www.winnipegfreepress.com/rss/",
-      bias: "center",
+      bias: "center" as const,
       credibilityScore: 79,
       type: "mainstream"
     },
@@ -241,7 +241,7 @@ export class ComprehensiveNewsAnalyzer {
       name: "The Chronicle Herald",
       url: "https://www.thechronicleherald.ca",
       rssUrl: "https://www.thechronicleherald.ca/rss/",
-      bias: "center",
+      bias: "center" as const,
       credibilityScore: 73,
       type: "mainstream"
     },
@@ -251,7 +251,7 @@ export class ComprehensiveNewsAnalyzer {
       name: "The Tyee",
       url: "https://thetyee.ca",
       rssUrl: "https://thetyee.ca/rss2.xml",
-      bias: "left",
+      bias: "left" as const,
       credibilityScore: 82,
       type: "alternative"
     },
@@ -259,7 +259,7 @@ export class ComprehensiveNewsAnalyzer {
       name: "Canadaland",
       url: "https://www.canadaland.com",
       rssUrl: "https://www.canadaland.com/feed/",
-      bias: "left",
+      bias: "left" as const,
       credibilityScore: 78,
       type: "alternative"
     },
@@ -267,7 +267,7 @@ export class ComprehensiveNewsAnalyzer {
       name: "The Breach",
       url: "https://breachmedia.ca",
       rssUrl: "https://breachmedia.ca/feed/",
-      bias: "left",
+      bias: "left" as const,
       credibilityScore: 76,
       type: "alternative"
     },
@@ -275,7 +275,7 @@ export class ComprehensiveNewsAnalyzer {
       name: "True North",
       url: "https://tnc.news",
       rssUrl: "https://tnc.news/feed/",
-      bias: "right",
+      bias: "right" as const,
       credibilityScore: 65,
       type: "alternative"
     },
@@ -283,7 +283,7 @@ export class ComprehensiveNewsAnalyzer {
       name: "Rebel News",
       url: "https://www.rebelnews.com",
       rssUrl: "https://www.rebelnews.com/rss.xml",
-      bias: "right",
+      bias: "right" as const,
       credibilityScore: 45,
       type: "alternative"
     },
@@ -291,7 +291,7 @@ export class ComprehensiveNewsAnalyzer {
       name: "Press Progress",
       url: "https://pressprogress.ca",
       rssUrl: "https://pressprogress.ca/feed/",
-      bias: "left",
+      bias: "left" as const,
       credibilityScore: 72,
       type: "alternative"
     },
@@ -299,7 +299,7 @@ export class ComprehensiveNewsAnalyzer {
       name: "National Observer",
       url: "https://www.nationalobserver.com",
       rssUrl: "https://www.nationalobserver.com/rss.xml",
-      bias: "left",
+      bias: "left" as const,
       credibilityScore: 81,
       type: "alternative"
     },
@@ -307,7 +307,7 @@ export class ComprehensiveNewsAnalyzer {
       name: "The Narwhal",
       url: "https://thenarwhal.ca",
       rssUrl: "https://thenarwhal.ca/feed/",
-      bias: "left",
+      bias: "left" as const,
       credibilityScore: 85,
       type: "alternative"
     },
@@ -317,7 +317,7 @@ export class ComprehensiveNewsAnalyzer {
       name: "Financial Post",
       url: "https://financialpost.com",
       rssUrl: "https://financialpost.com/feed/",
-      bias: "center",
+      bias: "center" as const,
       credibilityScore: 83,
       type: "mainstream"
     },
@@ -325,7 +325,7 @@ export class ComprehensiveNewsAnalyzer {
       name: "BNN Bloomberg",
       url: "https://www.bnnbloomberg.ca",
       rssUrl: "https://www.bnnbloomberg.ca/rss.xml",
-      bias: "center",
+      bias: "center" as const,
       credibilityScore: 86,
       type: "mainstream"
     },
@@ -335,7 +335,7 @@ export class ComprehensiveNewsAnalyzer {
       name: "APTN News",
       url: "https://www.aptnnews.ca",
       rssUrl: "https://www.aptnnews.ca/feed/",
-      bias: "center",
+      bias: "center" as const,
       credibilityScore: 88,
       type: "alternative"
     },
@@ -343,7 +343,7 @@ export class ComprehensiveNewsAnalyzer {
       name: "Windspeaker",
       url: "https://windspeaker.com",
       rssUrl: "https://windspeaker.com/feed/",
-      bias: "center",
+      bias: "center" as const,
       credibilityScore: 84,
       type: "alternative"
     },
@@ -353,7 +353,7 @@ export class ComprehensiveNewsAnalyzer {
       name: "HuffPost Canada",
       url: "https://www.huffpost.com/canada",
       rssUrl: "https://www.huffpost.com/section/canada/feed",
-      bias: "left",
+      bias: "left" as const,
       credibilityScore: 74,
       type: "alternative"
     },
@@ -361,7 +361,7 @@ export class ComprehensiveNewsAnalyzer {
       name: "Blacklock's Reporter",
       url: "https://www.blacklocks.ca",
       rssUrl: "https://www.blacklocks.ca/feed/",
-      bias: "center",
+      bias: "center" as const,
       credibilityScore: 89,
       type: "alternative"
     },
@@ -369,7 +369,7 @@ export class ComprehensiveNewsAnalyzer {
       name: "The Conversation Canada",
       url: "https://theconversation.com/ca",
       rssUrl: "https://theconversation.com/ca/articles.atom",
-      bias: "center",
+      bias: "center" as const,
       credibilityScore: 91,
       type: "alternative"
     },
@@ -379,7 +379,7 @@ export class ComprehensiveNewsAnalyzer {
       name: "Ottawa Citizen",
       url: "https://ottawacitizen.com",
       rssUrl: "https://ottawacitizen.com/feed/",
-      bias: "center",
+      bias: "center" as const,
       credibilityScore: 76,
       type: "mainstream"
     },
@@ -387,7 +387,7 @@ export class ComprehensiveNewsAnalyzer {
       name: "Montreal Gazette",
       url: "https://montrealgazette.com",
       rssUrl: "https://montrealgazette.com/feed/",
-      bias: "center",
+      bias: "center" as const,
       credibilityScore: 77,
       type: "mainstream"
     },
@@ -395,7 +395,7 @@ export class ComprehensiveNewsAnalyzer {
       name: "Regina Leader-Post",
       url: "https://leaderpost.com",
       rssUrl: "https://leaderpost.com/feed/",
-      bias: "center",
+      bias: "center" as const,
       credibilityScore: 73,
       type: "mainstream"
     },
@@ -403,7 +403,7 @@ export class ComprehensiveNewsAnalyzer {
       name: "Saskatoon StarPhoenix",
       url: "https://thestarphoenix.com",
       rssUrl: "https://thestarphoenix.com/feed/",
-      bias: "center",
+      bias: "center" as const,
       credibilityScore: 74,
       type: "mainstream"
     },
@@ -413,7 +413,7 @@ export class ComprehensiveNewsAnalyzer {
       name: "North Shore News",
       url: "https://www.nsnews.com",
       rssUrl: "https://www.nsnews.com/rss.xml",
-      bias: "center",
+      bias: "center" as const,
       credibilityScore: 72,
       type: "mainstream"
     },
@@ -421,7 +421,7 @@ export class ComprehensiveNewsAnalyzer {
       name: "The Record (Kitchener-Waterloo)",
       url: "https://www.therecord.com",
       rssUrl: "https://www.therecord.com/feed/",
-      bias: "center",
+      bias: "center" as const,
       credibilityScore: 71,
       type: "mainstream"
     },
@@ -429,7 +429,7 @@ export class ComprehensiveNewsAnalyzer {
       name: "London Free Press",
       url: "https://lfpress.com",
       rssUrl: "https://lfpress.com/feed/",
-      bias: "center",
+      bias: "center" as const,
       credibilityScore: 73,
       type: "mainstream"
     },
@@ -437,7 +437,7 @@ export class ComprehensiveNewsAnalyzer {
       name: "Windsor Star",
       url: "https://windsorstar.com",
       rssUrl: "https://windsorstar.com/feed/",
-      bias: "center",
+      bias: "center" as const,
       credibilityScore: 74,
       type: "mainstream"
     },
@@ -447,7 +447,7 @@ export class ComprehensiveNewsAnalyzer {
       name: "Le Journal de Québec",
       url: "https://www.journaldequebec.com",
       rssUrl: "https://www.journaldequebec.com/rss.xml",
-      bias: "center",
+      bias: "center" as const,
       credibilityScore: 70,
       type: "mainstream"
     },
@@ -455,7 +455,7 @@ export class ComprehensiveNewsAnalyzer {
       name: "TVA Nouvelles",
       url: "https://www.tvanouvelles.ca",
       rssUrl: "https://www.tvanouvelles.ca/rss.xml",
-      bias: "center",
+      bias: "center" as const,
       credibilityScore: 75,
       type: "mainstream"
     },
@@ -463,7 +463,7 @@ export class ComprehensiveNewsAnalyzer {
       name: "Le Soleil",
       url: "https://www.lesoleil.com",
       rssUrl: "https://www.lesoleil.com/rss.xml",
-      bias: "center",
+      bias: "center" as const,
       credibilityScore: 78,
       type: "mainstream"
     },
@@ -473,7 +473,7 @@ export class ComprehensiveNewsAnalyzer {
       name: "Telegraph-Journal",
       url: "https://www.telegraphjournal.com",
       rssUrl: "https://www.telegraphjournal.com/rss/",
-      bias: "center",
+      bias: "center" as const,
       credibilityScore: 75,
       type: "mainstream"
     },
@@ -481,7 +481,7 @@ export class ComprehensiveNewsAnalyzer {
       name: "The Guardian (PEI)",
       url: "https://www.theguardian.pe.ca",
       rssUrl: "https://www.theguardian.pe.ca/rss/",
-      bias: "center",
+      bias: "center" as const,
       credibilityScore: 73,
       type: "mainstream"
     },
@@ -489,7 +489,7 @@ export class ComprehensiveNewsAnalyzer {
       name: "The Telegram",
       url: "https://www.thetelegram.com",
       rssUrl: "https://www.thetelegram.com/rss/",
-      bias: "center",
+      bias: "center" as const,
       credibilityScore: 74,
       type: "mainstream"
     },
@@ -499,7 +499,7 @@ export class ComprehensiveNewsAnalyzer {
       name: "Whitehorse Star",
       url: "https://www.whitehorsestar.com",
       rssUrl: "https://www.whitehorsestar.com/rss/",
-      bias: "center",
+      bias: "center" as const,
       credibilityScore: 72,
       type: "mainstream"
     },
@@ -507,7 +507,7 @@ export class ComprehensiveNewsAnalyzer {
       name: "Yellowknifer",
       url: "https://www.nnsl.com/yellowknifer",
       rssUrl: "https://www.nnsl.com/yellowknifer/rss/",
-      bias: "center",
+      bias: "center" as const,
       credibilityScore: 71,
       type: "mainstream"
     },
@@ -515,7 +515,7 @@ export class ComprehensiveNewsAnalyzer {
       name: "Nunavut News",
       url: "https://www.nunavutnews.com",
       rssUrl: "https://www.nunavutnews.com/rss/",
-      bias: "center",
+      bias: "center" as const,
       credibilityScore: 70,
       type: "mainstream"
     },
@@ -525,7 +525,7 @@ export class ComprehensiveNewsAnalyzer {
       name: "Ricochet",
       url: "https://ricochet.media",
       rssUrl: "https://ricochet.media/en/feed",
-      bias: "left",
+      bias: "left" as const,
       credibilityScore: 79,
       type: "alternative"
     },
@@ -533,7 +533,7 @@ export class ComprehensiveNewsAnalyzer {
       name: "The Energy Mix",
       url: "https://www.theenergymix.com",
       rssUrl: "https://www.theenergymix.com/feed/",
-      bias: "left",
+      bias: "left" as const,
       credibilityScore: 83,
       type: "alternative"
     },
@@ -541,7 +541,7 @@ export class ComprehensiveNewsAnalyzer {
       name: "Epoch Times Canada",
       url: "https://www.theepochtimes.com/canada",
       rssUrl: "https://www.theepochtimes.com/canada/feed",
-      bias: "right",
+      bias: "right" as const,
       credibilityScore: 68,
       type: "alternative"
     },
@@ -549,7 +549,7 @@ export class ComprehensiveNewsAnalyzer {
       name: "Western Standard",
       url: "https://www.westernstandard.news",
       rssUrl: "https://www.westernstandard.news/feed/",
-      bias: "right",
+      bias: "right" as const,
       credibilityScore: 62,
       type: "alternative"
     },
@@ -557,7 +557,7 @@ export class ComprehensiveNewsAnalyzer {
       name: "The Post Millennial",
       url: "https://thepostmillennial.com",
       rssUrl: "https://thepostmillennial.com/feed",
-      bias: "right",
+      bias: "right" as const,
       credibilityScore: 58,
       type: "alternative"
     },
@@ -567,7 +567,7 @@ export class ComprehensiveNewsAnalyzer {
       name: "Law Times",
       url: "https://www.lawtimesnews.com",
       rssUrl: "https://www.lawtimesnews.com/rss/",
-      bias: "center",
+      bias: "center" as const,
       credibilityScore: 85,
       type: "alternative"
     },
@@ -575,7 +575,7 @@ export class ComprehensiveNewsAnalyzer {
       name: "Canadian Lawyer",
       url: "https://www.canadianlawyermag.com",
       rssUrl: "https://www.canadianlawyermag.com/rss/",
-      bias: "center",
+      bias: "center" as const,
       credibilityScore: 87,
       type: "alternative"
     },
@@ -583,7 +583,7 @@ export class ComprehensiveNewsAnalyzer {
       name: "Parliamentary Hill Times",
       url: "https://www.hilltimes.com",
       rssUrl: "https://www.hilltimes.com/feed/",
-      bias: "center",
+      bias: "center" as const,
       credibilityScore: 86,
       type: "alternative"
     }

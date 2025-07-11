@@ -3004,6 +3004,199 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get comments for a specific post
+  app.get('/api/comments/:postId', async (req, res) => {
+    try {
+      const { postId } = req.params;
+      
+      // Get comments with author information
+      const commentsResult = await db.execute(sql`
+        SELECT 
+          c.id,
+          c.content,
+          c.author_id,
+          c.created_at,
+          c.is_edited,
+          c.edit_count,
+          c.last_edited_at,
+          c.like_count,
+          u.first_name,
+          u.last_name,
+          u.email,
+          u.profile_image_url
+        FROM comments c
+        LEFT JOIN users u ON c.author_id = u.id
+        WHERE c.post_id = ${postId}
+        ORDER BY c.created_at DESC
+      `);
+
+      const comments = commentsResult.rows as CommentRow[];
+      
+      // Get replies for each comment
+      const commentsWithReplies = await Promise.all(
+        comments.map(async (comment: CommentRow) => {
+          const repliesResult = await db.execute(sql`
+            SELECT 
+              r.id,
+              r.content,
+              r.author_id,
+              r.created_at,
+              r.is_edited,
+              r.edit_count,
+              r.last_edited_at,
+              r.like_count,
+              u.first_name,
+              u.last_name,
+              u.email,
+              u.profile_image_url
+            FROM comment_replies r
+            LEFT JOIN users u ON r.author_id = u.id
+            WHERE r.parent_comment_id = ${comment.id}
+            ORDER BY r.created_at ASC
+          `);
+
+          const replies = repliesResult.rows as CommentRow[];
+          
+          return {
+            ...comment,
+            replies: replies.map((reply: CommentRow) => ({
+              id: reply.id,
+              content: reply.content,
+              author_id: reply.author_id,
+              created_at: reply.created_at,
+              is_edited: reply.is_edited || false,
+              edit_count: reply.edit_count || 0,
+              last_edited_at: reply.last_edited_at,
+              like_count: reply.like_count || 0,
+              first_name: reply.first_name,
+              last_name: reply.last_name,
+              email: reply.email,
+              profile_image_url: reply.profile_image_url,
+              author: {
+                firstName: reply.first_name,
+                lastName: reply.last_name,
+                email: reply.email,
+                profileImageUrl: reply.profile_image_url
+              }
+            }))
+          };
+        })
+      );
+      
+      const cleanedComments = commentsWithReplies.map((comment: any) => ({
+        id: comment.id,
+        content: comment.content,
+        author_id: String(comment.author_id),
+        created_at: comment.created_at,
+        is_edited: comment.is_edited || false,
+        edit_count: comment.edit_count || 0,
+        last_edited_at: comment.last_edited_at,
+        like_count: comment.like_count || 0,
+        first_name: comment.first_name,
+        last_name: comment.last_name,
+        email: comment.email,
+        profile_image_url: comment.profile_image_url,
+        author: comment.author,
+        replies: comment.replies || []
+      }));
+      console.log('Returning', cleanedComments.length, 'clean comments. First comment author_id:', cleanedComments[0]?.author_id);
+      res.json(cleanedComments);
+    } catch (error) {
+      console.error("Error fetching comments:", error);
+      res.status(500).json({ message: "Failed to fetch comments" });
+    }
+  });
+
+  // Legal search endpoint
+  app.get('/api/legal/search', async (req, res) => {
+    try {
+      const { query } = req.query;
+      
+      if (!query) {
+        return res.status(400).json({ message: "Search query is required" });
+      }
+
+      // Mock legal search index
+      const legalSearchIndex = [
+        {
+          id: "charter-1",
+          title: "Canadian Charter of Rights and Freedoms",
+          type: "Constitutional Law",
+          excerpt: "Fundamental rights and freedoms guaranteed to all Canadians, including freedom of expression, religion, and equality rights...",
+          fullText: "The Charter guarantees fundamental freedoms, democratic rights, mobility rights, legal rights, equality rights, and language rights to all Canadians.",
+          keywords: ["charter", "rights", "freedoms", "constitution", "democracy", "equality"],
+          source: "Constitution Act, 1982",
+          citation: "Part I of the Constitution Act, 1982",
+          url: "/legal/charter"
+        },
+        {
+          id: "andrews-case",
+          title: "Andrews v. Law Society of British Columbia (1989)",
+          type: "Constitutional Cases",
+          excerpt: "First major Supreme Court case interpreting equality rights under Section 15, establishing framework for equality analysis...",
+          fullText: "Landmark case establishing that equality means substantive equality, not just formal equality, and setting the framework for section 15 analysis.",
+          keywords: ["equality", "section 15", "substantive equality", "discrimination", "analogous grounds", "ameliorative programs"],
+          source: "Supreme Court of Canada",
+          citation: "[1989] 1 S.C.R. 143",
+          url: "/legal/constitutional-cases"
+        }
+      ];
+      
+      // Perform keyword search
+      const queryParam: string = typeof query === 'string' ? query : Array.isArray(query) ? String(query[0]) : String(query);
+      const searchTerms: string[] = queryParam.toLowerCase().split(' ');
+      const results = legalSearchIndex.filter(item => {
+        const searchableText = [
+          item.title,
+          item.excerpt,
+          item.fullText,
+          ...(Array.isArray(item.keywords) ? item.keywords : [])
+        ].join(' ').toLowerCase();
+        
+        return searchTerms.some((term: string) => searchableText.includes(term));
+      });
+      
+      // Calculate relevance scores
+      const scoredResults = results.map(item => {
+        let relevance = 0;
+        const searchableText = [item.title, item.excerpt, item.fullText, ...(Array.isArray(item.keywords) ? item.keywords : [])].join(' ').toLowerCase();
+        
+        searchTerms.forEach((term: string) => {
+          // Title matches get highest score
+          if (item.title.toLowerCase().includes(term)) relevance += 10;
+          // Keyword matches get high score
+          if (Array.isArray(item.keywords) && item.keywords.some((keyword: string) => keyword.toLowerCase().includes(term))) relevance += 8;
+          // Excerpt matches get medium score
+          if (item.excerpt.toLowerCase().includes(term)) relevance += 5;
+          // Full text matches get low score
+          if (item.fullText.toLowerCase().includes(term)) relevance += 2;
+        });
+        
+        return { ...item, relevance: relevance / 100 };
+      }).sort((a: any, b: any) => b.relevance - a.relevance);
+      
+      // Group by category
+      const categories: { [key: string]: number } = {};
+      scoredResults.forEach((result: any) => {
+        const type = result.type as string;
+        if (!categories[type]) categories[type] = 0;
+        categories[type]++;
+      });
+      
+      const searchResults = {
+        query: query,
+        totalResults: scoredResults.length,
+        categories,
+        results: scoredResults.slice(0, 20) // Limit to top 20 results
+      };
+      
+      res.json(searchResults);
+    } catch (error) {
+      console.error("Error performing legal search:", error);
+      res.status(500).json({ message: "Failed to perform legal search" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

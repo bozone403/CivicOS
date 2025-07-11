@@ -338,7 +338,7 @@ async function scrapeMunicipalOfficials(city: string): Promise<GovernmentOfficia
     
     return officials;
   } catch (error) {
-    console.log(`Failed to scrape ${city}:`, error instanceof Error ? error : String(error));
+    console.log(`Failed to scrape ${city}:`, error instanceof Error ? error.message : String(error));
     return [];
   }
 }

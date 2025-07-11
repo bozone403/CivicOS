@@ -380,6 +380,8 @@ Analyze this using the government data provided. Be direct and factual. If polit
     const analysisType = this.determineAnalysisType(query);
     const confidence = this.calculateConfidence(data);
     const sources = this.extractSources(data);
+    const truthScore = this.calculateTruthScore(query, response.choices[0].message.content || '');
+    const propagandaRisk = this.assessPropagandaRisk(query);
 
     const responseText = response.choices[0].message.content || 'Analysis failed';
 
@@ -388,6 +390,8 @@ Analyze this using the government data provided. Be direct and factual. If polit
       analysisType,
       confidence,
       sources,
+      truthScore,
+      propagandaRisk,
       relatedData: {
         bills: data.bills.slice(0, 5),
         politicians: data.politicians.slice(0, 5),

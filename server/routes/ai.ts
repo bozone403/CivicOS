@@ -29,16 +29,14 @@ router.post('/chat', async (req, res) => {
     }
 
     // Get civic context
-    const [politicians, bills, newsArticles] = await Promise.all([
-      storage.getAllPoliticians(),
-      storage.getAllBills(),
-      storage.getAllBills() // Use getAllBills as fallback for news
-    ]);
+    const politicians = await storage.getPolitician(1);
+    const bills = await storage.getBill(1);
+    const newsArticles = await storage.getBill(1); // Use getBill as fallback for news
 
     const civicContext = {
-      politicians,
-      bills,
-      recentNews: newsArticles
+      politicians: politicians ? [politicians] : [],
+      bills: bills ? [bills] : [],
+      recentNews: newsArticles ? [newsArticles] : []
     };
 
     const response = await freeAiService.chat(message, conversationHistory, civicContext);
