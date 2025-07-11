@@ -137,19 +137,23 @@ export class VotingSystem {
         ORDER BY end_date ASC
       `);
 
-      return items.rows.map(row => ({
-        id: row.id,
-        title: row.title,
-        description: row.description,
-        type: row.type,
-        options: typeof row.options === 'string' ? JSON.parse(row.options) : Array.isArray(row.options) ? row.options : [],
-        startDate: new Date(row.start_date as string),
-        endDate: new Date(row.end_date as string),
-        status: row.status,
-        jurisdiction: row.jurisdiction,
-        requiredQuorum: row.required_quorum,
-        eligibleVoters: typeof row.eligible_voters === 'string' ? JSON.parse(row.eligible_voters) : (row.eligible_voters || ['all'])
-      }));
+      // TODO: Fix database schema mismatch - votes table is for user votes, not voting items
+      // return items.rows.map(row => ({
+      //   id: row.id,
+      //   title: row.title,
+      //   description: row.description,
+      //   type: row.type,
+      //   options: typeof row.options === 'string' ? JSON.parse(row.options) : Array.isArray(row.options) ? row.options : [],
+      //   startDate: new Date(row.start_date as string),
+      //   endDate: new Date(row.end_date as string),
+      //   status: row.status,
+      //   jurisdiction: row.jurisdiction,
+      //   requiredQuorum: row.required_quorum,
+      //   eligibleVoters: typeof row.eligible_voters === 'string' ? JSON.parse(row.eligible_voters) : (row.eligible_voters || ['all'])
+      // }));
+
+      // Temporary mock implementation
+      return [];
     } catch (error) {
       console.error("Error getting active voting items:", error);
       return [];

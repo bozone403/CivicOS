@@ -249,7 +249,7 @@ Provide comprehensive analysis in JSON format with these fields:
         url: article.url,
         publishedAt: article.publishedAt,
         credibilityScore: article.credibilityScore.toString(),
-        sentimentScore: article.sentimentScore.toString(),
+        sentimentScore: article.sentimentScore,
         bias: article.biasRating,
         keyTopics: article.keyTopics,
         publicImpact: article.publicImpact,

@@ -642,7 +642,7 @@ export class ComprehensiveGovernmentScraper {
       });
 
     } catch (error) {
-      console.error(`Error scraping votes from ${source.name}:`, error.message);
+      console.error(`Error scraping votes from ${source.name}:`, (error as Error).message);
     }
 
     return votes;
@@ -692,7 +692,7 @@ export class ComprehensiveGovernmentScraper {
       });
 
     } catch (error) {
-      console.error(`Error scraping committees from ${source.name}:`, error.message);
+      console.error(`Error scraping committees from ${source.name}:`, (error as Error).message);
     }
 
     return committees;
@@ -739,7 +739,7 @@ export class ComprehensiveGovernmentScraper {
       });
 
     } catch (error) {
-      console.error(`Error scraping elections from ${source.name}:`, error.message);
+      console.error(`Error scraping elections from ${source.name}:`, (error as Error).message);
     }
 
     return elections;
@@ -768,7 +768,7 @@ export class ComprehensiveGovernmentScraper {
       console.log(`💾 Stored data from ${source.name}: ${data.politicians.length} politicians, ${data.bills.length} bills, ${data.votes.length} votes`);
 
     } catch (error) {
-      console.error(`Error storing data from ${source.name}:`, error.message);
+      console.error(`Error storing data from ${source.name}:`, (error as Error).message);
     }
   }
 
