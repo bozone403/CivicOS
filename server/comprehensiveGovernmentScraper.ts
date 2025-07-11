@@ -652,7 +652,15 @@ export class ComprehensiveGovernmentScraper {
    * Scrape committee data
    */
   private async scrapeCommittees(source: DataSource): Promise<any[]> {
-    const committees = [];
+    const committees: Array<{
+      name: string;
+      type?: string;
+      chair?: string;
+      members: string;
+      jurisdiction: string;
+      level: string;
+      url?: string;
+    }> = [];
     
     try {
       const url = `${source.baseUrl}${source.endpoints.committees}`;
@@ -702,7 +710,14 @@ export class ComprehensiveGovernmentScraper {
    * Scrape election data
    */
   private async scrapeElections(source: DataSource): Promise<any[]> {
-    const elections = [];
+    const elections: Array<{
+      name: string;
+      date: string;
+      type: string;
+      jurisdiction: string;
+      level: string;
+      resultsUrl: string;
+    }> = [];
     
     try {
       const url = `${source.baseUrl}${source.endpoints.results || source.endpoints.elections}`;
