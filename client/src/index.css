@@ -1,0 +1,294 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Playfair+Display:wght@400;500;600;700&family=JetBrains+Mono:wght@300;400;500&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Custom scrollbar styles */
+.scrollable {
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 transparent;
+}
+
+.scrollable::-webkit-scrollbar {
+  width: 6px;
+}
+
+.scrollable::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.scrollable::-webkit-scrollbar-thumb {
+  background-color: #cbd5e1;
+  border-radius: 3px;
+}
+
+.scrollable::-webkit-scrollbar-thumb:hover {
+  background-color: #94a3b8;
+}
+
+.dark .scrollable {
+  scrollbar-color: #475569 transparent;
+}
+
+.dark .scrollable::-webkit-scrollbar-thumb {
+  background-color: #475569;
+}
+
+.dark .scrollable::-webkit-scrollbar-thumb:hover {
+  background-color: #64748b;
+}
+
+:root {
+  /* Professional Dominion Theme - Light */
+  --background: hsl(210, 17%, 98%);
+  --foreground: hsl(215, 25%, 8%);
+  --muted: hsl(210, 13%, 93%);
+  --muted-foreground: hsl(215, 13%, 45%);
+  --popover: hsl(210, 17%, 98%);
+  --popover-foreground: hsl(215, 25%, 8%);
+  --card: hsl(210, 17%, 98%);
+  --card-foreground: hsl(215, 25%, 8%);
+  --border: hsl(215, 15%, 85%);
+  --input: hsl(215, 15%, 85%);
+  --primary: hsl(215, 25%, 27%);
+  --primary-foreground: hsl(210, 17%, 98%);
+  --secondary: hsl(210, 13%, 93%);
+  --secondary-foreground: hsl(210, 15%, 15%);
+  --accent: hsl(35, 45%, 55%);
+  --accent-foreground: hsl(215, 25%, 8%);
+  --destructive: hsl(0, 65%, 48%);
+  --destructive-foreground: hsl(210, 17%, 98%);
+  --ring: hsl(215, 25%, 27%);
+  --radius: 0.5rem;
+  
+  /* Political Brand Colors */
+  --civic-blue: hsl(220, 91%, 51%);
+  --civic-green: hsl(142, 86%, 28%);
+  --civic-red: hsl(0, 84%, 60%);
+  --civic-gold: hsl(45, 93%, 58%);
+  --civic-purple: hsl(259, 94%, 51%);
+  --civic-gray: hsl(210, 11%, 25%);
+  
+  /* Trust Score Colors */
+  --trust-high: hsl(142, 86%, 28%);
+  --trust-medium: hsl(45, 93%, 58%);
+  --trust-low: hsl(0, 84%, 60%);
+  
+  /* Party Colors */
+  --liberal-red: hsl(0, 73%, 41%);
+  --conservative-blue: hsl(220, 91%, 51%);
+  --ndp-orange: hsl(24, 100%, 50%);
+  --bloc-cyan: hsl(195, 53%, 79%);
+  --green-party: hsl(142, 86%, 28%);
+}
+
+.dark {
+  /* Professional Dominion Theme - Dark */
+  --background: hsl(215, 30%, 6%);
+  --foreground: hsl(210, 17%, 95%);
+  --muted: hsl(215, 20%, 12%);
+  --muted-foreground: hsl(215, 13%, 65%);
+  --popover: hsl(215, 25%, 8%);
+  --popover-foreground: hsl(210, 17%, 95%);
+  --card: hsl(215, 25%, 8%);
+  --card-foreground: hsl(210, 17%, 95%);
+  --border: hsl(215, 20%, 18%);
+  --input: hsl(215, 20%, 18%);
+  --primary: hsl(210, 17%, 85%);
+  --primary-foreground: hsl(215, 30%, 6%);
+  --secondary: hsl(215, 20%, 12%);
+  --secondary-foreground: hsl(210, 17%, 95%);
+  --accent: hsl(35, 55%, 65%);
+  --accent-foreground: hsl(215, 30%, 6%);
+  --destructive: hsl(0, 65%, 55%);
+  --destructive-foreground: hsl(210, 17%, 95%);
+  --ring: hsl(210, 17%, 85%);
+  --radius: 0.5rem;
+  
+  /* Enhanced dark luxury colors */
+  --civic-blue: hsl(220, 91%, 51%);
+  --civic-green: hsl(142, 86%, 28%);
+  --civic-red: hsl(0, 84%, 60%);
+  --civic-gold: hsl(45, 93%, 58%);
+  --civic-purple: hsl(259, 94%, 51%);
+  --civic-gray: hsl(210, 11%, 71%);
+  
+  /* Trust Score Colors - Dark Mode */
+  --trust-high: hsl(142, 86%, 35%);
+  --trust-medium: hsl(45, 93%, 65%);
+  --trust-low: hsl(0, 84%, 65%);
+  
+  /* Party Colors - Dark Mode */
+  --liberal-red: hsl(0, 73%, 50%);
+  --conservative-blue: hsl(220, 91%, 60%);
+  --ndp-orange: hsl(24, 100%, 60%);
+  --bloc-cyan: hsl(195, 53%, 85%);
+  --green-party: hsl(142, 86%, 35%);
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply antialiased bg-background text-foreground;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+    font-variation-settings: 'opsz' 14;
+    background: linear-gradient(135deg, hsl(var(--background)) 0%, hsl(210 20% 96%) 100%);
+    min-height: 100vh;
+  }
+  
+  .dark body {
+    background: linear-gradient(135deg, hsl(var(--background)) 0%, hsl(215 25% 8%) 100%);
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Playfair Display', Georgia, serif;
+    font-weight: 600;
+    letter-spacing: -0.025em;
+  }
+  
+  code, pre, .font-mono {
+    font-family: 'JetBrains Mono', 'Fira Code', 'Monaco', 'Consolas', monospace;
+    font-feature-settings: 'liga' 1, 'calt' 1;
+  }
+  
+  .text-luxury {
+    font-family: 'Playfair Display', Georgia, serif;
+    font-weight: 500;
+    letter-spacing: -0.01em;
+  }
+  
+  .text-political {
+    font-family: 'Inter', sans-serif;
+    font-weight: 500;
+    letter-spacing: -0.015em;
+  }
+
+  /* Consistent Typography Hierarchy */
+  h1 {
+    @apply text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight;
+  }
+
+  h2 {
+    @apply text-3xl md:text-4xl lg:text-5xl font-semibold tracking-tight;
+  }
+
+  h3 {
+    @apply text-2xl md:text-3xl lg:text-4xl font-semibold;
+  }
+
+  h4 {
+    @apply text-xl md:text-2xl lg:text-3xl font-medium;
+  }
+
+  h5 {
+    @apply text-lg md:text-xl lg:text-2xl font-medium;
+  }
+
+  h6 {
+    @apply text-base md:text-lg lg:text-xl font-medium;
+  }
+
+  p {
+    @apply text-base md:text-lg leading-relaxed;
+  }
+
+  .responsive-text-sm {
+    @apply text-sm md:text-base;
+  }
+
+  .responsive-text-xs {
+    @apply text-xs md:text-sm;
+  }
+}
+
+@layer utilities {
+  /* Political Brand Colors */
+  .civic-blue { color: var(--civic-blue); }
+  .bg-civic-blue { background-color: var(--civic-blue); }
+  .border-civic-blue { border-color: var(--civic-blue); }
+  
+  .civic-green { color: var(--civic-green); }
+  .bg-civic-green { background-color: var(--civic-green); }
+  .border-civic-green { border-color: var(--civic-green); }
+  
+  .civic-red { color: var(--civic-red); }
+  .bg-civic-red { background-color: var(--civic-red); }
+  .border-civic-red { border-color: var(--civic-red); }
+  
+  .civic-gold { color: var(--civic-gold); }
+  .bg-civic-gold { background-color: var(--civic-gold); }
+  .border-civic-gold { border-color: var(--civic-gold); }
+  
+  .civic-purple { color: var(--civic-purple); }
+  .bg-civic-purple { background-color: var(--civic-purple); }
+  .border-civic-purple { border-color: var(--civic-purple); }
+  
+  .civic-gray { color: var(--civic-gray); }
+  .bg-civic-gray { background-color: var(--civic-gray); }
+  .border-civic-gray { border-color: var(--civic-gray); }
+  
+  /* Trust Score Indicators */
+  .trust-high { color: var(--trust-high); }
+  .bg-trust-high { background-color: var(--trust-high); }
+  .trust-medium { color: var(--trust-medium); }
+  .bg-trust-medium { background-color: var(--trust-medium); }
+  .trust-low { color: var(--trust-low); }
+  .bg-trust-low { background-color: var(--trust-low); }
+  
+  /* Party Colors */
+  .liberal-red { color: var(--liberal-red); }
+  .bg-liberal-red { background-color: var(--liberal-red); }
+  .conservative-blue { color: var(--conservative-blue); }
+  .bg-conservative-blue { background-color: var(--conservative-blue); }
+  .ndp-orange { color: var(--ndp-orange); }
+  .bg-ndp-orange { background-color: var(--ndp-orange); }
+  .bloc-cyan { color: var(--bloc-cyan); }
+  .bg-bloc-cyan { background-color: var(--bloc-cyan); }
+  .green-party { color: var(--green-party); }
+  .bg-green-party { background-color: var(--green-party); }
+  
+  /* Luxury glass morphism effects */
+  .glass-card {
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+  }
+  
+  /* Premium gradients */
+  .gradient-liberal { background: linear-gradient(135deg, #DC143C 0%, #8B0000 100%); }
+  .gradient-conservative { background: linear-gradient(135deg, #0066CC 0%, #003366 100%); }
+  .gradient-ndp { background: linear-gradient(135deg, #FF6600 0%, #CC3300 100%); }
+  .gradient-bloc { background: linear-gradient(135deg, #87CEEB 0%, #4682B4 100%); }
+  .gradient-green { background: linear-gradient(135deg, #228B22 0%, #006400 100%); }
+  
+  /* Luxury animations */
+  .fade-in-up {
+    animation: fadeInUp 0.6s ease-out;
+  }
+  
+  @keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(30px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  
+  .pulse-glow {
+    animation: pulseGlow 2s infinite;
+  }
+  
+  @keyframes pulseGlow {
+    0%, 100% { box-shadow: 0 0 5px rgba(34, 139, 34, 0.5); }
+    50% { box-shadow: 0 0 20px rgba(34, 139, 34, 0.8); }
+  }
+}
+
+/* Premium scrollbars */
+::-webkit-scrollbar { width: 8px; }
+::-webkit-scrollbar-track { background: hsl(var(--background)); }
+::-webkit-scrollbar-thumb { background: hsl(var(--primary)); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: hsl(var(--accent)); }
