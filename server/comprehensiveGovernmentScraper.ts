@@ -381,8 +381,32 @@ export class ComprehensiveGovernmentScraper {
   /**
    * Scrape politician data from government source
    */
-  private async scrapePoliticians(source: DataSource): Promise<any[]> {
-    const politicians = [];
+  private async scrapePoliticians(source: DataSource): Promise<Array<{
+    name: string;
+    position: string;
+    party: string;
+    constituency: string;
+    level: string;
+    jurisdiction: string;
+    email?: string;
+    phone?: string;
+    office?: string;
+    profileUrl?: string;
+    imageUrl?: string;
+  }>> {
+    const politicians: Array<{
+      name: string;
+      position: string;
+      party: string;
+      constituency: string;
+      level: string;
+      jurisdiction: string;
+      email?: string;
+      phone?: string;
+      office?: string;
+      profileUrl?: string;
+      imageUrl?: string;
+    }> = [];
     
     try {
       const url = `${source.baseUrl}${source.endpoints.members || source.endpoints.deputies || source.endpoints.senators}`;
@@ -460,8 +484,30 @@ export class ComprehensiveGovernmentScraper {
   /**
    * Scrape bills and legislation data
    */
-  private async scrapeBills(source: DataSource): Promise<any[]> {
-    const bills = [];
+  private async scrapeBills(source: DataSource): Promise<Array<{
+    billNumber: string;
+    title: string;
+    status?: string;
+    type?: string;
+    sponsor?: string;
+    dateIntroduced?: string;
+    summary?: string;
+    jurisdiction: string;
+    level: string;
+    sourceUrl?: string;
+  }>> {
+    const bills: Array<{
+      billNumber: string;
+      title: string;
+      status?: string;
+      type?: string;
+      sponsor?: string;
+      dateIntroduced?: string;
+      summary?: string;
+      jurisdiction: string;
+      level: string;
+      sourceUrl?: string;
+    }> = [];
     
     try {
       const url = `${source.baseUrl}${source.endpoints.bills}`;
@@ -517,7 +563,7 @@ export class ComprehensiveGovernmentScraper {
       });
 
     } catch (error) {
-      console.error(`Error scraping bills from ${source.name}:`, error.message);
+      console.error(`Error scraping bills from ${source.name}:`, (error as Error).message);
     }
 
     return bills;
@@ -526,8 +572,28 @@ export class ComprehensiveGovernmentScraper {
   /**
    * Scrape voting records
    */
-  private async scrapeVotingRecords(source: DataSource): Promise<any[]> {
-    const votes = [];
+  private async scrapeVotingRecords(source: DataSource): Promise<Array<{
+    billNumber?: string;
+    voteDate?: string;
+    voteType?: string;
+    result?: string;
+    yesVotes: number;
+    noVotes: number;
+    abstentions: number;
+    jurisdiction: string;
+    level: string;
+  }>> {
+    const votes: Array<{
+      billNumber?: string;
+      voteDate?: string;
+      voteType?: string;
+      result?: string;
+      yesVotes: number;
+      noVotes: number;
+      abstentions: number;
+      jurisdiction: string;
+      level: string;
+    }> = [];
     
     try {
       const url = `${source.baseUrl}${source.endpoints.votes}`;

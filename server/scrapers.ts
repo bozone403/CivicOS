@@ -24,6 +24,10 @@ export interface ParliamentMember {
   province: string;
   email?: string;
   website?: string;
+  position?: string;
+  trustScore?: number;
+  sovereigntyLean?: string;
+  connections?: string[];
 }
 
 export interface LegislativeBill {

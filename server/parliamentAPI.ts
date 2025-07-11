@@ -29,7 +29,19 @@ export class ParliamentAPIService {
       const html = await response.text();
       const $ = cheerio.load(html);
       
-      const mps = [];
+      const mps: Array<{
+        name: string;
+        party: string;
+        constituency: string;
+        email?: string;
+        phone?: string;
+        website?: string;
+        province?: string;
+        position?: string;
+        level?: string;
+        jurisdiction?: string;
+        source?: string;
+      }> = [];
       
       // Parse MP data from official Parliament structure
       $('.ce-mip-mp-tile').each((index, element) => {
@@ -88,7 +100,15 @@ export class ParliamentAPIService {
       const html = await response.text();
       const $ = cheerio.load(html);
       
-      const bills = [];
+      const bills: Array<{
+        billNumber: string;
+        title: string;
+        status: string;
+        sponsor: string;
+        summary?: string;
+        jurisdiction?: string;
+        source?: string;
+      }> = [];
       
       // Parse bill data from LEGISinfo structure
       $('.bill-item').each((index, element) => {
@@ -102,8 +122,9 @@ export class ParliamentAPIService {
         if (title && number) {
           bills.push({
             title,
-            bill_number: number,
+            billNumber: number,
             status: status.toLowerCase(),
+            sponsor: 'Unknown', // Default sponsor since not available in scraping
             summary,
             jurisdiction: 'federal',
             source: 'LEGISinfo Official'
@@ -140,7 +161,7 @@ export class ParliamentAPIService {
       `);
     } catch (error) {
       // Ignore duplicate entries to prevent conflicts
-      if (!error.message?.includes('duplicate key')) {
+      if (!(error as Error).message?.includes('duplicate key')) {
         console.error("Error storing MP data:", error);
       }
     }

@@ -248,14 +248,12 @@ Provide comprehensive analysis in JSON format with these fields:
         author: article.author,
         url: article.url,
         publishedAt: article.publishedAt,
-        credibilityScore: article.credibilityScore,
-        sentimentScore: article.sentimentScore,
-        biasRating: article.biasRating,
-        keyTopics: JSON.stringify(article.keyTopics),
-        politicalImpact: article.politicalImpact,
-        factCheck: article.factCheck,
-        summary: article.summary,
-        publicImpact: article.publicImpact
+        credibilityScore: article.credibilityScore.toString(),
+        sentimentScore: article.sentimentScore.toString(),
+        bias: article.biasRating,
+        keyTopics: article.keyTopics,
+        publicImpact: article.publicImpact,
+        summary: article.summary
       });
     } catch (error) {
       console.error("Error storing article:", error);
@@ -304,7 +302,7 @@ Provide comprehensive analysis in JSON format with these fields:
       }
 
       const totalArticles = articles.length;
-      const averageCredibility = articles.reduce((sum, a) => sum + (a.credibilityScore || 0), 0) / totalArticles;
+      const averageCredibility = articles.reduce((sum, a) => sum + (Number(a.credibilityScore) || 0), 0) / totalArticles;
       const averageSentiment = articles.reduce((sum, a) => sum + (a.sentimentScore || 0), 0) / totalArticles;
 
       // Source distribution
@@ -337,7 +335,7 @@ Provide comprehensive analysis in JSON format with these fields:
       // Bias distribution
       const biasMap = new Map();
       articles.forEach(article => {
-        const bias = article.biasRating || 'center';
+        const bias = article.bias || 'center';
         biasMap.set(bias, (biasMap.get(bias) || 0) + 1);
       });
       const biasDistribution = Array.from(biasMap.entries()).map(([bias, count]) => ({
