@@ -1651,6 +1651,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         last_name: comment.last_name,
         email: comment.email,
         profile_image_url: comment.profile_image_url,
+        author: comment.author,
         replies: comment.replies || []
       }));
       console.log('Returning', cleanedComments.length, 'clean comments. First comment author_id:', cleanedComments[0]?.author_id);
