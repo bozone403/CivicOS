@@ -97,7 +97,7 @@ export default function IdentityVerification() {
             </AlertDescription>
           </Alert>
           
-          <CanadianAuthWidget onVerified={handleVerificationComplete} />
+          <CanadianAuthWidget />
           
           {/* Temporary Verification Button */}
           <div className="mt-6 pt-6 border-t">

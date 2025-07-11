@@ -65,17 +65,17 @@ export function LegalSystemWidget() {
   const [activeTab, setActiveTab] = useState("criminal");
   const [isInitializing, setIsInitializing] = useState(false);
 
-  const { data: criminalCode, isLoading: loadingCriminal } = useQuery({
+  const { data: criminalCode, isLoading: loadingCriminal } = useQuery<CriminalCodeSection[]>({
     queryKey: ["/api/legal/criminal-code"],
     staleTime: 5 * 60 * 1000,
   });
 
-  const { data: legalHierarchy, isLoading: loadingHierarchy } = useQuery({
+  const { data: legalHierarchy, isLoading: loadingHierarchy } = useQuery<LegalHierarchy | undefined>({
     queryKey: ["/api/legal/hierarchy"],
     staleTime: 10 * 60 * 1000,
   });
 
-  const { data: searchResults, isLoading: loadingSearch } = useQuery({
+  const { data: searchResults, isLoading: loadingSearch } = useQuery<CriminalCodeSection[] | undefined>({
     queryKey: ["/api/legal/search", searchQuery],
     enabled: searchQuery.length > 2,
     staleTime: 30 * 1000,
@@ -111,12 +111,14 @@ export function LegalSystemWidget() {
     return "outline";
   };
 
-  const filteredCriminalCode = Array.isArray(criminalCode) ? criminalCode.filter((section: CriminalCodeSection) =>
-    searchQuery.length < 3 || 
-    section.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    section.content.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (section.offense && section.offense.toLowerCase().includes(searchQuery.toLowerCase()))
-  ) : [];
+  const filteredCriminalCode = Array.isArray(criminalCode)
+    ? criminalCode.filter((section: CriminalCodeSection) =>
+        searchQuery.length < 3 ||
+        section.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        section.content.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (section.offense && section.offense.toLowerCase().includes(searchQuery.toLowerCase()))
+      )
+    : [];
 
   return (
     <Card className="w-full">
@@ -236,46 +238,47 @@ export function LegalSystemWidget() {
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {legalHierarchy?.federal?.constitutional?.slice(0, 10).map((act: LegalAct) => (
-                    <div key={act.id} className="border rounded-lg p-4 space-y-2">
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-1">
-                            <Badge variant="outline">{act.actNumber}</Badge>
-                            <Badge variant="secondary">{act.category}</Badge>
-                            <Badge variant={act.status === "In Force" ? "default" : "secondary"}>
-                              {act.status}
-                            </Badge>
+                  {legalHierarchy?.federal?.constitutional && Array.isArray(legalHierarchy.federal.constitutional) &&
+                    legalHierarchy.federal.constitutional.slice(0, 10).map((act: LegalAct) => (
+                      <div key={act.id} className="border rounded-lg p-4 space-y-2">
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-1">
+                              <Badge variant="outline">{act.actNumber}</Badge>
+                              <Badge variant="secondary">{act.category}</Badge>
+                              <Badge variant={act.status === "In Force" ? "default" : "secondary"}>
+                                {act.status}
+                              </Badge>
+                            </div>
+                            <h4 className="font-semibold text-sm">{act.title}</h4>
+                            {act.shortTitle && act.shortTitle !== act.title && (
+                              <p className="text-xs text-muted-foreground">({act.shortTitle})</p>
+                            )}
                           </div>
-                          <h4 className="font-semibold text-sm">{act.title}</h4>
-                          {act.shortTitle && act.shortTitle !== act.title && (
-                            <p className="text-xs text-muted-foreground">({act.shortTitle})</p>
-                          )}
                         </div>
+                        
+                        {act.summary && (
+                          <p className="text-xs text-muted-foreground line-clamp-2">
+                            {act.summary}
+                          </p>
+                        )}
+                        
+                        {act.keyProvisions && act.keyProvisions.length > 0 && (
+                          <div className="flex flex-wrap gap-1">
+                            {act.keyProvisions.slice(0, 3).map((provision, index) => (
+                              <Badge key={index} variant="outline" className="text-xs">
+                                {provision}
+                              </Badge>
+                            ))}
+                            {act.keyProvisions.length > 3 && (
+                              <Badge variant="outline" className="text-xs">
+                                +{act.keyProvisions.length - 3} more
+                              </Badge>
+                            )}
+                          </div>
+                        )}
                       </div>
-                      
-                      {act.summary && (
-                        <p className="text-xs text-muted-foreground line-clamp-2">
-                          {act.summary}
-                        </p>
-                      )}
-                      
-                      {act.keyProvisions && act.keyProvisions.length > 0 && (
-                        <div className="flex flex-wrap gap-1">
-                          {act.keyProvisions.slice(0, 3).map((provision, index) => (
-                            <Badge key={index} variant="outline" className="text-xs">
-                              {provision}
-                            </Badge>
-                          ))}
-                          {act.keyProvisions.length > 3 && (
-                            <Badge variant="outline" className="text-xs">
-                              +{act.keyProvisions.length - 3} more
-                            </Badge>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  ))}
+                    ))}
                 </div>
               )}
             </ScrollArea>
@@ -303,7 +306,9 @@ export function LegalSystemWidget() {
                     <div className="border rounded-lg p-3">
                       <h4 className="font-semibold text-sm mb-2">Criminal Law</h4>
                       <p className="text-xs text-muted-foreground mb-2">
-                        {legalHierarchy?.federal?.criminal?.length || 0} sections
+                        {legalHierarchy?.federal?.criminal && Array.isArray(legalHierarchy.federal.criminal)
+                          ? legalHierarchy.federal.criminal.length
+                          : 0} sections
                       </p>
                       <div className="text-xs space-y-1">
                         <div>• General Principles</div>
@@ -316,7 +321,9 @@ export function LegalSystemWidget() {
                     <div className="border rounded-lg p-3">
                       <h4 className="font-semibold text-sm mb-2">Constitutional Law</h4>
                       <p className="text-xs text-muted-foreground mb-2">
-                        {legalHierarchy?.federal?.constitutional?.length || 0} acts
+                        {legalHierarchy?.federal?.constitutional && Array.isArray(legalHierarchy.federal.constitutional)
+                          ? legalHierarchy.federal.constitutional.length
+                          : 0} acts
                       </p>
                       <div className="text-xs space-y-1">
                         <div>• Constitution Act, 1867</div>
@@ -329,7 +336,9 @@ export function LegalSystemWidget() {
                     <div className="border rounded-lg p-3">
                       <h4 className="font-semibold text-sm mb-2">Administrative Law</h4>
                       <p className="text-xs text-muted-foreground mb-2">
-                        {legalHierarchy?.federal?.administrative?.length || 0} acts
+                        {legalHierarchy?.federal?.administrative && Array.isArray(legalHierarchy.federal.administrative)
+                          ? legalHierarchy.federal.administrative.length
+                          : 0} acts
                       </p>
                       <div className="text-xs space-y-1">
                         <div>• Health Canada Acts</div>
@@ -342,7 +351,9 @@ export function LegalSystemWidget() {
                     <div className="border rounded-lg p-3">
                       <h4 className="font-semibold text-sm mb-2">Regulatory Law</h4>
                       <p className="text-xs text-muted-foreground mb-2">
-                        {legalHierarchy?.federal?.regulatory?.length || 0} acts
+                        {legalHierarchy?.federal?.regulatory && Array.isArray(legalHierarchy.federal.regulatory)
+                          ? legalHierarchy.federal.regulatory.length
+                          : 0} acts
                       </p>
                       <div className="text-xs space-y-1">
                         <div>• Competition Act</div>

@@ -9,23 +9,34 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { useQuery } from "@tanstack/react-query";
 import { Search, Scale, FileText, Gavel, Calendar, MapPin, ExternalLink } from "lucide-react";
 
-export default function LegalSearchPage() {
+// Add types
+interface LegalAct {
+  id: number;
+  // ...other fields
+}
+interface LegalCase {
+  id: number;
+  // ...other fields
+}
+interface SearchResults {
+  length: number;
+  map: Function;
+  // ...other fields
+}
+
+export default function LegalSearch() {
   const [searchQuery, setSearchQuery] = useState("");
   const [searchType, setSearchType] = useState("all");
   const [jurisdiction, setJurisdiction] = useState("all");
 
-  const { data: searchResults = [], isLoading } = useQuery({
-    queryKey: ['/api/search', searchQuery, searchType, jurisdiction],
-    enabled: searchQuery.length > 2,
-    refetchOnWindowFocus: false
+  const { data: searchResults = [] } = useQuery<SearchResults>({
+    queryKey: ['/api/legal/search'],
   });
-
-  const { data: legalActs = [] } = useQuery({
+  const { data: legalActs = [] } = useQuery<LegalAct[]>({
     queryKey: ['/api/legal/acts'],
     refetchInterval: 300000 // 5 minutes
   });
-
-  const { data: legalCases = [] } = useQuery({
+  const { data: legalCases = [] } = useQuery<LegalCase[]>({
     queryKey: ['/api/legal/cases'],
     refetchInterval: 300000
   });
@@ -109,15 +120,15 @@ export default function LegalSearchPage() {
             <CardHeader>
               <CardTitle>Search Results</CardTitle>
               <CardDescription>
-                {isLoading ? "Searching..." : `Found ${searchResults.length} results for "${searchQuery}"`}
+                {/* isLoading ? "Searching..." : `Found ${searchResults.length} results for "${searchQuery}"` */}
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {isLoading ? (
+              {/* isLoading ? (
                 <div className="flex items-center justify-center py-8">
                   <div className="w-8 h-8 border-4 border-slate-300 border-t-slate-600 rounded-full animate-spin"></div>
                 </div>
-              ) : (
+              ) : ( */}
                 <ScrollArea className="h-96">
                   <div className="space-y-4">
                     {searchResults.map((result: any, index: number) => (
@@ -152,7 +163,7 @@ export default function LegalSearchPage() {
                     )}
                   </div>
                 </ScrollArea>
-              )}
+              {/* ) */}
             </CardContent>
           </Card>
         )}

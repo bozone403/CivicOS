@@ -9,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Lock, Mail, Shield, User, Crown } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import canadianCrest from "@assets/ChatGPT Image Jun 20, 2025, 06_03_54 PM_1750464244456.png";
+import canadianCrest from "../../../attached_assets/ChatGPT Image Jun 20, 2025, 06_03_54 PM_1750464244456.png";
 
 export default function Auth() {
   const [loginData, setLoginData] = useState({ email: "", password: "" });

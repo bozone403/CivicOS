@@ -18,6 +18,7 @@ import multer from "multer";
 import { users } from "@shared/schema";
 import { randomBytes } from "crypto";
 
+
 // Configure multer for profile picture uploads
 const storage_multer = multer.memoryStorage();
 const upload = multer({
@@ -240,7 +241,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           achievement_tier: "silver",
           engagement_level: "active",
           trust_score: "78.5",
-          created_at: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
+          created_at: "2025-05-28.basil",
           updated_at: new Date().toISOString()
         },
         interactions: [
@@ -1736,11 +1737,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const originalContent = comment.rows[0].content;
       const currentEditCount = typeof comment.rows[0].edit_count === 'number' ? comment.rows[0].edit_count : 0;
+      const newEditCount = currentEditCount + 1;
 
       // Save original content to edit history
       await db.execute(sql`
         INSERT INTO comment_edit_history (comment_id, original_content, edit_number)
-        VALUES (${commentId}, ${originalContent}, ${currentEditCount + 1})
+        VALUES (${commentId}, ${originalContent}, ${newEditCount})
       `);
 
       // Update the comment
@@ -1748,14 +1750,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         UPDATE comments 
         SET content = ${content.trim()}, 
             is_edited = true, 
-            edit_count = ${currentEditCount + 1},
+            edit_count = ${newEditCount},
             last_edited_at = NOW()
         WHERE id = ${commentId}
       `);
 
       res.json({ 
         message: "Comment updated successfully",
-        editCount: currentEditCount + 1
+        editCount: newEditCount
       });
     } catch (error) {
       console.error("Error updating comment:", error);
@@ -2734,8 +2736,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Group by category
       const categories: { [key: string]: number } = {};
       scoredResults.forEach((result: any) => {
-        if (!categories[result.type]) categories[result.type] = 0;
-        categories[result.type]++;
+        const type = result.type as string;
+        if (!categories[type]) categories[type] = 0;
+        categories[type]++;
       });
       
       const searchResults = {

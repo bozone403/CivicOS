@@ -43,11 +43,12 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
-import canadianCrest from "@assets/ChatGPT Image Jun 20, 2025, 06_03_54 PM_1750464244456.png";
+import canadianCrest from "../assets/ChatGPT Image Jun 20, 2025, 06_03_54 PM_1750464244456.png";
 
 export function MobileNavigation() {
   const [location] = useLocation();
-  const { user, logout } = useAuth();
+  const { user: rawUser, logout } = useAuth();
+  const user = rawUser as any;
   const [expandedSections, setExpandedSections] = useState<string[]>(["Democratic Systems"]);
 
   const toggleSection = (sectionTitle: string) => {
@@ -144,17 +145,17 @@ export function MobileNavigation() {
             </div>
             
             {user && (
-              <Link href={`/users/${user.id || 'profile'}`}>
+              <Link href={`/users/${user?.id || 'profile'}`}>
                 <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors cursor-pointer">
                   <div className="flex items-center space-x-3">
                     <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center flex-shrink-0">
                       <span className="text-sm font-medium text-white">
-                        {user.firstName?.[0] || user.email?.[0] || "U"}
+                        {user?.firstName?.[0] || user?.email?.[0] || "U"}
                       </span>
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
-                        {user.firstName || user.email}
+                        {user?.firstName || user?.email}
                       </p>
                       <div className="flex items-center space-x-2">
                         <Badge variant="secondary" className="text-xs bg-blue-100 text-blue-700">

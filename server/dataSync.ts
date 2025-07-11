@@ -77,7 +77,7 @@ export async function syncAllGovernmentData(): Promise<void> {
     
     console.log("Government data sync completed successfully");
   } catch (error) {
-    console.error("Error during government data sync:", error);
+    console.error("Error during government data sync:", error instanceof Error ? error : String(error));
     throw error;
   }
 }
@@ -127,7 +127,8 @@ async function syncProvincialData(): Promise<void> {
         await storeOfficial(official);
       }
     } catch (error) {
-      console.log(`Failed to sync ${province}:`, error);
+      const err = error as Error;
+      console.log(`Failed to sync ${province}:`, err.message);
     }
   }
 }
@@ -149,7 +150,8 @@ async function syncMunicipalData(): Promise<void> {
         await storeOfficial(official);
       }
     } catch (error) {
-      console.log(`Failed to sync ${city}:`, error);
+      const err = error as Error;
+      console.log(`Failed to sync ${city}:`, err.message);
     }
   }
 }
@@ -217,7 +219,7 @@ async function scrapeSenators(): Promise<GovernmentOfficial[]> {
     
     return officials;
   } catch (error) {
-    console.log("Failed to scrape senators:", error);
+    console.log("Failed to scrape senators:", error instanceof Error ? error : String(error));
     return [];
   }
 }
@@ -260,7 +262,7 @@ async function scrapeFederalBills(): Promise<LegislativeBill[]> {
     
     return bills;
   } catch (error) {
-    console.log("Failed to scrape federal bills:", error);
+    console.log("Failed to scrape federal bills:", error instanceof Error ? error : String(error));
     return [];
   }
 }
@@ -299,7 +301,7 @@ async function scrapeProvincialOfficials(province: string): Promise<GovernmentOf
     
     return officials;
   } catch (error) {
-    console.log(`Failed to scrape ${province}:`, error);
+    console.log(`Failed to scrape ${province}:`, error instanceof Error ? error : String(error));
     return [];
   }
 }
@@ -336,7 +338,7 @@ async function scrapeMunicipalOfficials(city: string): Promise<GovernmentOfficia
     
     return officials;
   } catch (error) {
-    console.log(`Failed to scrape ${city}:`, error);
+    console.log(`Failed to scrape ${city}:`, error instanceof Error ? error : String(error));
     return [];
   }
 }
@@ -385,7 +387,7 @@ async function storeBill(bill: LegislativeBill): Promise<void> {
   } catch (error) {
     // Ignore duplicates
     if (!error.message?.includes('duplicate')) {
-      console.log(`Failed to store bill ${bill.number}:`, error);
+      console.log(`Failed to store bill ${bill.number}:`, error instanceof Error ? error : String(error));
     }
   }
 }
@@ -490,14 +492,14 @@ export function initializeDataSync(): void {
   
   // Run initial sync
   syncAllGovernmentData().catch(error => {
-    console.error("Initial data sync failed:", error);
+    console.error("Initial data sync failed:", error instanceof Error ? error : String(error));
   });
   
   // Set up periodic sync (every 24 hours)
   setInterval(() => {
     console.log("Running scheduled government data sync...");
     syncAllGovernmentData().catch(error => {
-      console.error("Scheduled data sync failed:", error);
+      console.error("Scheduled data sync failed:", error instanceof Error ? error : String(error));
     });
   }, 24 * 60 * 60 * 1000); // 24 hours
 }

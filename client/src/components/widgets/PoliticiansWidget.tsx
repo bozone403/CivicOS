@@ -30,7 +30,8 @@ export default function PoliticiansWidget() {
     select: (data) => data.slice(0, 8), // Show latest 8 politicians
   });
 
-  const { data: featuredPolitician } = useQuery({
+  // Use Politician as the generic type for featuredPolitician
+  const { data: featuredPolitician } = useQuery<Politician>({
     queryKey: ['/api/politicians/featured'],
     refetchInterval: 300000, // Refresh every 5 minutes
   });

@@ -24,6 +24,25 @@ import {
 import { useAuth } from "@/hooks/useAuth";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { cn } from "@/lib/utils";
+
+// Add User and Verification types
+interface User {
+  id: string | number;
+  isAdmin?: boolean;
+  // ...other fields
+}
+interface Verification {
+  id?: string | number;
+  status?: string;
+  email?: string;
+  documentNumber?: string;
+  riskScore?: number;
+  submittedAt?: string;
+  documentType?: string;
+  faceMatchScore?: number;
+  // ...other fields
+}
 
 export default function AdminVerificationPage() {
   const { user } = useAuth();
@@ -47,7 +66,7 @@ export default function AdminVerificationPage() {
     );
   }
 
-  const { data: verifications = [], isLoading } = useQuery({
+  const { data: verifications = [], isLoading } = useQuery<Verification[]>({
     queryKey: ["/api/admin/verification-queue"],
     retry: false,
   });
@@ -127,11 +146,11 @@ export default function AdminVerificationPage() {
     );
   };
 
-  const filteredVerifications = verifications.filter((verification: any) => {
-    const matchesTab = selectedTab === "all" || verification.status === selectedTab;
+  const filteredVerifications = verifications.filter((verification: Verification) => {
+    const matchesTab = selectedTab === "all" || verification?.status === selectedTab;
     const matchesSearch = !searchTerm || 
-      verification.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      verification.documentNumber?.toLowerCase().includes(searchTerm.toLowerCase());
+      verification?.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      verification?.documentNumber?.toLowerCase().includes(searchTerm.toLowerCase());
     return matchesTab && matchesSearch;
   });
 
@@ -192,12 +211,12 @@ export default function AdminVerificationPage() {
                         <p className="text-gray-500">No verifications found</p>
                       </div>
                     ) : (
-                      filteredVerifications.map((verification: any) => (
+                      filteredVerifications.map((verification: Verification) => (
                         <Card 
-                          key={verification.id} 
+                          key={verification?.id} 
                           className={cn(
                             "cursor-pointer transition-all hover:shadow-md",
-                            selectedVerification?.id === verification.id && "ring-2 ring-blue-500"
+                            selectedVerification?.id === verification?.id && "ring-2 ring-blue-500"
                           )}
                           onClick={() => setSelectedVerification(verification)}
                         >
@@ -206,22 +225,22 @@ export default function AdminVerificationPage() {
                               <div className="flex-1">
                                 <div className="flex items-center space-x-3 mb-2">
                                   <User className="w-4 h-4 text-gray-400" />
-                                  <span className="font-medium">{verification.email}</span>
-                                  {getStatusBadge(verification.status, verification.riskScore)}
+                                  <span className="font-medium">{verification?.email}</span>
+                                  {getStatusBadge(verification?.status || "", verification?.riskScore || 0)}
                                 </div>
                                 <div className="flex items-center space-x-4 text-sm text-gray-500">
                                   <div className="flex items-center space-x-1">
                                     <Calendar className="w-3 h-3" />
-                                    <span>{new Date(verification.submittedAt).toLocaleDateString()}</span>
+                                    <span>{new Date(verification?.submittedAt || "").toLocaleDateString()}</span>
                                   </div>
                                   <div className="flex items-center space-x-1">
                                     <FileText className="w-3 h-3" />
-                                    <span>{verification.documentType || 'Unknown'}</span>
+                                    <span>{verification?.documentType || 'Unknown'}</span>
                                   </div>
-                                  {verification.faceMatchScore && (
+                                  {verification?.faceMatchScore && (
                                     <div className="flex items-center space-x-1">
                                       <Camera className="w-3 h-3" />
-                                      <span>Match: {verification.faceMatchScore}%</span>
+                                      <span>Match: {verification?.faceMatchScore}%</span>
                                     </div>
                                   )}
                                 </div>
@@ -255,9 +274,9 @@ export default function AdminVerificationPage() {
                 <div>
                   <h4 className="font-medium mb-2">User Information</h4>
                   <div className="space-y-1 text-sm">
-                    <p><strong>Email:</strong> {selectedVerification.email}</p>
-                    <p><strong>Submitted:</strong> {new Date(selectedVerification.submittedAt).toLocaleString()}</p>
-                    <p><strong>IP Address:</strong> {selectedVerification.ipAddress || 'Unknown'}</p>
+                    <p><strong>Email:</strong> {selectedVerification?.email}</p>
+                    <p><strong>Submitted:</strong> {new Date(selectedVerification?.submittedAt || "").toLocaleString()}</p>
+                    <p><strong>IP Address:</strong> {selectedVerification?.ipAddress || 'Unknown'}</p>
                   </div>
                 </div>
 
@@ -266,7 +285,7 @@ export default function AdminVerificationPage() {
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
                       <span className="text-sm">Email Verified</span>
-                      {selectedVerification.emailVerified ? (
+                      {selectedVerification?.emailVerified ? (
                         <CheckCircle className="w-4 h-4 text-green-600" />
                       ) : (
                         <XCircle className="w-4 h-4 text-red-600" />
@@ -274,7 +293,7 @@ export default function AdminVerificationPage() {
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="text-sm">TOTP MFA</span>
-                      {selectedVerification.totpVerified ? (
+                      {selectedVerification?.totpVerified ? (
                         <CheckCircle className="w-4 h-4 text-green-600" />
                       ) : (
                         <XCircle className="w-4 h-4 text-red-600" />
@@ -282,7 +301,7 @@ export default function AdminVerificationPage() {
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="text-sm">Terms Agreed</span>
-                      {selectedVerification.termsAgreed ? (
+                      {selectedVerification?.termsAgreed ? (
                         <CheckCircle className="w-4 h-4 text-green-600" />
                       ) : (
                         <XCircle className="w-4 h-4 text-red-600" />
@@ -291,21 +310,21 @@ export default function AdminVerificationPage() {
                   </div>
                 </div>
 
-                {selectedVerification.faceMatchScore && (
+                {selectedVerification?.faceMatchScore && (
                   <div>
                     <h4 className="font-medium mb-2">Biometric Analysis</h4>
                     <div className="text-sm">
-                      <p><strong>Face Match Score:</strong> {selectedVerification.faceMatchScore}%</p>
-                      <p><strong>Risk Score:</strong> {selectedVerification.riskScore}%</p>
+                      <p><strong>Face Match Score:</strong> {selectedVerification?.faceMatchScore}%</p>
+                      <p><strong>Risk Score:</strong> {selectedVerification?.riskScore}%</p>
                     </div>
                   </div>
                 )}
 
-                {selectedVerification.flaggedReasons?.length > 0 && (
+                {selectedVerification?.flaggedReasons?.length > 0 && (
                   <div>
                     <h4 className="font-medium mb-2 text-red-600">Flagged Issues</h4>
                     <ul className="text-sm space-y-1">
-                      {selectedVerification.flaggedReasons.map((reason: string, index: number) => (
+                      {selectedVerification?.flaggedReasons.map((reason: string, index: number) => (
                         <li key={index} className="flex items-center space-x-2">
                           <AlertTriangle className="w-3 h-3 text-red-500" />
                           <span>{reason}</span>
@@ -315,10 +334,10 @@ export default function AdminVerificationPage() {
                   </div>
                 )}
 
-                {selectedVerification.status === "pending" && (
+                {selectedVerification?.status === "pending" && (
                   <div className="space-y-3 pt-4 border-t">
                     <Button 
-                      onClick={() => approveMutation.mutate({ verificationId: selectedVerification.id })}
+                      onClick={() => approveMutation.mutate({ verificationId: selectedVerification?.id || 0 })}
                       disabled={approveMutation.isPending}
                       className="w-full bg-green-600 hover:bg-green-700"
                     >
@@ -327,7 +346,7 @@ export default function AdminVerificationPage() {
                     </Button>
                     <Button 
                       onClick={() => rejectMutation.mutate({ 
-                        verificationId: selectedVerification.id, 
+                        verificationId: selectedVerification?.id || 0, 
                         reason: "Manual review rejection"
                       })}
                       disabled={rejectMutation.isPending}

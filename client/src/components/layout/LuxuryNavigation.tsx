@@ -15,7 +15,7 @@ import { CanadianCoatOfArms, CanadianMapleLeaf } from "@/components/CanadianCoat
 import DonationPopup from "@/components/DonationPopup";
 import DonationSuccess from "@/components/DonationSuccess";
 import civicOSLogo from "@assets/ChatGPT Image Jun 20, 2025, 05_42_18 PM_1750462997583.png";
-import canadianCrest from "@assets/ChatGPT Image Jun 20, 2025, 06_03_54 PM_1750464244456.png";
+import canadianCrest from "../../assets/ChatGPT Image Jun 20, 2025, 06_03_54 PM_1750464244456.png";
 import { 
   Home, 
   Users, 
@@ -120,12 +120,14 @@ const navigationSections = [
 
 export function LuxuryNavigation() {
   const [location] = useLocation();
-  const { user, logout } = useAuth();
+  const { user: rawUser, logout } = useAuth();
+  const user = rawUser as any;
   const [expandedSections, setExpandedSections] = useState<string[]>(["Political Intelligence Hub"]);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [showDonationPopup, setShowDonationPopup] = useState(false);
   const [showDonationSuccess, setShowDonationSuccess] = useState(false);
   const [donatedAmount, setDonatedAmount] = useState(0);
+  const { toast } = useToast();
 
   const logoutMutation = useMutation({
     mutationFn: async () => {
@@ -200,16 +202,16 @@ export function LuxuryNavigation() {
         {/* User Profile Section */}
         {user && !isCollapsed && (
           <div className="bg-gray-50 border-t border-gray-200 px-3 lg:px-4 py-2 lg:py-3">
-            <Link href={`/users/${user.id || 'profile'}`}>
+            <Link href={`/users/${user?.id || 'profile'}`}>
               <div className="flex items-center space-x-2 lg:space-x-3 hover:bg-gray-100 rounded p-2 transition-colors cursor-pointer">
                 <div className="w-6 h-6 lg:w-8 lg:h-8 rounded-full bg-red-600 flex items-center justify-center flex-shrink-0">
                   <span className="text-xs lg:text-sm font-bold text-white">
-                    {user.firstName?.[0] || user.email?.[0] || "U"}
+                    {user?.firstName?.[0] || user?.email?.[0] || "U"}
                   </span>
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-xs lg:text-sm font-medium text-gray-800 truncate">
-                    {user.firstName || user.email}
+                    {user?.firstName || user?.email || "User"}
                   </p>
                   <Badge className="text-xs bg-green-100 text-green-700 font-semibold mt-1">
                     Verified Citizen

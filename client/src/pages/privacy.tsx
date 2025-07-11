@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import canadianCrest from "@assets/ChatGPT Image Jun 20, 2025, 06_03_54 PM_1750464244456.png";
+import canadianCrest from "../assets/ChatGPT Image Jun 20, 2025, 06_03_54 PM_1750464244456.png";
 import { Shield, Lock, Eye, Database, ArrowRight, Calendar, Mail } from "lucide-react";
 
 export default function Privacy() {

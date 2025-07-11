@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { CanadianMapleLeaf } from "@/components/CanadianCoatOfArms";
-import canadianCrest from "@assets/ChatGPT Image Jun 20, 2025, 06_03_54 PM_1750464244456.png";
+import canadianCrest from "../../../attached_assets/ChatGPT Image Jun 20, 2025, 06_03_54 PM_1750464244456.png";
 import { 
   Shield, 
   Eye, 

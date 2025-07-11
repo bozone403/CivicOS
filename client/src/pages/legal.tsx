@@ -49,6 +49,19 @@ interface LegalStats {
   lastUpdated: string;
 }
 
+// Add types
+interface LegalDatabase {
+  federalStatutes?: any[];
+  provincialLegislation?: any[];
+  // ...other fields
+}
+interface SearchResults {
+  query?: string;
+  totalResults?: number;
+  categories?: Record<string, number>;
+  results?: any[];
+}
+
 export default function Legal() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
@@ -68,12 +81,12 @@ export default function Legal() {
     queryKey: ["/api/legal/stats"],
   });
 
-  const { data: legalDatabase } = useQuery({
+  const { data: legalDatabase } = useQuery<LegalDatabase>({
     queryKey: ["/api/legal/database"],
   });
 
-  const { data: searchResults, isLoading: searchLoading } = useQuery({
-    queryKey: ["/api/legal/search", searchTerm],
+  const { data: searchResults } = useQuery<SearchResults>({
+    queryKey: ["/api/legal/search"],
     enabled: searchTerm.length > 0,
   });
 
@@ -362,13 +375,6 @@ export default function Legal() {
                   />
                 </div>
 
-                {searchLoading && (
-                  <div className="text-center py-8">
-                    <div className="w-8 h-8 border-2 border-slate-300 border-t-slate-600 rounded-full animate-spin mx-auto"></div>
-                    <p className="mt-2 text-slate-600 dark:text-slate-400">Searching legal database...</p>
-                  </div>
-                )}
-
                 {searchResults && (
                   <div className="space-y-6">
                     <div className="flex items-center justify-between">
@@ -428,7 +434,7 @@ export default function Legal() {
                   </div>
                 )}
 
-                {searchTerm && !searchLoading && !searchResults && (
+                {searchTerm && !searchResults && (
                   <div className="text-center py-8 text-slate-500">
                     No results found. Try different keywords like "criminal", "rights", "discrimination", or "freedom".
                   </div>

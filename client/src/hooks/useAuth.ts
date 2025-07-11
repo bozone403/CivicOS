@@ -2,11 +2,23 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
+// Add User type
+export interface User {
+  id: string | number;
+  email?: string;
+  firstName?: string;
+  lastName?: string;
+  isAdmin?: boolean;
+  is_admin?: boolean;
+  // Add more fields as needed
+}
+
 export function useAuth() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  const { data: user, isLoading, error } = useQuery({
+  // Use User as the generic type for the user query
+  const { data: user, isLoading, error } = useQuery<User | null>({
     queryKey: ["/api/auth/user"],
     retry: false,
   });

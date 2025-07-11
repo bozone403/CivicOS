@@ -43,7 +43,7 @@ export default function BillsVotingWidget() {
     refetchInterval: 180000, // Refresh every 3 minutes
   });
 
-  const { data: votingStats } = useQuery({
+  const { data: votingStats } = useQuery<{ totalParticipants?: number }>({
     queryKey: ['/api/voting/stats'],
     refetchInterval: 300000, // Refresh every 5 minutes
   });
@@ -113,7 +113,7 @@ export default function BillsVotingWidget() {
             </Badge>
             {votingStats && (
               <Badge variant="secondary" className="text-xs px-1 sm:px-2">
-                {(votingStats as any).totalParticipants || 0} Voters
+                {votingStats.totalParticipants ?? 0} Voters
               </Badge>
             )}
           </div>

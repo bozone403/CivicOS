@@ -6,10 +6,24 @@ import { Progress } from "@/components/ui/progress";
 import { Trophy, Zap, Vote, MessageSquare, FileText, Users } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 
-export default function Profile() {
-  const { user } = useAuth();
+// Add UserStats interface
+interface UserStats {
+  trustScore?: number;
+  civicLevel?: number;
+  civicPoints?: number;
+  voteCount?: number;
+  discussionCount?: number;
+  petitionCount?: number;
+  contactCount?: number;
+  recentActivity?: Array<{ description: string; date: string }>;
+}
 
-  const { data: userStats } = useQuery({
+export default function Profile() {
+  const { user: rawUser, isAuthenticated } = useAuth();
+  const user = rawUser as any;
+
+  // Use UserStats as the generic type
+  const { data: userStats } = useQuery<UserStats>({
     queryKey: ['/api/user/stats'],
   });
 
@@ -128,8 +142,8 @@ export default function Profile() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {userStats?.recentActivity?.length > 0 ? (
-                  userStats.recentActivity.map((activity: any, index: number) => (
+                {(userStats?.recentActivity?.length || 0) > 0 ? (
+                  (userStats?.recentActivity || []).map((activity: any, index: number) => (
                     <div key={index} className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
                       <div className="h-8 w-8 bg-civic-blue rounded-full flex items-center justify-center">
                         <Vote className="h-4 w-4 text-white" />

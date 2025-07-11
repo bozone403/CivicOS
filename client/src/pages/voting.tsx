@@ -13,7 +13,21 @@ import {
   FileText, Vote, Calendar, CheckCircle, XCircle, Clock, Users, TrendingUp, 
   Search, Filter, Eye, BarChart3, AlertTriangle, Crown, Building2
 } from "lucide-react";
-import type { Bill } from "@shared/schema";
+
+// Fallback Bill type if @shared/schema is missing
+interface Bill {
+  id: number;
+  title?: string;
+  billNumber?: string;
+  status?: string;
+  jurisdiction?: string;
+  description?: string;
+  dateIntroduced?: string;
+  sponsor?: string;
+  category?: string;
+  updatedAt?: string;
+  // ...other fields
+}
 
 export default function VotingPage() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -35,7 +49,7 @@ export default function VotingPage() {
   });
 
   const filteredBills = bills.filter(bill => {
-    const matchesSearch = bill.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    const matchesSearch = bill.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          bill.billNumber?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = filterStatus === "all" || bill.status === filterStatus;
     const matchesJurisdiction = filterJurisdiction === "all" || bill.jurisdiction === filterJurisdiction;
@@ -230,13 +244,13 @@ export default function VotingPage() {
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex-1">
                         <div className="flex items-center gap-3 mb-2">
-                          {getJurisdictionIcon(bill.jurisdiction)}
+                          {getJurisdictionIcon(bill.jurisdiction || 'unknown')}
                           <h3 className="text-xl font-bold text-slate-900 dark:text-slate-100">
-                            {bill.billNumber} - {bill.title}
+                            {bill.billNumber} - {bill.title || 'Unknown Bill'}
                           </h3>
                         </div>
                         <p className="text-slate-600 dark:text-slate-400">
-                          {bill.description}
+                          {bill.description || 'No description available.'}
                         </p>
                       </div>
                       
@@ -249,7 +263,7 @@ export default function VotingPage() {
                         </Badge>
                         
                         <Badge variant="outline" className="text-xs">
-                          {bill.jurisdiction}
+                          {bill.jurisdiction || 'Unknown Jurisdiction'}
                         </Badge>
                       </div>
                     </div>
@@ -326,7 +340,7 @@ export default function VotingPage() {
                   ← Back to Bills
                 </Button>
                 <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100">
-                  {selectedBill.billNumber} - {selectedBill.title}
+                  {selectedBill.billNumber} - {selectedBill.title || 'Unknown Bill'}
                 </h2>
               </div>
 
@@ -346,7 +360,7 @@ export default function VotingPage() {
                     <CardContent>
                       <div className="space-y-4">
                         <p className="text-slate-700 dark:text-slate-300">
-                          {selectedBill.description}
+                          {selectedBill.description || 'No description available.'}
                         </p>
                         
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -355,7 +369,7 @@ export default function VotingPage() {
                             <div className="space-y-2 text-sm">
                               <div className="flex justify-between">
                                 <span className="text-slate-600 dark:text-slate-400">Number:</span>
-                                <span className="font-medium">{selectedBill.billNumber}</span>
+                                <span className="font-medium">{selectedBill.billNumber || 'Unknown'}</span>
                               </div>
                               <div className="flex justify-between">
                                 <span className="text-slate-600 dark:text-slate-400">Status:</span>
@@ -365,7 +379,7 @@ export default function VotingPage() {
                               </div>
                               <div className="flex justify-between">
                                 <span className="text-slate-600 dark:text-slate-400">Jurisdiction:</span>
-                                <span className="font-medium">{selectedBill.jurisdiction}</span>
+                                <span className="font-medium">{selectedBill.jurisdiction || 'Unknown'}</span>
                               </div>
                               <div className="flex justify-between">
                                 <span className="text-slate-600 dark:text-slate-400">Category:</span>
@@ -458,7 +472,7 @@ export default function VotingPage() {
                 <InteractiveContent
                   targetType="bill"
                   targetId={selectedBill.id}
-                  title={`${selectedBill.billNumber || 'Unknown'} - ${selectedBill.title}`}
+                  title={`${selectedBill.billNumber || 'Unknown'} - ${selectedBill.title || 'Unknown Bill'}`}
                   description={selectedBill.description || undefined}
                   showVoting={true}
                   showComments={true}

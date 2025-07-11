@@ -7,12 +7,22 @@ async function throwIfResNotOk(res: Response) {
   }
 }
 
+// Use VITE_API_BASE_URL for production API calls
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || ""; // e.g. https://civic-os.vercel.app
+
 export async function apiRequest(
   url: string,
   method: string = 'GET',
   data?: unknown | undefined,
 ): Promise<any> {
-  const res = await fetch(url, {
+  // If url starts with http, use as is. Otherwise, prepend API_BASE_URL if set.
+  const fullUrl = url.startsWith("http")
+    ? url
+    : API_BASE_URL
+      ? API_BASE_URL.replace(/\/$/, "") + url
+      : url;
+
+  const res = await fetch(fullUrl, {
     method,
     headers: data ? { "Content-Type": "application/json" } : {},
     body: data ? JSON.stringify(data) : undefined,

@@ -19,7 +19,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
 interface PendingVerification {
-  id: string;
+  id: string | number;
   userId: string;
   email: string;
   submittedAt: string;
@@ -50,8 +50,8 @@ export default function IdentityReview() {
   const { toast } = useToast();
 
   // Fetch pending verifications
-  const { data: pendingVerifications = [], isLoading } = useQuery({
-    queryKey: ['/api/admin/identity-verifications'],
+  const { data: pendingVerifications = [], isLoading } = useQuery<PendingVerification[]>({
+    queryKey: ['/api/pending-verifications'],
     retry: false,
   });
 
@@ -342,7 +342,7 @@ export default function IdentityReview() {
                   {/* Actions */}
                   <div className="space-y-2 pt-4 border-t">
                     <Button
-                      onClick={() => approveMutation.mutate(selectedVerification.id)}
+                      onClick={() => approveMutation.mutate(selectedVerification.id.toString())}
                       disabled={approveMutation.isPending}
                       className="w-full bg-green-600 hover:bg-green-700"
                     >
@@ -351,7 +351,7 @@ export default function IdentityReview() {
                     </Button>
                     <Button
                       onClick={() => rejectMutation.mutate({
-                        verificationId: selectedVerification.id,
+                        verificationId: selectedVerification.id.toString(),
                         reason: "Failed manual review"
                       })}
                       disabled={rejectMutation.isPending}

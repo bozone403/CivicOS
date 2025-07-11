@@ -12,39 +12,36 @@ import {
   getProvincialAuthMethods
 } from "../canadianAuth";
 
+interface User {
+  id: string;
+  email: string;
+  isVerified?: boolean;
+  verificationLevel?: string;
+  verifiedAt?: Date;
+  canVote?: boolean;
+  canComment?: boolean;
+  canCreatePetitions?: boolean;
+  canAccessFOI?: boolean;
+  isAdmin?: boolean;
+}
+
 export function registerIdentityRoutes(app: Express) {
   // Get user verification status
   app.get('/api/identity/status', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       
-      const verificationStatus = null; // Temporarily disabled
+      const user = await storage.getUser(userId) as User;
       
-      if (!verificationStatus) {
-        // User has no verification status yet
-        res.json({
-          isVerified: false,
-          verificationLevel: 'none',
-          verifiedAt: null,
-          permissions: {
-            canVote: false,
-            canComment: true, // Allow basic commenting without verification
-            canCreatePetitions: false,
-            canAccessFOI: false
-          }
-        });
-        return;
-      }
-
       res.json({
-        isVerified: verificationStatus.isVerified,
-        verificationLevel: verificationStatus.verificationLevel,
-        verifiedAt: verificationStatus.verifiedAt,
+        isVerified: user?.isVerified || false,
+        verificationLevel: user?.verificationLevel || "none",
+        verifiedAt: user?.verifiedAt,
         permissions: {
-          canVote: verificationStatus.canVote,
-          canComment: verificationStatus.canComment,
-          canCreatePetitions: verificationStatus.canCreatePetitions,
-          canAccessFOI: verificationStatus.canAccessFOI
+          canVote: user?.canVote || false,
+          canComment: user?.canComment || true,
+          canCreatePetitions: user?.canCreatePetitions || false,
+          canAccessFOI: user?.canAccessFOI || false
         }
       });
     } catch (error) {
@@ -94,13 +91,15 @@ export function registerIdentityRoutes(app: Express) {
   app.get('/api/admin/verification-queue', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
-      const user = await storage.getUser(userId);
+      const user = await storage.getUser(userId) as User;
       
-      if (!user?.isAdmin) {
+      const isAdmin = user?.isAdmin || false;
+      
+      if (!isAdmin) {
         return res.status(403).json({ message: "Admin access required" });
       }
 
-      const pendingVerifications = []; // Temporarily disabled
+      const pendingVerifications: any[] = []; // Temporarily disabled - method doesn't exist
       res.json(pendingVerifications);
     } catch (error) {
       console.error("Error fetching verification queue:", error);
@@ -111,7 +110,7 @@ export function registerIdentityRoutes(app: Express) {
   app.post('/api/admin/approve-verification', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
-      const user = await storage.getUser(userId);
+      const user = await storage.getUser(userId) as User;
       
       if (!user?.isAdmin) {
         return res.status(403).json({ message: "Admin access required" });
@@ -134,7 +133,7 @@ export function registerIdentityRoutes(app: Express) {
   app.post('/api/admin/reject-verification', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
-      const user = await storage.getUser(userId);
+      const user = await storage.getUser(userId) as User;
       
       if (!user?.isAdmin) {
         return res.status(403).json({ message: "Admin access required" });

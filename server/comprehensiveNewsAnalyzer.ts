@@ -139,7 +139,7 @@ export class ComprehensiveNewsAnalyzer {
       name: "Journal de Montréal",
       url: "https://www.journaldemontreal.com",
       rssUrl: "https://www.journaldemontreal.com/rss.xml",
-      bias: "right",
+      bias: "center",
       credibilityScore: 71,
       type: "mainstream"
     },
@@ -193,7 +193,7 @@ export class ComprehensiveNewsAnalyzer {
       name: "Calgary Herald",
       url: "https://calgaryherald.com",
       rssUrl: "https://calgaryherald.com/feed/",
-      bias: "center-right",
+      bias: "center",
       credibilityScore: 76,
       type: "mainstream"
     },
@@ -217,7 +217,7 @@ export class ComprehensiveNewsAnalyzer {
       name: "The Province",
       url: "https://theprovince.com",
       rssUrl: "https://theprovince.com/feed/",
-      bias: "center-right",
+      bias: "center",
       credibilityScore: 74,
       type: "mainstream"
     },
@@ -233,7 +233,7 @@ export class ComprehensiveNewsAnalyzer {
       name: "Winnipeg Free Press",
       url: "https://www.winnipegfreepress.com",
       rssUrl: "https://www.winnipegfreepress.com/rss/",
-      bias: "center-left",
+      bias: "center",
       credibilityScore: 79,
       type: "mainstream"
     },
@@ -317,7 +317,7 @@ export class ComprehensiveNewsAnalyzer {
       name: "Financial Post",
       url: "https://financialpost.com",
       rssUrl: "https://financialpost.com/feed/",
-      bias: "center-right",
+      bias: "center",
       credibilityScore: 83,
       type: "mainstream"
     },
@@ -447,7 +447,7 @@ export class ComprehensiveNewsAnalyzer {
       name: "Le Journal de Québec",
       url: "https://www.journaldequebec.com",
       rssUrl: "https://www.journaldequebec.com/rss.xml",
-      bias: "right",
+      bias: "center",
       credibilityScore: 70,
       type: "mainstream"
     },
@@ -455,7 +455,7 @@ export class ComprehensiveNewsAnalyzer {
       name: "TVA Nouvelles",
       url: "https://www.tvanouvelles.ca",
       rssUrl: "https://www.tvanouvelles.ca/rss.xml",
-      bias: "center-right",
+      bias: "center",
       credibilityScore: 75,
       type: "mainstream"
     },

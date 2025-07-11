@@ -23,7 +23,7 @@ export default function DonationSection() {
     mutationFn: async (amount: number) => {
       return apiRequest("/api/create-payment-intent", "POST", { amount });
     },
-    onSuccess: (data) => {
+    onSuccess: () => {
       toast({
         title: "Donation Initiated",
         description: "Redirecting to secure payment...",

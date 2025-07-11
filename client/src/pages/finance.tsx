@@ -12,6 +12,7 @@ import {
   DollarSign, TrendingUp, AlertTriangle, Search, Filter, Crown, Building2, 
   Users, Eye, BarChart3, Calendar, ExternalLink, CheckCircle, XCircle
 } from "lucide-react";
+import { VotingButtons } from "@/components/VotingButtons";
 
 interface CampaignFinance {
   id: number;

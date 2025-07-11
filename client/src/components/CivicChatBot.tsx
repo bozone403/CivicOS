@@ -47,7 +47,7 @@ export function CivicChatBot({ onClose }: CivicChatBotProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Get AI service status
-  const { data: aiStatus } = useQuery({
+  const { data: aiStatus } = useQuery<{ ollama?: boolean; huggingface?: boolean }>({
     queryKey: ['/api/ai/status'],
     refetchInterval: 30000, // Check every 30 seconds
   });
@@ -156,7 +156,7 @@ export function CivicChatBot({ onClose }: CivicChatBotProps) {
           <CardTitle className="text-sm font-medium">CivicAI Assistant</CardTitle>
           {aiStatus && (
             <Badge variant="secondary" className="text-xs bg-white/20 text-white border-white/30">
-              {aiStatus.ollama ? 'Ollama' : aiStatus.huggingface ? 'HF' : 'Local'}
+              {aiStatus?.ollama ? 'Ollama' : aiStatus?.huggingface ? 'HF' : 'Local'}
             </Badge>
           )}
         </div>

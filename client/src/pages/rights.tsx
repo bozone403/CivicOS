@@ -69,7 +69,7 @@ export default function RightsPage() {
             lng: position.coords.longitude
           });
         },
-        (error) => {
+        () => {
           console.log("Geolocation not available");
         }
       );

@@ -14,7 +14,25 @@ import {
   FileText, Users, Vote, Megaphone, Calendar, Check, Trash2
 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
-import type { Notification, UserNotificationPreferences } from "@shared/schema";
+
+// Fallback types if @shared/schema is missing
+interface Notification {
+  id: string | number;
+  type: string;
+  title: string;
+  message: string;
+  timestamp: string;
+  read: boolean;
+  priority: string;
+}
+interface UserNotificationPreferences {
+  petitionAlerts: boolean;
+  billUpdates: boolean;
+  foiResponses: boolean;
+  systemNews: boolean;
+  emailNotifications: boolean;
+  pushNotifications: boolean;
+}
 
 export default function Notifications() {
   const [filter, setFilter] = useState<'all' | 'unread' | 'petition' | 'bill' | 'foi' | 'system'>('all');
@@ -24,8 +42,8 @@ export default function Notifications() {
   const { toast } = useToast();
 
   // Fetch user notifications - always enabled for demo
-  const { data: notifications = [], isLoading } = useQuery<Notification[]>({
-    queryKey: ['/api/notifications'],
+  const { data: notifications = [] } = useQuery<Notification[]>({
+    queryKey: ["/api/notifications"],
     enabled: true,
   });
 
@@ -151,9 +169,10 @@ export default function Notifications() {
   ];
 
   const filteredNotifications = displayNotifications.filter(notification => {
-    if (filter === 'unread') return !notification.read;
-    if (filter === 'bills') return notification.type === 'bill';
-    if (filter === 'petitions') return notification.type === 'petition';
+    if (filter === 'bill') return notification.type === 'bill';
+    if (filter === 'petition') return notification.type === 'petition';
+    if (filter === 'foi') return notification.type === 'foi';
+    if (filter === 'system') return notification.type === 'system';
     return true;
   });
 

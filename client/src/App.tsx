@@ -50,7 +50,7 @@ import IdentityVerification from "@/pages/identity-verification";
 import IdentityReview from "@/pages/admin/identity-review";
 import Manifesto from "@/pages/manifesto";
 import NotFound from "@/pages/not-found";
-import canadianCrest from "@assets/ChatGPT Image Jun 20, 2025, 06_03_54 PM_1750464244456.png";
+import canadianCrest from "./assets/ChatGPT Image Jun 20, 2025, 06_03_54 PM_1750464244456.png";
 
 function Router() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -68,6 +68,9 @@ function Router() {
       </div>
     );
   }
+
+  // Fix Manifesto route for wouter (must be a function with props)
+  const ManifestoRoute = () => <Manifesto onAgree={() => setHasAgreedToManifesto(true)} />;
 
   return (
     <div className="min-h-screen bg-background">
@@ -124,7 +127,7 @@ function Router() {
                 <Route path="/pulse" component={Pulse} />
                 <Route path="/trust" component={Trust} />
                 <Route path="/maps" component={Maps} />
-                <Route path="/manifesto" component={Manifesto} />
+                <Route path="/manifesto" component={ManifestoRoute} />
                 <Route path="/identity-verification" component={IdentityVerification} />
                 <Route path="/admin/identity-review" component={IdentityReview} />
                 <Route path="/notifications" component={Notifications} />
@@ -138,7 +141,7 @@ function Router() {
         </div>
       ) : isAuthenticated && !hasAgreedToManifesto ? (
         <main>
-          <Manifesto onAgree={() => setHasAgreedToManifesto(true)} />
+          <ManifestoRoute />
         </main>
       ) : (
         <main>
@@ -152,7 +155,7 @@ function Router() {
             <Route path="/auth" component={Auth} />
             <Route path="/login" component={Auth} />
             <Route path="/register" component={Auth} />
-            <Route path="/manifesto" component={Manifesto} />
+            <Route path="/manifesto" component={ManifestoRoute} />
             <Route path="*">
               {() => <NotFound />}
             </Route>

@@ -116,7 +116,8 @@ export class PoliticianDataEnhancer {
           }
           
         } catch (error) {
-          console.error(`Error enhancing politician ${politician.id}:`, error);
+          const err = error as Error;
+          console.error("Error enhancing politician data:", err.message);
         }
       }
       

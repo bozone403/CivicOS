@@ -37,6 +37,10 @@ interface CommentSystemProps {
   targetId: number;
 }
 
+function isComment(obj: any): obj is Comment {
+  return obj && typeof obj === 'object' && typeof obj.id === 'number' && typeof obj.content === 'string';
+}
+
 export function CommentSystem({ targetType, targetId }: CommentSystemProps) {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -49,7 +53,7 @@ export function CommentSystem({ targetType, targetId }: CommentSystemProps) {
   const [editHistory, setEditHistory] = useState<any[]>([]);
 
   // Fetch comments with error handling
-  const { data: comments = [], isLoading, error, refetch } = useQuery({
+  const { data: comments = [], isLoading, error, refetch } = useQuery<Comment[]>({
     queryKey: ['comments', targetType, targetId],
     queryFn: async () => {
       const result = await apiRequest(`/api/comments/${targetType}/${targetId}`);
@@ -220,31 +224,32 @@ export function CommentSystem({ targetType, targetId }: CommentSystemProps) {
     }
   };
 
-  const renderComment = (comment: Comment) => {
-    if (!comment || !comment.id) return null;
+  const renderComment = (comment: any): JSX.Element | null => {
+    const c = comment as Comment;
+    if (!c || !c.id) return null;
     
-    const isEditing = editingCommentId === comment.id;
-    const isOwner = user && (String(comment.author_id) === String(user.id) || user.id === "42199639");
+    const isEditing = editingCommentId === c.id;
+    const isOwner = user && (String(c.author_id) === String(user.id) || user.id === "42199639");
     const showButtons = true; // Force show for debugging
     
     return (
-      <div key={comment.id} className="border-b border-gray-100 dark:border-gray-800 last:border-b-0 pb-4 last:pb-0">
+      <div key={c.id} className="border-b border-gray-100 dark:border-gray-800 last:border-b-0 pb-4 last:pb-0">
         <div className="flex items-start space-x-3">
           <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white text-sm font-medium">
-            {comment.first_name?.charAt(0) || comment.email?.charAt(0) || '?'}
+            {c.first_name?.charAt(0) || c.email?.charAt(0) || '?'}
           </div>
         <div className="flex-1">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2 mb-1">
               <span className="font-medium text-gray-900 dark:text-white">
-                {comment.first_name || 'User'} {comment.last_name || ''}
+                {c.first_name || 'User'} {c.last_name || ''}
               </span>
               <span className="text-xs text-gray-500">
-                {formatDistanceToNow(new Date(comment.created_at), { addSuffix: true })}
+                {formatDistanceToNow(new Date(c.created_at), { addSuffix: true })}
               </span>
-              {comment.is_edited && (
+              {c.is_edited && (
                 <span className="text-xs text-gray-400 italic">
-                  (edited {comment.edit_count && comment.edit_count > 1 ? `${comment.edit_count} times` : ''})
+                  (edited {c.edit_count && c.edit_count > 1 ? `${c.edit_count} times` : ''})
                 </span>
               )}
             </div>
@@ -254,7 +259,7 @@ export function CommentSystem({ targetType, targetId }: CommentSystemProps) {
                 <Button 
                   variant="ghost" 
                   size="sm" 
-                  onClick={() => startEditing(comment)}
+                  onClick={() => startEditing(c)}
                   className="text-xs px-2 py-1 h-auto text-blue-600 hover:text-blue-700"
                 >
                   Edit
@@ -264,7 +269,7 @@ export function CommentSystem({ targetType, targetId }: CommentSystemProps) {
                   size="sm" 
                   onClick={() => {
                     if (confirm('Are you sure you want to delete this comment?')) {
-                      deleteMutation.mutate(comment.id);
+                      deleteMutation.mutate(c.id);
                     }
                   }}
                   className="text-xs px-2 py-1 h-auto text-red-600 hover:text-red-700"
@@ -272,11 +277,11 @@ export function CommentSystem({ targetType, targetId }: CommentSystemProps) {
                 >
                   {deleteMutation.isPending ? "Deleting..." : "Delete"}
                 </Button>
-                {comment.is_edited && comment.edit_count && comment.edit_count > 0 && (
+                {c.is_edited && c.edit_count && c.edit_count > 0 && (
                   <Button 
                     variant="ghost" 
                     size="sm" 
-                    onClick={() => showCommentHistory(comment.id)}
+                    onClick={() => showCommentHistory(c.id)}
                     className="text-xs px-2 py-1 h-auto text-purple-600 hover:text-purple-700"
                   >
                     History
@@ -298,7 +303,7 @@ export function CommentSystem({ targetType, targetId }: CommentSystemProps) {
               <div className="flex space-x-2">
                 <Button
                   size="sm"
-                  onClick={() => saveEdit(comment.id)}
+                  onClick={() => saveEdit(c.id)}
                   disabled={!editContent.trim() || editMutation.isPending}
                 >
                   Save
@@ -314,21 +319,21 @@ export function CommentSystem({ targetType, targetId }: CommentSystemProps) {
             </div>
           ) : (
             <p className="text-gray-700 dark:text-gray-300 text-sm mb-2">
-              {comment.content}
+              {c.content}
             </p>
           )}
           
           <div className="flex items-center space-x-4 text-xs text-gray-500">
             <button 
-              onClick={() => voteMutation.mutate({ commentId: comment.id, vote: 'up' })}
+              onClick={() => voteMutation.mutate({ commentId: c.id, vote: 'up' })}
               className="flex items-center space-x-1 hover:text-blue-600 transition-colors"
               disabled={voteMutation.isPending}
             >
               <span>👍</span>
-              <span>Like ({comment.like_count || 0})</span>
+              <span>Like ({c.like_count || 0})</span>
             </button>
             <button 
-              onClick={() => voteMutation.mutate({ commentId: comment.id, vote: 'down' })}
+              onClick={() => voteMutation.mutate({ commentId: c.id, vote: 'down' })}
               className="flex items-center space-x-1 hover:text-red-600 transition-colors"
               disabled={voteMutation.isPending}
             >
@@ -342,9 +347,9 @@ export function CommentSystem({ targetType, targetId }: CommentSystemProps) {
         </div>
       </div>
       
-      {comment.replies && comment.replies.length > 0 && (
+      {c.replies && c.replies.length > 0 && (
         <div className="ml-11 mt-4 space-y-4">
-          {comment.replies.map((reply) => renderComment(reply))}
+          {c.replies.filter(isComment).map(renderComment)}
         </div>
       )}
     </div>
@@ -410,7 +415,7 @@ export function CommentSystem({ targetType, targetId }: CommentSystemProps) {
             </div>
           ) : (
             <div className="space-y-4">
-              {comments.map((comment: Comment) => renderComment(comment))}
+              {comments.filter(isComment).map(c => renderComment(c as unknown as Comment))}
             </div>
           )}
         </CardContent>

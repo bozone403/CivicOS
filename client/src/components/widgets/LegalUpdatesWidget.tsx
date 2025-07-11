@@ -16,13 +16,29 @@ interface LegalUpdate {
   sourceUrl?: string;
 }
 
+// Add CriminalCodeSection interface for type safety
+interface CriminalCodeSection {
+  id: number;
+  sectionNumber: string;
+  title: string;
+  offense?: string | null;
+  content: string;
+  maxPenalty?: string | null;
+  minPenalty?: string | null;
+  isSummary?: boolean | null;
+  isIndictable?: boolean | null;
+  category?: string;
+  explanationSimple?: string;
+}
+
 export default function LegalUpdatesWidget() {
   const { data: legalUpdates = [], isLoading } = useQuery<LegalUpdate[]>({
     queryKey: ['/api/legal/updates'],
     refetchInterval: 30000, // Auto-refresh every 30 seconds
   });
 
-  const { data: criminalCode = [], isLoading: criminalLoading } = useQuery({
+  // Use CriminalCodeSection[] as the generic type
+  const { data: criminalCode = [], isLoading: criminalLoading } = useQuery<CriminalCodeSection[]>({
     queryKey: ['/api/legal/criminal-code'],
     refetchInterval: 60000, // Refresh every minute
   });
@@ -79,7 +95,7 @@ export default function LegalUpdatesWidget() {
       <CardContent className="overflow-y-auto">
         <div className="space-y-3">
           {/* Recent Criminal Code Sections */}
-          {criminalCode.slice(0, 2).map((section: any) => (
+          {criminalCode.slice(0, 2).map((section: CriminalCodeSection) => (
             <div key={`criminal-${section.id}`} className="border rounded-lg p-3 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
               <div className="flex items-start justify-between">
                 <div className="flex-1">

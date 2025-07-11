@@ -27,12 +27,13 @@ interface DataSource {
 }
 
 interface PoliticianData {
-  id: number;
-  name: string;
-  position: string;
+  id?: number;
+  name?: string;
+  position?: string;
   riding?: string;
+  constituency?: string;
   party?: string;
-  level: 'federal' | 'provincial' | 'municipal';
+  level?: string;
   province?: string;
   photo?: string;
   email?: string;
@@ -97,7 +98,7 @@ export default function Politicians() {
     }
   }, [isAuthenticated, authLoading, toast]);
 
-  const { data: politicians, isLoading, error, refetch } = useQuery<PoliticianData[]>({
+  const { data: politicians = [], isLoading, error, refetch } = useQuery<PoliticianData[]>({
     queryKey: ['/api/politicians', { search: searchTerm, level: selectedLevel, party: selectedParty, province: selectedProvince }],
     enabled: isAuthenticated,
     retry: 1,
@@ -185,17 +186,18 @@ export default function Politicians() {
     );
   }
 
-  const filteredPoliticians = politicians ? politicians.filter(politician => {
-    const matchesSearch = politician.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         politician.riding?.toLowerCase().includes(searchTerm.toLowerCase());
+  const filteredPoliticians = politicians.filter(politician => {
+    const matchesSearch = politician.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         politician.riding?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         politician.constituency?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesParty = selectedParty === "all" || politician.party === selectedParty;
     const matchesLevel = selectedLevel === "all" || politician.level === selectedLevel;
     const matchesProvince = selectedProvince === "all" || politician.province === selectedProvince;
     
     return matchesSearch && matchesParty && matchesLevel && matchesProvince;
-  }) : [];
+  });
 
-  const hasRegionalData = politicians && politicians.length > 0;
+  const hasRegionalData = politicians.length > 0;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 p-6">
@@ -571,7 +573,7 @@ export default function Politicians() {
             return (
               <Card 
                 key={politician.id} 
-                className={`hover:shadow-lg transition-all duration-200 cursor-pointer bg-white/80 backdrop-blur-sm border border-gray-200/50 hover:border-blue-300/50 border-l-4 ${getPartyBorderColor(politician.party)}`}
+                className={`hover:shadow-lg transition-all duration-200 cursor-pointer bg-white/80 backdrop-blur-sm border border-gray-200/50 hover:border-blue-300/50 border-l-4 ${getPartyBorderColor(politician.party || '')}`}
                 onClick={() => setSelectedPolitician(politician)}
               >
                 <CardContent className="p-6">
@@ -579,20 +581,20 @@ export default function Politicians() {
                     <div className="flex items-start space-x-4">
                       <Avatar className="w-16 h-16 flex-shrink-0">
                         <AvatarImage 
-                          src={`https://ui-avatars.com/api/?name=${encodeURIComponent(politician.name)}&background=6b7280&color=fff`} 
-                          alt={politician.name} 
+                          src={`https://ui-avatars.com/api/?name=${encodeURIComponent(politician.name || '')}&background=6b7280&color=fff`} 
+                          alt={politician.name || ''} 
                         />
                         <AvatarFallback className="bg-gray-500 text-white text-lg font-bold">
-                          {politician.name.split(' ').map(n => n[0]).join('').slice(0, 2)}
+                          {politician.name?.split(' ').map(n => n[0]).join('').slice(0, 2)}
                         </AvatarFallback>
                       </Avatar>
                       
                       <div className="flex-1 min-w-0">
                         <h3 className="font-bold text-gray-900 text-lg mb-2">
-                          {politician.name}
+                          {politician.name || ''}
                         </h3>
                         <p className="text-sm text-gray-700 font-medium mb-2">
-                          {politician.position}
+                          {politician.position || ''}
                         </p>
                         {(politician.riding || politician.constituency) && (
                           <p className="text-sm text-gray-600 flex items-center mb-3">
@@ -624,7 +626,7 @@ export default function Politicians() {
                             </Badge>
                           )}
                           <Badge variant="outline" className="text-sm px-2 py-1 font-medium">
-                            {politician.level}
+                            {politician.level || ''}
                           </Badge>
                           <div className="flex items-center">
                             <Shield className="w-4 h-4 text-blue-600 mr-1" />
@@ -636,8 +638,9 @@ export default function Politicians() {
                     
                     <div className="flex items-center justify-between pt-3 border-t border-gray-100">
                       <InteractiveContent
-                        type="politician"
-                        targetId={politician.id.toString()}
+                        targetType="politician"
+                        targetId={Number(politician?.id) || 0}
+                        title={politician?.name || 'Politician'}
                         showComments={false}
                       />
                       <Button
@@ -668,11 +671,11 @@ export default function Politicians() {
                   <div className="relative">
                     <Avatar className="w-12 h-12">
                       <AvatarImage 
-                        src={selectedPolitician.photo || `https://ui-avatars.com/api/?name=${encodeURIComponent(selectedPolitician.name)}&background=3b82f6&color=fff`} 
-                        alt={selectedPolitician.name} 
+                        src={selectedPolitician.photo || `https://ui-avatars.com/api/?name=${encodeURIComponent(selectedPolitician.name || '')}&background=3b82f6&color=fff`} 
+                        alt={selectedPolitician.name || ''} 
                       />
                       <AvatarFallback className="bg-blue-600 text-white">
-                        {selectedPolitician.name.split(' ').map((n: string) => n[0]).join('')}
+                        {selectedPolitician.name?.split(' ').map((n: string) => n[0]).join('')}
                       </AvatarFallback>
                     </Avatar>
                     {selectedPolitician.verified && (
@@ -682,8 +685,8 @@ export default function Politicians() {
                     )}
                   </div>
                   <div>
-                    <h2 className="text-xl font-bold">{selectedPolitician.name}</h2>
-                    <p className="text-gray-600">{selectedPolitician.position}</p>
+                    <h2 className="text-xl font-bold">{selectedPolitician.name || ''}</h2>
+                    <p className="text-gray-600">{selectedPolitician.position || ''}</p>
                     {selectedPolitician.riding && (
                       <p className="text-sm text-gray-500 flex items-center">
                         <MapPin className="w-3 h-3 mr-1" />
@@ -848,7 +851,7 @@ export default function Politicians() {
                           <span className="text-sm font-medium">Level:</span>
                           <div className="mt-1">
                             <Badge variant={selectedPolitician.level === 'Federal' ? 'default' : 'secondary'}>
-                              {selectedPolitician.level}
+                              {selectedPolitician.level || ''}
                             </Badge>
                           </div>
                         </div>
@@ -987,7 +990,8 @@ export default function Politicians() {
                   <CardContent>
                     <InteractiveContent
                       targetType="politician"
-                      targetId={selectedPolitician.id.toString()}
+                      targetId={Number(selectedPolitician?.id) || 0}
+                      title={selectedPolitician?.name || 'Politician'}
                       showComments={true}
                     />
                   </CardContent>

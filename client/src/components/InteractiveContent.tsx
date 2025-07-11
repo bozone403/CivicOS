@@ -88,7 +88,7 @@ export function InteractiveContent({
           {showVoting && (
             <VotingButtons 
               targetType={targetType as any} 
-              targetId={targetId} 
+              targetId={Number(targetId)} 
               size="md" 
             />
           )}
@@ -114,7 +114,7 @@ export function InteractiveContent({
 
       {/* Facebook-style Comments Section */}
       {showComments && (
-        <CommentSystem targetType={targetType} targetId={targetId.toString()} />
+        <CommentSystem targetType={targetType} targetId={Number(targetId)} />
       )}
     </div>
   );

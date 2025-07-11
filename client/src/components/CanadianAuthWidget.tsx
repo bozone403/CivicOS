@@ -42,9 +42,7 @@ interface AuthMethod {
   }>;
 }
 
-export function CanadianAuthWidget({ onVerified }: { 
-  onVerified: (profile: any, method: string) => void; 
-}) {
+export function CanadianAuthWidget() {
   const [authMethods, setAuthMethods] = useState<AuthMethod | null>(null);
   const [loading, setLoading] = useState(false);
   const [selectedProvider, setSelectedProvider] = useState<string>("");

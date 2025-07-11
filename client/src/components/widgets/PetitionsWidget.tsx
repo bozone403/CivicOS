@@ -35,6 +35,11 @@ interface UserSignature {
   verificationStatus: 'pending' | 'verified' | 'rejected';
 }
 
+// Add PetitionStats interface for type safety
+interface PetitionStats {
+  totalSignatures: number;
+}
+
 export default function PetitionsWidget() {
   const { data: petitions = [], isLoading: petitionsLoading } = useQuery<Petition[]>({
     queryKey: ['/api/petitions'],
@@ -47,7 +52,8 @@ export default function PetitionsWidget() {
     refetchInterval: 300000, // Refresh every 5 minutes
   });
 
-  const { data: petitionStats } = useQuery({
+  // Use PetitionStats as the generic type
+  const { data: petitionStats } = useQuery<PetitionStats>({
     queryKey: ['/api/petitions/stats'],
     refetchInterval: 300000,
   });
@@ -117,7 +123,7 @@ export default function PetitionsWidget() {
             </Badge>
             {petitionStats && (
               <Badge variant="secondary" className="text-xs px-1 sm:px-2">
-                {(petitionStats as any).totalSignatures || 0} Signatures
+                {petitionStats.totalSignatures || 0} Signatures
               </Badge>
             )}
           </div>

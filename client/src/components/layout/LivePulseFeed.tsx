@@ -53,25 +53,25 @@ export function LivePulseFeed() {
   const [pulseEvents, setPulseEvents] = useState<PulseEvent[]>([]);
 
   // Fetch real-time pulse data
-  const { data: liveData } = useQuery({
+  const { data: liveData } = useQuery<{ bills?: any[] }>({
     queryKey: ['/api/civic/pulse'],
     refetchInterval: isLive ? 15000 : false, // 15 second updates when live
   });
 
   // Fetch latest news articles for pulse
-  const { data: newsData } = useQuery({
+  const { data: newsData } = useQuery<any[]>({
     queryKey: ['/api/news/articles'],
     refetchInterval: 30000, // 30 second updates
   });
 
   // Fetch voting activity for pulse
-  const { data: votingData } = useQuery({
+  const { data: votingData } = useQuery<any[]>({
     queryKey: ['/api/voting/recent'],
     refetchInterval: 60000, // 1 minute updates
   });
 
   // Fetch politician activity for pulse
-  const { data: politicianActivity } = useQuery({
+  const { data: politicianActivity } = useQuery<any[]>({
     queryKey: ['/api/politicians/activity'],
     refetchInterval: 120000, // 2 minute updates
   });
@@ -81,8 +81,8 @@ export function LivePulseFeed() {
     const events: PulseEvent[] = [];
 
     // News alerts
-    if (newsData?.length > 0) {
-      newsData.slice(0, 3).forEach((article: any) => {
+    if ((newsData?.length ?? 0) > 0) {
+      (newsData ?? []).slice(0, 3).forEach((article: any) => {
         events.push({
           id: `news-${article.id}`,
           type: 'news_alert',
@@ -97,8 +97,8 @@ export function LivePulseFeed() {
     }
 
     // Voting activity
-    if (votingData?.length > 0) {
-      votingData.slice(0, 2).forEach((vote: any) => {
+    if ((votingData?.length ?? 0) > 0) {
+      (votingData ?? []).slice(0, 2).forEach((vote: any) => {
         events.push({
           id: `vote-${vote.id}`,
           type: 'vote_cast',
@@ -113,8 +113,8 @@ export function LivePulseFeed() {
     }
 
     // Bill updates
-    if (liveData?.bills?.length > 0) {
-      liveData.bills.slice(0, 2).forEach((bill: any) => {
+    if ((liveData?.bills?.length ?? 0) > 0) {
+      (liveData?.bills ?? []).slice(0, 2).forEach((bill: any) => {
         events.push({
           id: `bill-${bill.id}`,
           type: 'bill_update',
