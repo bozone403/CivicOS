@@ -124,8 +124,9 @@ export class PoliticianDataEnhancer {
       console.log(`🎉 Successfully enhanced ${enhancedCount} politicians with constituency data`);
       
     } catch (error) {
-      console.error('❌ Error in politician enhancement:', error);
-      throw error;
+      const err = error as Error;
+      console.error('❌ Error in politician enhancement:', err.message);
+      throw err;
     }
   }
 

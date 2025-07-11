@@ -35,6 +35,22 @@ const upload = multer({
   }
 });
 
+// Add this type above the endpoint
+type CommentRow = {
+  id: string;
+  content: string;
+  author_id: string;
+  created_at: string;
+  is_edited: boolean;
+  edit_count: number;
+  last_edited_at: string;
+  like_count: number;
+  first_name: string;
+  last_name: string;
+  email: string;
+  profile_image_url: string;
+};
+
 export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware
   await setupAuth(app);
@@ -1305,6 +1321,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const postId = parseInt(req.params.postId);
 
+      // Get replies for each comment
+      type CommentRow = {
+        id: string;
+        content: string;
+        author_id: string;
+        created_at: string;
+        is_edited: boolean;
+        edit_count: number;
+        last_edited_at: string;
+        like_count: number;
+        first_name: string;
+        last_name: string;
+        email: string;
+        profile_image_url: string;
+      };
       const replies = await db.execute(sql`
         SELECT 
           fr.*,
@@ -1596,7 +1627,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Get replies for each comment
       const commentsWithReplies = await Promise.all(
-        comments.rows.map((comment: any) => {
+        (comments.rows as CommentRow[]).map((comment: CommentRow) => {
           return (async () => {
             const replies = await db.execute(sql`
               SELECT 
@@ -1619,7 +1650,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             `);
             return {
               ...comment,
-              replies: replies.rows.map((reply: any) => ({
+              replies: (replies.rows as CommentRow[]).map((reply: CommentRow) => ({
                 ...reply,
                 author: {
                   firstName: reply.first_name,

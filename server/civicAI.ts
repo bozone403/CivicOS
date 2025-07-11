@@ -74,7 +74,7 @@ Guidelines:
 
       // Analyze response for bullshit detection
       const truthScore = this.calculateTruthScore(query, responseText);
-      const analysisType = this.determineAnalysisType(query, "");
+      const analysisType = this.determineAnalysisType(query);
       
       return {
         response: responseText,
@@ -152,7 +152,7 @@ Guidelines:
 
   private async generateLocalBullshitAnalysis(query: string, region?: string): Promise<AIResponse> {
     const queryLower = query.toLowerCase();
-    const analysisType = this.determineAnalysisType(query, "");
+    const analysisType = this.determineAnalysisType(query);
     const truthScore = this.calculateTruthScore(query, "");
     const propagandaRisk = this.assessPropagandaRisk(query);
     
@@ -377,7 +377,7 @@ Analyze this using the government data provided. Be direct and factual. If polit
       ],
     });
 
-    const analysisType = this.determineAnalysisType(query, data);
+    const analysisType = this.determineAnalysisType(query);
     const confidence = this.calculateConfidence(data);
     const sources = this.extractSources(data);
 
@@ -397,11 +397,7 @@ Analyze this using the government data provided. Be direct and factual. If polit
     };
   }
 
-  private determineAnalysisType(query: string, data: any): "bill" | "politician" | "general" {
-    if (data.bills.length > 0 && query.toLowerCase().includes('bill')) return "bill";
-    if (data.politicians.length > 0 && (query.toLowerCase().includes('mp') || query.toLowerCase().includes('politician'))) return "politician";
-    return "general";
-  }
+
 
   private calculateConfidence(data: any): number {
     let confidence = 0.5; // Base confidence
@@ -518,6 +514,12 @@ Guidelines:
       console.error("Error generating direct response:", error);
       throw new Error("Failed to process civic AI query");
     }
+  }
+
+  private determineAnalysisType(query: string): "bill" | "politician" | "general" {
+    if (query.toLowerCase().includes('bill')) return "bill";
+    if (query.toLowerCase().includes('mp') || query.toLowerCase().includes('politician')) return "politician";
+    return "general";
   }
 }
 

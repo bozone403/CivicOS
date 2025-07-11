@@ -22,7 +22,7 @@ router.get("/", async (req: any, res) => {
     console.log(`Found ${result.length} notifications`);
     res.json(result);
   } catch (error) {
-    console.error("Error fetching notifications:", error instanceof Error ? error : String(error));
+    console.error("Error fetching notifications:", error instanceof Error ? error.message : String(error));
     res.status(500).json({ message: "Failed to fetch notifications" });
   }
 });
@@ -41,7 +41,7 @@ router.patch("/:id/read", async (req: any, res) => {
     
     res.json({ success: true });
   } catch (error) {
-    console.error("Error marking notification as read:", error instanceof Error ? error : String(error));
+    console.error("Error marking notification as read:", error instanceof Error ? error.message : String(error));
     res.status(500).json({ message: "Failed to mark notification as read" });
   }
 });
@@ -59,7 +59,7 @@ router.delete("/:id", async (req: any, res) => {
     
     res.json({ success: true });
   } catch (error) {
-    console.error("Error deleting notification:", error instanceof Error ? error : String(error));
+    console.error("Error deleting notification:", error instanceof Error ? error.message : String(error));
     res.status(500).json({ message: "Failed to delete notification" });
   }
 });
@@ -76,7 +76,7 @@ router.delete("/", async (req: any, res) => {
     
     res.json({ success: true });
   } catch (error) {
-    console.error("Error clearing notifications:", error instanceof Error ? error : String(error));
+    console.error("Error clearing notifications:", error instanceof Error ? error.message : String(error));
     res.status(500).json({ message: "Failed to clear notifications" });
   }
 });
