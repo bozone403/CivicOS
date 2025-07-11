@@ -720,11 +720,10 @@ export class ComprehensiveGovernmentScraper {
         jurisdiction: politicianData.jurisdiction,
         email: politicianData.email,
         phone: politicianData.phone,
-        office: politicianData.office,
         website: politicianData.profileUrl,
-        imageUrl: politicianData.imageUrl,
         trustScore: '85.00', // Base trust score
-        isActive: true
+        createdAt: new Date(),
+        updatedAt: new Date()
       }).onConflictDoUpdate({
         target: [politicians.name, politicians.jurisdiction],
         set: {
@@ -732,9 +731,7 @@ export class ComprehensiveGovernmentScraper {
           party: politicianData.party,
           email: politicianData.email,
           phone: politicianData.phone,
-          office: politicianData.office,
           website: politicianData.profileUrl,
-          imageUrl: politicianData.imageUrl,
           updatedAt: new Date()
         }
       });
@@ -751,14 +748,12 @@ export class ComprehensiveGovernmentScraper {
       await db.insert(bills).values({
         billNumber: billData.billNumber,
         title: billData.title,
-        status: billData.status || 'Introduced',
-        type: billData.type || 'Public Bill',
+        description: billData.summary,
+        jurisdiction: billData.jurisdiction,
         sponsor: billData.sponsor,
         dateIntroduced: billData.dateIntroduced ? new Date(billData.dateIntroduced) : new Date(),
-        summary: billData.summary,
-        jurisdiction: billData.jurisdiction,
-        level: billData.level,
-        sourceUrl: billData.sourceUrl
+        createdAt: new Date(),
+        updatedAt: new Date()
       }).onConflictDoNothing();
     } catch (error) {
       // Skip duplicates
@@ -769,21 +764,9 @@ export class ComprehensiveGovernmentScraper {
    * Store voting record
    */
   private async storeVote(voteData: any): Promise<void> {
-    try {
-      await db.insert(votingRecords).values({
-        billNumber: voteData.billNumber,
-        voteDate: voteData.voteDate ? new Date(voteData.voteDate) : new Date(),
-        voteType: voteData.voteType || 'Division',
-        result: voteData.result,
-        yesVotes: voteData.yesVotes,
-        noVotes: voteData.noVotes,
-        abstentions: voteData.abstentions,
-        jurisdiction: voteData.jurisdiction,
-        chamber: voteData.level === 'federal' ? 'House of Commons' : 'Legislative Assembly'
-      }).onConflictDoNothing();
-    } catch (error) {
-      // Skip duplicates
-    }
+    // TODO: Implement parliamentary voting records table
+    // The current votes table is for user votes, not parliamentary voting records
+    console.log('Skipping vote storage - parliamentary voting records not yet implemented');
   }
 
   /**
