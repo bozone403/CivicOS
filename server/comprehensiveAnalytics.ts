@@ -326,8 +326,8 @@ export class ComprehensiveAnalyticsService {
         };
       }
       
-      if (vote.vote === 'yes') acc[vote.billId].yesVotes++;
-      else if (vote.vote === 'no') acc[vote.billId].noVotes++;
+      if (vote.vote === 1) acc[vote.billId].yesVotes++;
+      else if (vote.vote === -1) acc[vote.billId].noVotes++;
       else acc[vote.billId].abstentions++;
       
       return acc;

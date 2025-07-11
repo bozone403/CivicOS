@@ -114,7 +114,7 @@ export class RealTimeMonitoringService {
   /**
    * Collect comprehensive system metrics
    */
-  private async collectMetrics(): Promise<void> {
+  async collectMetrics(): Promise<void> {
     try {
       console.log('Collecting system health metrics...');
       

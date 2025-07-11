@@ -119,7 +119,7 @@ export class NewsComparisonService {
       .from(newsArticles)
       .where(
         and(
-          gte(newsArticles.publishedAt, twoDaysAgo.toISOString()),
+          gte(newsArticles.publishedAt, twoDaysAgo),
           // Use title/summary similarity (simplified - in production would use vector similarity)
         )
       )
@@ -285,7 +285,7 @@ Respond in JSON format with:
     const keywords2 = this.extractKeywords(article2.title + ' ' + article2.summary);
     
     const intersection = keywords1.filter(word => keywords2.includes(word));
-    const union = [...new Set([...keywords1, ...keywords2])];
+    const union = Array.from(new Set([...keywords1, ...keywords2]));
     
     return intersection.length / union.length;
   }
@@ -296,7 +296,7 @@ Respond in JSON format with:
     articles.forEach(article => {
       // Extract key statements that could be factual claims
       const sentences = article.summary.split(/[.!?]+/);
-      sentences.forEach(sentence => {
+      sentences.forEach((sentence: string) => {
         if (sentence.trim().length > 20 && this.appearsToBeFactualClaim(sentence)) {
           claims.push({
             text: sentence.trim(),
@@ -397,7 +397,7 @@ Respond in JSON format with:
       'right': 100
     };
     
-    const scores = articles.map(article => biasScores[article.bias] || 50);
+    const scores = articles.map(article => biasScores[article.bias as keyof typeof biasScores] || 50);
     const max = Math.max(...scores);
     const min = Math.min(...scores);
     

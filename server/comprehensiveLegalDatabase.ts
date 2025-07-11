@@ -1,7 +1,7 @@
-import cheerio from 'cheerio';
+import * as cheerio from 'cheerio';
 import fetch from 'node-fetch';
 import { db } from './db';
-import { legalCases, criminalCode, provincialLaws, federalActs, charterRights } from '@shared/schema';
+import { legalCases, criminalCodeSections, charterRights } from '@shared/schema';
 
 interface LegalSource {
   name: string;
@@ -323,7 +323,7 @@ export class ComprehensiveLegalDatabase {
 
     for (const section of criminalCodeSections) {
       try {
-        await db.insert(criminalCode).values({
+        await db.insert(criminalCodeSections).values({
           sectionNumber: section.section,
           title: section.title,
           content: section.content,

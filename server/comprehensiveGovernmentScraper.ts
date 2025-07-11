@@ -1,7 +1,7 @@
-import cheerio from 'cheerio';
+import * as cheerio from 'cheerio';
 import fetch from 'node-fetch';
 import { db } from './db';
-import { politicians, bills, votingRecords, politicianStatements, committees, elections, candidates } from '@shared/schema';
+import { politicians, bills, votes, politicianStatements, elections, candidates } from '@shared/schema';
 
 interface DataSource {
   name: string;
@@ -323,7 +323,7 @@ export class ComprehensiveGovernmentScraper {
         await this.delay(60000 / source.rateLimit); // Convert rate limit to delay
         
       } catch (error) {
-        console.error(`❌ Error scraping ${source.name}:`, error.message);
+        console.error(`❌ Error scraping ${source.name}:`, (error as Error).message);
         continue;
       }
     }
@@ -451,7 +451,7 @@ export class ComprehensiveGovernmentScraper {
       });
 
     } catch (error) {
-      console.error(`Error scraping politicians from ${source.name}:`, error.message);
+      console.error(`Error scraping politicians from ${source.name}:`, (error as Error).message);
     }
 
     return politicians;
