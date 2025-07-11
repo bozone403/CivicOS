@@ -226,13 +226,13 @@ export function getAvailableAuthMethods(): {
 export function cleanupExpiredSessions(): void {
   const oneHourAgo = Date.now() - 60 * 60 * 1000;
   
-  for (const [key, session] of gckeySessions.entries()) {
+  for (const [key, session] of Array.from(gckeySessions.entries())) {
     if (session.timestamp < oneHourAgo) {
       gckeySessions.delete(key);
     }
   }
   
-  for (const [key, session] of bankingSessions.entries()) {
+  for (const [key, session] of Array.from(bankingSessions.entries())) {
     if (session.timestamp < oneHourAgo) {
       bankingSessions.delete(key);
     }

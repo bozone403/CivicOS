@@ -86,7 +86,7 @@ export async function sendVerificationEmail(email: string, code: string): Promis
  */
 export function cleanupExpiredCodes(): void {
   const now = new Date();
-  for (const [email, data] of verificationCodes.entries()) {
+  for (const [email, data] of Array.from(verificationCodes.entries())) {
     if (now > data.expiresAt) {
       verificationCodes.delete(email);
     }

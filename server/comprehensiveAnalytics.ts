@@ -306,13 +306,13 @@ export class ComprehensiveAnalyticsService {
 
     const votingPatterns = await db
       .select({
-        billId: votes.billId,
+        billId: votes.itemId, // Use itemId instead of billId
         billTitle: bills.title,
-        vote: votes.vote
+        vote: votes.voteValue // Use voteValue instead of vote
       })
       .from(votes)
-      .innerJoin(bills, eq(votes.billId, bills.id))
-      .orderBy(votes.billId);
+      .innerJoin(bills, eq(votes.itemId, bills.id)) // Use itemId instead of billId
+      .orderBy(votes.itemId); // Use itemId instead of billId
 
     // Group voting patterns by bill
     const votingSummary = votingPatterns.reduce((acc: any, vote) => {
@@ -447,7 +447,7 @@ export class ComprehensiveAnalyticsService {
       .select()
       .from(votes)
       .where(eq(votes.userId, politicianId.toString()))
-      .orderBy(desc(votes.dateCreated));
+      .orderBy(desc(votes.timestamp)); // Use timestamp
 
     return {
       totalVotes: userVotes.length,
@@ -457,8 +457,8 @@ export class ComprehensiveAnalyticsService {
         { issue: 'Economic Policy', stance: 'Moderate', consistency: 72 }
       ],
       influentialVotes: userVotes.slice(0, 5).map(vote => ({
-        billNumber: `Bill-${vote.billId}`,
-        vote: vote.vote,
+        billNumber: `Bill-${vote.itemId}`, // Use itemId instead of billId
+        vote: vote.voteValue, // Use voteValue instead of vote
         impact: 'High'
       }))
     };
@@ -469,14 +469,14 @@ export class ComprehensiveAnalyticsService {
       .select()
       .from(politicianStatements)
       .where(eq(politicianStatements.politicianId, politicianId))
-      .orderBy(desc(politicianStatements.dateCreated));
+      .orderBy(desc(politicianStatements.dateCreated)); // Use dateCreated
 
     return {
       totalStatements: statements.length,
       keyThemes: ['Healthcare Reform', 'Economic Growth', 'Climate Action'],
       sentimentAnalysis: { positive: 65, neutral: 25, negative: 10 },
       controversialStatements: statements.slice(0, 3).map(stmt => ({
-        date: stmt.dateCreated?.toISOString() || new Date().toISOString(),
+        date: stmt.dateCreated?.toISOString() || new Date().toISOString(), // Use dateCreated
         statement: stmt.statement.substring(0, 100) + '...',
         publicReaction: 'Mixed'
       }))

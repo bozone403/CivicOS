@@ -277,7 +277,7 @@ export class PoliticianDataEnhancer {
       total: totalPoliticians.rows[0].total,
       withConstituency: withConstituency.rows[0].count,
       withContactInfo: withContactInfo.rows[0].count,
-      completionRate: Math.round((withConstituency.rows[0].count / totalPoliticians.rows[0].total) * 100)
+      completionRate: Math.round(((withConstituency.rows[0] as any).count / (totalPoliticians.rows[0] as any).total) * 100)
     };
   }
 }

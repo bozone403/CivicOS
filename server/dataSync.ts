@@ -386,7 +386,7 @@ async function storeBill(bill: LegislativeBill): Promise<void> {
     await storage.createBill(billData);
   } catch (error) {
     // Ignore duplicates
-    if (!error.message?.includes('duplicate')) {
+    if (!(error as Error).message?.includes('duplicate')) {
       console.log(`Failed to store bill ${bill.number}:`, error instanceof Error ? error : String(error));
     }
   }
