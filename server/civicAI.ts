@@ -22,6 +22,8 @@ interface AIResponse {
   analysisType: "bill" | "politician" | "general";
   confidence: number;
   sources: string[];
+  truthScore?: number;
+  propagandaRisk?: "low" | "medium" | "high";
   relatedData?: {
     bills?: any[];
     politicians?: any[];
@@ -72,7 +74,7 @@ Guidelines:
 
       // Analyze response for bullshit detection
       const truthScore = this.calculateTruthScore(query, responseText);
-      const analysisType = this.determineAnalysisType(query);
+      const analysisType = this.determineAnalysisType(query, "");
       
       return {
         response: responseText,
@@ -127,18 +129,7 @@ Guidelines:
     return Math.max(0, Math.min(100, truthScore));
   }
 
-  private determineAnalysisType(query: string): "bill" | "politician" | "general" {
-    const queryLower = query.toLowerCase();
-    
-    if (queryLower.includes('bill') || queryLower.includes('legislation') || queryLower.includes('law')) {
-      return "bill";
-    }
-    if (queryLower.includes('mp') || queryLower.includes('minister') || queryLower.includes('politician') || 
-        queryLower.includes('carney') || queryLower.includes('poilievre')) {
-      return "politician";
-    }
-    return "general";
-  }
+
 
   private assessPropagandaRisk(text: string): "low" | "medium" | "high" {
     const propagandaTechniques = [
@@ -161,7 +152,7 @@ Guidelines:
 
   private async generateLocalBullshitAnalysis(query: string, region?: string): Promise<AIResponse> {
     const queryLower = query.toLowerCase();
-    const analysisType = this.determineAnalysisType(query);
+    const analysisType = this.determineAnalysisType(query, "");
     const truthScore = this.calculateTruthScore(query, "");
     const propagandaRisk = this.assessPropagandaRisk(query);
     
