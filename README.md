@@ -115,3 +115,4 @@ npm run db:push
 
 The platform is designed for Canadian political data and civic engagement. All data sources are authentic government feeds and official publications.# Build optimization
 # Force clean build - Fri Jul 11 18:17:11 MDT 2025
+# Force clean build - Fri Jul 11 18:33:45 MDT 2025
