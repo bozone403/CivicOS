@@ -113,4 +113,4 @@ npm run db:push
 
 ## Support
 
-The platform is designed for Canadian political data and civic engagement. All data sources are authentic government feeds and official publications.
+The platform is designed for Canadian political data and civic engagement. All data sources are authentic government feeds and official publications.# Build optimization
