@@ -1670,22 +1670,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
         })
       );
       
-      const cleanedComments = commentsWithReplies.map((comment: any) => ({
-        id: comment.id ?? '',
-        content: comment.content ?? '',
-        author_id: String(comment.author_id ?? ''),
-        created_at: comment.created_at ?? '',
-        is_edited: comment.is_edited ?? false,
-        edit_count: comment.edit_count ?? 0,
-        last_edited_at: comment.last_edited_at ?? '',
-        like_count: comment.like_count ?? 0,
-        first_name: comment.author?.firstName ?? '',
-        last_name: comment.author?.lastName ?? '',
-        email: comment.author?.email ?? '',
-        profile_image_url: comment.author?.profileImageUrl ?? '',
-        author: comment.author ?? {},
-        replies: comment.replies ?? []
-      }));
+      const cleanedComments = commentsWithReplies.map((comment: any) => {
+        const author = comment.author || {};
+        return {
+          id: comment.id ?? '',
+          content: comment.content ?? '',
+          author_id: String(comment.author_id ?? ''),
+          created_at: comment.created_at ?? '',
+          is_edited: comment.is_edited ?? false,
+          edit_count: comment.edit_count ?? 0,
+          last_edited_at: comment.last_edited_at ?? '',
+          like_count: comment.like_count ?? 0,
+          first_name: author.firstName ?? '',
+          last_name: author.lastName ?? '',
+          email: author.email ?? '',
+          profile_image_url: author.profileImageUrl ?? '',
+          author: author,
+          replies: comment.replies ?? []
+        };
+      });
       console.log('Returning', cleanedComments.length, 'clean comments. First comment author_id:', cleanedComments[0]?.author_id);
       res.json(cleanedComments);
     } catch (error) {
@@ -1767,7 +1770,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const originalContent = comment.rows[0].content;
-      const currentEditCount = typeof comment.rows[0].edit_count === 'number' ? comment.rows[0].edit_count : 0;
+      const currentEditCount = Number(comment.rows[0].edit_count) || 0;
       const newEditCount = currentEditCount + 1;
 
       // Save original content to edit history

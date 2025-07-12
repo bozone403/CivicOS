@@ -35,8 +35,8 @@ export function registerIdentityRoutes(app: Express) {
       const user = await storage.getUser(userId);
       
       res.json({
-        isVerified: user?.isVerified || false,
-        verificationLevel: user?.verificationLevel || "none",
+        isVerified: user?.isVerified ?? false,
+        verificationLevel: user?.verificationLevel ?? "none",
         // verifiedAt: user?.verifiedAt, // Not in DB, remove or set to null
         permissions: {
           canVote: false, // Set to default or compute if needed
