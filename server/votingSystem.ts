@@ -1,6 +1,6 @@
 import { db } from "./db";
 import { sql } from "drizzle-orm";
-import * as schema from "@shared/schema";
+// import * as schema from "@shared/schema";
 
 interface VoteOption {
   id: string;
@@ -22,7 +22,7 @@ interface VotingItem {
   requiredQuorum?: number;
 }
 
-interface VoteRecord {
+// interface VoteRecord {
   userId: string;
   itemId: number;
   optionId: string;

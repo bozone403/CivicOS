@@ -8,8 +8,8 @@ import {
   userNotificationPreferences,
   petitions,
   petitionSignatures,
-  userVotes,
-  voteCounts,
+  // userVotes,
+  // voteCounts,
   userActivity,
   type User,
   type UpsertUser,
@@ -24,10 +24,10 @@ import {
   type InsertNotification,
   type UserNotificationPreferences,
   type InsertUserNotificationPreferences,
-  type Petition,
-  type InsertPetition,
-  type PetitionSignature,
-  type InsertPetitionSignature,
+  // type Petition,
+  // type InsertPetition,
+  // type PetitionSignature,
+  // type InsertPetitionSignature,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, sql, count } from "drizzle-orm";

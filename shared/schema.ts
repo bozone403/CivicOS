@@ -9,7 +9,7 @@ import {
   integer,
   boolean,
   decimal,
-  uuid,
+  // uuid,
   unique,
 } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";

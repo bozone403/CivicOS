@@ -1,7 +1,7 @@
-import * as cheerio from 'cheerio';
-import fetch from 'node-fetch';
-import { db } from './db';
-import { legalCases, criminalCodeSections, charterRights } from '@shared/schema';
+// import * as cheerio from 'cheerio';
+// import fetch from 'node-fetch';
+// import { db } from './db';
+// import { legalCases, criminalCodeSections, charterRights } from '@shared/schema';
 
 interface LegalSource {
   name: string;
@@ -14,13 +14,13 @@ interface LegalSource {
   dataTypes: string[];
 }
 
-interface LegalData {
-  criminalCode: any[];
-  federalActs: any[];
-  provincialLaws: any[];
-  courtCases: any[];
-  charterRights: any[];
-}
+// interface LegalData {
+//   criminalCode: any[];
+//   federalActs: any[];
+//   provincialLaws: any[];
+//   courtCases: any[];
+//   charterRights: any[];
+// }
 
 /**
  * Comprehensive Legal Database System

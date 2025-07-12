@@ -1,6 +1,6 @@
 import { db } from "./db";
-import { newsArticles, newsComparisons, newsSourceCredibility, politicianControversies } from "@shared/schema";
-import { eq, desc, and, gte, sql } from "drizzle-orm";
+import { newsArticles, newsComparisons } from "@shared/schema";
+// import { eq, desc, and, gte, sql } from "drizzle-orm";
 import OpenAI from 'openai';
 import * as cheerio from 'cheerio';
 import fetch from 'node-fetch';
@@ -41,19 +41,19 @@ interface ArticleAnalysis {
   }>;
 }
 
-interface TopicComparison {
-  topic: string;
-  articles: ArticleAnalysis[];
-  consensusLevel: number;
-  majorDiscrepancies: string[];
-  propagandaPatterns: string[];
-  factualAccuracy: number;
-  politicalBias: {
-    left: number;
-    center: number;
-    right: number;
-  };
-}
+// interface TopicComparison {
+//   topic: string;
+//   articles: ArticleAnalysis[];
+//   consensusLevel: number;
+//   majorDiscrepancies: string[];
+//   propagandaPatterns: string[];
+//   factualAccuracy: number;
+//   politicalBias: {
+//     left: number;
+//     center: number;
+//     right: number;
+//   };
+// }
 
 /**
  * Comprehensive news analyzer for Canadian political content

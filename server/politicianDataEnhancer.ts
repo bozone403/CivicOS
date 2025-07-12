@@ -1,6 +1,6 @@
 import { db } from './db';
-import { politicians } from '@shared/schema';
-import { eq, isNull, or, sql } from 'drizzle-orm';
+// import { politicians } from '@shared/schema';
+import { sql } from 'drizzle-orm';
 
 /**
  * Politician Data Enhancement Service
@@ -50,7 +50,7 @@ export class PoliticianDataEnhancer {
     { name: "Ward 1", province: "Ontario", type: "Municipal", city: "Ottawa" }
   ];
 
-  private canadianParties = [
+  // private canadianParties = [
     "Liberal Party of Canada",
     "Conservative Party of Canada", 
     "New Democratic Party",

@@ -12,19 +12,19 @@ import {
   getProvincialAuthMethods
 } from "../canadianAuth";
 
-interface User {
-  id: string;
-  email: string;
-  isVerified?: boolean;
-  verificationLevel?: string;
-  verifiedAt?: Date;
-  canVote?: boolean;
-  canComment?: boolean;
-  canCreatePetitions?: boolean;
-  canAccessFOI?: boolean;
-  // isAdmin?: boolean; // Removed, not in DB
-  civicLevel?: string; // Add this to match DB
-}
+// interface User {
+//   id: string;
+//   email: string;
+//   isVerified?: boolean;
+//   verificationLevel?: string;
+//   verifiedAt?: Date;
+//   canVote?: boolean;
+//   canComment?: boolean;
+//   canCreatePetitions?: boolean;
+//   canAccessFOI?: boolean;
+//   // isAdmin?: boolean; // Removed, not in DB
+//   civicLevel?: string; // Add this to match DB
+// }
 
 export function registerIdentityRoutes(app: Express) {
   // Get user verification status
@@ -54,7 +54,7 @@ export function registerIdentityRoutes(app: Express) {
   // Start identity verification process
   app.post('/api/identity/start-verification', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      // const userId = req.user.claims.sub;
       
       // This would start the verification process
       // For now, return success
@@ -72,8 +72,8 @@ export function registerIdentityRoutes(app: Express) {
   // Submit verification step
   app.post('/api/identity/submit-step', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
-      const { step, data } = req.body;
+      // const userId = req.user.claims.sub;
+      const { step, _data } = req.body;
       
       // This would process each verification step
       // For now, return success for all steps

@@ -26,7 +26,7 @@ const upload = multer({
   limits: {
     fileSize: 5 * 1024 * 1024, // 5MB limit
   },
-  fileFilter: (req, file, cb) => {
+  fileFilter: (_req, file, cb) => {
     if (file.mimetype.startsWith('image/')) {
       cb(null, true);
     } else {
@@ -210,7 +210,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const userId = req.user.claims.sub;
       const fileExtension = req.file.originalname.split('.').pop() || 'jpg';
-      const fileName = `profile_${userId}_${randomBytes(8).toString('hex')}.${fileExtension}`;
+      // const fileName = `profile_${userId}_${randomBytes(8).toString('hex')}.${fileExtension}`;
       
       // Convert buffer to base64 data URL for storage
       const base64Data = `data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}`;
@@ -332,7 +332,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Dashboard comprehensive data
-  app.get('/api/dashboard/comprehensive', async (req, res) => {
+  app.get('/api/dashboard/comprehensive', async (_req, res) => {
     try {
       const [
         politiciansData,
@@ -369,7 +369,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Voting statistics endpoint
-  app.get('/api/voting/stats', async (req, res) => {
+  app.get('/api/voting/stats', async (_req, res) => {
     try {
       const totalVotes = await db.execute(sql`SELECT COUNT(*) as count FROM votes`);
       const activeUsers = await db.execute(sql`SELECT COUNT(DISTINCT user_id) as count FROM votes WHERE timestamp > NOW() - INTERVAL '30 days'`);
@@ -394,7 +394,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Politicians routes
-  app.get('/api/politicians', async (req, res) => {
+  app.get('/api/politicians', async (_req, res) => {
     try {
       const politicians = await db.execute(sql`
         SELECT 
@@ -432,7 +432,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Bills routes (removed duplicate - using enhanced version below)
 
   // Legal routes
-  app.get('/api/legal/acts', async (req, res) => {
+  app.get('/api/legal/acts', async (_req, res) => {
     try {
       const acts = await db.execute(sql`
         SELECT * FROM legal_acts ORDER BY date_enacted DESC LIMIT 100
@@ -444,7 +444,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get('/api/legal/cases', async (req, res) => {
+  app.get('/api/legal/cases', async (_req, res) => {
     try {
       const cases = await db.execute(sql`
         SELECT * FROM legal_cases ORDER BY date_decided DESC LIMIT 100
@@ -677,7 +677,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/petitions', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
-      const { title, description, targetSignatures, targetOfficial, billId, category, deadlineDate } = req.body;
+      const { title, description, targetSignatures, _targetOfficial, billId, _category, deadlineDate } = req.body;
 
       if (!title || !description) {
         return res.status(400).json({ message: "Title and description are required" });
@@ -994,7 +994,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Campaign Finance routes
   app.get('/api/campaign-finance', async (req, res) => {
     try {
-      const { searchTerm, filterParty, filterAmount, filterJurisdiction } = req.query;
+      const { searchTerm, filterParty, _filterAmount, filterJurisdiction } = req.query;
       
       let query = sql`
         SELECT 
@@ -2610,7 +2610,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Enhanced legal search endpoint with keyword indexing
   app.get('/api/legal/search', async (req, res) => {
     try {
-      const { query, category } = req.query;
+      const { query, _category } = req.query;
       
       if (!query) {
         return res.status(400).json({ message: "Search query is required" });
@@ -2751,7 +2751,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Calculate relevance scores
       const scoredResults = results.map(item => {
         let relevance = 0;
-        const searchableText = [item.title, item.excerpt, item.fullText, ...(Array.isArray(item.keywords) ? item.keywords : [])].join(' ').toLowerCase();
+        // const searchableText = [item.title, item.excerpt, item.fullText, ...(Array.isArray(item.keywords) ? item.keywords : [])].join(' ').toLowerCase();
         
         searchTerms.forEach((term: string) => {
           // Title matches get highest score
@@ -3162,7 +3162,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Calculate relevance scores
       const scoredResults = results.map(item => {
         let relevance = 0;
-        const searchableText = [item.title, item.excerpt, item.fullText, ...(Array.isArray(item.keywords) ? item.keywords : [])].join(' ').toLowerCase();
+        // const searchableText = [item.title, item.excerpt, item.fullText, ...(Array.isArray(item.keywords) ? item.keywords : [])].join(' ').toLowerCase();
         
         searchTerms.forEach((term: string) => {
           // Title matches get highest score
