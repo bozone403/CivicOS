@@ -94,7 +94,7 @@ export class PoliticianDataEnhancer {
       
       for (const politician of politiciansNeedingUpdate.rows) {
         try {
-          const enhancement = this.generateEnhancementData(politician);
+          const enhancement = this.generateEnhancementData(politician as any);
           
           await db.execute(sql`
             UPDATE politicians 
