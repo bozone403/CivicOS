@@ -22,7 +22,8 @@ interface User {
   canComment?: boolean;
   canCreatePetitions?: boolean;
   canAccessFOI?: boolean;
-  isAdmin?: boolean;
+  // isAdmin?: boolean; // Removed, not in DB
+  civicLevel?: string; // Add this to match DB
 }
 
 export function registerIdentityRoutes(app: Express) {
@@ -31,17 +32,17 @@ export function registerIdentityRoutes(app: Express) {
     try {
       const userId = req.user.claims.sub;
       
-      const user = await storage.getUser(userId) as User;
+      const user = await storage.getUser(userId);
       
       res.json({
         isVerified: user?.isVerified || false,
         verificationLevel: user?.verificationLevel || "none",
-        verifiedAt: user?.verifiedAt,
+        // verifiedAt: user?.verifiedAt, // Not in DB, remove or set to null
         permissions: {
-          canVote: user?.canVote || false,
-          canComment: user?.canComment || true,
-          canCreatePetitions: user?.canCreatePetitions || false,
-          canAccessFOI: user?.canAccessFOI || false
+          canVote: false, // Set to default or compute if needed
+          canComment: true, // Set to default or compute if needed
+          canCreatePetitions: false, // Set to default or compute if needed
+          canAccessFOI: false // Set to default or compute if needed
         }
       });
     } catch (error) {
@@ -91,10 +92,8 @@ export function registerIdentityRoutes(app: Express) {
   app.get('/api/admin/verification-queue', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
-      const user = await storage.getUser(userId) as User;
-      
-      const isAdmin = user?.isAdmin || false;
-      
+      const user = await storage.getUser(userId);
+      const isAdmin = user?.civicLevel === 'administrator';
       if (!isAdmin) {
         return res.status(403).json({ message: "Admin access required" });
       }
@@ -110,9 +109,9 @@ export function registerIdentityRoutes(app: Express) {
   app.post('/api/admin/approve-verification', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
-      const user = await storage.getUser(userId) as User;
-      
-      if (!user?.isAdmin) {
+      const user = await storage.getUser(userId);
+      const isAdmin = user?.civicLevel === 'administrator';
+      if (!isAdmin) {
         return res.status(403).json({ message: "Admin access required" });
       }
 
@@ -133,9 +132,9 @@ export function registerIdentityRoutes(app: Express) {
   app.post('/api/admin/reject-verification', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
-      const user = await storage.getUser(userId) as User;
-      
-      if (!user?.isAdmin) {
+      const user = await storage.getUser(userId);
+      const isAdmin = user?.civicLevel === 'administrator';
+      if (!isAdmin) {
         return res.status(403).json({ message: "Admin access required" });
       }
 

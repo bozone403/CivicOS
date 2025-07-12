@@ -150,6 +150,20 @@ Guidelines:
     return "low";
   }
 
+  private determineAnalysisType(query: string): "bill" | "politician" | "general" {
+    const queryLower = query.toLowerCase();
+    
+    if (queryLower.includes('bill') || queryLower.includes('legislation') || queryLower.includes('act')) {
+      return "bill";
+    }
+    
+    if (queryLower.includes('politician') || queryLower.includes('minister') || queryLower.includes('mp') || queryLower.includes('mpp')) {
+      return "politician";
+    }
+    
+    return "general";
+  }
+
   private async generateLocalBullshitAnalysis(query: string, region?: string): Promise<AIResponse> {
     const queryLower = query.toLowerCase();
     const analysisType = this.determineAnalysisType(query);
@@ -520,11 +534,6 @@ Guidelines:
     }
   }
 
-  private determineAnalysisType(query: string): "bill" | "politician" | "general" {
-    if (query.toLowerCase().includes('bill')) return "bill";
-    if (query.toLowerCase().includes('mp') || query.toLowerCase().includes('politician')) return "politician";
-    return "general";
-  }
 }
 
 export const civicAI = new CivicAIService();

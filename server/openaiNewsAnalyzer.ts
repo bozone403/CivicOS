@@ -65,7 +65,7 @@ export class OpenAINewsAnalyzer {
       name: "National Post",
       url: "https://nationalpost.com",
       rssUrl: "https://nationalpost.com/feed/",
-      bias: "center-right",
+      bias: "right",
       credibility: 80
     },
     {

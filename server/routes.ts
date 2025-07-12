@@ -1671,20 +1671,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       );
       
       const cleanedComments = commentsWithReplies.map((comment: any) => ({
-        id: comment.id,
-        content: comment.content,
-        author_id: String(comment.author_id),
-        created_at: comment.created_at,
-        is_edited: comment.is_edited || false,
-        edit_count: comment.edit_count || 0,
-        last_edited_at: comment.last_edited_at,
-        like_count: comment.like_count || 0,
-        first_name: comment.first_name,
-        last_name: comment.last_name,
-        email: comment.email,
-        profile_image_url: comment.profile_image_url,
-        author: comment.author,
-        replies: comment.replies || []
+        id: comment.id ?? '',
+        content: comment.content ?? '',
+        author_id: String(comment.author_id ?? ''),
+        created_at: comment.created_at ?? '',
+        is_edited: comment.is_edited ?? false,
+        edit_count: comment.edit_count ?? 0,
+        last_edited_at: comment.last_edited_at ?? '',
+        like_count: comment.like_count ?? 0,
+        first_name: comment.author?.firstName ?? '',
+        last_name: comment.author?.lastName ?? '',
+        email: comment.author?.email ?? '',
+        profile_image_url: comment.author?.profileImageUrl ?? '',
+        author: comment.author ?? {},
+        replies: comment.replies ?? []
       }));
       console.log('Returning', cleanedComments.length, 'clean comments. First comment author_id:', cleanedComments[0]?.author_id);
       res.json(cleanedComments);
@@ -3084,20 +3084,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       );
       
       const cleanedComments = commentsWithReplies.map((comment: any) => ({
-        id: comment.id,
-        content: comment.content,
-        author_id: String(comment.author_id),
-        created_at: comment.created_at,
-        is_edited: comment.is_edited || false,
-        edit_count: comment.edit_count || 0,
-        last_edited_at: comment.last_edited_at,
-        like_count: comment.like_count || 0,
-        first_name: comment.first_name,
-        last_name: comment.last_name,
-        email: comment.email,
-        profile_image_url: comment.profile_image_url,
-        author: comment.author,
-        replies: comment.replies || []
+        id: comment.id ?? '',
+        content: comment.content ?? '',
+        author_id: String(comment.author_id ?? ''),
+        created_at: comment.created_at ?? '',
+        is_edited: comment.is_edited ?? false,
+        edit_count: comment.edit_count ?? 0,
+        last_edited_at: comment.last_edited_at ?? '',
+        like_count: comment.like_count ?? 0,
+        first_name: comment.author?.firstName ?? '',
+        last_name: comment.author?.lastName ?? '',
+        email: comment.author?.email ?? '',
+        profile_image_url: comment.author?.profileImageUrl ?? '',
+        author: comment.author ?? {},
+        replies: comment.replies ?? []
       }));
       console.log('Returning', cleanedComments.length, 'clean comments. First comment author_id:', cleanedComments[0]?.author_id);
       res.json(cleanedComments);

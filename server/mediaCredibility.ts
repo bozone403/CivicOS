@@ -107,7 +107,7 @@ export const canadianMediaOutlets: MediaOutlet[] = [
     name: "The Globe and Mail",
     website: "https://www.theglobeandmail.com",
     credibilityScore: 78,
-    biasRating: "center-right",
+    biasRating: "right",
     factualReporting: "high",
     transparencyScore: 80,
     ownership: {
@@ -149,7 +149,7 @@ export const canadianMediaOutlets: MediaOutlet[] = [
     name: "National Post",
     website: "https://nationalpost.com",
     credibilityScore: 74,
-    biasRating: "center-right",
+    biasRating: "right",
     factualReporting: "mostly-factual",
     transparencyScore: 72,
     ownership: {

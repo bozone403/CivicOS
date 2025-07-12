@@ -400,8 +400,8 @@ export class ComprehensiveAnalyticsService {
         { issue: 'Economy', publicSupport: 71, politicalSupport: 85, gap: -14 }
       ],
       mediaInfluence: [
-        { outlet: 'CBC News', credibilityScore: 85, biasRating: 'center-left', influence: 92 },
-        { outlet: 'Globe and Mail', credibilityScore: 88, biasRating: 'center-right', influence: 78 },
+        { outlet: 'CBC News', credibilityScore: 85, biasRating: 'left', influence: 92 },
+        { outlet: 'Globe and Mail', credibilityScore: 88, biasRating: 'right', influence: 78 },
         { outlet: 'National Post', credibilityScore: 79, biasRating: 'right', influence: 65 }
       ]
     };
