@@ -25,12 +25,14 @@ app.use((req, res, next) => {
     "https://civic-hqknw0xml-jordan-boisclairs-projects.vercel.app",
     "https://civic-imsg8cldv-jordan-boisclairs-projects.vercel.app",
     "https://server-9thirrihk-jordan-boisclairs-projects.vercel.app",
-    "https://server-9thirrihk-jordan-boisclairs-projects.vercel.app",
     process.env.CORS_ORIGIN, // Custom CORS origin from env
-  ].filter(Boolean); // Remove undefined values
+  ].filter(Boolean);
 
+  // Allow all civicos.ca subdomains
   const origin = req.headers.origin;
-  if (origin && allowedOrigins.includes(origin)) {
+  console.log("CORS request from origin:", origin); // Debug log
+  const civicosRegex = /^https?:\/\/(.*\.)?civicos\.ca$/;
+  if (origin && (allowedOrigins.includes(origin) || civicosRegex.test(origin))) {
     res.header("Access-Control-Allow-Origin", origin);
   }
 
