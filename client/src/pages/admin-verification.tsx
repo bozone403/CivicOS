@@ -16,22 +16,18 @@ import {
   Eye,
   Search,
   Filter,
-  User,
+  User as UserIcon,
   Calendar,
   Camera,
   FileText
 } from "lucide-react";
+import type { User } from "@/hooks/useAuth";
 import { useAuth } from "@/hooks/useAuth";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 
 // Add User and Verification types
-interface User {
-  id: string | number;
-  isAdmin?: boolean;
-  // ...other fields
-}
 interface Verification {
   id?: string | number;
   status?: string;
@@ -51,20 +47,6 @@ export default function AdminVerificationPage() {
   const [selectedTab, setSelectedTab] = useState("pending");
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedVerification, setSelectedVerification] = useState<any>(null);
-
-  // Check if user is admin
-  if (!user?.isAdmin) {
-    return (
-      <div className="p-6 max-w-7xl mx-auto">
-        <Alert className="border-red-500 bg-red-50">
-          <Shield className="h-4 w-4" />
-          <AlertDescription>
-            Access denied. Administrator privileges required to view this page.
-          </AlertDescription>
-        </Alert>
-      </div>
-    );
-  }
 
   const { data: verifications = [], isLoading } = useQuery<Verification[]>({
     queryKey: ["/api/admin/verification-queue"],
@@ -112,6 +94,20 @@ export default function AdminVerificationPage() {
       });
     },
   });
+
+  // Check if user is admin
+  if (!user?.isAdmin) {
+    return (
+      <div className="p-6 max-w-7xl mx-auto">
+        <Alert className="border-red-500 bg-red-50">
+          <Shield className="h-4 w-4" />
+          <AlertDescription>
+            Access denied. Administrator privileges required to view this page.
+          </AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
 
   const getStatusBadge = (status: string, riskScore: number) => {
     if (status === "pending") {
@@ -224,7 +220,7 @@ export default function AdminVerificationPage() {
                             <div className="flex items-center justify-between">
                               <div className="flex-1">
                                 <div className="flex items-center space-x-3 mb-2">
-                                  <User className="w-4 h-4 text-gray-400" />
+                                  <UserIcon className="w-4 h-4 text-gray-400" />
                                   <span className="font-medium">{verification?.email}</span>
                                   {getStatusBadge(verification?.status || "", verification?.riskScore || 0)}
                                 </div>

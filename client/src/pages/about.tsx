@@ -84,7 +84,7 @@ export default function About() {
           </h1>
           
           <p className="text-2xl font-semibold text-gray-800 mb-12 leading-relaxed max-w-3xl mx-auto">
-            Canada's premier independent platform for government accountability and democratic transparency. 
+            Canada&apos;s premier independent platform for government accountability and democratic transparency. 
             Providing citizens with real-time access to political data and enabling informed civic engagement 
             across all levels of Canadian government.
           </p>
@@ -432,7 +432,7 @@ export default function About() {
             Join the Democratic Revolution
           </h2>
           <p className="text-2xl font-semibold text-red-100 mb-12 leading-relaxed max-w-4xl mx-auto">
-            Become part of Canada's most comprehensive government accountability platform. 
+            Become part of Canada&apos;s most comprehensive government accountability platform. 
             Access real-time data, engage with democracy, and hold your representatives accountable.
           </p>
           

@@ -1,9 +1,9 @@
 // Environment configuration for the frontend
 export const env = {
-  NODE_ENV: process.env.NODE_ENV || 'development',
-  API_URL: process.env.VITE_API_URL || 'http://localhost:3000',
-  IS_PRODUCTION: process.env.NODE_ENV === 'production',
-  IS_DEVELOPMENT: process.env.NODE_ENV === 'development',
+  NODE_ENV: import.meta.env.NODE_ENV || 'development',
+  API_URL: import.meta.env.VITE_API_URL || 'http://localhost:3000',
+  IS_PRODUCTION: import.meta.env.NODE_ENV === 'production',
+  IS_DEVELOPMENT: import.meta.env.NODE_ENV === 'development',
 } as const;
 
 // Runtime environment detection

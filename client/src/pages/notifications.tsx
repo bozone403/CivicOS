@@ -342,7 +342,7 @@ export default function Notifications() {
               <Bell className="w-12 h-12 text-muted-foreground mb-4" />
               <h3 className="text-lg font-medium mb-2">No notifications</h3>
               <p className="text-muted-foreground text-center">
-                You're all caught up! Check back later for updates on civic activities.
+                You&apos;re all caught up! Check back later for updates on civic activities.
               </p>
             </CardContent>
           </Card>

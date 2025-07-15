@@ -209,7 +209,7 @@ export default function CasesPage() {
                     </div>
 
                     <div>
-                      <div className="text-sm font-medium text-muted-foreground mb-2">Court's Ruling</div>
+                      <div className="text-sm font-medium text-muted-foreground mb-2">Court&apos;s Ruling</div>
                       <div className="text-sm bg-muted/50 p-3 rounded">
                         {case_.ruling}
                       </div>

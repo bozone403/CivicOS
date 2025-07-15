@@ -1,3 +1,4 @@
+import * as React from "react";
 import { useState, useRef, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -177,7 +178,7 @@ export function CivicAI() {
           )}
         </div>
         <p className="text-sm text-gray-600">
-          Ask about any legislation, politician, or voting pattern. I'll give you the unfiltered truth.
+          Ask about any legislation, politician, or voting pattern. I&apos;ll give you the unfiltered truth.
         </p>
       </CardHeader>
 

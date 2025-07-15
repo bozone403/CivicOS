@@ -54,8 +54,8 @@ export default function Contact() {
           <h1 className="text-4xl font-black text-gray-900 mb-4 tracking-tight">
             Get in Touch
           </h1>
-          <p className="text-xl font-semibold text-gray-700 max-w-3xl mx-auto">
-            We're here to help with questions, support, and feedback about the CivicOS platform
+          <p className="text-lg font-semibold text-slate-800 dark:text-slate-100 mb-2">
+            We&apos;re here to help with questions, support, and feedback about the CivicOS platform
           </p>
         </div>
 

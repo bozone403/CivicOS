@@ -78,14 +78,14 @@ export default function Manifesto({ onAgree }: ManifestoProps) {
               </p>
 
               <p className="leading-relaxed">
-                I didn't build CivicOS because I believed the system could be fixed. I built it because 
+                I didn&apos;t build CivicOS because I believed the system could be fixed. I built it because 
                 I know the people still deserve tools that let them see it clearly, navigate it precisely, 
                 and—if necessary—stand against it fully informed.
               </p>
 
               <div className="bg-slate-50 dark:bg-slate-700 rounded-lg p-6 my-6">
                 <p className="leading-relaxed mb-4">
-                  This project is part of a larger ecosystem I'm building. CivicOS connects to the same 
+                  This project is part of a larger ecosystem I&apos;m building. CivicOS connects to the same 
                   core philosophy that drives PrometheOS, PersonaOS, and ScheduleOS: systems that return 
                   power to the individual by removing confusion, cutting through noise, and enforcing 
                   clarity of action.
@@ -93,8 +93,8 @@ export default function Manifesto({ onAgree }: ManifestoProps) {
               </div>
 
               <p className="leading-relaxed">
-                If you've ever felt like your voice didn't matter, your vote didn't count, or your 
-                government didn't hear you—this platform was built for you. Not to convince you. But to arm you.
+                If you&apos;ve ever felt like your voice didn&apos;t matter, your vote didn&apos;t count, or your 
+                government didn&apos;t hear you—this platform was built for you. Not to convince you. But to arm you.
               </p>
 
               <div className="text-center py-6">

@@ -20,7 +20,7 @@ interface LegalCase {
 }
 interface SearchResults {
   length: number;
-  map: Function;
+  map: (args: any) => any;
   // ...other fields
 }
 
@@ -158,7 +158,7 @@ export default function LegalSearch() {
                       </div>
                     )) || (
                       <div className="text-center py-8 text-slate-500">
-                        No results found for "{searchQuery}"
+                        No results found for &quot;{searchQuery}&quot;
                       </div>
                     )}
                   </div>

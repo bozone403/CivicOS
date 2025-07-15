@@ -20,7 +20,7 @@ import {
   Eye
 } from "lucide-react";
 
-interface UserProfile {
+interface UserProfileData {
   user: {
     id: string;
     first_name: string;
@@ -61,7 +61,7 @@ interface UserProfile {
 export default function UserProfile() {
   const { userId } = useParams();
   
-  const { data: profile, isLoading } = useQuery<UserProfile>({
+  const { data: profile, isLoading } = useQuery<UserProfileData>({
     queryKey: [`/api/users/${userId}/profile`],
     enabled: !!userId
   });

@@ -550,7 +550,7 @@ export default function News() {
                         <th className="text-center p-2">Credibility</th>
                         <th className="text-center p-2">Bias</th>
                         <th className="text-center p-2">Ownership</th>
-                        <th className="text-center p-2">Gov't Funding</th>
+                        <th className="text-center p-2">Gov&apos;t Funding</th>
                         <th className="text-center p-2">Transparency</th>
                       </tr>
                     </thead>

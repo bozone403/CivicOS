@@ -92,7 +92,7 @@ export default function Login() {
                 Secure Access Portal
               </CardTitle>
               <CardTitle className="text-lg font-semibold text-red-600 mt-1">
-                Portail d'Accès Sécurisé
+                Portail d&apos;Accès Sécurisé
               </CardTitle>
               <CardDescription className="mt-4 text-gray-600">
                 Access the CivicOS Government Accountability Platform with your secure credentials.
@@ -106,7 +106,7 @@ export default function Login() {
               )}
               <div className="space-y-2">
                 <Label htmlFor="username" className="text-sm font-semibold text-gray-700">
-                  Username / Nom d'utilisateur
+                  Username / Nom d&apos;utilisateur
                 </Label>
                 <div className="relative">
                   <User className="absolute left-3 top-3 h-4 w-4 text-gray-400" />

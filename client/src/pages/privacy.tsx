@@ -336,9 +336,9 @@ export default function Privacy() {
           </Card>
         </section>
 
-        {/* 7. Children's Privacy */}
+        {/* 7. Children&apos;s Privacy */}
         <section className="mb-8">
-          <h2 className="text-2xl font-black text-gray-900 mb-4">7. Children's Privacy</h2>
+          <h2 className="text-2xl font-black text-gray-900 mb-4">7. Children&apos;s Privacy</h2>
           
           <Card className="border-2 border-orange-200 bg-orange-50">
             <CardContent className="pt-6">
@@ -415,7 +415,7 @@ export default function Privacy() {
                   <ul className="space-y-1 ml-4">
                     <li>• Email notification to all users for material changes</li>
                     <li>• Platform notification banner for 30 days</li>
-                    <li>• Updated "Last Modified" date at the top of this policy</li>
+                    <li>• Updated &quot;Last Modified&quot; date at the top of this policy</li>
                   </ul>
                 </div>
                 <p>

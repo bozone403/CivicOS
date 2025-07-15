@@ -204,8 +204,8 @@ export default function Ledger() {
             <CardContent className="p-12 text-center">
               <AlertCircle className="w-16 h-16 text-gray-400 mx-auto mb-4" />
               <h3 className="text-lg font-semibold text-gray-900 mb-2">No Civic Activity</h3>
-              <p className="text-gray-600 mb-4">
-                You haven't participated in any civic activities yet. Visit the Active Legislation page to start voting.
+              <p className="text-center text-muted-foreground mt-8">
+                You haven&apos;t participated in any civic activities yet. Visit the Active Legislation page to start voting.
               </p>
               <Button className="bg-civic-blue hover:bg-blue-700">
                 View Active Bills

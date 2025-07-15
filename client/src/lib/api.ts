@@ -7,9 +7,9 @@ class ApiClient {
     this.baseURL = config.apiUrl
   }
 
-  private async request(endpoint: string, options: RequestInit = {}): Promise<Response> {
+  private async request(endpoint: string, options: any = {}): Promise<Response> {
     const url = `${this.baseURL}${endpoint}`
-    const config: RequestInit = {
+    const config: any = {
       credentials: 'include',
       headers: {
         'Content-Type': 'application/json',

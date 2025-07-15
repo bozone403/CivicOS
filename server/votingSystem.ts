@@ -23,12 +23,12 @@ interface VotingItem {
 }
 
 // interface VoteRecord {
-  userId: string;
-  itemId: number;
-  optionId: string;
-  timestamp: Date;
-  verified: boolean;
-}
+//   userId: string;
+//   itemId: number;
+//   optionId: string;
+//   timestamp: Date;
+//   verified: boolean;
+// }
 
 export class VotingSystem {
   /**

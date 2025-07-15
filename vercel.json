@@ -4,29 +4,30 @@
     {
       "src": "server/index.ts",
       "use": "@vercel/node@3.0.0"
+    },
+    {
+      "src": "client/package.json",
+      "use": "@vercel/static-build",
+      "config": {
+        "distDir": "dist/public"
+      }
     }
   ],
   "routes": [
-    {
-      "src": "/health",
-      "dest": "/server/index.ts"
-    },
     {
       "src": "/api/(.*)",
       "dest": "/server/index.ts"
     },
     {
-      "src": "/(.*)",
+      "src": "/health",
       "dest": "/server/index.ts"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/client/$1"
     }
   ],
   "env": {
     "NODE_ENV": "production"
-  },
-  "functions": {
-    "server/index.ts": {
-      "runtime": "nodejs18.x",
-      "maxDuration": 30
-    }
   }
 }

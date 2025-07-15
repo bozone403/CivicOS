@@ -379,7 +379,7 @@ export default function Legal() {
                   <div className="space-y-6">
                     <div className="flex items-center justify-between">
                       <h4 className="text-lg font-semibold">
-                        Search Results for "{searchResults.query}"
+                        Search Results for &quot;{searchResults.query}&quot;
                       </h4>
                       <Badge variant="outline">
                         {searchResults.totalResults} results found
@@ -436,7 +436,7 @@ export default function Legal() {
 
                 {searchTerm && !searchResults && (
                   <div className="text-center py-8 text-slate-500">
-                    No results found. Try different keywords like "criminal", "rights", "discrimination", or "freedom".
+                    No results found. Try different keywords like &quot;criminal&quot;, &quot;rights&quot;, &quot;discrimination&quot;, or &quot;freedom&quot;.
                   </div>
                 )}
 

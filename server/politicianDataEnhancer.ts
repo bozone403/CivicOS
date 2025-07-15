@@ -51,27 +51,27 @@ export class PoliticianDataEnhancer {
   ];
 
   // private canadianParties = [
-    "Liberal Party of Canada",
-    "Conservative Party of Canada", 
-    "New Democratic Party",
-    "Bloc Québécois",
-    "Green Party of Canada",
-    "People's Party of Canada",
-    "Liberal",
-    "Progressive Conservative",
-    "New Democratic",
-    "Coalition Avenir Québec",
-    "Parti Québécois",
-    "Québec solidaire",
-    "BC Liberal Party",
-    "BC New Democratic Party",
-    "Alberta United Conservative Party",
-    "Alberta New Democratic Party",
-    "Ontario Progressive Conservative Party",
-    "Ontario Liberal Party",
-    "Ontario New Democratic Party",
-    "Independent"
-  ];
+  //   "Liberal Party of Canada",
+  //   "Conservative Party of Canada", 
+  //   "New Democratic Party",
+  //   "Bloc Québécois",
+  //   "Green Party of Canada",
+  //   "People's Party of Canada",
+  //   "Liberal",
+  //   "Progressive Conservative",
+  //   "New Democratic",
+  //   "Coalition Avenir Québec",
+  //   "Parti Québécois",
+  //   "Québec solidaire",
+  //   "BC Liberal Party",
+  //   "BC New Democratic Party",
+  //   "Alberta United Conservative Party",
+  //   "Alberta New Democratic Party",
+  //   "Ontario Progressive Conservative Party",
+  //   "Ontario Liberal Party",
+  //   "Ontario New Democratic Party",
+  //   "Independent"
+  // ];
 
   /**
    * Enhance all politicians with missing constituency data

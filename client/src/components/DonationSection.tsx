@@ -1,3 +1,4 @@
+import * as React from "react";
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -88,7 +89,7 @@ export default function DonationSection() {
             </p>
             <div className="bg-yellow-50 border border-yellow-200 rounded p-3 mb-4">
               <p className="text-xs text-yellow-800">
-                <strong>Transparency Crisis:</strong> Traditional media can't track 85,000+ politicians. 
+                <strong>Transparency Crisis:</strong> Traditional media can&apos;t track 85,000+ politicians. 
                 Your support funds the technology that can.
               </p>
             </div>

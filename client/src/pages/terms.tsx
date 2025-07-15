@@ -337,7 +337,7 @@ export default function Terms() {
                 <div>
                   <h4 className="font-bold mb-2">Information Accuracy:</h4>
                   <p>
-                    While we strive for accuracy, CivicOS provides information "as is" without warranties. 
+                    While we strive for accuracy, CivicOS provides information &quot;as is&quot; without warranties. 
                     Government data may contain errors, and political information can change rapidly. 
                     Users should verify important information through official sources.
                   </p>
@@ -345,7 +345,7 @@ export default function Terms() {
                 <div>
                   <h4 className="font-bold mb-2">Platform Availability:</h4>
                   <p>
-                    CivicOS is provided "as available" without guarantees of continuous operation. 
+                    CivicOS is provided &quot;as available&quot; without guarantees of continuous operation. 
                     We are not liable for service interruptions, data loss, or technical difficulties.
                   </p>
                 </div>
