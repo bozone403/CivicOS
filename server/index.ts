@@ -30,11 +30,12 @@ app.use((req, res, next) => {
 
   // Allow all civicos.ca subdomains
   const origin = req.headers.origin;
-  console.log("CORS request from origin:", origin); // Debug log
   const civicosRegex = /^https?:\/\/(.*\.)?civicos\.ca$/;
-  if (origin && (allowedOrigins.includes(origin) || civicosRegex.test(origin))) {
-    res.header("Access-Control-Allow-Origin", origin);
-  }
+  const isAllowed = origin && (allowedOrigins.includes(origin) || civicosRegex.test(origin));
+  console.log("CORS request from origin:", origin, "Regex match:", civicosRegex.test(origin), "Allowed:", isAllowed);
+
+  // TEMP: Allow all origins for debugging
+  res.header("Access-Control-Allow-Origin", typeof origin === "string" && origin.length > 0 ? origin : "*");
 
   res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
   res.header(
