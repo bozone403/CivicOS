@@ -107,7 +107,7 @@ app.use((req, res, next) => {
   // doesn't interfere with the other routes
   if (app.get("env") === "development") {
     // Only import and use setupVite in development
-    const { setupVite } = await import("./vite.js");
+    const { setupVite } = await import("./viteDevServer.js");
     await setupVite(app, server);
   } else {
     serveStatic(app);
