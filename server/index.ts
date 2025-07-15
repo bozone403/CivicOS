@@ -32,10 +32,17 @@ app.use((req, res, next) => {
   const origin = req.headers.origin;
   const civicosRegex = /^https?:\/\/(.*\.)?civicos\.ca$/;
   const isAllowed = origin && (allowedOrigins.includes(origin) || civicosRegex.test(origin));
-  console.log("CORS request from origin:", origin, "Regex match:", civicosRegex.test(origin), "Allowed:", isAllowed);
+  console.log(
+    "CORS request from origin:",
+    typeof origin === "string" ? origin : "undefined",
+    "Regex match:",
+    typeof origin === "string" ? civicosRegex.test(origin) : false,
+    "Allowed:",
+    isAllowed
+  );
 
   // TEMP: Allow all origins for debugging
-  res.header("Access-Control-Allow-Origin", typeof origin === "string" && origin.length > 0 ? origin : "*");
+  res.header("Access-Control-Allow-Origin", typeof origin === 'string' ? origin : '*');
 
   res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
   res.header(
