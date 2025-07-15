@@ -8,7 +8,7 @@ async function throwIfResNotOk(res: Response) {
 }
 
 // Use VITE_API_BASE_URL for production API calls
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || ""; // e.g. https://civic-os.vercel.app
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "https://civic-aw9ockbyp-jordan-boisclairs-projects.vercel.app"; // e.g. https://civic-os.vercel.app
 
 export async function apiRequest(
   url: string,
