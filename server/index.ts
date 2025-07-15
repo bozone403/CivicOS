@@ -19,6 +19,11 @@ app.use((req, res, next) => {
     "https://civicos.vercel.app",
     "https://civic-os-jordan-boisclairs-projects.vercel.app",
     "https://civic-os.vercel.app",
+    "https://civic-ocfaq6e3w-jordan-boisclairs-projects.vercel.app",
+    "https://civic-hqknw0xml-jordan-boisclairs-projects.vercel.app",
+    "https://civic-imsg8cldv-jordan-boisclairs-projects.vercel.app",
+    "https://server-9thirrihk-jordan-boisclairs-projects.vercel.app",
+    "https://server-9thirrihk-jordan-boisclairs-projects.vercel.app",
     process.env.CORS_ORIGIN, // Custom CORS origin from env
   ].filter(Boolean); // Remove undefined values
 
