@@ -24,7 +24,7 @@
     },
     {
       "src": "/(.*)",
-      "dest": "/client/$1"
+      "dest": "/client/dist/public/$1"
     }
   ],
   "env": {
