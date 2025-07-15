@@ -6,6 +6,8 @@ import { initializeNewsAnalysis } from "./newsAnalyzer";
 import { comprehensiveNewsAnalyzer } from "./comprehensiveNewsAnalyzer";
 import { realTimeMonitoring } from "./realTimeMonitoring";
 import { confirmedAPIs } from "./confirmedAPIs";
+import helmet from "helmet";
+import rateLimit from "express-rate-limit";
 
 const app = express();
 
@@ -18,13 +20,6 @@ app.use((req, res, next) => {
     "https://www.civicos.ca",
     "http://civicos.ca",
     "http://www.civicos.ca",
-    "https://civicos.vercel.app",
-    "https://civic-os-jordan-boisclairs-projects.vercel.app",
-    "https://civic-os.vercel.app",
-    "https://civic-ocfaq6e3w-jordan-boisclairs-projects.vercel.app",
-    "https://civic-hqknw0xml-jordan-boisclairs-projects.vercel.app",
-    "https://civic-imsg8cldv-jordan-boisclairs-projects.vercel.app",
-    "https://server-9thirrihk-jordan-boisclairs-projects.vercel.app",
     process.env.CORS_ORIGIN, // Custom CORS origin from env
   ].filter(Boolean);
 
@@ -41,8 +36,16 @@ app.use((req, res, next) => {
     isAllowed
   );
 
-  // TEMP: Allow all origins for debugging
-  res.header("Access-Control-Allow-Origin", typeof origin === 'string' ? origin : '*');
+  // Allow only trusted origins in production, '*' in development
+  if (process.env.NODE_ENV === 'production') {
+    if (isAllowed) {
+      res.header("Access-Control-Allow-Origin", origin);
+    } else {
+      res.header("Access-Control-Allow-Origin", "https://civicos.ca");
+    }
+  } else {
+    res.header("Access-Control-Allow-Origin", typeof origin === 'string' ? origin : '*');
+  }
 
   res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
   res.header(
@@ -89,6 +92,42 @@ app.use((req, res, next) => {
   });
 
   next();
+});
+
+// Security middleware
+app.use(helmet());
+app.use(rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 200, // limit each IP to 200 requests per windowMs
+  standardHeaders: true,
+  legacyHeaders: false,
+}));
+
+(function checkRequiredEnvVars() {
+  const required = [
+    'DATABASE_URL',
+    'SESSION_SECRET',
+    'REPLIT_DOMAINS',
+    'REPL_ID',
+    'ISSUER_URL',
+    'STRIPE_SECRET_KEY',
+    'OPENAI_API_KEY',
+    'FRONTEND_BASE_URL',
+  ];
+  const missing = required.filter((k) => !process.env[k]);
+  if (missing.length) {
+    console.error('Missing required environment variables:', missing.join(', '));
+    process.exit(1);
+  }
+})();
+
+// Global error handler for unhandled promise rejections
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+});
+process.on('uncaughtException', (err) => {
+  console.error('Uncaught Exception thrown:', err);
+  process.exit(1);
 });
 
 (async () => {
