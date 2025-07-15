@@ -17,7 +17,9 @@ import { sql, eq } from "drizzle-orm";
 import multer from "multer";
 import { users } from "@shared/schema";
 import { randomBytes } from "crypto";
+import { z } from "zod";
 
+const FRONTEND_BASE_URL = process.env.FRONTEND_BASE_URL || "https://civicos.ca";
 
 // Configure multer for profile picture uploads
 const storage_multer = multer.memoryStorage();
@@ -674,14 +676,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Create petition route
-  app.post('/api/petitions', isAuthenticated, async (req: any, res) => {
+  app.post('/api/petitions', isAuthenticated, async (req, res) => {
+    const petitionSchema = z.object({
+      title: z.string().min(3),
+      description: z.string().min(10),
+      targetSignatures: z.number().int().min(1).max(1000000),
+      deadlineDate: z.string().optional(),
+      relatedBillId: z.number().optional(),
+    });
     try {
-      const userId = req.user.claims.sub;
-      const { title, description, targetSignatures, _targetOfficial, billId, _category, deadlineDate } = req.body;
-
-      if (!title || !description) {
-        return res.status(400).json({ message: "Title and description are required" });
+      const userId = (req as any).user.claims.sub;
+      const parsed = petitionSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ message: "Invalid petition data", errors: parsed.error.errors });
       }
+      const { title, description, targetSignatures, deadlineDate, relatedBillId } = parsed.data;
 
       const result = await db.execute(sql`
         INSERT INTO petitions (
@@ -690,7 +699,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         )
         VALUES (
           ${title}, ${description}, ${targetSignatures || 500}, ${userId}, 
-          ${billId || null}, ${deadlineDate || null}, 'active', NOW(), NOW()
+          ${relatedBillId || null}, ${deadlineDate || null}, 'active', NOW(), NOW()
         )
         RETURNING id
       `);
@@ -1491,22 +1500,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
   }
 
   // Fixed commenting system for targetType/targetId routes - HIGH PRIORITY ROUTE
-  app.post('/api/comments/:targetType/:targetId', async (req: any, res) => {
+  app.post('/api/comments/:targetType/:targetId', async (req, res) => {
     console.log('Comment POST route hit:', req.params, req.body);
+    const commentSchema = z.object({
+      content: z.string().min(1),
+      parentCommentId: z.string().optional(),
+    });
     try {
       const { targetType, targetId } = req.params;
-      const { content, parentCommentId } = req.body;
-      
+      const parsed = commentSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ message: "Invalid comment data", errors: parsed.error.errors });
+      }
+      const { content, parentCommentId } = parsed.data;
       // For development, use demo user ID
       const userId = process.env.NODE_ENV !== 'production' ? '42199639' : 
         (req.isAuthenticated() && req.user ? (req.user as any).id : null);
 
       if (!userId) {
         return res.status(401).json({ message: "Authentication required" });
-      }
-
-      if (!content || content.trim().length === 0) {
-        return res.status(400).json({ message: "Comment content is required" });
       }
 
       // Content moderation check using the function defined below
@@ -1532,10 +1544,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const comment = {
         ...result.rows[0],
         author: {
-          firstName: user.rows[0]?.first_name,
-          lastName: user.rows[0]?.last_name,
-          email: user.rows[0]?.email,
-          profileImageUrl: user.rows[0]?.profile_image_url
+          ...user.rows[0]
         }
       };
 
@@ -2983,8 +2992,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           },
         ],
         mode: 'payment',
-        success_url: `${req.protocol}://${req.get('host')}/donation-success?amount=${amount}`,
-        cancel_url: `${req.protocol}://${req.get('host')}/`,
+        success_url: `${FRONTEND_BASE_URL}/donation-success?amount=${amount}`,
+        cancel_url: `${FRONTEND_BASE_URL}/`,
         metadata: {
           platform: 'CivicOS',
           purpose: 'Platform Support Donation',
