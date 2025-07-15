@@ -16,6 +16,8 @@ app.use((req, res, next) => {
     "http://localhost:3000", // Alternative dev port
     "https://civicos.ca",
     "https://www.civicos.ca",
+    "http://civicos.ca",
+    "http://www.civicos.ca",
     "https://civicos.vercel.app",
     "https://civic-os-jordan-boisclairs-projects.vercel.app",
     "https://civic-os.vercel.app",
