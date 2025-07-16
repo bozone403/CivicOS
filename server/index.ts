@@ -157,8 +157,6 @@ process.on('uncaughtException', (err) => {
     
     // Initialize confirmed government API data enhancement
     async function initializeConfirmedAPIs() {
-      console.log("Initializing confirmed Canadian government APIs...");
-      
       // Statistics Canada and Open Government API enhancement
       setInterval(async () => {
         try {
@@ -176,7 +174,6 @@ process.on('uncaughtException', (err) => {
     
     // Initialize politician data enhancement
     async function initializePoliticianEnhancement() {
-      console.log("Starting politician data enhancement...");
       try {
         const { politicianDataEnhancer } = await import('./politicianDataEnhancer');
         setTimeout(async () => {
@@ -196,7 +193,6 @@ process.on('uncaughtException', (err) => {
     initializeNewsAnalysis();
     
     // Start comprehensive Canadian news analysis
-    console.log("Starting comprehensive Canadian news analysis system...");
     comprehensiveNewsAnalyzer.performComprehensiveAnalysis().catch(error => {
       console.error("Error in comprehensive news analysis:", error);
     });

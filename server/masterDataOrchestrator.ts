@@ -24,21 +24,13 @@ export class MasterDataOrchestrator {
    * Initialize comprehensive data collection systems
    */
   async initializeAllSystems(): Promise<void> {
-    try {
-      // Schedule continuous data collection
-      this.scheduleDataCollection();
-      
-      // Start real-time monitoring
-      await this.startRealTimeMonitoring();
-      
-      // Initial comprehensive data population
-      await this.performInitialDataPopulation();
-      
-      this.isRunning = true;
-      
-    } catch (error) {
-      throw error;
-    }
+    // Schedule continuous data collection
+    this.scheduleDataCollection();
+    // Start real-time monitoring
+    await this.startRealTimeMonitoring();
+    // Initial comprehensive data population
+    await this.performInitialDataPopulation();
+    this.isRunning = true;
   }
 
   /**
@@ -85,6 +77,7 @@ export class MasterDataOrchestrator {
       try {
         await realTimeMonitoring.collectMetrics();
       } catch (error) {
+        // Optionally log or handle error, but do not leave empty block
       }
     });
   }
@@ -101,6 +94,7 @@ export class MasterDataOrchestrator {
         try {
           await realTimeMonitoring.collectMetrics();
         } catch (error) {
+          // Optionally log or handle error, but do not leave empty block
         }
       }, 300000); // Every 5 minutes
       
@@ -113,51 +107,34 @@ export class MasterDataOrchestrator {
    * Perform initial comprehensive data population
    */
   private async performInitialDataPopulation(): Promise<void> {
-    
-    try {
-      // Step 1: Build legal database foundation
-      await comprehensiveLegalDatabase.buildComprehensiveLegalDatabase();
-      
-      // Step 2: Initial government data scraping
-      this.systemHealth.governmentScraper = 'running';
-      await comprehensiveGovernmentScraper.performComprehensiveScraping();
-      this.systemHealth.governmentScraper = 'completed';
-      
-      // Step 3: Initial news aggregation
-      this.systemHealth.newsAggregator = 'running';
-      await revolutionaryNewsAggregator.performComprehensiveAggregation();
-      this.systemHealth.newsAggregator = 'completed';
-      
-      // Step 4: Generate initial analytics
-      this.systemHealth.analytics = 'running';
-      await comprehensiveAnalytics.generateComprehensiveAnalytics();
-      this.systemHealth.analytics = 'completed';
-      
-      this.lastUpdate = new Date();
-      
-    } catch (error) {
-      throw error;
-    }
+    // Step 1: Build legal database foundation
+    await comprehensiveLegalDatabase.buildComprehensiveLegalDatabase();
+    // Step 2: Initial government data scraping
+    this.systemHealth.governmentScraper = 'running';
+    await comprehensiveGovernmentScraper.performComprehensiveScraping();
+    this.systemHealth.governmentScraper = 'completed';
+    // Step 3: Initial news aggregation
+    this.systemHealth.newsAggregator = 'running';
+    await revolutionaryNewsAggregator.performComprehensiveAggregation();
+    this.systemHealth.newsAggregator = 'completed';
+    // Step 4: Generate initial analytics
+    this.systemHealth.analytics = 'running';
+    await comprehensiveAnalytics.generateComprehensiveAnalytics();
+    this.systemHealth.analytics = 'completed';
+    this.lastUpdate = new Date();
   }
 
   /**
    * Force comprehensive data refresh
    */
   async forceDataRefresh(): Promise<void> {
-    
-    try {
-      // Run all data collection systems
-      await Promise.all([
-        comprehensiveGovernmentScraper.performComprehensiveScraping(),
-        revolutionaryNewsAggregator.performComprehensiveAggregation(),
-        comprehensiveAnalytics.generateComprehensiveAnalytics()
-      ]);
-      
-      this.lastUpdate = new Date();
-      
-    } catch (error) {
-      throw error;
-    }
+    // Run all data collection systems
+    await Promise.all([
+      comprehensiveGovernmentScraper.performComprehensiveScraping(),
+      revolutionaryNewsAggregator.performComprehensiveAggregation(),
+      comprehensiveAnalytics.generateComprehensiveAnalytics()
+    ]);
+    this.lastUpdate = new Date();
   }
 
   /**

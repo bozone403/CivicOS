@@ -120,7 +120,7 @@ async function parseOpenParliamentData(data: string): Promise<ParliamentMember[]
     }
     return members;
   } catch (error) {
-    console.warn("Error parsing OpenParliament data:", error);
+    // Error parsing OpenParliament data
     return [];
   }
 }
@@ -147,7 +147,7 @@ async function parseOfficialDirectoryData(data: string): Promise<ParliamentMembe
     
     return members;
   } catch (error) {
-    console.warn("Error parsing Official Directory data:", error);
+    // Error parsing Official Directory data
     return [];
   }
 }
@@ -180,7 +180,7 @@ async function parseHouseOfCommonsData(data: string): Promise<ParliamentMember[]
     
     return members;
   } catch (error) {
-    console.warn("Error parsing House of Commons data:", error);
+    // Error parsing House of Commons data
     return [];
   }
 }
@@ -442,7 +442,7 @@ async function parseRSSBills(data: string): Promise<LegislativeBill[]> {
     
     return bills;
   } catch (error) {
-    console.warn("Error parsing RSS bills:", error);
+    // Error parsing RSS bills
     return [];
   }
 }
@@ -475,7 +475,7 @@ async function parseHTMLBills(data: string): Promise<LegislativeBill[]> {
     
     return bills;
   } catch (error) {
-    console.warn("Error parsing HTML bills:", error);
+    // Error parsing HTML bills
     return [];
   }
 }
@@ -580,7 +580,7 @@ export async function scrapeProvincialBills(province: string = "ontario"): Promi
 
     return [];
   } catch (error) {
-    console.warn(`Error scraping ${province} bills:`, error);
+    // Error scraping province bills
     return [];
   }
 }
@@ -610,7 +610,7 @@ async function parseProvincialBillsHTML(data: string, province: string): Promise
     
     return bills;
   } catch (error) {
-    console.warn(`Error parsing ${province} bills HTML:`, error);
+    // Error parsing province bills HTML
     return [];
   }
 }
@@ -642,7 +642,7 @@ export async function populateRealData(): Promise<void> {
 
         await storage.createBill(billData);
       } catch (error) {
-        console.warn(`Error storing bill ${bill.number}:`, error);
+        // Error storing bill
       }
     }
 
@@ -660,7 +660,7 @@ export async function populateRealData(): Promise<void> {
 
         await storage.createPolitician(politicianData);
       } catch (error) {
-        console.warn(`Error storing politician ${member.name}:`, error);
+        // Error storing politician
       }
     }
 

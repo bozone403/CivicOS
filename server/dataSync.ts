@@ -63,20 +63,12 @@ interface LegislativeBill {
  * Automatically sync all Canadian government data
  */
 export async function syncAllGovernmentData(): Promise<void> {
-  try {
-    // Sync federal data
-    await syncFederalData();
-    
-    // Sync provincial data
-    await syncProvincialData();
-    
-    // Sync major municipal data
-    await syncMunicipalData();
-    
-  } catch (error) {
-    console.error("Error during government data sync:", error instanceof Error ? error : String(error));
-    throw error;
-  }
+  // Sync federal data
+  await syncFederalData();
+  // Sync provincial data
+  await syncProvincialData();
+  // Sync major municipal data
+  await syncMunicipalData();
 }
 
 /**
@@ -111,14 +103,10 @@ async function syncProvincialData(): Promise<void> {
   const provinces = Object.keys(DATA_SOURCES.provincial);
   
   for (const province of provinces) {
-    try {
-      const officials = await scrapeProvincialOfficials(province);
-      
-      for (const official of officials) {
-        await storeOfficial(official);
-      }
-    } catch (error) {
-      const err = error as Error;
+    const officials = await scrapeProvincialOfficials(province);
+    
+    for (const official of officials) {
+      await storeOfficial(official);
     }
   }
 }
@@ -131,14 +119,10 @@ async function syncMunicipalData(): Promise<void> {
   const cities = Object.keys(DATA_SOURCES.municipal);
   
   for (const city of cities) {
-    try {
-      const officials = await scrapeMunicipalOfficials(city);
-      
-      for (const official of officials) {
-        await storeOfficial(official);
-      }
-    } catch (error) {
-      const err = error as Error;
+    const officials = await scrapeMunicipalOfficials(city);
+    
+    for (const official of officials) {
+      await storeOfficial(official);
     }
   }
 }
@@ -339,12 +323,12 @@ async function storeOfficial(official: GovernmentOfficial): Promise<void> {
       constituency: official.constituency || '',
       trustScore: calculateInitialTrustScore(official)
     };
-    
     await storage.createPolitician(politicianData);
   } catch (error) {
     const err = error as any;
     // Ignore duplicates but log other errors
     if (!err.message?.includes('duplicate') && !err.message?.includes('unique constraint')) {
+      console.error('Error storing official:', err);
     }
   }
 }
@@ -364,11 +348,10 @@ async function storeBill(bill: LegislativeBill): Promise<void> {
       status: bill.status,
       votingDeadline: bill.votingDeadline || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
     };
-    
     await storage.createBill(billData);
   } catch (error) {
-    // Ignore duplicates
     if (!(error as Error).message?.includes('duplicate')) {
+      console.error('Error storing bill:', error);
     }
   }
 }

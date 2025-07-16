@@ -2885,7 +2885,6 @@ export async function registerRoutes(app: Express): Promise<void> {
       // Check if we have Stripe configured
       if (!process.env.STRIPE_SECRET_KEY) {
         // Fallback to simulation for development
-        console.log(`Demo donation: $${amount} CAD`);
         return res.json({ 
           success: true,
           isSimulated: true,
@@ -2925,7 +2924,6 @@ export async function registerRoutes(app: Express): Promise<void> {
         }
       });
 
-      console.log(`Stripe checkout session created for $${amount} CAD: ${session.id}`);
       res.json({ 
         sessionId: session.id,
         url: session.url,

@@ -87,7 +87,6 @@ export function LegalSystemWidget() {
       const response = await fetch("/api/legal/initialize", { method: "POST" });
       const result = await response.json();
       if (response.ok) {
-        console.log("Legal system initialized:", result);
         // Refresh the data
         window.location.reload();
       }

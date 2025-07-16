@@ -59,7 +59,6 @@ export function CommentSystem({ targetType, targetId }: CommentSystemProps) {
     queryKey: ['comments', targetType, targetId],
     queryFn: async () => {
       const result = await apiRequest(`/api/comments/${targetType}/${targetId}`);
-      console.log('Comments loaded:', result?.length || 0);
       return Array.isArray(result) ? result : [];
     },
     retry: 1,

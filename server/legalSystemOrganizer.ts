@@ -952,15 +952,10 @@ export class LegalSystemOrganizer {
    */
   async initializeLegalSystem(): Promise<void> {
     
-    try {
-      await this.removeDuplicates();
-      await this.populateCriminalCode();
-      await this.populateFederalLegislation();
-      await this.populateLandmarkCases();
-      
-    } catch (error) {
-      throw error;
-    }
+    await this.removeDuplicates();
+    await this.populateCriminalCode();
+    await this.populateFederalLegislation();
+    await this.populateLandmarkCases();
   }
 }
 

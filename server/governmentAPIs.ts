@@ -13,19 +13,15 @@ export class GovernmentAPIService {
    */
   async fetchParliamentOpenData() {
     try {
-      
       // MPs data from Parliament API
       const mpsResponse = await fetch('https://www.ourcommons.ca/members/en/search/xml');
       if (mpsResponse.ok) {
         const mpsData = await mpsResponse.text();
         await this.processParliamentMPs(mpsData);
       }
-      
       // Bills data from Parliament API
       const billsResponse = await fetch('https://www.parl.ca/legisinfo/en/bills');
-      if (billsResponse.ok) {
-      }
-      
+      // No further logic for billsResponse yet
     } catch (error) {
       console.error("Error fetching Parliament data:", error);
     }
@@ -37,12 +33,9 @@ export class GovernmentAPIService {
    */
   async fetchStatisticsCanada() {
     try {
-      
       // Population and demographic data
       const popResponse = await fetch('https://www150.statcan.gc.ca/t1/wds/rest/getDataFromVectorsAndLatestNPeriods');
-      if (popResponse.ok) {
-      }
-      
+      // No further logic for popResponse yet
     } catch (error) {
       console.error("Error fetching Statistics Canada data:", error);
     }
@@ -54,12 +47,9 @@ export class GovernmentAPIService {
    */
   async fetchOpenGovernmentData() {
     try {
-      
       // Government spending data
       const spendingResponse = await fetch('https://open.canada.ca/data/api/action/package_search?q=spending');
-      if (spendingResponse.ok) {
-      }
-      
+      // No further logic for spendingResponse yet
     } catch (error) {
       console.error("Error fetching Open Government data:", error);
     }
@@ -71,12 +61,9 @@ export class GovernmentAPIService {
    */
   async fetchElectoralDistricts() {
     try {
-      
       // Electoral boundaries data
       const boundariesResponse = await fetch('https://www.elections.ca/res/cir/maps2/mapprov.asp');
-      if (boundariesResponse.ok) {
-      }
-      
+      // No further logic for boundariesResponse yet
     } catch (error) {
       console.error("Error fetching electoral data:", error);
     }

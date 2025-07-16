@@ -70,7 +70,7 @@ export default function RightsPage() {
           });
         },
         () => {
-          console.log("Geolocation not available");
+          // Geolocation not available
         }
       );
     }
