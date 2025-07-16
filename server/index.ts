@@ -1,6 +1,6 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes.ts";
-import { serveStatic } from "./vite";
+import path from "path";
 import { initializeDataSync } from "./dataSync";
 import { initializeNewsAnalysis } from "./newsAnalyzer";
 import { comprehensiveNewsAnalyzer } from "./comprehensiveNewsAnalyzer";
@@ -135,9 +135,13 @@ process.on('uncaughtException', (err) => {
     throw err;
   });
 
-  // REMOVE dev-only viteDevServer logic for production
-  // (No import or setupVite call)
-  serveStatic(app);
+  // REMOVE serveStatic(app);
+  // Instead, serve static files directly with express.static
+  const distPath = path.resolve(__dirname, "../client/dist/public");
+  app.use(express.static(distPath));
+  app.use("*", (_req, res) => {
+    res.sendFile(path.resolve(distPath, "index.html"));
+  });
 
   // ALWAYS serve the app on port 5000
   // this serves both the API and the client.
