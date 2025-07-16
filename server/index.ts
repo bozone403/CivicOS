@@ -94,6 +94,12 @@ app.use((req, res, next) => {
   next();
 });
 
+// Basic request logging middleware
+app.use((req, res, next) => {
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.originalUrl}`);
+  next();
+});
+
 // Security middleware
 app.use(helmet());
 app.use(rateLimit({
@@ -235,3 +241,27 @@ process.on('uncaughtException', (err) => {
     // }, 8000);
   });
 })();
+
+// Monitoring/health endpoint
+app.get('/api/monitoring/health', (req, res) => {
+  res.json({ status: 'ok', uptime: process.uptime(), timestamp: new Date().toISOString() });
+});
+
+// Admin session cleanup endpoint (admin only)
+app.post('/api/admin/session/cleanup', async (req, res) => {
+  // TODO: Add real admin auth check
+  if (!req.user || !(req.user as any).isAdmin) {
+    return res.status(403).json({ message: 'Forbidden' });
+  }
+  try {
+    if (req.sessionStore && typeof (req.sessionStore as any).clear === 'function') {
+      await new Promise((resolve, reject) => (req.sessionStore as any).clear((err: any) => err ? reject(err) : resolve(undefined)));
+      res.json({ message: 'All sessions cleared' });
+    } else {
+      res.status(500).json({ message: 'Session store does not support cleanup' });
+    }
+  } catch (error) {
+    console.error('Error clearing sessions:', error);
+    res.status(500).json({ message: 'Failed to clear sessions' });
+  }
+});

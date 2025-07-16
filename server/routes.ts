@@ -1,4 +1,4 @@
-import type { Express } from "express";
+import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./replitAuth";
@@ -53,6 +53,15 @@ type CommentRow = {
   profile_image_url: string;
 };
 
+// Session TTL explicit (1 week)
+const SESSION_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+
+// Zod schemas for query/param validation
+const searchQuerySchema = z.object({ q: z.string().min(1).max(100) });
+const idParamSchema = z.object({ id: z.string().regex(/^\d+$/) });
+const voteParamSchema = z.object({ targetType: z.string().min(2).max(32), targetId: z.string().regex(/^\d+$/) });
+const postIdParamSchema = z.object({ postId: z.string().regex(/^\d+$/) });
+
 export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware
   await setupAuth(app);
@@ -67,16 +76,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   registerIdentityRoutes(app);
 
   // Auth routes
-  app.get('/api/auth/user', async (req: any, res) => {
+  app.get('/api/auth/user', async (req: Request, res: Response) => {
     try {
       // Check if user is logged out
-      if (req.session?.loggedOut) {
+      if ((req.session as any)?.loggedOut) {
         return res.status(401).json({ message: "Unauthorized" });
       }
 
       // Check for session-based user data first
-      if (req.session?.userData) {
-        return res.json(req.session.userData);
+      if ((req.session as any)?.userData) {
+        return res.json((req.session as any).userData);
       }
 
       // For development, return demo user as fallback
@@ -97,7 +106,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ message: "Unauthorized" });
       }
       
-      const userId = req.user.claims.sub;
+      // Authenticated route, user is guaranteed
+      const userId = (req.user && (req.user as any).claims && (req.user as any).claims.sub) || null;
+      if (!userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
       const user = await storage.getUser(userId);
       res.json(user);
     } catch (error) {
@@ -107,12 +121,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Logout route
-  app.post('/api/auth/logout', async (req: any, res) => {
+  app.post('/api/auth/logout', async (req: Request, res: Response) => {
     try {
       // Clear session data
       if (req.session) {
-        req.session.loggedOut = true;
-        req.session.userData = null;
+        (req.session as any).loggedOut = true;
+        (req.session as any).userData = null;
       }
       
       // In production, also logout from Replit Auth
@@ -132,9 +146,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Login route for development
-  app.post('/api/auth/login', async (req: any, res) => {
+  app.post('/api/auth/login', async (req: Request, res: Response) => {
+    const loginSchema = z.object({
+      email: z.string().email(),
+      password: z.string().min(6)
+    });
     try {
-      const { email, password } = req.body;
+      const parsed = loginSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ message: "Invalid login data", errors: parsed.error.errors });
+      }
+      const { email, password } = parsed.data;
       
       // Simple validation for demo purposes
       if (!email || !password) {
@@ -155,8 +177,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Store user data in session
       if (req.session) {
-        req.session.loggedOut = false;
-        req.session.userData = userData;
+        (req.session as any).loggedOut = false;
+        (req.session as any).userData = userData;
       }
       
       res.json({ message: "Login successful", success: true });
@@ -167,9 +189,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Register route for development
-  app.post('/api/auth/register', async (req: any, res) => {
+  app.post('/api/auth/register', async (req: Request, res: Response) => {
+    const registerSchema = z.object({
+      email: z.string().email(),
+      password: z.string().min(6),
+      firstName: z.string().min(1),
+      lastName: z.string().optional()
+    });
     try {
-      const { email, password, firstName, lastName } = req.body;
+      const parsed = registerSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ message: "Invalid registration data", errors: parsed.error.errors });
+      }
+      const { email, password, firstName, lastName } = parsed.data;
       
       // Simple validation for demo purposes
       if (!email || !password || !firstName) {
@@ -192,8 +224,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Store user data in session
       if (req.session) {
-        req.session.loggedOut = false;
-        req.session.userData = userData;
+        (req.session as any).loggedOut = false;
+        (req.session as any).userData = userData;
       }
       
       res.json({ message: "Registration successful", success: true });
@@ -204,13 +236,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Profile picture upload route
-  app.post('/api/auth/upload-profile-picture', isAuthenticated, upload.single('profilePicture'), async (req: any, res) => {
+  app.post('/api/auth/upload-profile-picture', isAuthenticated, upload.single('profilePicture'), async (req: Request, res: Response) => {
     try {
       if (!req.file) {
         return res.status(400).json({ message: "No file uploaded" });
       }
 
-      const userId = req.user.claims.sub;
+      // Authenticated route, user is guaranteed
+      const userId = (req.user && (req.user as any).claims && (req.user as any).claims.sub) || null;
+      if (!userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
       const fileExtension = req.file.originalname.split('.').pop() || 'jpg';
       // const fileName = `profile_${userId}_${randomBytes(8).toString('hex')}.${fileExtension}`;
       
@@ -415,7 +452,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get('/api/politicians/:id', async (req, res) => {
     try {
-      const politicianId = parseInt(req.params.id);
+      const parsed = idParamSchema.safeParse(req.params);
+      if (!parsed.success) {
+        return res.status(400).json({ message: "Invalid politician id", errors: parsed.error.errors });
+      }
+      const politicianId = parseInt(parsed.data.id);
       const politician = await db.execute(sql`
         SELECT * FROM politicians WHERE id = ${politicianId}
       `);
@@ -461,7 +502,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Search endpoints
   app.get('/api/search', async (req, res) => {
     try {
-      const query = req.query.q as string;
+      const parsed = searchQuerySchema.safeParse(req.query);
+      if (!parsed.success) {
+        return res.status(400).json({ message: "Invalid search query", errors: parsed.error.errors });
+      }
+      const query = parsed.data.q;
       if (!query) {
         return res.status(400).json({ message: "Search query required" });
       }
@@ -510,8 +555,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Universal voting/like system for all items
   app.get('/api/vote/:targetType/:targetId', async (req, res) => {
     try {
-      const { targetType, targetId } = req.params;
-      const userId = (req as any).user?.claims?.sub;
+      const parsed = voteParamSchema.safeParse(req.params);
+      if (!parsed.success) {
+        return res.status(400).json({ message: "Invalid vote params", errors: parsed.error.errors });
+      }
+      const { targetType, targetId } = parsed.data;
+      const userId = (req as any).user && (req as any).user.claims && (req as any).user.claims.sub;
+      if (!userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
       
       // Get vote counts
       const votes = await db.execute(sql`
@@ -564,9 +616,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Unified voting endpoint
-  app.post('/api/vote', isAuthenticated, async (req: any, res) => {
+  app.post('/api/vote', isAuthenticated, async (req: Request, res: Response) => {
+    const voteSchema = z.object({
+      targetType: z.enum(["politician", "bill", "post", "comment", "petition", "news", "finance"]),
+      targetId: z.number().int(),
+      voteType: z.enum(["upvote", "downvote"])
+    });
     try {
-      const { targetType, targetId, voteType } = req.body;
+      const parsed = voteSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ message: "Invalid vote data", errors: parsed.error.errors });
+      }
+      const { targetType, targetId, voteType } = parsed.data;
       const userId = req.user.claims.sub;
 
       if (!['upvote', 'downvote'].includes(voteType)) {
@@ -676,7 +737,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Create petition route
-  app.post('/api/petitions', isAuthenticated, async (req, res) => {
+  app.post('/api/petitions', isAuthenticated, async (req: Request, res: Response) => {
     const petitionSchema = z.object({
       title: z.string().min(3),
       description: z.string().min(10),
@@ -685,7 +746,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       relatedBillId: z.number().optional(),
     });
     try {
-      const userId = (req as any).user.claims.sub;
       const parsed = petitionSchema.safeParse(req.body);
       if (!parsed.success) {
         return res.status(400).json({ message: "Invalid petition data", errors: parsed.error.errors });
@@ -715,7 +775,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/petitions/:id/sign', isAuthenticated, async (req: any, res) => {
+  app.post('/api/petitions/:id/sign', isAuthenticated, async (req: Request, res: Response) => {
     try {
       const petitionId = parseInt(req.params.id);
       const userId = req.user.claims.sub;
@@ -751,9 +811,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // AI Chat endpoint
-  app.post('/api/civic/chat', async (req, res) => {
+  app.post('/api/civic/chat', async (req: Request, res: Response) => {
+    const chatSchema = z.object({
+      query: z.string().min(1),
+      region: z.string().optional()
+    });
     try {
-      const { query, region } = req.body;
+      const parsed = chatSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ message: "Invalid chat data", errors: parsed.error.errors });
+      }
+      const { query, region } = parsed.data;
       
       if (!query) {
         return res.status(400).json({ message: "Query is required" });
@@ -953,12 +1021,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // For development, use the same auth logic as other endpoints
       if (process.env.NODE_ENV !== 'production') {
         // Check if user is logged out
-        if (req.session?.loggedOut) {
+        if ((req.session as any)?.loggedOut) {
           return res.status(401).json({ message: "Authentication required" });
         }
         
         // If no session data, check if we can use demo mode (same as auth/user endpoint)
-        if (!req.session?.userData) {
+        if (!((req.session as any)?.userData)) {
           // Return demo user as fallback (same as auth endpoint)
           const demoUser = {
             id: '42199639',
@@ -1096,9 +1164,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Fix the unified voting endpoint with proper authentication
-  app.post('/api/vote', async (req: any, res) => {
+  app.post('/api/vote', async (req: Request, res: Response) => {
+    const voteSchema = z.object({
+      targetType: z.enum(["politician", "bill", "post", "comment", "petition", "news", "finance"]),
+      targetId: z.number().int(),
+      voteType: z.enum(["upvote", "downvote"])
+    });
     try {
-      const { targetType, targetId, voteType } = req.body;
+      const parsed = voteSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ message: "Invalid vote data", errors: parsed.error.errors });
+      }
+      const { targetType, targetId, voteType } = parsed.data;
       
       // For development, use demo user ID
       const userId = process.env.NODE_ENV !== 'production' ? '42199639' : 
@@ -1328,7 +1405,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get forum replies for a post
   app.get("/api/forum/replies/:postId", async (req, res) => {
     try {
-      const postId = parseInt(req.params.postId);
+      const parsed = postIdParamSchema.safeParse(req.params);
+      if (!parsed.success) {
+        return res.status(400).json({ message: "Invalid post id", errors: parsed.error.errors });
+      }
+      const postId = parseInt(parsed.data.postId);
 
       // Get replies for each comment
       type CommentRow = {
@@ -1500,7 +1581,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   }
 
   // Fixed commenting system for targetType/targetId routes - HIGH PRIORITY ROUTE
-  app.post('/api/comments/:targetType/:targetId', async (req, res) => {
+  app.post('/api/comments/:targetType/:targetId', async (req: Request, res: Response) => {
     console.log('Comment POST route hit:', req.params, req.body);
     const commentSchema = z.object({
       content: z.string().min(1),
@@ -1985,10 +2066,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Create new forum post
-  app.post("/api/forum/posts", isAuthenticated, async (req: any, res) => {
+  app.post("/api/forum/posts", isAuthenticated, async (req: Request, res: Response) => {
+    const postSchema = z.object({
+      title: z.string().min(3),
+      content: z.string().min(10),
+      categoryId: z.number().int(),
+      subcategoryId: z.number().int().optional(),
+      billId: z.number().int().optional()
+    });
     try {
-      const { title, content, categoryId, subcategoryId, billId } = req.body;
-      const userId = req.user.claims.sub;
+      const parsed = postSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ message: "Invalid post data", errors: parsed.error.errors });
+      }
+      const { title, content, categoryId, subcategoryId, billId } = parsed.data;
+      const userId = (req as any).user.claims.sub;
 
       if (!title?.trim() || !content?.trim() || !categoryId) {
         return res.status(400).json({ message: "Title, content, and category are required" });
