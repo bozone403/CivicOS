@@ -124,7 +124,6 @@ export class DatabaseStorage implements IStorage {
         .from(notifications)
         .where(eq(notifications.userId, userId))
         .orderBy(desc(notifications.createdAt));
-      console.log(`Found ${result.length} notifications for user ${userId}`);
       return result;
     } catch (error) {
       console.error("Error fetching notifications:", error);
@@ -143,7 +142,6 @@ export class DatabaseStorage implements IStorage {
         .update(notifications)
         .set({ isRead: true })
         .where(and(eq(notifications.id, notificationId), eq(notifications.userId, userId)));
-      console.log(`Marked notification ${notificationId} as read for user ${userId}`);
     } catch (error) {
       console.error("Error marking notification as read:", error);
       throw error;
@@ -155,7 +153,6 @@ export class DatabaseStorage implements IStorage {
       const result = await db
         .delete(notifications)
         .where(and(eq(notifications.id, notificationId), eq(notifications.userId, userId)));
-      console.log(`Deleted notification ${notificationId} for user ${userId}`);
     } catch (error) {
       console.error("Error deleting notification:", error);
       throw error;
@@ -167,7 +164,6 @@ export class DatabaseStorage implements IStorage {
       const result = await db
         .delete(notifications)
         .where(eq(notifications.userId, userId));
-      console.log(`Cleared all notifications for user ${userId}`);
     } catch (error) {
       console.error("Error clearing notifications:", error);
       throw error;

@@ -593,14 +593,12 @@ export class ComprehensiveNewsAnalyzer {
    * Perform comprehensive news analysis across all Canadian sources
    */
   async performComprehensiveAnalysis(): Promise<void> {
-    console.log("Starting comprehensive Canadian news analysis...");
     
     const articles: ArticleAnalysis[] = [];
     
     // Scrape articles from all sources
     for (const source of this.canadianNewsSources) {
       try {
-        console.log(`Analyzing news source: ${source.name}`);
         const sourceArticles = await this.scrapeNewsSource(source);
         articles.push(...sourceArticles);
         
@@ -610,8 +608,6 @@ export class ComprehensiveNewsAnalyzer {
         console.error(`Error scraping ${source.name}:`, error);
       }
     }
-
-    console.log(`Collected ${articles.length} articles for analysis`);
 
     // Group articles by topic for comparison
     const topicGroups = await this.groupArticlesByTopic(articles);
@@ -627,8 +623,6 @@ export class ComprehensiveNewsAnalyzer {
     for (const article of articles) {
       await this.storeArticle(article);
     }
-
-    console.log("Comprehensive news analysis completed");
   }
 
   /**
@@ -638,7 +632,6 @@ export class ComprehensiveNewsAnalyzer {
     const articles: ArticleAnalysis[] = [];
     
     try {
-      console.log(`Scraping RSS feed: ${source.name}`);
       const response = await fetch(source.rssUrl, {
         headers: {
           'User-Agent': 'CivicOS News Analyzer 1.0 (Democratic Platform)',
@@ -646,7 +639,6 @@ export class ComprehensiveNewsAnalyzer {
       });
 
       if (!response.ok) {
-        console.log(`${source.name} returned ${response.status}, skipping for now`);
         return [];
       }
 
@@ -752,7 +744,6 @@ export class ComprehensiveNewsAnalyzer {
         }
       } catch (fetchError) {
         // Use RSS description if full article fetch fails
-        console.log(`Could not fetch full article from ${article.url}, using RSS content`);
       }
 
       // the newest Anthropic model is "claude-sonnet-4-20250514" which was released May 14, 2025. Use this by default unless user has already selected claude-3-7-sonnet-20250219
@@ -825,7 +816,6 @@ Focus on Canadian political context and identify:
         }
       } catch (error) {
         console.error(`OpenAI analysis failed for ${article.title}:`, error);
-        console.log(`Using basic extraction for ${article.title}`);
       }
       
       // Basic content extraction when AI analysis unavailable
@@ -995,7 +985,6 @@ Focus on:
         // Store comparison results
         await this.storeTopicComparison(topic, articles, comparison);
       } catch (error) {
-        console.log(`Topic comparison skipped for ${topic} due to API limits`);
         return; // Skip when API unavailable
       }
 

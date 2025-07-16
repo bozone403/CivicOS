@@ -44,7 +44,6 @@ export class FreeAiService {
       try {
         return await this.chatWithHuggingFace(message, conversationHistory, civicContext);
       } catch (error) {
-        console.log('HuggingFace unavailable, using fallback');
         return this.chatWithFallback(message, conversationHistory, civicContext);
       }
     }

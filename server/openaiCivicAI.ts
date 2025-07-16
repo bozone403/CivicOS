@@ -34,7 +34,6 @@ export class OpenAICivicAIService {
 
   async processQuery(request: AIRequest): Promise<AIResponse> {
     try {
-      console.log(`Processing civic AI query: ${request.query}`);
       
       // Analyze the query to understand intent
       const analysis = await this.analyzeQuery(request.query);

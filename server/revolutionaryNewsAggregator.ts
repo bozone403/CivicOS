@@ -82,7 +82,6 @@ export class RevolutionaryNewsAggregator {
    * Perform comprehensive news aggregation with OpenAI analysis
    */
   async performComprehensiveAggregation(): Promise<void> {
-    console.log("Starting revolutionary news aggregation...");
     
     for (const source of this.newsSources) {
       try {
@@ -93,14 +92,12 @@ export class RevolutionaryNewsAggregator {
       }
     }
     
-    console.log("News aggregation completed");
   }
 
   /**
    * Process individual news source with OpenAI intelligence
    */
   private async processNewsSource(source: NewsSource): Promise<void> {
-    console.log(`Processing news source: ${source.name}`);
     
     try {
       const response = await fetch(source.rssUrl, {

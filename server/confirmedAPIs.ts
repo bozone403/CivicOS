@@ -13,7 +13,6 @@ export class ConfirmedAPIService {
    */
   async fetchStatCanData() {
     try {
-      console.log("Fetching Statistics Canada population data...");
       
       const response = await fetch('https://www150.statcan.gc.ca/t1/wds/rest/getDataFromVectorsAndLatestNPeriods', {
         method: 'POST',
@@ -29,12 +28,11 @@ export class ConfirmedAPIService {
 
       if (response.ok) {
         const data = await response.json();
-        console.log(`Statistics Canada: Retrieved ${data.length || 0} data points`);
         return data;
       }
       
     } catch (error) {
-      console.log("Statistics Canada API currently unavailable, continuing with scraped data");
+      // Statistics Canada API currently unavailable, continuing with scraped data
     }
     return [];
   }
@@ -45,18 +43,16 @@ export class ConfirmedAPIService {
    */
   async fetchOpenGovData() {
     try {
-      console.log("Fetching Open Government Canada datasets...");
       
       const response = await fetch('https://open.canada.ca/data/api/action/package_search?q=government+spending&rows=10');
       
       if (response.ok) {
         const data = await response.json();
-        console.log(`Open Government: Found ${data.result?.count || 0} datasets`);
         return data.result?.results || [];
       }
       
     } catch (error) {
-      console.log("Open Government API currently unavailable, continuing with scraped data");
+      // Open Government API currently unavailable, continuing with scraped data
     }
     return [];
   }
@@ -67,13 +63,12 @@ export class ConfirmedAPIService {
    */
   async fetchElectoralBoundaries() {
     try {
-      console.log("Fetching electoral boundary data...");
       
       // This would need to be implemented based on actual Elections Canada endpoints
-      console.log("Electoral boundaries data integration ready for implementation");
+      // Electoral boundaries data integration ready for implementation
       
     } catch (error) {
-      console.log("Electoral boundaries API unavailable, using existing data");
+      // Electoral boundaries API unavailable, using existing data
     }
   }
 
@@ -81,7 +76,6 @@ export class ConfirmedAPIService {
    * Comprehensive API enhancement using confirmed sources
    */
   async enhanceDataWithConfirmedAPIs() {
-    console.log("Enhancing platform data with confirmed government APIs...");
     
     const [statCanData, openGovData] = await Promise.allSettled([
       this.fetchStatCanData(),
@@ -101,7 +95,6 @@ export class ConfirmedAPIService {
       enhancements += openGovData.value.length;
     }
     
-    console.log(`Data enhancement completed: ${enhancements} authentic government data points added`);
     return enhancements;
   }
 
@@ -123,7 +116,6 @@ export class ConfirmedAPIService {
       }
     } catch (error) {
       // Table may not exist, continue without error
-      console.log("Statistics data stored successfully");
     }
   }
 }

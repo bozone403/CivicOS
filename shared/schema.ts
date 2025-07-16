@@ -1090,7 +1090,25 @@ export const insertPoliticianSchema = createInsertSchema(politicians).omit({
   updatedAt: true,
 });
 
+// Voting items table (for bills, referenda, polls, etc.)
+export const votingItems = pgTable("voting_items", {
+  id: serial("id").primaryKey(),
+  title: varchar("title").notNull(),
+  description: text("description"),
+  type: varchar("type").notNull(), // bill, petition, referendum, poll
+  options: jsonb("options").notNull(), // array of options
+  startDate: timestamp("start_date").notNull(),
+  endDate: timestamp("end_date").notNull(),
+  status: varchar("status").notNull(), // active, ended, upcoming
+  jurisdiction: varchar("jurisdiction").notNull(), // federal, provincial, municipal
+  requiredQuorum: integer("required_quorum").default(0),
+  eligibleVoters: jsonb("eligible_voters").notNull(), // array of user IDs or 'all'
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
 
+export type VotingItem = typeof votingItems.$inferSelect;
+export type InsertVotingItem = typeof votingItems.$inferInsert;
 
 // Types
 export type UpsertUser = typeof users.$inferInsert;

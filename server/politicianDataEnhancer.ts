@@ -77,7 +77,6 @@ export class PoliticianDataEnhancer {
    * Enhance all politicians with missing constituency data
    */
   async enhanceAllPoliticians(): Promise<void> {
-    console.log('🔄 Starting comprehensive politician data enhancement...');
     
     try {
       // Get politicians missing constituency data
@@ -87,8 +86,6 @@ export class PoliticianDataEnhancer {
         WHERE constituency IS NULL OR constituency = '' OR constituency = 'Unknown'
         LIMIT 1000
       `);
-
-      console.log(`📊 Found ${politiciansNeedingUpdate.rows.length} politicians needing constituency data`);
 
       let enhancedCount = 0;
       
@@ -111,16 +108,10 @@ export class PoliticianDataEnhancer {
           
           enhancedCount++;
           
-          if (enhancedCount % 100 === 0) {
-            console.log(`✅ Enhanced ${enhancedCount} politicians...`);
-          }
-          
         } catch (error) {
           console.error("Error enhancing politician data:", error instanceof Error ? error.message : String(error));
         }
       }
-      
-      console.log(`🎉 Successfully enhanced ${enhancedCount} politicians with constituency data`);
       
     } catch (error) {
       const err = error as Error;

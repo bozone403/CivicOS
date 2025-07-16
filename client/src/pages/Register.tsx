@@ -1,3 +1,5 @@
+/* eslint-disable no-undef */
+import * as React from "react";
 import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -65,54 +67,86 @@ export default function Register() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 flex items-center justify-center p-6">
-      <div className="w-full max-w-md">
-        {/* Header */}
-        <div className="text-center mb-8">
-          <div className="flex justify-center mb-4">
-            <div className="w-16 h-16 rounded-full bg-gradient-to-br from-slate-800 via-slate-700 to-slate-900 flex items-center justify-center shadow-2xl border border-slate-600 overflow-hidden">
-              <img 
-                src={canadianCrest} 
-                alt="CivicOS" 
-                className="w-14 h-14 object-contain rounded-full"
-              />
+    <React.Fragment>
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 flex items-center justify-center p-6">
+        <div className="w-full max-w-md">
+          {/* Header */}
+          <div className="text-center mb-8">
+            <div className="flex justify-center mb-4">
+              <div className="w-16 h-16 rounded-full bg-gradient-to-br from-slate-800 via-slate-700 to-slate-900 flex items-center justify-center shadow-2xl border border-slate-600 overflow-hidden">
+                <img 
+                  src={canadianCrest} 
+                  alt="CivicOS" 
+                  className="w-14 h-14 object-contain rounded-full"
+                />
+              </div>
             </div>
+            <h1 className="text-3xl font-bold font-serif text-slate-900 dark:text-slate-100">CivicOS</h1>
+            <p className="text-slate-600 dark:text-slate-400 font-medium tracking-wider">CREATE ACCOUNT</p>
           </div>
-          <h1 className="text-3xl font-bold font-serif text-slate-900 dark:text-slate-100">CivicOS</h1>
-          <p className="text-slate-600 dark:text-slate-400 font-medium tracking-wider">CREATE ACCOUNT</p>
-        </div>
 
-        {/* Registration Card */}
-        <Card className="shadow-2xl border-slate-200 dark:border-slate-700">
-          <CardHeader className="space-y-1">
-            <CardTitle className="text-2xl text-center flex items-center justify-center space-x-2">
-              <Shield className="w-5 h-5" />
-              <span>Join CivicOS</span>
-            </CardTitle>
-            <p className="text-center text-muted-foreground">
-              Create your secure civic engagement account
-            </p>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              {error && (
-                <Alert variant="destructive">
-                  <AlertDescription>{error}</AlertDescription>
-                </Alert>
-              )}
+          {/* Registration Card */}
+          <Card className="shadow-2xl border-slate-200 dark:border-slate-700">
+            <CardHeader className="space-y-1">
+              <CardTitle className="text-2xl text-center flex items-center justify-center space-x-2">
+                <Shield className="w-5 h-5" />
+                <span>Join CivicOS</span>
+              </CardTitle>
+              <p className="text-center text-muted-foreground">
+                Create your secure civic engagement account
+              </p>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleSubmit} className="space-y-4">
+                {error && (
+                  <Alert variant="destructive">
+                    <AlertDescription>{error}</AlertDescription>
+                  </Alert>
+                )}
 
-              <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="firstName" className="flex items-center space-x-2">
+                      <User className="w-4 h-4" />
+                      <span>First Name</span>
+                    </Label>
+                    <Input
+                      id="firstName"
+                      type="text"
+                      placeholder="Jordan"
+                      value={firstName}
+                      onChange={(e) => setFirstName(e.target.value)}
+                      className="h-11"
+                      disabled={registerMutation.isPending}
+                      required
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="lastName">Last Name</Label>
+                    <Input
+                      id="lastName"
+                      type="text"
+                      placeholder="Smith"
+                      value={lastName}
+                      onChange={(e) => setLastName(e.target.value)}
+                      className="h-11"
+                      disabled={registerMutation.isPending}
+                    />
+                  </div>
+                </div>
+
                 <div className="space-y-2">
-                  <Label htmlFor="firstName" className="flex items-center space-x-2">
-                    <User className="w-4 h-4" />
-                    <span>First Name</span>
+                  <Label htmlFor="email" className="flex items-center space-x-2">
+                    <Mail className="w-4 h-4" />
+                    <span>Email Address</span>
                   </Label>
                   <Input
-                    id="firstName"
-                    type="text"
-                    placeholder="Jordan"
-                    value={firstName}
-                    onChange={(e) => setFirstName(e.target.value)}
+                    id="email"
+                    type="email"
+                    placeholder="your.email@example.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
                     className="h-11"
                     disabled={registerMutation.isPending}
                     required
@@ -120,96 +154,68 @@ export default function Register() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="lastName">Last Name</Label>
+                  <Label htmlFor="password" className="flex items-center space-x-2">
+                    <Lock className="w-4 h-4" />
+                    <span>Password</span>
+                  </Label>
                   <Input
-                    id="lastName"
-                    type="text"
-                    placeholder="Smith"
-                    value={lastName}
-                    onChange={(e) => setLastName(e.target.value)}
+                    id="password"
+                    type="password"
+                    placeholder="Create a secure password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
                     className="h-11"
                     disabled={registerMutation.isPending}
+                    required
+                    autoComplete="new-password"
                   />
                 </div>
-              </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="email" className="flex items-center space-x-2">
-                  <Mail className="w-4 h-4" />
-                  <span>Email Address</span>
-                </Label>
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="your.email@example.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="h-11"
+                <div className="space-y-2">
+                  <Label htmlFor="confirmPassword">Confirm Password</Label>
+                  <Input
+                    id="confirmPassword"
+                    type="password"
+                    placeholder="Confirm your password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    className="h-11"
+                    disabled={registerMutation.isPending}
+                    required
+                    autoComplete="new-password"
+                  />
+                </div>
+
+                <Button 
+                  type="submit" 
+                  className="w-full h-11 bg-slate-800 hover:bg-slate-700 text-white"
                   disabled={registerMutation.isPending}
-                  required
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="password" className="flex items-center space-x-2">
-                  <Lock className="w-4 h-4" />
-                  <span>Password</span>
-                </Label>
-                <Input
-                  id="password"
-                  type="password"
-                  placeholder="Create a secure password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="h-11"
-                  disabled={registerMutation.isPending}
-                  required
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="confirmPassword">Confirm Password</Label>
-                <Input
-                  id="confirmPassword"
-                  type="password"
-                  placeholder="Confirm your password"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="h-11"
-                  disabled={registerMutation.isPending}
-                  required
-                />
-              </div>
-
-              <Button 
-                type="submit" 
-                className="w-full h-11 bg-slate-800 hover:bg-slate-700 text-white"
-                disabled={registerMutation.isPending}
-              >
-                {registerMutation.isPending ? "Creating Account..." : "Create Account"}
-              </Button>
-            </form>
-
-            <div className="mt-6 text-center">
-              <p className="text-sm text-muted-foreground">
-                Already have an account?{" "}
-                <button
-                  onClick={() => window.location.href = '/login'}
-                  className="text-blue-600 hover:text-blue-500 font-medium"
                 >
-                  Sign in here
-                </button>
-              </p>
-            </div>
-          </CardContent>
-        </Card>
+                  {registerMutation.isPending ? "Creating Account..." : "Create Account"}
+                </Button>
+              </form>
 
-        {/* Footer */}
-        <div className="text-center mt-8 text-xs text-slate-500 dark:text-slate-400">
-          <p>Built by Jordan Kenneth Boisclair</p>
-          <p>© 2025 CivicOS™ - All rights reserved</p>
+              <div className="mt-6 text-center">
+                <p className="text-sm text-muted-foreground">
+                  Already have an account?{" "}
+                  <button
+                    onClick={() => window.location.href = '/login'}
+                    className="text-blue-600 hover:text-blue-500 font-medium"
+                  >
+                    Sign in here
+                  </button>
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Footer */}
+          <div className="text-center mt-8 text-xs text-slate-500 dark:text-slate-400">
+            <p>Built by Jordan Kenneth Boisclair</p>
+            <p>© 2025 CivicOS™ - All rights reserved</p>
+          </div>
         </div>
       </div>
-    </div>
+    </React.Fragment>
   );
 }

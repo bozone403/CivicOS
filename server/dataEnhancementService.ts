@@ -25,11 +25,10 @@ export class DataEnhancementService {
 
       if (response.ok) {
         const data = await response.json();
-        console.log(`Statistics Canada: Enhanced with ${data.length} demographic data points`);
         return data.length;
       }
     } catch (error) {
-      console.log("Statistics Canada enhancement available when API accessible");
+      // console.log("Statistics Canada enhancement available when API accessible");
     }
     return 0;
   }
@@ -43,11 +42,10 @@ export class DataEnhancementService {
       
       if (response.ok) {
         const data = await response.json();
-        console.log(`Open Government: Enhanced with ${data.result?.count || 0} transparency datasets`);
         return data.result?.count || 0;
       }
     } catch (error) {
-      console.log("Open Government enhancement available when API accessible");
+      // console.log("Open Government enhancement available when API accessible");
     }
     return 0;
   }
@@ -60,11 +58,10 @@ export class DataEnhancementService {
       const response = await fetch('https://www.ourcommons.ca/members/en/search/xml');
       
       if (response.ok) {
-        console.log("Parliament data enhancement: MP verification layer active");
         return 1;
       }
     } catch (error) {
-      console.log("Parliament enhancement available when official feeds accessible");
+      // console.log("Parliament enhancement available when official feeds accessible");
     }
     return 0;
   }
@@ -73,7 +70,6 @@ export class DataEnhancementService {
    * Comprehensive data enhancement using all confirmed APIs
    */
   async performDataEnhancement() {
-    console.log("Performing data enhancement with confirmed government APIs...");
     
     const [statCan, openGov, parliament] = await Promise.allSettled([
       this.enhanceWithStatisticsCanada(),
@@ -87,7 +83,6 @@ export class DataEnhancementService {
       parliament.status === 'fulfilled' ? parliament.value : 0
     ].reduce((sum, val) => sum + val, 0);
     
-    console.log(`Data enhancement completed: ${enhancements} additional data points from official sources`);
     return enhancements;
   }
 }

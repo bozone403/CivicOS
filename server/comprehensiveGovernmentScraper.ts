@@ -304,31 +304,16 @@ export class ComprehensiveGovernmentScraper {
    * Perform comprehensive scraping of all government sources
    */
   async performComprehensiveScraping(): Promise<void> {
-    console.log('🚀 Starting revolutionary government data scraping...');
-    
-    const totalSources = this.dataSources.length;
-    let completedSources = 0;
-
     for (const source of this.dataSources) {
       try {
-        console.log(`📊 Scraping ${source.name} (${source.jurisdiction})...`);
-        
         const scrapedData = await this.scrapeDataSource(source);
         await this.storeScrapedData(scrapedData, source);
-        
-        completedSources++;
-        console.log(`✅ Completed ${source.name} (${completedSources}/${totalSources})`);
-        
-        // Rate limiting
-        await this.delay(60000 / source.rateLimit); // Convert rate limit to delay
         
       } catch (error) {
         console.error(`❌ Error scraping ${source.name}:`, (error as Error).message);
         continue;
       }
     }
-
-    console.log('🎉 Revolutionary scraping completed!');
   }
 
   /**
@@ -780,8 +765,6 @@ export class ComprehensiveGovernmentScraper {
         await this.storeVote(vote);
       }
 
-      console.log(`💾 Stored data from ${source.name}: ${data.politicians.length} politicians, ${data.bills.length} bills, ${data.votes.length} votes`);
-
     } catch (error) {
       console.error(`Error storing data from ${source.name}:`, (error as Error).message);
     }
@@ -847,7 +830,6 @@ export class ComprehensiveGovernmentScraper {
   private async storeVote(voteData: any): Promise<void> {
     // TODO: Implement parliamentary voting records table
     // The current votes table is for user votes, not parliamentary voting records
-    console.log('Skipping vote storage - parliamentary voting records not yet implemented');
   }
 
   /**

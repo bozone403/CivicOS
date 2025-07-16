@@ -59,29 +59,6 @@ export function verifyEmailCode(email: string, providedCode: string): { valid: b
 }
 
 /**
- * Offline verification system - no external APIs required
- * Uses browser-based verification methods instead of email
- */
-export async function sendVerificationEmail(email: string, code: string): Promise<boolean> {
-  try {
-    // Store verification code in memory for immediate verification
-    console.log(`\n🔥 OFFLINE VERIFICATION CODE 🔥`);
-    console.log(`📧 Email: ${email}`);
-    console.log(`🔑 Code: ${code}`);
-    console.log(`⏰ Valid for 10 minutes`);
-    console.log(`💡 No external APIs required - fully offline verification\n`);
-    
-    // Log in a format that's easy to copy
-    console.warn(`VERIFICATION CODE: ${code}`);
-    
-    return true;
-  } catch (error) {
-    console.error("Verification error:", error);
-    return false;
-  }
-}
-
-/**
  * Clear expired verification codes (cleanup function)
  */
 export function cleanupExpiredCodes(): void {

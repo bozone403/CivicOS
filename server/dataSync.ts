@@ -63,8 +63,6 @@ interface LegislativeBill {
  * Automatically sync all Canadian government data
  */
 export async function syncAllGovernmentData(): Promise<void> {
-  console.log("Starting comprehensive Canadian government data sync...");
-  
   try {
     // Sync federal data
     await syncFederalData();
@@ -75,7 +73,6 @@ export async function syncAllGovernmentData(): Promise<void> {
     // Sync major municipal data
     await syncMunicipalData();
     
-    console.log("Government data sync completed successfully");
   } catch (error) {
     console.error("Error during government data sync:", error instanceof Error ? error : String(error));
     throw error;
@@ -86,19 +83,15 @@ export async function syncAllGovernmentData(): Promise<void> {
  * Sync federal government data
  */
 async function syncFederalData(): Promise<void> {
-  console.log("Syncing federal government data...");
   
   // Sync MPs
   const mps = await scrapeFederalMPs();
-  console.log(`Found ${mps.length} federal MPs`);
   
   // Sync Senators
   const senators = await scrapeSenators();
-  console.log(`Found ${senators.length} senators`);
   
   // Sync federal bills
   const bills = await scrapeFederalBills();
-  console.log(`Found ${bills.length} federal bills`);
   
   // Store in database
   for (const official of [...mps, ...senators]) {
@@ -114,21 +107,18 @@ async function syncFederalData(): Promise<void> {
  * Sync provincial government data
  */
 async function syncProvincialData(): Promise<void> {
-  console.log("Syncing provincial government data...");
   
   const provinces = Object.keys(DATA_SOURCES.provincial);
   
   for (const province of provinces) {
     try {
       const officials = await scrapeProvincialOfficials(province);
-      console.log(`Found ${officials.length} officials in ${province}`);
       
       for (const official of officials) {
         await storeOfficial(official);
       }
     } catch (error) {
       const err = error as Error;
-      console.log(`Failed to sync ${province}:`, err.message);
     }
   }
 }
@@ -137,21 +127,18 @@ async function syncProvincialData(): Promise<void> {
  * Sync municipal government data
  */
 async function syncMunicipalData(): Promise<void> {
-  console.log("Syncing municipal government data...");
   
   const cities = Object.keys(DATA_SOURCES.municipal);
   
   for (const city of cities) {
     try {
       const officials = await scrapeMunicipalOfficials(city);
-      console.log(`Found ${officials.length} officials in ${city}`);
       
       for (const official of officials) {
         await storeOfficial(official);
       }
     } catch (error) {
       const err = error as Error;
-      console.log(`Failed to sync ${city}:`, err.message);
     }
   }
 }
@@ -219,7 +206,6 @@ async function scrapeSenators(): Promise<GovernmentOfficial[]> {
     
     return officials;
   } catch (error) {
-    console.log("Failed to scrape senators:", error instanceof Error ? error : String(error));
     return [];
   }
 }
@@ -262,7 +248,6 @@ async function scrapeFederalBills(): Promise<LegislativeBill[]> {
     
     return bills;
   } catch (error) {
-    console.log("Failed to scrape federal bills:", error instanceof Error ? error : String(error));
     return [];
   }
 }
@@ -301,7 +286,6 @@ async function scrapeProvincialOfficials(province: string): Promise<GovernmentOf
     
     return officials;
   } catch (error) {
-    console.log(`Failed to scrape ${province}:`, error instanceof Error ? error : String(error));
     return [];
   }
 }
@@ -338,7 +322,6 @@ async function scrapeMunicipalOfficials(city: string): Promise<GovernmentOfficia
     
     return officials;
   } catch (error) {
-    console.log(`Failed to scrape ${city}:`, error instanceof Error ? error.message : String(error));
     return [];
   }
 }
@@ -362,7 +345,6 @@ async function storeOfficial(official: GovernmentOfficial): Promise<void> {
     const err = error as any;
     // Ignore duplicates but log other errors
     if (!err.message?.includes('duplicate') && !err.message?.includes('unique constraint')) {
-      console.log(`Failed to store ${official.name}:`, err.message);
     }
   }
 }
@@ -387,7 +369,6 @@ async function storeBill(bill: LegislativeBill): Promise<void> {
   } catch (error) {
     // Ignore duplicates
     if (!(error as Error).message?.includes('duplicate')) {
-      console.log(`Failed to store bill ${bill.number}:`, error instanceof Error ? error : String(error));
     }
   }
 }
@@ -488,7 +469,6 @@ function calculateInitialTrustScore(official: GovernmentOfficial): string {
  * Initialize automatic data sync on server start
  */
 export function initializeDataSync(): void {
-  console.log("Initializing automatic government data sync...");
   
   // Run initial sync
   syncAllGovernmentData().catch(error => {
@@ -497,7 +477,6 @@ export function initializeDataSync(): void {
   
   // Set up periodic sync (every 24 hours)
   setInterval(() => {
-    console.log("Running scheduled government data sync...");
     syncAllGovernmentData().catch(error => {
       console.error("Scheduled data sync failed:", error instanceof Error ? error : String(error));
     });

@@ -13,7 +13,6 @@ export class ParliamentAPIService {
    */
   async fetchCurrentMPs() {
     try {
-      console.log("Fetching current MPs from Parliament of Canada...");
       
       // Parliament's official MP listing
       const response = await fetch('https://www.ourcommons.ca/members/en/search', {
@@ -66,8 +65,6 @@ export class ParliamentAPIService {
         }
       });
       
-      console.log(`Found ${mps.length} MPs from Parliament official source`);
-      
       // Store authentic MP data
       for (const mp of mps) {
         await this.storeMPData(mp);
@@ -85,7 +82,6 @@ export class ParliamentAPIService {
    */
   async fetchFederalBills() {
     try {
-      console.log("Fetching federal bills from LEGISinfo...");
       
       const response = await fetch('https://www.parl.ca/legisinfo/en/bills/current-session', {
         headers: {
@@ -131,8 +127,6 @@ export class ParliamentAPIService {
           });
         }
       });
-      
-      console.log(`Found ${bills.length} federal bills from LEGISinfo`);
       
       // Store authentic bill data
       for (const bill of bills) {
@@ -193,14 +187,11 @@ export class ParliamentAPIService {
    * Comprehensive Parliament data sync
    */
   async performParliamentSync() {
-    console.log("Starting comprehensive Parliament of Canada data sync...");
     
     const [mps, bills] = await Promise.allSettled([
       this.fetchCurrentMPs(),
       this.fetchFederalBills()
     ]);
-    
-    console.log("Parliament data sync completed");
     
     return {
       mps: mps.status === 'fulfilled' ? mps.value.length : 0,

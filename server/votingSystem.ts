@@ -1,6 +1,6 @@
 import { db } from "./db";
 import { sql } from "drizzle-orm";
-// import * as schema from "@shared/schema";
+import * as schema from "@shared/schema";
 
 interface VoteOption {
   id: string;
@@ -36,29 +36,24 @@ export class VotingSystem {
    */
   async createVotingItem(item: Omit<VotingItem, 'id'>): Promise<number> {
     try {
-      // TODO: Create proper voting items table
-      // const [result] = await db.insert(schema.votes).values({
-      //   title: item.title,
-      //   description: item.description,
-      //   type: item.type,
-      //   options: JSON.stringify(item.options),
-      //   startDate: item.startDate,
-      //   endDate: item.endDate,
-      //   status: item.status,
-      //   jurisdiction: item.jurisdiction,
-      //   requiredQuorum: item.requiredQuorum || 0,
-      //   eligibleVoters: JSON.stringify(item.eligibleVoters),
-      //   createdAt: new Date(),
-      //   updatedAt: new Date()
-      // }).returning();
-
-      // Temporary mock implementation
-      const result = { id: Math.floor(Math.random() * 1000) + 1 };
-
-      return result.id;
+      const [result] = await db.insert(schema.votingItems).values({
+        title: item.title,
+        description: item.description,
+        type: item.type,
+        options: JSON.stringify(item.options),
+        startDate: item.startDate,
+        endDate: item.endDate,
+        status: item.status,
+        jurisdiction: item.jurisdiction,
+        requiredQuorum: item.requiredQuorum || 0,
+        eligibleVoters: JSON.stringify(item.eligibleVoters),
+        createdAt: new Date(),
+        updatedAt: new Date()
+      }).returning();
+      return Number(result.id);
     } catch (error) {
       console.error("Error creating voting item:", error);
-      throw new Error("Failed to create voting item");
+      throw error;
     }
   }
 
@@ -80,7 +75,7 @@ export class VotingSystem {
       // Verify voting item is active
       const votingItem = await db.execute(sql`
         SELECT status, end_date, eligible_voters 
-        FROM votes 
+        FROM voting_items 
         WHERE id = ${itemId}
       `);
 
@@ -128,35 +123,30 @@ export class VotingSystem {
         SELECT 
           id, title, description, type, options, 
           start_date, end_date, status, jurisdiction, 
-          required_quorum, eligible_voters,
-          (SELECT COUNT(*) FROM user_votes WHERE item_id = votes.id) as total_votes
-        FROM votes 
+          required_quorum, eligible_voters
+        FROM voting_items 
         WHERE status = 'active' 
         AND start_date <= NOW() 
         AND end_date > NOW()
         ORDER BY end_date ASC
       `);
 
-      // TODO: Fix database schema mismatch - votes table is for user votes, not voting items
-      // return items.rows.map(row => ({
-      //   id: row.id,
-      //   title: row.title,
-      //   description: row.description,
-      //   type: row.type,
-      //   options: typeof row.options === 'string' ? JSON.parse(row.options) : Array.isArray(row.options) ? row.options : [],
-      //   startDate: new Date(row.start_date as string),
-      //   endDate: new Date(row.end_date as string),
-      //   status: row.status,
-      //   jurisdiction: row.jurisdiction,
-      //   requiredQuorum: row.required_quorum,
-      //   eligibleVoters: typeof row.eligible_voters === 'string' ? JSON.parse(row.eligible_voters) : (row.eligible_voters || ['all'])
-      // }));
-
-      // Temporary mock implementation
-      return [];
+      return items.rows.map(row => ({
+        id: Number(row.id),
+        title: row.title,
+        description: row.description,
+        type: row.type,
+        options: typeof row.options === 'string' ? JSON.parse(row.options) : Array.isArray(row.options) ? row.options : [],
+        startDate: new Date(row.start_date as string),
+        endDate: new Date(row.end_date as string),
+        status: row.status,
+        jurisdiction: row.jurisdiction,
+        requiredQuorum: row.required_quorum,
+        eligibleVoters: typeof row.eligible_voters === 'string' ? JSON.parse(row.eligible_voters) : (row.eligible_voters || ['all'])
+      })) as VotingItem[];
     } catch (error) {
       console.error("Error getting active voting items:", error);
-      return [];
+      throw error;
     }
   }
 
@@ -181,7 +171,7 @@ export class VotingSystem {
       `);
 
       const itemDetails = await db.execute(sql`
-        SELECT title, options, required_quorum FROM votes WHERE id = ${itemId}
+        SELECT title, options, required_quorum FROM voting_items WHERE id = ${itemId}
       `);
 
       const item = itemDetails.rows[0];
@@ -272,7 +262,7 @@ export class VotingSystem {
           uv.option_id, uv.timestamp,
           v.options
         FROM user_votes uv
-        JOIN votes v ON uv.item_id = v.id
+        JOIN voting_items v ON uv.item_id = v.id
         WHERE uv.user_id = ${userId}
         ORDER BY uv.timestamp DESC
         LIMIT 50
@@ -300,7 +290,7 @@ export class VotingSystem {
   private async updateVoteCounts(itemId: number): Promise<void> {
     try {
       await db.execute(sql`
-        UPDATE votes 
+        UPDATE voting_items 
         SET total_votes = (
           SELECT COUNT(*) FROM user_votes WHERE item_id = ${itemId}
         ),
@@ -318,7 +308,7 @@ export class VotingSystem {
   async endVoting(itemId: number): Promise<any> {
     try {
       await db.execute(sql`
-        UPDATE votes 
+        UPDATE voting_items 
         SET status = 'ended', updated_at = NOW()
         WHERE id = ${itemId}
       `);

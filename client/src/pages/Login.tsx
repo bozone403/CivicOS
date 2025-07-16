@@ -135,6 +135,7 @@ export default function Login() {
                     className="pl-10 pr-10 h-12 border-2 border-gray-300 focus:border-red-500"
                     placeholder="Enter your password"
                     required
+                    autoComplete="current-password"
                   />
                   <button
                     type="button"

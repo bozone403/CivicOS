@@ -248,7 +248,6 @@ export class ComprehensiveLegalDatabase {
    * Build comprehensive legal database
    */
   async buildComprehensiveLegalDatabase(): Promise<void> {
-    console.log('🏛️ Building comprehensive Canadian legal database...');
     
     // First populate Criminal Code
     await this.populateCriminalCode();
@@ -265,14 +264,12 @@ export class ComprehensiveLegalDatabase {
     // Scrape court decisions
     await this.scrapeCourtDecisions();
     
-    console.log('🎉 Comprehensive legal database construction complete!');
   }
 
   /**
    * Populate complete Criminal Code of Canada
    */
   private async populateCriminalCode(): Promise<void> {
-    console.log('⚖️ Populating Criminal Code of Canada...');
     
     const criminalCodeSections = [
       // PART I - GENERAL
@@ -338,14 +335,12 @@ export class ComprehensiveLegalDatabase {
       }
     }
     
-    console.log(`✅ Populated ${criminalCodeSections.length} Criminal Code sections`);
   }
 
   /**
    * Populate Charter of Rights and Freedoms
    */
   private async populateCharterRights(): Promise<void> {
-    console.log('📜 Populating Charter of Rights and Freedoms...');
     
     const charterSections = [
       {
@@ -462,14 +457,12 @@ export class ComprehensiveLegalDatabase {
       }
     }
     
-    console.log(`✅ Populated ${charterSections.length} Charter sections`);
   }
 
   /**
    * Scrape federal acts and legislation
    */
   private async scrapeFederalActs(): Promise<void> {
-    console.log('🏛️ Scraping federal acts and legislation...');
     
     const federalActsData = [
       {
@@ -546,14 +539,12 @@ export class ComprehensiveLegalDatabase {
       }
     }
     
-    console.log(`✅ Populated ${federalActsData.length} federal acts`);
   }
 
   /**
    * Scrape provincial laws for all provinces
    */
   private async scrapeProvincialLaws(): Promise<void> {
-    console.log('🗺️ Scraping provincial laws for all provinces...');
     
     const provinces = [
       'Ontario', 'Quebec', 'British Columbia', 'Alberta', 'Saskatchewan',
@@ -584,7 +575,6 @@ export class ComprehensiveLegalDatabase {
       }
     }
     
-    console.log('✅ Completed provincial laws scraping');
   }
 
   /**
@@ -618,7 +608,6 @@ export class ComprehensiveLegalDatabase {
    * Scrape court decisions from multiple jurisdictions
    */
   private async scrapeCourtDecisions(): Promise<void> {
-    console.log('⚖️ Scraping court decisions...');
     
     const courtCasesData = [
       {
@@ -667,7 +656,6 @@ export class ComprehensiveLegalDatabase {
       }
     }
     
-    console.log(`✅ Populated ${courtCasesData.length} court cases`);
   }
 
   /**

@@ -13,8 +13,6 @@ export class StatisticsCanadaAPI {
    */
   async fetchPopulationData() {
     try {
-      console.log("Fetching population data from Statistics Canada...");
-      
       // Population estimates by electoral district
       const response = await fetch(`${this.baseURL}/getDataFromVectorsAndLatestNPeriods`, {
         method: 'POST',
@@ -32,11 +30,9 @@ export class StatisticsCanadaAPI {
       }
       
       const data = await response.json();
-      console.log(`Retrieved ${data.length || 0} population data points`);
       
       return data;
     } catch (error) {
-      console.error("Error fetching Statistics Canada population data:", error);
       return [];
     }
   }
@@ -46,8 +42,6 @@ export class StatisticsCanadaAPI {
    */
   async fetchElectoralDemographics() {
     try {
-      console.log("Fetching electoral demographics from Statistics Canada...");
-      
       const response = await fetch(`${this.baseURL}/getSeriesInfoFromVector`, {
         method: 'POST',
         headers: {
@@ -60,13 +54,11 @@ export class StatisticsCanadaAPI {
       
       if (response.ok) {
         const data = await response.json();
-        console.log("Electoral demographics fetched successfully");
         return data;
       }
       
       return null;
     } catch (error) {
-      console.error("Error fetching electoral demographics:", error);
       return null;
     }
   }
@@ -76,8 +68,6 @@ export class StatisticsCanadaAPI {
    */
   async fetchGovernmentSpending() {
     try {
-      console.log("Fetching government spending data...");
-      
       const response = await fetch(`${this.baseURL}/getDataFromVectorsAndLatestNPeriods`, {
         method: 'POST',
         headers: {
@@ -91,13 +81,11 @@ export class StatisticsCanadaAPI {
       
       if (response.ok) {
         const data = await response.json();
-        console.log("Government spending data fetched successfully");
         return data;
       }
       
       return [];
     } catch (error) {
-      console.error("Error fetching government spending:", error);
       return [];
     }
   }
@@ -120,7 +108,7 @@ export class StatisticsCanadaAPI {
         `);
       }
     } catch (error) {
-      console.error("Error storing demographic data:", error);
+      // console.error("Error storing demographic data:", error);
     }
   }
 
@@ -128,7 +116,6 @@ export class StatisticsCanadaAPI {
    * Comprehensive Statistics Canada data sync
    */
   async performStatCanSync() {
-    console.log("Starting Statistics Canada API data sync...");
     
     const [population, demographics, spending] = await Promise.allSettled([
       this.fetchPopulationData(),
@@ -140,8 +127,6 @@ export class StatisticsCanadaAPI {
     if (population.status === 'fulfilled' && population.value.length > 0) {
       await this.storeDemographicData(population.value);
     }
-    
-    console.log("Statistics Canada data sync completed");
     
     return {
       population: population.status === 'fulfilled' ? population.value.length : 0,

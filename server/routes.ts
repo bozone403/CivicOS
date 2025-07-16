@@ -62,7 +62,7 @@ const idParamSchema = z.object({ id: z.string().regex(/^\d+$/) });
 const voteParamSchema = z.object({ targetType: z.string().min(2).max(32), targetId: z.string().regex(/^\d+$/) });
 const postIdParamSchema = z.object({ postId: z.string().regex(/^\d+$/) });
 
-export async function registerRoutes(app: Express): Promise<Server> {
+export async function registerRoutes(app: Express): Promise<void> {
   // Auth middleware
   await setupAuth(app);
 
@@ -88,20 +88,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.json((req.session as any).userData);
       }
 
-      // For development, return demo user as fallback
-      if (process.env.NODE_ENV !== 'production') {
-        const demoUser = {
-          id: '42199639',
-          username: 'demo_user',
-          displayName: 'Demo User',
-          email: 'demo@civicos.ca',
-          isVerified: true,
-          trustScore: 85
-        };
-        return res.json(demoUser);
-      }
-      
-      // Production authentication flow
+      // Production authentication flow only
       if (!req.isAuthenticated() || !req.user) {
         return res.status(401).json({ message: "Unauthorized" });
       }
@@ -145,96 +132,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Login route for development
-  app.post('/api/auth/login', async (req: Request, res: Response) => {
-    const loginSchema = z.object({
-      email: z.string().email(),
-      password: z.string().min(6)
-    });
-    try {
-      const parsed = loginSchema.safeParse(req.body);
-      if (!parsed.success) {
-        return res.status(400).json({ message: "Invalid login data", errors: parsed.error.errors });
-      }
-      const { email, password } = parsed.data;
-      
-      // Simple validation for demo purposes
-      if (!email || !password) {
-        return res.status(400).json({ message: "Email and password required" });
-      }
-      
-      // Create user data based on input
-      const userData = {
-        id: Date.now().toString(),
-        username: email.split('@')[0],
-        displayName: email.split('@')[0].replace(/[._]/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase()),
-        email: email,
-        isVerified: true,
-        trustScore: Math.floor(Math.random() * 30) + 70, // Random score 70-99
-        civicLevel: Math.floor(Math.random() * 5) + 1, // Level 1-5
-        civicPoints: Math.floor(Math.random() * 2000) + 500 // 500-2500 points
-      };
-      
-      // Store user data in session
-      if (req.session) {
-        (req.session as any).loggedOut = false;
-        (req.session as any).userData = userData;
-      }
-      
-      res.json({ message: "Login successful", success: true });
-    } catch (error) {
-      console.error("Error during login:", error);
-      res.status(500).json({ message: "Failed to login" });
-    }
-  });
-
-  // Register route for development
-  app.post('/api/auth/register', async (req: Request, res: Response) => {
-    const registerSchema = z.object({
-      email: z.string().email(),
-      password: z.string().min(6),
-      firstName: z.string().min(1),
-      lastName: z.string().optional()
-    });
-    try {
-      const parsed = registerSchema.safeParse(req.body);
-      if (!parsed.success) {
-        return res.status(400).json({ message: "Invalid registration data", errors: parsed.error.errors });
-      }
-      const { email, password, firstName, lastName } = parsed.data;
-      
-      // Simple validation for demo purposes
-      if (!email || !password || !firstName) {
-        return res.status(400).json({ message: "Email, password, and first name required" });
-      }
-      
-      // Create user data based on input
-      const userData = {
-        id: Date.now().toString(),
-        username: email.split('@')[0],
-        displayName: `${firstName} ${lastName || ''}`.trim(),
-        email: email,
-        firstName: firstName,
-        lastName: lastName || '',
-        isVerified: true,
-        trustScore: Math.floor(Math.random() * 30) + 70, // Random score 70-99
-        civicLevel: Math.floor(Math.random() * 5) + 1, // Level 1-5
-        civicPoints: Math.floor(Math.random() * 2000) + 500 // 500-2500 points
-      };
-      
-      // Store user data in session
-      if (req.session) {
-        (req.session as any).loggedOut = false;
-        (req.session as any).userData = userData;
-      }
-      
-      res.json({ message: "Registration successful", success: true });
-    } catch (error) {
-      console.error("Error during registration:", error);
-      res.status(500).json({ message: "Failed to register" });
-    }
-  });
-
   // Profile picture upload route
   app.post('/api/auth/upload-profile-picture', isAuthenticated, upload.single('profilePicture'), async (req: Request, res: Response) => {
     try {
@@ -270,11 +167,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error("Error uploading profile picture:", error);
       res.status(500).json({ message: "Failed to upload profile picture" });
     }
-  });
-
-  // Debug endpoint to test routing
-  app.get('/api/test-profile/:userId', async (req, res) => {
-    res.json({ message: "Profile endpoint working", userId: req.params.userId });
   });
 
   // User profile endpoint
@@ -628,32 +520,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Invalid vote data", errors: parsed.error.errors });
       }
       const { targetType, targetId, voteType } = parsed.data;
-      const userId = req.user.claims.sub;
-
+      const userId = req.isAuthenticated() && req.user ? (req.user as any).id : null;
+      if (!userId) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
       if (!['upvote', 'downvote'].includes(voteType)) {
         return res.status(400).json({ message: "Invalid vote type" });
       }
-
       if (!['politician', 'bill', 'post', 'comment', 'petition', 'news', 'finance'].includes(targetType)) {
         return res.status(400).json({ message: "Invalid target type" });
       }
-
       // Check if user already voted
       const existingVote = await db.execute(sql`
         SELECT vote_type FROM user_votes 
         WHERE user_id = ${userId} AND target_type = ${targetType} AND target_id = ${targetId}
       `);
-
       if (existingVote.rows.length > 0) {
         return res.status(400).json({ message: "You have already voted on this item" });
       }
-
       // Record the vote
       await db.execute(sql`
         INSERT INTO user_votes (user_id, target_type, target_id, vote_type, created_at)
         VALUES (${userId}, ${targetType}, ${targetId}, ${voteType}, NOW())
       `);
-
       // Update vote counts
       await db.execute(sql`
         INSERT INTO vote_counts (target_type, target_id, upvotes, downvotes, total_score)
@@ -668,13 +557,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
           downvotes = vote_counts.downvotes + ${voteType === 'downvote' ? 1 : 0},
           total_score = vote_counts.total_score + ${voteType === 'upvote' ? 1 : -1}
       `);
-
       // Get updated counts
       const updatedCounts = await db.execute(sql`
         SELECT upvotes, downvotes, total_score FROM vote_counts 
         WHERE target_type = ${targetType} AND target_id = ${targetId}
       `);
-
       const result = updatedCounts.rows[0];
       res.json({
         upvotes: Number(result.upvotes),
@@ -682,7 +569,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         totalScore: Number(result.total_score),
         userVote: voteType
       });
-
     } catch (error) {
       console.error("Error processing vote:", error);
       res.status(500).json({ message: "Failed to process vote" });
@@ -751,7 +637,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Invalid petition data", errors: parsed.error.errors });
       }
       const { title, description, targetSignatures, deadlineDate, relatedBillId } = parsed.data;
-
+      const userId = req.user && (req.user as any).claims && (req.user as any).claims.sub;
+      if (!userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
       const result = await db.execute(sql`
         INSERT INTO petitions (
           title, description, target_signatures, creator_id, 
@@ -763,7 +652,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         )
         RETURNING id
       `);
-
       const petitionId = result.rows[0]?.id;
       res.json({ 
         message: "Petition created successfully", 
@@ -778,31 +666,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/petitions/:id/sign', isAuthenticated, async (req: Request, res: Response) => {
     try {
       const petitionId = parseInt(req.params.id);
-      const userId = req.user.claims.sub;
-
+      const userId = req.user && (req.user as any).claims && (req.user as any).claims.sub;
+      if (!userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
       // Check if already signed
       const existing = await db.execute(sql`
         SELECT id FROM petition_signatures 
         WHERE petition_id = ${petitionId} AND user_id = ${userId}
       `);
-
       if (existing.rows.length > 0) {
         return res.status(400).json({ message: "Already signed this petition" });
       }
-
       // Add signature
       await db.execute(sql`
         INSERT INTO petition_signatures (petition_id, user_id, signed_at, verification_id)
         VALUES (${petitionId}, ${userId}, NOW(), ${randomBytes(16).toString('hex')})
       `);
-
       // Update petition count
       await db.execute(sql`
         UPDATE petitions 
         SET current_signatures = current_signatures + 1
         WHERE id = ${petitionId}
       `);
-
       res.json({ message: "Petition signed successfully" });
     } catch (error) {
       console.error("Error signing petition:", error);
@@ -1018,28 +904,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Authentic elections data endpoint
   app.get("/api/elections/authentic", async (req: any, res) => {
     try {
-      // For development, use the same auth logic as other endpoints
-      if (process.env.NODE_ENV !== 'production') {
-        // Check if user is logged out
-        if ((req.session as any)?.loggedOut) {
-          return res.status(401).json({ message: "Authentication required" });
-        }
-        
-        // If no session data, check if we can use demo mode (same as auth/user endpoint)
-        if (!((req.session as any)?.userData)) {
-          // Return demo user as fallback (same as auth endpoint)
-          const demoUser = {
-            id: '42199639',
-            username: 'demo_user',
-            displayName: 'Demo User',
-            email: 'demo@civicos.ca',
-            isVerified: true,
-            trustScore: 85
-          };
-          // Allow access with demo user
-        }
+      // Production authentication only
+      if (!req.isAuthenticated() || !req.user) {
+        return res.status(401).json({ message: "Authentication required" });
       }
-
+      const userId = req.user && (req.user as any).claims && (req.user as any).claims.sub;
+      if (!userId) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
       const { electionDataService } = await import('./electionDataService');
       const electionData = await electionDataService.getAuthenticElectionData();
       res.json(electionData);
@@ -1283,7 +1155,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/forum/posts/:id/like", async (req, res) => {
     try {
       const postId = parseInt(req.params.id);
-      const userId = req.isAuthenticated() && req.user ? (req.user as any).id : '42199639';
+      const userId = req.isAuthenticated() && req.user ? (req.user as any).id : null;
 
       // Check if user already liked this post
       const existingLike = await db.execute(sql`
@@ -1326,7 +1198,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/forum/replies/:id/like", async (req, res) => {
     try {
       const replyId = parseInt(req.params.id);
-      const userId = req.isAuthenticated() && req.user ? (req.user as any).id : '42199639';
+      const userId = req.isAuthenticated() && req.user ? (req.user as any).id : null;
 
       // Check if user already liked this reply
       const existingLike = await db.execute(sql`
@@ -1369,7 +1241,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/forum/replies", async (req, res) => {
     try {
       const { postId, content, parentReplyId } = req.body;
-      const userId = req.isAuthenticated() && req.user ? (req.user as any).id : '42199639';
+      const userId = req.isAuthenticated() && req.user ? (req.user as any).id : null;
 
       if (!content || !content.trim()) {
         return res.status(400).json({ message: "Reply content is required" });
@@ -1582,7 +1454,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Fixed commenting system for targetType/targetId routes - HIGH PRIORITY ROUTE
   app.post('/api/comments/:targetType/:targetId', async (req: Request, res: Response) => {
-    console.log('Comment POST route hit:', req.params, req.body);
     const commentSchema = z.object({
       content: z.string().min(1),
       parentCommentId: z.string().optional(),
@@ -1594,14 +1465,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Invalid comment data", errors: parsed.error.errors });
       }
       const { content, parentCommentId } = parsed.data;
-      // For development, use demo user ID
-      const userId = process.env.NODE_ENV !== 'production' ? '42199639' : 
-        (req.isAuthenticated() && req.user ? (req.user as any).id : null);
-
+      // Production authentication only
+      const userId = req.user && (req.user as any).claims && (req.user as any).claims.sub;
       if (!userId) {
         return res.status(401).json({ message: "Authentication required" });
       }
-
       // Content moderation check using the function defined below
       const moderationResult = moderateComment(content);
       if (!moderationResult.isAllowed) {
@@ -1609,26 +1477,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
           message: `Comment rejected: ${moderationResult.reason}` 
         });
       }
-
       const result = await db.execute(sql`
         INSERT INTO comments (author_id, target_type, target_id, content, parent_comment_id, created_at, like_count, can_delete)
         VALUES (${userId}, ${targetType}, ${parseInt(targetId)}, ${content}, ${parentCommentId || null}, NOW(), 0, true)
         RETURNING id, content, author_id, target_type, target_id, parent_comment_id, created_at, like_count, can_delete
       `);
-
       // Get user info for response
       const user = await db.execute(sql`
         SELECT first_name, last_name, email, profile_image_url 
         FROM users WHERE id = ${userId}
       `);
-
       const comment = {
         ...result.rows[0],
         author: {
           ...user.rows[0]
         }
       };
-
       res.status(201).json({
         message: "Comment posted successfully",
         comment: comment
@@ -1643,21 +1507,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/comments', async (req: any, res) => {
     try {
       const { targetType, targetId, content, parentCommentId } = req.body;
-      const userId = process.env.NODE_ENV !== 'production' ? '42199639' : 
-        (req.isAuthenticated() && req.user ? (req.user as any).id : null);
-      
+      // Production authentication only
+      const userId = req.user && (req.user as any).claims && (req.user as any).claims.sub;
       if (!userId) {
         return res.status(401).json({ message: "Authentication required" });
       }
-      
       if (!content || content.trim().length === 0) {
         return res.status(400).json({ message: "Comment content cannot be empty" });
       }
-      
       if (content.length > 2000) {
         return res.status(400).json({ message: "Comment too long (max 2000 characters)" });
       }
-      
       // Moderate comment content
       const moderation = moderateComment(content);
       if (!moderation.isAllowed) {
@@ -1666,13 +1526,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
           moderationReason: moderation.reason
         });
       }
-
       const result = await db.execute(sql`
         INSERT INTO comments (author_id, target_type, target_id, content, parent_comment_id, created_at, like_count, can_delete)
         VALUES (${userId}, ${targetType}, ${targetId}, ${content.trim()}, ${parentCommentId || null}, NOW(), 0, true)
         RETURNING id, created_at
       `);
-      
       const comment = result.rows[0];
       res.json({ 
         id: comment.id, 
@@ -1687,10 +1545,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Get comments for specific content - HIGH PRIORITY ROUTE
   app.get('/api/comments/:targetType/:targetId', async (req, res) => {
-    console.log('Comment GET route hit:', req.params);
     try {
       const { targetType, targetId } = req.params;
-
       const comments = await db.execute(sql`
         SELECT 
           c.id,
@@ -1714,7 +1570,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         WHERE c.target_type = ${targetType} AND c.target_id = ${parseInt(targetId)} AND c.parent_comment_id IS NULL
         ORDER BY c.created_at DESC
       `);
-
       // Get replies for each comment
       const commentsWithReplies = await Promise.all(
         (comments.rows as CommentRow[]).map((comment: CommentRow) => {
@@ -1759,7 +1614,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
           })();
         })
       );
-      
       const cleanedComments = commentsWithReplies.map((comment: any) => {
         const author = comment.author || {};
         return {
@@ -1779,7 +1633,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
           replies: comment.replies ?? []
         };
       });
-      console.log('Returning', cleanedComments.length, 'clean comments. First comment author_id:', cleanedComments[0]?.author_id);
       res.json(cleanedComments);
     } catch (error) {
       console.error("Error fetching comments:", error);
@@ -1791,30 +1644,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.delete('/api/comments/:commentId', async (req: any, res) => {
     try {
       const { commentId } = req.params;
-      const userId = process.env.NODE_ENV !== 'production' ? '42199639' : 
-        (req.isAuthenticated() && req.user ? (req.user as any).id : null);
-
+      // Production authentication only
+      const userId = req.user && (req.user as any).claims && (req.user as any).claims.sub;
       if (!userId) {
         return res.status(401).json({ message: "Authentication required" });
       }
-
       // Check if comment exists and belongs to user
       const comment = await db.execute(sql`
         SELECT author_id FROM comments WHERE id = ${commentId}
       `);
-
       if (comment.rows.length === 0) {
         return res.status(404).json({ message: "Comment not found" });
       }
-
       if (comment.rows[0].author_id !== userId) {
         return res.status(403).json({ message: "You can only delete your own comments" });
       }
-
       // Delete the comment and its edit history
       await db.execute(sql`DELETE FROM comment_edit_history WHERE comment_id = ${commentId}`);
       await db.execute(sql`DELETE FROM comments WHERE id = ${commentId}`);
-
       res.json({ message: "Comment deleted successfully" });
     } catch (error) {
       console.error("Error deleting comment:", error);
@@ -1827,17 +1674,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { commentId } = req.params;
       const { content } = req.body;
-      const userId = process.env.NODE_ENV !== 'production' ? '42199639' : 
-        (req.isAuthenticated() && req.user ? (req.user as any).id : null);
-
+      // Production authentication only
+      const userId = req.user && (req.user as any).claims && (req.user as any).claims.sub;
       if (!userId) {
         return res.status(401).json({ message: "Authentication required" });
       }
-
       if (!content || content.trim().length === 0) {
         return res.status(400).json({ message: "Comment content is required" });
       }
-
       // Content moderation check
       const moderationResult = moderateComment(content);
       if (!moderationResult.isAllowed) {
@@ -1845,30 +1689,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
           message: `Comment rejected: ${moderationResult.reason}` 
         });
       }
-
       // Check if comment exists and belongs to user
       const comment = await db.execute(sql`
         SELECT author_id, content, edit_count FROM comments WHERE id = ${commentId}
       `);
-
       if (comment.rows.length === 0) {
         return res.status(404).json({ message: "Comment not found" });
       }
-
       if (comment.rows[0].author_id !== userId) {
         return res.status(403).json({ message: "You can only edit your own comments" });
       }
-
       const originalContent = comment.rows[0].content;
       const currentEditCount = Number(comment.rows[0].edit_count) || 0;
       const newEditCount = currentEditCount + 1;
-
       // Save original content to edit history
       await db.execute(sql`
         INSERT INTO comment_edit_history (comment_id, original_content, edit_number)
         VALUES (${commentId}, ${originalContent}, ${newEditCount})
       `);
-
       // Update the comment
       await db.execute(sql`
         UPDATE comments 
@@ -1878,7 +1716,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
             last_edited_at = NOW()
         WHERE id = ${commentId}
       `);
-
       res.json({ 
         message: "Comment updated successfully",
         editCount: newEditCount
@@ -1913,18 +1750,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/comments/like', async (req: any, res) => {
     try {
       const { commentId } = req.body;
-      const userId = process.env.NODE_ENV !== 'production' ? '42199639' : 
-        (req.isAuthenticated() && req.user ? (req.user as any).id : null);
-
+      // Production authentication only
+      const userId = req.user && (req.user as any).claims && (req.user as any).claims.sub;
       if (!userId) {
         return res.status(401).json({ message: "Authentication required" });
       }
-
       const existing = await db.execute(sql`
         SELECT id FROM comment_likes 
         WHERE comment_id = ${commentId} AND user_id = ${userId}
       `);
-
       let isLiked = false;
       if (existing.rows.length > 0) {
         await db.execute(sql`
@@ -1939,13 +1773,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         `);
         isLiked = true;
       }
-
       // Get updated like count
       const likeCountResult = await db.execute(sql`
         SELECT COUNT(*) as count FROM comment_likes WHERE comment_id = ${commentId}
       `);
       const likeCount = parseInt(String(likeCountResult.rows?.[0]?.count || 0));
-
       res.json({ 
         isLiked, 
         likeCount,
@@ -3112,7 +2944,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/comments/:postId', async (req, res) => {
     try {
       const { postId } = req.params;
-      
       // Get comments with author information
       const commentsResult = await db.execute(sql`
         SELECT 
@@ -3133,9 +2964,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         WHERE c.post_id = ${postId}
         ORDER BY c.created_at DESC
       `);
-
       const comments = commentsResult.rows as CommentRow[];
-      
       // Get replies for each comment
       const commentsWithReplies = await Promise.all(
         comments.map(async (comment: CommentRow) => {
@@ -3158,9 +2987,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             WHERE r.parent_comment_id = ${comment.id}
             ORDER BY r.created_at ASC
           `);
-
           const replies = repliesResult.rows as CommentRow[];
-          
           return {
             ...comment,
             replies: replies.map((reply: CommentRow) => ({
@@ -3186,7 +3013,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
           };
         })
       );
-      
       const cleanedComments = commentsWithReplies.map((comment: any) => ({
         id: comment.id ?? '',
         content: comment.content ?? '',
@@ -3203,7 +3029,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         author: comment.author ?? {},
         replies: comment.replies ?? []
       }));
-      console.log('Returning', cleanedComments.length, 'clean comments. First comment author_id:', cleanedComments[0]?.author_id);
       res.json(cleanedComments);
     } catch (error) {
       console.error("Error fetching comments:", error);
@@ -3302,5 +3127,5 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   const httpServer = createServer(app);
-  return httpServer;
+  httpServer.listen(3000);
 }

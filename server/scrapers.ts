@@ -45,7 +45,6 @@ export interface LegislativeBill {
  */
 export async function scrapeCurrentMPs(): Promise<ParliamentMember[]> {
   try {
-    console.log("Fetching comprehensive MP data from official sources...");
     
     // Enhanced data collection from multiple official sources
     const sources = [
@@ -70,7 +69,6 @@ export async function scrapeCurrentMPs(): Promise<ParliamentMember[]> {
 
     for (const source of sources) {
       try {
-        console.log(`Fetching data from ${source.name}...`);
         const response = await fetch(source.url, {
           headers: {
             'User-Agent': 'CivicOS-DataCollector/1.0 (Government Transparency Platform)',
@@ -82,17 +80,14 @@ export async function scrapeCurrentMPs(): Promise<ParliamentMember[]> {
           const data = await response.text();
           const parsedData = await source.parser(data);
           allMPs = [...allMPs, ...parsedData];
-          console.log(`Successfully collected ${parsedData.length} records from ${source.name}`);
         }
       } catch (error) {
-        console.warn(`Failed to fetch from ${source.name}:`, error);
         continue;
       }
     }
 
     // Deduplicate and enrich data
     const uniqueMPs = deduplicateAndEnrichMPs(allMPs);
-    console.log(`Total unique MPs collected: ${uniqueMPs.length}`);
     return uniqueMPs;
 
   } catch (error) {
@@ -372,7 +367,6 @@ async function getCuratedRealMPData(): Promise<ParliamentMember[]> {
  */
 export async function scrapeFederalBills(): Promise<LegislativeBill[]> {
   try {
-    console.log("Fetching comprehensive federal bills...");
     
     // Enhanced bill collection from multiple official sources
     const sources = [
@@ -392,7 +386,6 @@ export async function scrapeFederalBills(): Promise<LegislativeBill[]> {
 
     for (const source of sources) {
       try {
-        console.log(`Fetching bills from ${source.name}...`);
         const response = await fetch(source.url, {
           headers: {
             'User-Agent': 'CivicOS-DataCollector/1.0 (Government Transparency Platform)',
@@ -409,17 +402,14 @@ export async function scrapeFederalBills(): Promise<LegislativeBill[]> {
             const parsedBills = await parseHTMLBills(data);
             allBills = [...allBills, ...parsedBills];
           }
-          console.log(`Successfully collected bills from ${source.name}`);
         }
       } catch (error) {
-        console.warn(`Failed to fetch from ${source.name}:`, error);
         continue;
       }
     }
 
     // Return unique bills
     const uniqueBills = deduplicateBills(allBills);
-    console.log(`Total unique bills collected: ${uniqueBills.length}`);
     return uniqueBills;
 
   } catch (error) {
@@ -564,7 +554,6 @@ async function getCuratedRealBillData(): Promise<LegislativeBill[]> {
  */
 export async function scrapeProvincialBills(province: string = "ontario"): Promise<LegislativeBill[]> {
   try {
-    console.log(`Fetching ${province} provincial bills...`);
     
     const provincialSources: Record<string, string> = {
       ontario: "https://www.ola.org/en/legislative-business/bills",
@@ -575,7 +564,6 @@ export async function scrapeProvincialBills(province: string = "ontario"): Promi
 
     const url = provincialSources[province.toLowerCase()];
     if (!url) {
-      console.log(`No source configured for province: ${province}`);
       return [];
     }
 
@@ -632,7 +620,6 @@ async function parseProvincialBillsHTML(data: string, province: string): Promise
  */
 export async function populateRealData(): Promise<void> {
   try {
-    console.log("Populating database with real government data...");
     
     // Fetch real MPs and bills
     const [members, bills] = await Promise.all([
@@ -640,8 +627,7 @@ export async function populateRealData(): Promise<void> {
       scrapeFederalBills()
     ]);
 
-    console.log(`Found ${members.length} MPs and ${bills.length} bills`);
-
+    
     // Store bills
     for (const bill of bills) {
       try {
@@ -678,7 +664,6 @@ export async function populateRealData(): Promise<void> {
       }
     }
 
-    console.log("Successfully populated database with real government data");
   } catch (error) {
     console.error("Error populating database:", error);
   }

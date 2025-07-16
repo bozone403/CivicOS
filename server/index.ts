@@ -27,14 +27,6 @@ app.use((req, res, next) => {
   const origin = req.headers.origin;
   const civicosRegex = /^https?:\/\/(.*\.)?civicos\.ca$/;
   const isAllowed = origin && (allowedOrigins.includes(origin) || civicosRegex.test(origin));
-  console.log(
-    "CORS request from origin:",
-    typeof origin === "string" ? origin : "undefined",
-    "Regex match:",
-    typeof origin === "string" ? civicosRegex.test(origin) : false,
-    "Allowed:",
-    isAllowed
-  );
 
   // Allow only trusted origins in production, '*' in development
   if (process.env.NODE_ENV === 'production') {
@@ -94,12 +86,6 @@ app.use((req, res, next) => {
   next();
 });
 
-// Basic request logging middleware
-app.use((req, res, next) => {
-  console.log(`[${new Date().toISOString()}] ${req.method} ${req.originalUrl}`);
-  next();
-});
-
 // Security middleware
 app.use(helmet());
 app.use(rateLimit({
@@ -137,7 +123,9 @@ process.on('uncaughtException', (err) => {
 });
 
 (async () => {
-  const server = await registerRoutes(app);
+  await registerRoutes(app);
+  const { createServer } = await import("http");
+  const server = createServer(app);
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
@@ -147,26 +135,15 @@ process.on('uncaughtException', (err) => {
     throw err;
   });
 
-  // importantly only setup vite in development and after
-  // setting up all the other routes so the catch-all route
-  // doesn't interfere with the other routes
-  if (app.get("env") === "development") {
-    // Only import and use setupVite in development
-    const { setupVite } = await import("./viteDevServer.js");
-    await setupVite(app, server);
-  } else {
-    serveStatic(app);
-  }
+  // REMOVE dev-only viteDevServer logic for production
+  // (No import or setupVite call)
+  serveStatic(app);
 
   // ALWAYS serve the app on port 5000
   // this serves both the API and the client.
   // It is the only port that is not firewalled.
   const port = 5000;
-  server.listen({
-    port,
-    host: "0.0.0.0",
-    reusePort: true,
-  }, () => {
+  server.listen(port, "0.0.0.0", () => {
     log(`serving on port ${port}`);
     
     // Initialize automatic government data sync

@@ -229,11 +229,8 @@ export class AggressiveDataScraper {
    * Perform comprehensive data scraping from all government sources
    */
   async performComprehensiveScraping(): Promise<void> {
-    console.log('Starting aggressive data scraping from all government sources...');
-    
     for (const source of this.governmentSources) {
       try {
-        console.log(`Scraping ${source.name}...`);
         await this.scrapeGovernmentSource(source);
         
         // Delay between sources to avoid overwhelming servers
@@ -244,7 +241,6 @@ export class AggressiveDataScraper {
       }
     }
     
-    console.log('Comprehensive scraping completed');
   }
 
   /**
@@ -362,7 +358,6 @@ export class AggressiveDataScraper {
       await this.storePolitician(pol);
     }
     
-    console.log(`Extracted ${politicians.length} federal politicians`);
   }
 
   /**
@@ -449,7 +444,6 @@ export class AggressiveDataScraper {
       await this.storeBill(bill);
     }
     
-    console.log(`Extracted ${bills.length} federal bills`);
   }
 
   /**
@@ -515,7 +509,6 @@ export class AggressiveDataScraper {
       }
     });
     
-    console.log(`Extracted ${votes.length} voting records`);
   }
 
   /**
@@ -544,7 +537,6 @@ export class AggressiveDataScraper {
       await this.storeStatement(statement);
     }
     
-    console.log(`Extracted ${statements.length} politician statements`);
   }
 
   /**
@@ -578,7 +570,6 @@ export class AggressiveDataScraper {
       await this.storePolitician(pol);
     }
     
-    console.log(`Extracted ${politicians.length} ${province} politicians`);
   }
 
   /**
@@ -612,7 +603,6 @@ export class AggressiveDataScraper {
       await this.storePolitician(official);
     }
     
-    console.log(`Extracted ${officials.length} ${city} officials`);
   }
 
   // Helper methods

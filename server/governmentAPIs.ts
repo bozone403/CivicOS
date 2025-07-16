@@ -13,7 +13,6 @@ export class GovernmentAPIService {
    */
   async fetchParliamentOpenData() {
     try {
-      console.log("Fetching Parliament of Canada Open Data...");
       
       // MPs data from Parliament API
       const mpsResponse = await fetch('https://www.ourcommons.ca/members/en/search/xml');
@@ -25,7 +24,6 @@ export class GovernmentAPIService {
       // Bills data from Parliament API
       const billsResponse = await fetch('https://www.parl.ca/legisinfo/en/bills');
       if (billsResponse.ok) {
-        console.log("Parliament bills data fetched successfully");
       }
       
     } catch (error) {
@@ -39,12 +37,10 @@ export class GovernmentAPIService {
    */
   async fetchStatisticsCanada() {
     try {
-      console.log("Fetching Statistics Canada data...");
       
       // Population and demographic data
       const popResponse = await fetch('https://www150.statcan.gc.ca/t1/wds/rest/getDataFromVectorsAndLatestNPeriods');
       if (popResponse.ok) {
-        console.log("Statistics Canada data fetched successfully");
       }
       
     } catch (error) {
@@ -58,12 +54,10 @@ export class GovernmentAPIService {
    */
   async fetchOpenGovernmentData() {
     try {
-      console.log("Fetching Open Government Canada data...");
       
       // Government spending data
       const spendingResponse = await fetch('https://open.canada.ca/data/api/action/package_search?q=spending');
       if (spendingResponse.ok) {
-        console.log("Open Government data fetched successfully");
       }
       
     } catch (error) {
@@ -77,12 +71,10 @@ export class GovernmentAPIService {
    */
   async fetchElectoralDistricts() {
     try {
-      console.log("Fetching electoral district data...");
       
       // Electoral boundaries data
       const boundariesResponse = await fetch('https://www.elections.ca/res/cir/maps2/mapprov.asp');
       if (boundariesResponse.ok) {
-        console.log("Electoral district data fetched successfully");
       }
       
     } catch (error) {
@@ -97,7 +89,6 @@ export class GovernmentAPIService {
     try {
       // Parse XML and extract MP information
       // This would require proper XML parsing
-      console.log("Processing Parliament MP data from official source");
       
       // Store authentic MP data in database
       // Implementation would parse XML and insert verified data
@@ -111,7 +102,6 @@ export class GovernmentAPIService {
    * Enhanced data collection using confirmed APIs
    */
   async performComprehensiveAPISync() {
-    console.log("Starting comprehensive government API data sync...");
     
     await Promise.allSettled([
       this.fetchParliamentOpenData(),
@@ -120,7 +110,6 @@ export class GovernmentAPIService {
       this.fetchElectoralDistricts()
     ]);
     
-    console.log("Government API sync completed");
   }
 }
 

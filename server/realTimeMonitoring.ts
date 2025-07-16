@@ -79,7 +79,6 @@ export class RealTimeMonitoringService {
    * Start continuous monitoring of all platform systems
    */
   startMonitoring(): void {
-    console.log('Starting real-time platform monitoring...');
     
     // Initial metrics collection
     this.collectMetrics();
@@ -97,7 +96,6 @@ export class RealTimeMonitoringService {
     if (this.monitoringInterval) {
       clearInterval(this.monitoringInterval);
       this.monitoringInterval = null;
-      console.log('Stopped real-time monitoring');
     }
   }
 
@@ -116,7 +114,6 @@ export class RealTimeMonitoringService {
    */
   async collectMetrics(): Promise<void> {
     try {
-      console.log('Collecting system health metrics...');
       
       const [
         databaseMetrics,
@@ -141,7 +138,6 @@ export class RealTimeMonitoringService {
       };
 
       this.lastUpdate = new Date();
-      console.log('System metrics updated successfully');
     } catch (error) {
       console.error('Error collecting system metrics:', error);
     }

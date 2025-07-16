@@ -12,14 +12,10 @@ router.use('/preferences', preferencesRouter);
 // Get notifications - no auth required for demo
 router.get("/", async (req: any, res) => {
   try {
-    const userId = '42199639'; // Demo user ID
-    console.log(`Fetching notifications for user: ${userId}`);
-    
     const result = await db.select().from(notifications)
-      .where(eq(notifications.userId, userId))
+      .where(eq(notifications.userId, req.user.id))
       .orderBy(desc(notifications.createdAt));
     
-    console.log(`Found ${result.length} notifications`);
     res.json(result);
   } catch (error) {
     console.error("Error fetching notifications:", error instanceof Error ? error.message : String(error));
@@ -30,14 +26,11 @@ router.get("/", async (req: any, res) => {
 // Mark as read
 router.patch("/:id/read", async (req: any, res) => {
   try {
-    const userId = '42199639'; // Demo user ID
     const notificationId = parseInt(req.params.id);
-    
-    console.log(`Marking notification ${notificationId} as read`);
     
     await db.update(notifications)
       .set({ isRead: true })
-      .where(and(eq(notifications.id, notificationId), eq(notifications.userId, userId)));
+      .where(and(eq(notifications.id, notificationId), eq(notifications.userId, req.user.id)));
     
     res.json({ success: true });
   } catch (error) {
@@ -49,13 +42,10 @@ router.patch("/:id/read", async (req: any, res) => {
 // Delete notification
 router.delete("/:id", async (req: any, res) => {
   try {
-    const userId = '42199639'; // Demo user ID
     const notificationId = parseInt(req.params.id);
     
-    console.log(`Deleting notification ${notificationId}`);
-    
     await db.delete(notifications)
-      .where(and(eq(notifications.id, notificationId), eq(notifications.userId, userId)));
+      .where(and(eq(notifications.id, notificationId), eq(notifications.userId, req.user.id)));
     
     res.json({ success: true });
   } catch (error) {
@@ -67,12 +57,9 @@ router.delete("/:id", async (req: any, res) => {
 // Clear all notifications
 router.delete("/", async (req: any, res) => {
   try {
-    const userId = '42199639'; // Demo user ID
-    
-    console.log(`Clearing all notifications for user ${userId}`);
     
     await db.delete(notifications)
-      .where(eq(notifications.userId, userId));
+      .where(eq(notifications.userId, req.user.id));
     
     res.json({ success: true });
   } catch (error) {

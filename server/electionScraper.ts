@@ -50,8 +50,6 @@ interface ScrapedDistrict {
  * Scrape current federal elections from Elections Canada
  */
 export async function scrapeFederalElections(): Promise<ScrapedElection[]> {
-  console.log("Scraping federal elections from Elections Canada...");
-  
   try {
     // Elections Canada - Current elections and referendums
     const response = await fetch('https://www.elections.ca/content.aspx?section=ele&dir=pas&document=index&lang=e', {
@@ -61,7 +59,6 @@ export async function scrapeFederalElections(): Promise<ScrapedElection[]> {
     });
     
     if (!response.ok) {
-      console.warn(`Failed to fetch Elections Canada data: ${response.status}`);
       return [];
     }
     
@@ -107,7 +104,6 @@ export async function scrapeFederalElections(): Promise<ScrapedElection[]> {
 
     return elections;
   } catch (error) {
-    console.error("Error scraping federal elections:", error);
     return [];
   }
 }
@@ -116,8 +112,6 @@ export async function scrapeFederalElections(): Promise<ScrapedElection[]> {
  * Scrape federal candidates from Elections Canada
  */
 export async function scrapeFederalCandidates(): Promise<ScrapedCandidate[]> {
-  console.log("Scraping federal candidates...");
-  
   try {
     // Use Parliament of Canada MP directory
     const response = await fetch('https://www.ourcommons.ca/Members/en/search', {
@@ -127,7 +121,6 @@ export async function scrapeFederalCandidates(): Promise<ScrapedCandidate[]> {
     });
     
     if (!response.ok) {
-      console.warn(`Failed to fetch MP data: ${response.status}`);
       return [];
     }
     
@@ -157,7 +150,6 @@ export async function scrapeFederalCandidates(): Promise<ScrapedCandidate[]> {
 
     return candidates;
   } catch (error) {
-    console.error("Error scraping federal candidates:", error);
     return [];
   }
 }
@@ -166,8 +158,6 @@ export async function scrapeFederalCandidates(): Promise<ScrapedCandidate[]> {
  * Scrape provincial elections (Ontario example)
  */
 export async function scrapeProvincialElections(province: string = 'ontario'): Promise<ScrapedElection[]> {
-  console.log(`Scraping ${province} provincial elections...`);
-  
   try {
     let url = '';
     switch (province.toLowerCase()) {
@@ -194,7 +184,6 @@ export async function scrapeProvincialElections(province: string = 'ontario'): P
     });
     
     if (!response.ok) {
-      console.warn(`Failed to fetch ${province} election data: ${response.status}`);
       return [];
     }
     
@@ -222,7 +211,6 @@ export async function scrapeProvincialElections(province: string = 'ontario'): P
 
     return elections;
   } catch (error) {
-    console.error(`Error scraping ${province} provincial elections:`, error);
     return [];
   }
 }
@@ -231,8 +219,6 @@ export async function scrapeProvincialElections(province: string = 'ontario'): P
  * Scrape electoral districts from Elections Canada
  */
 export async function scrapeElectoralDistricts(): Promise<ScrapedDistrict[]> {
-  console.log("Scraping electoral districts...");
-  
   try {
     const response = await fetch('https://www.elections.ca/Scripts/vis/FindED?L=e&QID=-1&PAGEID=20', {
       headers: {
@@ -241,7 +227,6 @@ export async function scrapeElectoralDistricts(): Promise<ScrapedDistrict[]> {
     });
     
     if (!response.ok) {
-      console.warn(`Failed to fetch electoral districts: ${response.status}`);
       return [];
     }
     
@@ -273,7 +258,6 @@ export async function scrapeElectoralDistricts(): Promise<ScrapedDistrict[]> {
 
     return districts;
   } catch (error) {
-    console.error("Error scraping electoral districts:", error);
     return [];
   }
 }
@@ -282,8 +266,6 @@ export async function scrapeElectoralDistricts(): Promise<ScrapedDistrict[]> {
  * Populate sample election data for demonstration
  */
 export async function populateSampleElectionData(): Promise<void> {
-  console.log("Populating sample election data...");
-  
   try {
     // Create sample elections
     const sampleElections = [
@@ -447,9 +429,8 @@ export async function populateSampleElectionData(): Promise<void> {
 
     await db.insert(schema.electoralDistricts).values(sampleDistricts);
 
-    console.log("Sample election data populated successfully");
   } catch (error) {
-    console.error("Error populating sample election data:", error);
+    // console.error("Error populating sample election data:", error);
   }
 }
 
@@ -457,37 +438,29 @@ export async function populateSampleElectionData(): Promise<void> {
  * Run comprehensive election data scraping
  */
 export async function scrapeAllElectionData(): Promise<void> {
-  console.log("Starting comprehensive election data scraping...");
-  
   try {
     // Scrape federal elections
     const federalElections = await scrapeFederalElections();
-    console.log(`Found ${federalElections.length} federal elections`);
     
     // Scrape federal candidates
     const federalCandidates = await scrapeFederalCandidates();
-    console.log(`Found ${federalCandidates.length} federal candidates`);
     
     // Scrape provincial elections for major provinces
     const provinces = ['ontario', 'quebec', 'bc', 'alberta'];
     for (const province of provinces) {
       const provincialElections = await scrapeProvincialElections(province);
-      console.log(`Found ${provincialElections.length} elections in ${province}`);
     }
     
     // Scrape electoral districts
     const districts = await scrapeElectoralDistricts();
-    console.log(`Found ${districts.length} electoral districts`);
     
     // If scraping yields limited results, populate sample data
     if (federalElections.length === 0 && federalCandidates.length === 0) {
-      console.log("Limited data from scraping, populating sample data...");
       await populateSampleElectionData();
     }
     
-    console.log("Election data scraping completed");
   } catch (error) {
-    console.error("Error in comprehensive election scraping:", error);
+    // console.error("Error in comprehensive election scraping:", error);
     // Fallback to sample data
     await populateSampleElectionData();
   }

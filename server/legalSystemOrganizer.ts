@@ -87,7 +87,6 @@ export class LegalSystemOrganizer {
    * Populate comprehensive Criminal Code sections
    */
   async populateCriminalCode(): Promise<void> {
-    console.log("Populating comprehensive Criminal Code sections...");
     
     // Clear existing duplicates
     await db.delete(criminalCodeSections);
@@ -471,7 +470,6 @@ export class LegalSystemOrganizer {
     for (let i = 0; i < criminalSections.length; i += batchSize) {
       const batch = criminalSections.slice(i, i + batchSize);
       await db.insert(criminalCodeSections).values(batch);
-      console.log(`Inserted Criminal Code sections ${i + 1} to ${Math.min(i + batchSize, criminalSections.length)}`);
     }
   }
 
@@ -479,7 +477,6 @@ export class LegalSystemOrganizer {
    * Populate federal legislation acts
    */
   async populateFederalLegislation(): Promise<void> {
-    console.log("Populating comprehensive federal legislation...");
     
     // Clear existing duplicates first
     await db.delete(legislativeActs);
@@ -740,7 +737,6 @@ export class LegalSystemOrganizer {
     for (let i = 0; i < federalActs.length; i += batchSize) {
       const batch = federalActs.slice(i, i + batchSize);
       await db.insert(legalActs).values(batch);
-      console.log(`Inserted federal acts ${i + 1} to ${Math.min(i + batchSize, federalActs.length)}`);
     }
   }
 
@@ -748,7 +744,6 @@ export class LegalSystemOrganizer {
    * Populate landmark legal cases
    */
   async populateLandmarkCases(): Promise<void> {
-    console.log("Populating landmark Canadian legal cases...");
     
     // Clear existing duplicates
     await db.delete(legalCases);
@@ -890,7 +885,6 @@ export class LegalSystemOrganizer {
     for (let i = 0; i < landmarkCases.length; i += batchSize) {
       const batch = landmarkCases.slice(i, i + batchSize);
       await db.insert(legalCases).values(batch);
-      console.log(`Inserted landmark cases ${i + 1} to ${Math.min(i + batchSize, landmarkCases.length)}`);
     }
   }
 
@@ -898,7 +892,6 @@ export class LegalSystemOrganizer {
    * Remove duplicate entries across all legal tables
    */
   async removeDuplicates(): Promise<void> {
-    console.log("Removing duplicate legal entries...");
     
     // Remove duplicate criminal code sections by section number
     await db.execute(sql`
@@ -929,8 +922,6 @@ export class LegalSystemOrganizer {
         GROUP BY case_name, court
       )
     `);
-
-    console.log("Duplicate removal completed.");
   }
 
   /**
@@ -960,7 +951,6 @@ export class LegalSystemOrganizer {
    * Initialize comprehensive legal system
    */
   async initializeLegalSystem(): Promise<void> {
-    console.log("Initializing comprehensive Canadian legal system...");
     
     try {
       await this.removeDuplicates();
@@ -968,9 +958,7 @@ export class LegalSystemOrganizer {
       await this.populateFederalLegislation();
       await this.populateLandmarkCases();
       
-      console.log("Legal system initialization completed successfully.");
     } catch (error) {
-      console.error("Error initializing legal system:", error);
       throw error;
     }
   }

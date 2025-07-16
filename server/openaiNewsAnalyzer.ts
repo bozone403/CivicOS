@@ -84,11 +84,9 @@ export class OpenAINewsAnalyzer {
   }
 
   async performComprehensiveAnalysis(): Promise<void> {
-    console.log("Starting comprehensive Canadian news analysis with OpenAI...");
     
     for (const source of this.sources) {
       try {
-        console.log(`Analyzing news source: ${source.name}`);
         await this.scrapeAndAnalyzeSource(source);
         await this.delay(2000); // Rate limiting
       } catch (error) {
@@ -97,12 +95,10 @@ export class OpenAINewsAnalyzer {
     }
 
     await this.performCrossSourceComparison();
-    console.log("Comprehensive news analysis completed");
   }
 
   private async scrapeAndAnalyzeSource(source: NewsSource): Promise<void> {
     try {
-      console.log(`Scraping RSS feed: ${source.name}`);
       const response = await fetch(source.rssUrl, {
         headers: {
           'User-Agent': 'Mozilla/5.0 (compatible; CivicOS/1.0; +https://civicos.ca)'

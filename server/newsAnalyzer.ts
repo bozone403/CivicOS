@@ -184,8 +184,6 @@ export async function scrapeFromRSS(source: NewsSource): Promise<ScrapedArticle[
   try {
     if (!source.rssUrl) return [];
     
-    console.log(`Scraping RSS feed: ${source.name}`);
-    
     const response = await fetch(source.rssUrl, {
       headers: {
         'User-Agent': 'Mozilla/5.0 (compatible; CivicOS/1.0; +https://civicos.ca)'
@@ -193,7 +191,6 @@ export async function scrapeFromRSS(source: NewsSource): Promise<ScrapedArticle[
     });
     
     if (!response.ok) {
-      console.warn(`Failed to fetch RSS for ${source.name}: ${response.status}`);
       return [];
     }
     
@@ -240,8 +237,6 @@ export async function scrapeFromRSS(source: NewsSource): Promise<ScrapedArticle[
  */
 export async function scrapeWebsite(source: NewsSource): Promise<ScrapedArticle[]> {
   try {
-    console.log(`Scraping website: ${source.name}`);
-    
     const response = await fetch(source.url, {
       headers: {
         'User-Agent': 'Mozilla/5.0 (compatible; CivicOS/1.0; +https://civicos.ca)'
@@ -249,7 +244,6 @@ export async function scrapeWebsite(source: NewsSource): Promise<ScrapedArticle[
     });
     
     if (!response.ok) {
-      console.warn(`Failed to fetch ${source.name}: ${response.status}`);
       return [];
     }
     
@@ -539,7 +533,6 @@ export async function storeArticleAnalysis(article: ScrapedArticle, analysis: Ne
       .limit(1);
     
     if (existingArticle.length > 0) {
-      console.log(`Article already exists: ${article.title}`);
       return;
     }
     
@@ -581,7 +574,6 @@ export async function storeArticleAnalysis(article: ScrapedArticle, analysis: Ne
       analysisDetails: propaganda.analysisDetails,
     });
     
-    console.log(`Stored analysis for: ${article.title}`);
   } catch (error) {
     console.error('Error storing article analysis:', error);
   }
@@ -630,7 +622,6 @@ export async function updateSourceCredibility(sourceName: string): Promise<void>
       }
     });
     
-    console.log(`Updated credibility for ${sourceName}: Truth ${avgTruth.toFixed(1)}%, Bias ${avgBias.toFixed(1)}, Propaganda ${propagandaFrequency.toFixed(1)}%`);
   } catch (error) {
     console.error(`Error updating source credibility for ${sourceName}:`, error);
   }
@@ -640,11 +631,9 @@ export async function updateSourceCredibility(sourceName: string): Promise<void>
  * Run comprehensive news analysis
  */
 export async function runNewsAnalysis(): Promise<void> {
-  console.log("Starting comprehensive news analysis and propaganda detection...");
   
   for (const source of CANADIAN_NEWS_SOURCES) {
     try {
-      console.log(`\nAnalyzing news source: ${source.name}`);
       
       // Try RSS first, then fallback to website scraping
       let articles = await scrapeFromRSS(source);
@@ -652,8 +641,6 @@ export async function runNewsAnalysis(): Promise<void> {
       if (articles.length === 0) {
         articles = await scrapeWebsite(source);
       }
-      
-      console.log(`Found ${articles.length} articles from ${source.name}`);
       
       // Process each article
       for (const article of articles.slice(0, 5)) { // Limit to 5 articles per source
@@ -687,14 +674,12 @@ export async function runNewsAnalysis(): Promise<void> {
     }
   }
   
-  console.log("News analysis completed");
 }
 
 /**
  * Initialize daily news analysis
  */
 export function initializeNewsAnalysis(): void {
-  console.log("Initializing daily news analysis...");
   
   // Run initial analysis
   runNewsAnalysis();
