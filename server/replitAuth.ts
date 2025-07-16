@@ -112,8 +112,8 @@ export async function setupAuth(app: Express) {
     passport.use(strategy);
   }
 
-  passport.serializeUser((user: Express.User, cb) => cb(null, user));
-  passport.deserializeUser((user: Express.User, cb) => cb(null, user));
+  passport.serializeUser((user: Express.User, cb: (err: any, id?: any) => void) => cb(null, user));
+  passport.deserializeUser((user: Express.User, cb: (err: any, user?: any) => void) => cb(null, user));
 
   app.get("/api/login", (req, res, next) => {
     passport.authenticate(`replitauth:${req.hostname}`, {
