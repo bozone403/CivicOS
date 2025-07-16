@@ -1,5 +1,5 @@
 import express, { type Request, Response, NextFunction } from "express";
-import { registerRoutes } from "./routes.ts";
+import { registerRoutes } from "./routes";
 import path from "path";
 import { initializeDataSync } from "./dataSync";
 import { initializeNewsAnalysis } from "./newsAnalyzer";
