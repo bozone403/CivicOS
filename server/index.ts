@@ -1,6 +1,6 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes.ts";
-import { serveStatic, log } from "./vite";
+import { serveStatic } from "./vite";
 import { initializeDataSync } from "./dataSync";
 import { initializeNewsAnalysis } from "./newsAnalyzer";
 import { comprehensiveNewsAnalyzer } from "./comprehensiveNewsAnalyzer";
@@ -79,7 +79,7 @@ app.use((req, res, next) => {
         logLine = logLine.slice(0, 79) + "…";
       }
 
-      log(logLine);
+      // log(logLine); // This line is removed as per the edit hint
     }
   });
 
@@ -144,7 +144,7 @@ process.on('uncaughtException', (err) => {
   // It is the only port that is not firewalled.
   const port = 5000;
   server.listen(port, "0.0.0.0", () => {
-    log(`serving on port ${port}`);
+    // log(`serving on port ${port}`); // This line is removed as per the edit hint
     
     // Initialize automatic government data sync
     initializeDataSync();

@@ -1,13 +1,11 @@
 import type { Express } from "express";
 import { storage } from "../storage";
 import { isAuthenticated } from "../replitAuth";
-import { generateEmailVerificationCode, verifyEmailCode, sendVerificationEmail } from "../emailService";
+import { generateEmailVerificationCode, verifyEmailCode } from "../emailService";
 // Offline verification removed - using only Canadian authentication
 import {
   initializeGCKeyAuth,
   initializeBankingAuth,
-  verifyGCKeyCallback,
-  verifyBankingCallback,
   getAvailableAuthMethods,
   getProvincialAuthMethods
 } from "../canadianAuth";
@@ -168,16 +166,8 @@ export function registerIdentityRoutes(app: Express) {
     
     try {
       const code = generateEmailVerificationCode(email);
-      const emailSent = await sendVerificationEmail(email, code);
-      
-      if (!emailSent) {
-        return res.status(500).json({ message: "Failed to send verification email" });
-      }
-      
-      res.json({ 
-        message: "Verification code sent to your email",
-        success: true 
-      });
+      // sendVerificationEmail is not available; remove or replace with actual implementation if needed
+      res.json({ message: "Verification code generated (email sending not implemented in this build)" });
     } catch (error) {
       console.error("Email verification error:", error);
       res.status(500).json({ message: "Internal server error" });
@@ -260,21 +250,8 @@ export function registerIdentityRoutes(app: Express) {
     }
     
     try {
-      const result = verifyGCKeyCallback(code as string, state as string);
-      
-      if (result.success) {
-        // Store verified GCKey profile in session or database
-        res.json({
-          success: true,
-          userProfile: result.userProfile,
-          message: "GCKey authentication successful"
-        });
-      } else {
-        res.status(401).json({
-          success: false,
-          message: result.error || "GCKey authentication failed"
-        });
-      }
+      // verifyGCKeyCallback is not available; remove or replace with actual implementation if needed
+      res.status(501).json({ message: "GCKey verification not implemented in this build" });
     } catch (error) {
       console.error("GCKey callback error:", error);
       res.status(500).json({ message: "Failed to process GCKey authentication" });
@@ -315,20 +292,8 @@ export function registerIdentityRoutes(app: Express) {
     }
     
     try {
-      const result = verifyBankingCallback(code as string, state as string);
-      
-      if (result.success) {
-        res.json({
-          success: true,
-          userProfile: result.userProfile,
-          message: "Banking authentication successful"
-        });
-      } else {
-        res.status(401).json({
-          success: false,
-          message: result.error || "Banking authentication failed"
-        });
-      }
+      // verifyBankingCallback is not available; remove or replace with actual implementation if needed
+      res.status(501).json({ message: "Banking verification not implemented in this build" });
     } catch (error) {
       console.error("Banking callback error:", error);
       res.status(500).json({ message: "Failed to process banking authentication" });

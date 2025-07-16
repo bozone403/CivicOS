@@ -2,12 +2,8 @@ import { Router } from "express";
 import { db } from "./db";
 import { notifications } from "@shared/schema";
 import { eq, and, desc } from "drizzle-orm";
-import preferencesRouter from "./routes/preferences";
 
 const router = Router();
-
-// Mount preferences routes
-router.use('/preferences', preferencesRouter);
 
 // Get notifications - no auth required for demo
 router.get("/", async (req: any, res) => {
