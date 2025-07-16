@@ -1,5 +1,5 @@
 import express from "express";
-import { registerRoutes } from "./routes";
+import { registerRoutes } from "./appRoutes";
 import path from "path";
 import { initializeDataSync } from "./dataSync";
 import { initializeNewsAnalysis } from "./newsAnalyzer";
