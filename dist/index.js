@@ -1,11 +1,11 @@
 import express from "express";
 import { registerRoutes } from "./server/appRoutes.js";
 import path from "path";
-import { initializeDataSync } from "./dataSync.js";
-import { initializeNewsAnalysis } from "./newsAnalyzer.js";
-import { comprehensiveNewsAnalyzer } from "./comprehensiveNewsAnalyzer.js";
-import { realTimeMonitoring } from "./realTimeMonitoring.js";
-import { confirmedAPIs } from "./confirmedAPIs.js";
+import { initializeDataSync } from "./server/dataSync.js";
+import { initializeNewsAnalysis } from "./server/newsAnalyzer.js";
+import { comprehensiveNewsAnalyzer } from "./server/comprehensiveNewsAnalyzer.js";
+import { realTimeMonitoring } from "./server/realTimeMonitoring.js";
+import { confirmedAPIs } from "./server/confirmedAPIs.js";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 const app = express();
