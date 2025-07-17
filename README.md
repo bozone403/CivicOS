@@ -1,118 +1,74 @@
-# CivicOS - Digital Democracy Platform
+# CivicOS - Canadian Civic Engagement Platform
 
-A comprehensive Canadian political intelligence platform featuring real-time government data tracking, AI-powered civic insights, and secure democratic engagement tools.
+## 🚀 **DEPLOYMENT TRIGGER** - Latest deployment ready
+
+A comprehensive Canadian civic engagement platform built with React, TypeScript, and Express.
 
 ## Features
 
-- **85,000+ Politicians Tracked** - Federal, provincial, and municipal officials
-- **Real-time Data Updates** - 30-second refresh cycles from authentic sources
-- **Legal Database** - 549 acts, Criminal Code sections, court cases
-- **News Analysis** - Multi-source Canadian media monitoring
-- **Voting System** - Secure democratic participation tools
-- **AI Civic Assistant** - Claude-powered political insights
+- **Real-time voting system** on bills and legislation
+- **Politician tracking** and statement analysis
+- **News aggregation** with bias detection
+- **Legal database** with Canadian law search
+- **Identity verification** for secure voting
+- **Gamification** with civic points and badges
+- **Forum discussions** for civic engagement
+- **Campaign finance** transparency tracking
+
+## Tech Stack
+
+- **Frontend**: React + TypeScript + Vite + Tailwind CSS
+- **Backend**: Node.js + Express + TypeScript
+- **Database**: PostgreSQL with Drizzle ORM
+- **Authentication**: Replit Auth
+- **Deployment**: Render
 
 ## Quick Start
 
-### Prerequisites
-
-- Node.js 20+ and npm
-- PostgreSQL database
-- Git
-
-### 1. Download Source Code
-
 ```bash
-# Clone or download the repository
-git clone <your-repo-url>
-cd civicos-platform
-
-# Or download as ZIP and extract
-```
-
-### 2. Install Dependencies
-
-```bash
+# Install dependencies
 npm install
+
+# Build the project
+npm run build
+
+# Start the server
+npm start
 ```
 
-### 3. Database Setup
+## Environment Variables
 
-```bash
-# Create PostgreSQL database
-createdb civicos_db
-
-# Set database URL
-export DATABASE_URL="postgresql://username:password@localhost:5432/civicos_db"
-
-# Initialize database schema
-npm run db:push
-```
-
-### 4. Environment Variables
-
-Create `.env` file:
-
-```env
-DATABASE_URL=postgresql://username:password@localhost:5432/civicos_db
-SESSION_SECRET=your-secure-session-secret-here
-ANTHROPIC_API_KEY=your-anthropic-key-optional
-OPENAI_API_KEY=your-openai-key-optional
-REPL_ID=local-development
-REPLIT_DOMAINS=localhost:5000
-ISSUER_URL=https://replit.com/oidc
-NODE_ENV=development
-```
-
-### 5. Run Application
-
-```bash
-# Start the full-stack application
-npm run dev
-```
-
-The application will start on `http://localhost:5000`
-
-## API Keys (Optional)
-
-- **Anthropic API**: For AI civic assistant features
-- **OpenAI API**: For content analysis capabilities
-
-The platform works fully without API keys using the comprehensive data scraping system.
-
-## Database Schema
-
-The platform uses Drizzle ORM with PostgreSQL. Schema is automatically applied with `npm run db:push`.
+Required environment variables:
+- `DATABASE_URL` - PostgreSQL connection string
+- `SESSION_SECRET` - Session encryption key
+- `OPENAI_API_KEY` - OpenAI API key for AI features
+- `STRIPE_SECRET_KEY` - Stripe payment processing
+- `REPLIT_DOMAINS` - Authentication domains
+- `REPL_ID` - Replit project ID
+- `ISSUER_URL` - Authentication issuer URL
+- `FRONTEND_BASE_URL` - Frontend base URL
 
 ## Development
 
 ```bash
-# Development mode with hot reload
+# Start development server
 npm run dev
 
-# TypeScript compilation
-npm run build
+# Type checking
+npm run check
 
-# Database schema updates
+# Database migrations
 npm run db:push
 ```
 
 ## Production Deployment
 
-1. Set production environment variables
-2. Use production PostgreSQL database
-3. Set `NODE_ENV=production`
-4. Run `npm run build && npm start`
+The application is configured for deployment on Render with:
+- Automatic builds from GitHub
+- Environment variable management
+- Health check endpoints
+- Production-ready security settings
 
-## Architecture
+---
 
-- **Frontend**: React + TypeScript + Tailwind CSS
-- **Backend**: Express.js + TypeScript
-- **Database**: PostgreSQL + Drizzle ORM
-- **Authentication**: Replit Auth (configurable)
-- **Data Sources**: Government scraping + confirmed APIs
-
-## Support
-
-The platform is designed for Canadian political data and civic engagement. All data sources are authentic government feeds and official publications.# Build optimization
-# Force clean build - Fri Jul 11 18:17:11 MDT 2025
-# Force clean build - Fri Jul 11 18:33:45 MDT 2025
+**Status**: ✅ Production ready with comprehensive audit completed
