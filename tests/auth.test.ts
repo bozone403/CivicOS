@@ -2,13 +2,14 @@ import 'dotenv/config';
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import request from 'supertest';
 import { createServer } from 'http';
+import type { Server } from 'http';
 import { app } from '../server/index.js';
 
-let server;
+let server: Server;
 
 beforeAll(async () => {
   server = createServer(app);
-  await new Promise((resolve) => server.listen(0, resolve));
+  await new Promise<void>((resolve) => server.listen(0, resolve));
 });
 afterAll(() => {
   server.close();

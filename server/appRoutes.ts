@@ -11,7 +11,7 @@ import { civicAI } from "./civicAI.js";
 import { votingSystem } from "./votingSystem.js";
 import { db } from "./db.js";
 import { sql, eq } from "drizzle-orm";
-import * as multer from "multer";
+import multer, { FileFilterCallback } from "multer";
 import { users } from "../shared/schema.js";
 import { randomBytes } from "crypto";
 import { z } from "zod";
@@ -58,7 +58,7 @@ const upload = multer({
   limits: {
     fileSize: 5 * 1024 * 1024, // 5MB limit
   },
-  fileFilter: (_req, file, cb) => {
+  fileFilter: (_req: Express.Request, file: Express.Multer.File, cb: FileFilterCallback) => {
     if (file.mimetype.startsWith('image/')) {
       cb(null, true);
     } else {
