@@ -1,16 +1,14 @@
 import { createServer } from "http";
-import { storage } from "./storage";
-import { setupAuth, isAuthenticated } from "./replitAuth";
-import aiRouter from "./routes/ai";
-import simpleNotificationsRouter from "./simpleNotifications";
-import { registerIdentityRoutes } from "./routes/identity";
-import { authenticDataService } from "./authenticDataService";
-import { politicianDataEnhancer } from "./politicianDataEnhancer";
-import { civicAI } from "./civicAI";
-import { db } from "./db";
+import { storage } from "./storage.js";
+import { setupAuth, isAuthenticated } from "./replitAuth.js";
+import simpleNotificationsRouter from "./simpleNotifications.js";
+import { authenticDataService } from "./authenticDataService.js";
+import { politicianDataEnhancer } from "./politicianDataEnhancer.js";
+import { civicAI } from "./civicAI.js";
+import { db } from "./db.js";
 import { sql, eq } from "drizzle-orm";
 import multer from "multer";
-import { users } from "@shared/schema";
+import { users } from "../shared/schema.js";
 import { randomBytes } from "crypto";
 import { z } from "zod";
 const FRONTEND_BASE_URL = process.env.FRONTEND_BASE_URL || "https://civicos.ca";
@@ -40,12 +38,8 @@ const postIdParamSchema = z.object({ postId: z.string().regex(/^\d+$/) });
 export async function registerRoutes(app) {
     // Auth middleware
     await setupAuth(app);
-    // AI routes
-    app.use('/api/ai', aiRouter);
     // Simple notifications routes (no auth required)
     app.use("/api/notifications", simpleNotificationsRouter);
-    // Register identity verification routes
-    registerIdentityRoutes(app);
     // Auth routes
     app.get('/api/auth/user', async (req, res) => {
         try {

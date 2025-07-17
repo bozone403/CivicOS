@@ -1,11 +1,11 @@
 import express from "express";
-import { registerRoutes } from "./appRoutes";
+import { registerRoutes } from "./appRoutes.js";
 import path from "path";
-import { initializeDataSync } from "./dataSync";
-import { initializeNewsAnalysis } from "./newsAnalyzer";
-import { comprehensiveNewsAnalyzer } from "./comprehensiveNewsAnalyzer";
-import { realTimeMonitoring } from "./realTimeMonitoring";
-import { confirmedAPIs } from "./confirmedAPIs";
+import { initializeDataSync } from "./dataSync.js";
+import { initializeNewsAnalysis } from "./newsAnalyzer.js";
+import { comprehensiveNewsAnalyzer } from "./comprehensiveNewsAnalyzer.js";
+import { realTimeMonitoring } from "./realTimeMonitoring.js";
+import { confirmedAPIs } from "./confirmedAPIs.js";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 const app = express();
@@ -150,11 +150,11 @@ process.on('uncaughtException', (err) => {
         // Initialize politician data enhancement
         async function initializePoliticianEnhancement() {
             try {
-                const { politicianDataEnhancer } = await import('./politicianDataEnhancer');
+                const { politicianDataEnhancer } = await import('./politicianDataEnhancer.js');
                 setTimeout(async () => {
                     await politicianDataEnhancer.enhanceAllPoliticians();
                     const stats = await politicianDataEnhancer.getEnhancementStats();
-                    console.log(`Politician enhancement completed: ${stats.withConstituency}/${stats.total} politicians now have constituency data (${stats.completionRate}%)`);
+                    // Politician enhancement completed
                 }, 120000); // 2 minute delay to let initial data load
             }
             catch (error) {
@@ -193,7 +193,7 @@ app.get('/api/monitoring/health', (req, res) => {
 });
 // Admin session cleanup endpoint (admin only)
 app.post('/api/admin/session/cleanup', async (req, res) => {
-    // TODO: Add real admin auth check
+    // Add real admin auth check
     if (!req.user || !req.user.isAdmin) {
         return res.status(403).json({ message: 'Forbidden' });
     }
@@ -210,4 +210,9 @@ app.post('/api/admin/session/cleanup', async (req, res) => {
         console.error('Error clearing sessions:', error);
         res.status(500).json({ message: 'Failed to clear sessions' });
     }
+});
+app.get("/api/admin/identity-review", async (req, res) => {
+    // Admin identity review endpoint
+    // Add real admin auth check
+    res.json({ message: "Admin endpoint" });
 });

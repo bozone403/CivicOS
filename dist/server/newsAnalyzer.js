@@ -1,7 +1,7 @@
 import * as cheerio from 'cheerio';
 import fetch from 'node-fetch';
-import { db } from './db';
-import * as schema from '@shared/schema';
+import { db } from './db.js';
+import * as schema from '../shared/schema.js';
 import { eq } from 'drizzle-orm';
 import OpenAI from 'openai';
 // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user

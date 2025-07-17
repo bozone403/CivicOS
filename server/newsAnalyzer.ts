@@ -1,7 +1,7 @@
 import * as cheerio from 'cheerio';
 import fetch from 'node-fetch';
-import { db } from './db';
-import * as schema from '@shared/schema';
+import { db } from './db.js';
+import * as schema from '../shared/schema.js';
 import { eq } from 'drizzle-orm';
 import OpenAI from 'openai';
 

@@ -1,8 +1,8 @@
-import { db } from "./db";
-import { politicians, bills, votes, politicianStatements } from "@shared/schema";
+import { db } from "./db.js";
+import { politicians, bills, votes, politicianStatements } from "../shared/schema.js";
 import { eq, desc, count, sql, and, gte, lte } from "drizzle-orm";
 
-import { aggressiveScraper } from "./aggressiveDataScraper";
+import { aggressiveScraper } from "./aggressiveDataScraper.js";
 
 interface SystemHealthMetrics {
   database: {

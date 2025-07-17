@@ -1,5 +1,5 @@
-import { db } from "./db";
-import { newsArticles, newsComparisons } from "@shared/schema";
+import { db } from "./db.js";
+import { newsArticles, newsComparisons } from "../shared/schema.js";
 // import { eq, desc, and, gte, sql } from "drizzle-orm";
 import OpenAI from 'openai';
 import * as cheerio from 'cheerio';

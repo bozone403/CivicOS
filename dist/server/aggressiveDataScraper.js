@@ -1,6 +1,6 @@
 import * as cheerio from "cheerio";
-import { db } from "./db";
-import { politicians, bills, politicianStatements } from "@shared/schema";
+import { db } from "./db.js";
+import { politicians, bills, politicianStatements } from "../shared/schema.js";
 import { eq } from "drizzle-orm";
 /**
  * Aggressive data scraper for maximum authentic government data collection

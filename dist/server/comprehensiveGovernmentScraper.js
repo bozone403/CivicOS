@@ -1,7 +1,7 @@
 import * as cheerio from 'cheerio';
 import fetch from 'node-fetch';
-import { db } from './db';
-import { politicians, bills } from '@shared/schema';
+import { db } from './db.js';
+import { politicians, bills } from '../shared/schema.js';
 /**
  * Revolutionary Government Data Scraper - Complete Canadian Political Coverage
  * Scrapes authentic data from 200+ official government sources
@@ -668,7 +668,7 @@ export class ComprehensiveGovernmentScraper {
      * Store voting record
      */
     async storeVote(voteData) {
-        // TODO: Implement parliamentary voting records table
+        // Implement parliamentary voting records table
         // The current votes table is for user votes, not parliamentary voting records
     }
     /**

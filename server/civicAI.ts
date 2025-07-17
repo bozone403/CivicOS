@@ -2,8 +2,8 @@ import OpenAI from 'openai';
 
 // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
 import { storage } from './storage';
-import { db } from './db';
-import { bills, politicians, votes, politicianStatements } from '@shared/schema';
+import { db } from './db.js';
+import { bills, politicians, votes, politicianStatements } from '../shared/schema.js';
 import { eq, and, sql, desc, like } from 'drizzle-orm';
 
 // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user

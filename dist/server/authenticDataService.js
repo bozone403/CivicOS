@@ -1,4 +1,4 @@
-import { db } from "./db";
+import { db } from "./db.js";
 import { sql } from "drizzle-orm";
 /**
  * Authentic Canadian Government Data Service

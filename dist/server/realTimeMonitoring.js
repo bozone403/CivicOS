@@ -1,5 +1,5 @@
-import { db } from "./db";
-import { politicians, bills, votes, politicianStatements } from "@shared/schema";
+import { db } from "./db.js";
+import { politicians, bills, votes, politicianStatements } from "../shared/schema.js";
 import { desc, count, sql } from "drizzle-orm";
 /**
  * Real-time monitoring service for comprehensive platform health tracking

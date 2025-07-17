@@ -6,8 +6,8 @@ userActivity,
 // type InsertPetition,
 // type PetitionSignature,
 // type InsertPetitionSignature,
- } from "@shared/schema";
-import { db } from "./db";
+ } from "../shared/schema.js";
+import { db } from "./db.js";
 import { eq, desc, and, sql, count } from "drizzle-orm";
 export class DatabaseStorage {
     // User operations

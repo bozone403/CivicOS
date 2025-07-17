@@ -1,5 +1,5 @@
-import { db } from "./db";
-import { criminalCodeSections, legalActs, legalCases, legislativeActs } from "@shared/schema";
+import { db } from "./db.js";
+import { criminalCodeSections, legalActs, legalCases, legislativeActs } from "../shared/schema.js";
 import { eq, sql } from "drizzle-orm";
 
 interface LegalHierarchy {

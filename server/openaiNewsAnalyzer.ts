@@ -1,5 +1,5 @@
 import OpenAI from "openai";
-import { db } from "./db";
+import { db } from "./db.js";
 import { sql } from "drizzle-orm";
 import * as cheerio from "cheerio";
 

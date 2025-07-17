@@ -1,5 +1,5 @@
-import { storage } from "./storage";
-import type { InsertBill, InsertPolitician } from "@shared/schema";
+import { storage } from "./storage.js";
+import type { InsertBill, InsertPolitician } from "../shared/schema.js";
 import * as cheerio from "cheerio";
 import fetch from "node-fetch";
 import { parseString } from "xml2js";

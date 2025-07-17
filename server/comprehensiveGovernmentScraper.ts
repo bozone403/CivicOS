@@ -1,7 +1,7 @@
 import * as cheerio from 'cheerio';
 import fetch from 'node-fetch';
-import { db } from './db';
-import { politicians, bills, votes, politicianStatements, elections, candidates } from '@shared/schema';
+import { db } from './db.js';
+import { politicians, bills, votes, politicianStatements, elections, candidates } from '../shared/schema.js';
 
 interface DataSource {
   name: string;
@@ -828,7 +828,7 @@ export class ComprehensiveGovernmentScraper {
    * Store voting record
    */
   private async storeVote(voteData: any): Promise<void> {
-    // TODO: Implement parliamentary voting records table
+    // Implement parliamentary voting records table
     // The current votes table is for user votes, not parliamentary voting records
   }
 

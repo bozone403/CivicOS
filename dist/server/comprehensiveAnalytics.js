@@ -1,5 +1,5 @@
-import { db } from "./db";
-import { politicians, bills, votes, politicianStatements } from "@shared/schema";
+import { db } from "./db.js";
+import { politicians, bills, votes, politicianStatements } from "../shared/schema.js";
 import { eq, desc, count, sql } from "drizzle-orm";
 import Anthropic from '@anthropic-ai/sdk';
 const anthropic = new Anthropic({

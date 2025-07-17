@@ -1,6 +1,6 @@
 import OpenAI from "openai";
-import { db } from "./db";
-import { newsArticles } from "@shared/schema";
+import { db } from "./db.js";
+import { newsArticles } from "../shared/schema.js";
 import { desc } from "drizzle-orm";
 import * as cheerio from "cheerio";
 

@@ -1,4 +1,4 @@
-import { storage } from "./storage";
+import { storage } from "./storage.js";
 import * as cheerio from "cheerio";
 import fetch from "node-fetch";
 import { parseString } from "xml2js";

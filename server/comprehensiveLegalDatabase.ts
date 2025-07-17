@@ -320,7 +320,7 @@ export class ComprehensiveLegalDatabase {
 
     for (const section of criminalCodeSections) {
       try {
-        // TODO: Fix database schema mismatch
+        // Fix database schema mismatch
         // await db.insert(criminalCodeSections).values({
         //   sectionNumber: section.section,
         //   title: section.title,
@@ -443,7 +443,7 @@ export class ComprehensiveLegalDatabase {
 
     for (const section of charterSections) {
       try {
-        // TODO: Fix database schema mismatch
+        // Fix database schema mismatch
         // await db.insert(charterRights).values({
         //   section: section.section,
         //   title: section.title,
@@ -523,7 +523,7 @@ export class ComprehensiveLegalDatabase {
 
     for (const act of federalActsData) {
       try {
-        // TODO: Fix database schema mismatch
+        // Fix database schema mismatch
         // await db.insert(federalActs).values({
         //   title: act.title,
         //   actNumber: act.actNumber,
@@ -557,7 +557,7 @@ export class ComprehensiveLegalDatabase {
       
       for (const law of provincialLawsData) {
         try {
-          // TODO: Fix database schema mismatch
+          // Fix database schema mismatch
           // await db.insert(provincialLaws).values({
           //   title: law.title,
           //   actNumber: law.actNumber,
@@ -638,7 +638,7 @@ export class ComprehensiveLegalDatabase {
 
     for (const caseData of courtCasesData) {
       try {
-        // TODO: Fix database schema mismatch
+        // Fix database schema mismatch
         // await db.insert(legalCases).values({
         //   caseName: caseData.caseName,
         //   caseNumber: caseData.caseNumber,

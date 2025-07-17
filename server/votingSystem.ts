@@ -1,6 +1,6 @@
-import { db } from "./db";
+import { db } from "./db.js";
 import { sql } from "drizzle-orm";
-import * as schema from "@shared/schema";
+import * as schema from "../shared/schema.js";
 
 interface VoteOption {
   id: string;
