@@ -3,6 +3,8 @@ import { politicians, bills, votes, politicianStatements } from "../shared/schem
 import { eq, desc, count, sql, and, gte, lte } from "drizzle-orm";
 
 import { aggressiveScraper } from "./aggressiveDataScraper.js";
+import pino from "pino";
+const logger = pino();
 
 interface SystemHealthMetrics {
   database: {
@@ -139,7 +141,7 @@ export class RealTimeMonitoringService {
 
       this.lastUpdate = new Date();
     } catch (error) {
-      console.error('Error collecting system metrics:', error);
+      logger.error({ msg: 'Error collecting system metrics', error });
     }
   }
 

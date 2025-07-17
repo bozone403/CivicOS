@@ -5,7 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ChatButton } from "@/components/ChatButton";
 import { FloatingChatButton } from "@/components/FloatingChatButton";
-import { useState } from "react";
+import React, { useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 
 import { LuxuryNavigation } from "@/components/layout/LuxuryNavigation";
@@ -51,6 +51,37 @@ import IdentityReview from "@/pages/admin/identity-review";
 import Manifesto from "@/pages/manifesto";
 import NotFound from "@/pages/not-found";
 import canadianCrest from "./assets/ChatGPT Image Jun 20, 2025, 06_03_54 PM_1750464244456.png";
+import { SupabaseTest } from "@/components/SupabaseTest";
+
+// Add a simple error boundary
+class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { hasError: boolean; error: any }> {
+  constructor(props: { children: React.ReactNode }) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+  static getDerivedStateFromError(error: any) {
+    return { hasError: true, error };
+  }
+  componentDidCatch(error: any, errorInfo: any) {
+    // You can log error info here
+    // console.error(error, errorInfo);
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="min-h-screen flex flex-col items-center justify-center bg-red-50">
+          <div className="max-w-md w-full bg-white shadow-lg rounded-lg p-8 text-center">
+            <h1 className="text-2xl font-bold text-red-600 mb-2">Something went wrong</h1>
+            <p className="text-gray-700 mb-4">An unexpected error occurred. Please refresh the page or try again later.</p>
+            <pre className="text-xs text-gray-500 bg-gray-100 rounded p-2 overflow-x-auto max-h-40 mb-4">{String(this.state.error)}</pre>
+            <button className="bg-red-600 text-white px-4 py-2 rounded" onClick={() => window.location.reload()}>Reload</button>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 function Router() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -169,6 +200,7 @@ function Router() {
 function AppWithBot() {
   return (
     <>
+      <SupabaseTest />
       <Router />
       <FloatingChatButton />
     </>
@@ -179,8 +211,12 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <AppWithBot />
-        <Toaster />
+        <ErrorBoundary>
+          <Toaster />
+          <SupabaseTest />
+          <Router />
+          <FloatingChatButton />
+        </ErrorBoundary>
       </TooltipProvider>
     </QueryClientProvider>
   );

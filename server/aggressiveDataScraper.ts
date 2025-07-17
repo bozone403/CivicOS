@@ -2,6 +2,8 @@ import * as cheerio from "cheerio";
 import { db } from "./db.js";
 import { politicians, bills, politicianStatements } from "../shared/schema.js";
 import { eq } from "drizzle-orm";
+import pino from "pino";
+const logger = pino();
 
 interface ScrapingConfig {
   maxRetries: number;
@@ -236,7 +238,7 @@ export class AggressiveDataScraper {
         // Delay between sources to avoid overwhelming servers
         await this.delay(this.config.delayBetweenRequests);
       } catch (error) {
-        console.error(`Error scraping ${source.name}:`, error);
+        logger.error({ msg: `Error scraping ${source.name}`, error });
         continue; // Continue with other sources
       }
     }
@@ -272,7 +274,7 @@ export class AggressiveDataScraper {
         
       } catch (error) {
         retries++;
-        console.error(`Attempt ${retries} failed for ${source.name}:`, error);
+        logger.error({ msg: `Attempt ${retries} failed for ${source.name}`, error });
         
         if (retries < this.config.maxRetries) {
           // Exponential backoff
@@ -725,7 +727,7 @@ export class AggressiveDataScraper {
         }
       });
     } catch (error) {
-      console.error('Error storing politician:', error);
+      logger.error({ msg: 'Error storing politician', error });
     }
   }
 
@@ -760,7 +762,7 @@ export class AggressiveDataScraper {
         });
       }
     } catch (error) {
-      console.error('Error storing bill:', error);
+      logger.error({ msg: 'Error storing bill', error });
     }
   }
 
@@ -782,7 +784,7 @@ export class AggressiveDataScraper {
         });
       }
     } catch (error) {
-      console.error('Error storing statement:', error);
+      logger.error({ msg: 'Error storing statement', error });
     }
   }
 

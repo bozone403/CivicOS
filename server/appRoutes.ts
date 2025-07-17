@@ -1,7 +1,6 @@
 import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage.js";
-import { setupAuth, isAuthenticated } from "./replitAuth.js";
 import simpleNotificationsRouter from "./simpleNotifications.js";
 
 import { authenticDataService } from "./authenticDataService.js";
@@ -12,12 +11,45 @@ import { civicAI } from "./civicAI.js";
 import { votingSystem } from "./votingSystem.js";
 import { db } from "./db.js";
 import { sql, eq } from "drizzle-orm";
-import multer from "multer";
+import * as multer from "multer";
 import { users } from "../shared/schema.js";
 import { randomBytes } from "crypto";
 import { z } from "zod";
+import * as jwt from "jsonwebtoken";
+import * as bcrypt from "bcryptjs";
+import { v4 as uuidv4 } from "uuid";
+import pino from "pino";
+
+const logger = pino();
 
 const FRONTEND_BASE_URL = process.env.FRONTEND_BASE_URL || "https://civicos.ca";
+
+const JWT_SECRET = process.env.SESSION_SECRET || "changeme";
+
+// Add this type for JWT payload
+interface JwtPayload {
+  id: string;
+  email: string;
+}
+
+function generateToken(user: any) {
+  return jwt.sign({ id: user.id, email: user.email }, JWT_SECRET, { expiresIn: "7d" });
+}
+
+function jwtAuth(req: any, res: any, next: any) {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    return res.status(401).json({ message: "Missing or invalid token" });
+  }
+  try {
+    const token = authHeader.split(" ")[1];
+    const decoded = jwt.verify(token, JWT_SECRET) as JwtPayload;
+    req.user = decoded;
+    next();
+  } catch (err) {
+    return res.status(401).json({ message: "Invalid or expired token" });
+  }
+}
 
 // Configure multer for profile picture uploads
 const storage_multer = multer.memoryStorage();
@@ -61,102 +93,68 @@ const voteParamSchema = z.object({ targetType: z.string().min(2).max(32), target
 const postIdParamSchema = z.object({ postId: z.string().regex(/^\d+$/) });
 
 export async function registerRoutes(app: Express): Promise<void> {
-  // Auth middleware
-  await setupAuth(app);
-
   // Simple notifications routes (no auth required)
   app.use("/api/notifications", simpleNotificationsRouter);
 
-  // Auth routes
-  app.get('/api/auth/user', async (req: Request, res: Response) => {
+  // JWT Registration
+  app.post('/api/auth/register', async (req, res) => {
+    const { email, password } = req.body;
+    if (!email || !password) return res.status(400).json({ message: "Email and password required" });
+    const existing = await db.select().from(users).where(eq(users.email, email));
+    if (existing.length > 0) return res.status(409).json({ message: "Email already registered" });
+    const hash = await bcrypt.hash(password, 10);
+    const [user] = await db.insert(users).values({ id: uuidv4(), email, password: hash }).returning();
+    const token = generateToken(user);
+    res.json({ token, user: { id: user.id, email: user.email } });
+  });
+
+  // JWT Login
+  app.post('/api/auth/login', async (req, res) => {
+    const { email, password } = req.body;
+    if (!email || !password) return res.status(400).json({ message: "Email and password required" });
+    const [user] = await db.select().from(users).where(eq(users.email, email));
+    if (!user || !user.password) return res.status(401).json({ message: "Invalid credentials" });
+    const token = generateToken(user);
+    res.json({ token, user: { id: user.id, email: user.email } });
+  });
+
+  // Auth user endpoint (JWT)
+  app.get('/api/auth/user', jwtAuth, async (req: Request, res: Response) => {
     try {
-      // Check if user is logged out
-      if ((req.session as any)?.loggedOut) {
-        return res.status(401).json({ message: "Unauthorized" });
-      }
-
-      // Check for session-based user data first
-      if ((req.session as any)?.userData) {
-        return res.json((req.session as any).userData);
-      }
-
-      // Production authentication flow only
-      if (!req.isAuthenticated() || !req.user) {
-        return res.status(401).json({ message: "Unauthorized" });
-      }
-      
-      // Authenticated route, user is guaranteed
-      const userId = (req.user && (req.user as any).claims && (req.user as any).claims.sub) || null;
-      if (!userId) {
-        return res.status(401).json({ message: "Unauthorized" });
-      }
-      
+      const userId = (req.user as JwtPayload)?.id;
+      if (!userId) return res.status(401).json({ message: "Unauthorized" });
       const user = await storage.getUser(userId);
+      if (!user) return res.status(404).json({ message: "User not found" });
       res.json(user);
     } catch (error) {
-      console.error("Error fetching user:", error);
+      logger.error({ msg: 'Error fetching user', error });
       res.status(500).json({ message: "Failed to fetch user" });
     }
   });
 
-  // Logout route
-  app.post('/api/auth/logout', async (req: Request, res: Response) => {
-    try {
-      // Clear session data
-      if (req.session) {
-        (req.session as any).loggedOut = true;
-        (req.session as any).userData = null;
-      }
-      
-      // In production, also logout from Replit Auth
-      if (process.env.NODE_ENV === 'production' && req.logout) {
-        req.logout((err: any) => {
-          if (err) {
-            console.error("Logout error:", err);
-          }
-        });
-      }
-      
-      res.json({ message: "Logged out successfully" });
-    } catch (error) {
-      console.error("Error during logout:", error);
-      res.status(500).json({ message: "Failed to logout" });
-    }
+  // Logout route (no-op for JWT)
+  app.post('/api/auth/logout', (req: Request, res: Response) => {
+    res.json({ message: "Logged out (client should delete token)" });
   });
 
-  // Profile picture upload route
-  app.post('/api/auth/upload-profile-picture', isAuthenticated, upload.single('profilePicture'), async (req: Request, res: Response) => {
+  // Profile picture upload route (JWT protected)
+  app.post('/api/auth/upload-profile-picture', jwtAuth, upload.single('profilePicture'), async (req: any, res: Response) => {
     try {
       if (!req.file) {
         return res.status(400).json({ message: "No file uploaded" });
       }
-
-      // Authenticated route, user is guaranteed
-      const userId = (req.user && (req.user as any).claims && (req.user as any).claims.sub) || null;
+      const userId = req.user && req.user.id;
       if (!userId) {
         return res.status(401).json({ message: "Unauthorized" });
       }
-      
       const fileExtension = req.file.originalname.split('.').pop() || 'jpg';
-      // const fileName = `profile_${userId}_${randomBytes(8).toString('hex')}.${fileExtension}`;
-      
-      // Convert buffer to base64 data URL for storage
       const base64Data = `data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}`;
-      
-      // Update user's profile image URL in database
       await db.update(users)
-        .set({ 
-          profileImageUrl: base64Data,
-          updatedAt: new Date()
-        })
+        .set({ profileImageUrl: base64Data, updatedAt: new Date() })
         .where(eq(users.id, userId));
-
-      res.json({ 
-        message: "Profile picture updated successfully",
-        profileImageUrl: base64Data
-      });
+      res.json({ message: "Profile picture updated successfully", profileImageUrl: base64Data });
     } catch (error) {
-      console.error("Error uploading profile picture:", error);
+      logger.error({ msg: 'Error uploading profile picture', error });
       res.status(500).json({ message: "Failed to upload profile picture" });
     }
   });
@@ -249,7 +247,7 @@ export async function registerRoutes(app: Express): Promise<void> {
       
       res.json(profileData);
     } catch (error) {
-      console.error("Error fetching user profile:", error);
+      logger.error({ msg: 'Error fetching user profile', error });
       res.status(500).json({ message: "Failed to fetch user profile" });
     }
   });
@@ -286,7 +284,7 @@ export async function registerRoutes(app: Express): Promise<void> {
         lastUpdated: new Date().toISOString()
       });
     } catch (error) {
-      console.error("Error fetching comprehensive dashboard data:", error);
+      logger.error({ msg: 'Error fetching comprehensive dashboard data', error });
       res.status(500).json({ message: "Failed to fetch dashboard data" });
     }
   });
@@ -306,7 +304,7 @@ export async function registerRoutes(app: Express): Promise<void> {
       
       res.json(stats);
     } catch (error) {
-      console.error("Error fetching voting stats:", error);
+      logger.error({ msg: 'Error fetching voting stats', error });
       res.json({
         totalVotes: 0,
         activeUsers: 0,
@@ -329,7 +327,7 @@ export async function registerRoutes(app: Express): Promise<void> {
       `);
       res.json(politicians.rows);
     } catch (error) {
-      console.error("Error fetching politicians:", error);
+      logger.error({ msg: 'Error fetching politicians', error });
       res.status(500).json({ message: "Failed to fetch politicians" });
     }
   });
@@ -351,7 +349,7 @@ export async function registerRoutes(app: Express): Promise<void> {
 
       res.json(politician.rows[0]);
     } catch (error) {
-      console.error("Error fetching politician:", error);
+      logger.error({ msg: 'Error fetching politician', error });
       res.status(500).json({ message: "Failed to fetch politician" });
     }
   });
@@ -366,7 +364,7 @@ export async function registerRoutes(app: Express): Promise<void> {
       `);
       res.json(acts.rows);
     } catch (error) {
-      console.error("Error fetching legal acts:", error);
+      logger.error({ msg: 'Error fetching legal acts', error });
       res.status(500).json({ message: "Failed to fetch legal acts" });
     }
   });
@@ -378,7 +376,7 @@ export async function registerRoutes(app: Express): Promise<void> {
       `);
       res.json(cases.rows);
     } catch (error) {
-      console.error("Error fetching legal cases:", error);
+      logger.error({ msg: 'Error fetching legal cases', error });
       res.status(500).json({ message: "Failed to fetch legal cases" });
     }
   });
@@ -431,7 +429,7 @@ export async function registerRoutes(app: Express): Promise<void> {
 
       res.json(results);
     } catch (error) {
-      console.error("Error performing search:", error);
+      logger.error({ msg: 'Error performing search', error });
       res.status(500).json({ message: "Failed to perform search" });
     }
   });
@@ -460,13 +458,15 @@ export async function registerRoutes(app: Express): Promise<void> {
       `);
       
       // Get user's vote if logged in
-      let userVote = null;
+      let userVote: string | null = null;
       if (userId) {
         const userVoteResult = await db.execute(sql`
           SELECT vote_type FROM user_votes 
           WHERE user_id = ${userId} AND target_type = ${targetType} AND target_id = ${parseInt(targetId)}
         `);
-        userVote = userVoteResult.rows[0]?.vote_type || null;
+        userVote = (userVoteResult.rows[0] && typeof userVoteResult.rows[0].vote_type === 'string')
+          ? userVoteResult.rows[0].vote_type
+          : null;
       }
       
       const result = votes.rows[0] || { upvotes: 0, downvotes: 0, total_score: 0 };
@@ -477,7 +477,7 @@ export async function registerRoutes(app: Express): Promise<void> {
         userVote: userVote
       });
     } catch (error) {
-      console.error("Error fetching votes:", error);
+      logger.error({ msg: 'Error fetching votes', error });
       res.json({ upvotes: 0, downvotes: 0, totalScore: 0, userVote: null });
     }
   });
@@ -494,13 +494,13 @@ export async function registerRoutes(app: Express): Promise<void> {
       `);
       res.json(bills.rows);
     } catch (error) {
-      console.error("Error fetching voting items:", error);
+      logger.error({ msg: 'Error fetching voting items', error });
       res.status(500).json({ message: "Failed to fetch voting items" });
     }
   });
 
   // Unified voting endpoint
-  app.post('/api/vote', isAuthenticated, async (req: Request, res: Response) => {
+  app.post('/api/vote', jwtAuth, async (req: Request, res: Response) => {
     const voteSchema = z.object({
       targetType: z.enum(["politician", "bill", "post", "comment", "petition", "news", "finance"]),
       targetId: z.number().int(),
@@ -512,7 +512,7 @@ export async function registerRoutes(app: Express): Promise<void> {
         return res.status(400).json({ message: "Invalid vote data", errors: parsed.error.errors });
       }
       const { targetType, targetId, voteType } = parsed.data;
-      const userId = req.isAuthenticated() && req.user ? (req.user as any).id : null;
+      const userId = req.user ? (req.user as any).id : null;
       if (!userId) {
         return res.status(401).json({ message: "Authentication required" });
       }
@@ -562,7 +562,7 @@ export async function registerRoutes(app: Express): Promise<void> {
         userVote: voteType
       });
     } catch (error) {
-      console.error("Error processing vote:", error);
+      logger.error({ msg: 'Error processing vote', error });
       res.status(500).json({ message: "Failed to process vote" });
     }
   });
@@ -609,13 +609,13 @@ export async function registerRoutes(app: Express): Promise<void> {
       
       res.json(formattedPetitions);
     } catch (error) {
-      console.error("Error fetching petitions:", error);
+      logger.error({ msg: 'Error fetching petitions', error });
       res.status(500).json({ message: "Failed to fetch petitions" });
     }
   });
 
   // Create petition route
-  app.post('/api/petitions', isAuthenticated, async (req: Request, res: Response) => {
+  app.post('/api/petitions', jwtAuth, async (req: Request, res: Response) => {
     const petitionSchema = z.object({
       title: z.string().min(3),
       description: z.string().min(10),
@@ -629,7 +629,7 @@ export async function registerRoutes(app: Express): Promise<void> {
         return res.status(400).json({ message: "Invalid petition data", errors: parsed.error.errors });
       }
       const { title, description, targetSignatures, deadlineDate, relatedBillId } = parsed.data;
-      const userId = req.user && (req.user as any).claims && (req.user as any).claims.sub;
+      const userId = req.user ? (req.user as any).id : null;
       if (!userId) {
         return res.status(401).json({ message: "Unauthorized" });
       }
@@ -650,15 +650,15 @@ export async function registerRoutes(app: Express): Promise<void> {
         petitionId: petitionId 
       });
     } catch (error) {
-      console.error("Error creating petition:", error);
+      logger.error({ msg: 'Error creating petition', error });
       res.status(500).json({ message: "Failed to create petition" });
     }
   });
 
-  app.post('/api/petitions/:id/sign', isAuthenticated, async (req: Request, res: Response) => {
+  app.post('/api/petitions/:id/sign', jwtAuth, async (req: Request, res: Response) => {
     try {
       const petitionId = parseInt(req.params.id);
-      const userId = req.user && (req.user as any).claims && (req.user as any).claims.sub;
+      const userId = req.user ? (req.user as any).id : null;
       if (!userId) {
         return res.status(401).json({ message: "Unauthorized" });
       }
@@ -683,7 +683,7 @@ export async function registerRoutes(app: Express): Promise<void> {
       `);
       res.json({ message: "Petition signed successfully" });
     } catch (error) {
-      console.error("Error signing petition:", error);
+      logger.error({ msg: 'Error signing petition', error });
       res.status(500).json({ message: "Failed to sign petition" });
     }
   });
@@ -712,7 +712,7 @@ export async function registerRoutes(app: Express): Promise<void> {
 
       res.json(response);
     } catch (error) {
-      console.error("Error processing civic AI query:", error);
+      logger.error({ msg: 'Error processing civic AI query', error });
       res.status(500).json({ message: "Failed to process query" });
     }
   });
@@ -727,7 +727,7 @@ export async function registerRoutes(app: Express): Promise<void> {
       `);
       res.json(news.rows);
     } catch (error) {
-      console.error("Error fetching news:", error);
+      logger.error({ msg: 'Error fetching news', error });
       res.status(500).json({ message: "Failed to fetch news" });
     }
   });
@@ -761,7 +761,7 @@ export async function registerRoutes(app: Express): Promise<void> {
       
       res.json(formattedArticles);
     } catch (error) {
-      console.error("Error fetching news articles:", error);
+      logger.error({ msg: 'Error fetching news articles', error });
       res.status(500).json({ message: "Failed to fetch news articles" });
     }
   });
@@ -843,7 +843,7 @@ export async function registerRoutes(app: Express): Promise<void> {
       ];
       res.json(outlets);
     } catch (error) {
-      console.error("Error fetching news outlets:", error);
+      logger.error({ msg: 'Error fetching news outlets', error });
       res.status(500).json({ message: "Failed to fetch news outlets" });
     }
   });
@@ -865,7 +865,7 @@ export async function registerRoutes(app: Express): Promise<void> {
       `);
       res.json(comparisons.rows);
     } catch (error) {
-      console.error("Error fetching news comparisons:", error);
+      logger.error({ msg: 'Error fetching news comparisons', error });
       res.status(500).json({ message: "Failed to fetch news comparisons" });
     }
   });
@@ -888,7 +888,7 @@ export async function registerRoutes(app: Express): Promise<void> {
       `);
       res.json(biasAnalysis.rows);
     } catch (error) {
-      console.error("Error fetching bias analysis:", error);
+      logger.error({ msg: 'Error fetching bias analysis', error });
       res.status(500).json({ message: "Failed to fetch bias analysis" });
     }
   });
@@ -896,11 +896,7 @@ export async function registerRoutes(app: Express): Promise<void> {
   // Authentic elections data endpoint
   app.get("/api/elections/authentic", async (req: any, res) => {
     try {
-      // Production authentication only
-      if (!req.isAuthenticated() || !req.user) {
-        return res.status(401).json({ message: "Authentication required" });
-      }
-      const userId = req.user && (req.user as any).claims && (req.user as any).claims.sub;
+      const userId = req.user ? (req.user as any).id : null;
       if (!userId) {
         return res.status(401).json({ message: "Authentication required" });
       }
@@ -908,7 +904,7 @@ export async function registerRoutes(app: Express): Promise<void> {
       const electionData = await electionDataService.getAuthenticElectionData();
       res.json(electionData);
     } catch (error) {
-      console.error("Error fetching election data:", error);
+      logger.error({ msg: 'Error fetching election data', error });
       res.status(500).json({ message: "Failed to fetch election data" });
     }
   });
@@ -927,7 +923,7 @@ export async function registerRoutes(app: Express): Promise<void> {
       };
       res.json(analytics);
     } catch (error) {
-      console.error("Error fetching analytics:", error);
+      logger.error({ msg: 'Error fetching analytics', error });
       res.status(500).json({ message: "Failed to fetch analytics" });
     }
   });
@@ -978,7 +974,7 @@ export async function registerRoutes(app: Express): Promise<void> {
       const result = await db.execute(query);
       res.json(result.rows);
     } catch (error) {
-      console.error("Error fetching campaign finance data:", error);
+      logger.error({ msg: 'Error fetching campaign finance data', error });
       res.status(500).json({ message: "Failed to fetch campaign finance data" });
     }
   });
@@ -1006,7 +1002,7 @@ export async function registerRoutes(app: Express): Promise<void> {
         overdueFilers: 0
       });
     } catch (error) {
-      console.error("Error fetching campaign finance stats:", error);
+      logger.error({ msg: 'Error fetching campaign finance stats', error });
       res.status(500).json({ message: "Failed to fetch campaign finance stats" });
     }
   });
@@ -1022,13 +1018,13 @@ export async function registerRoutes(app: Express): Promise<void> {
       };
       res.json(health);
     } catch (error) {
-      console.error("Error fetching health metrics:", error);
+      logger.error({ msg: 'Error fetching health metrics', error });
       res.status(500).json({ message: "Failed to fetch health metrics" });
     }
   });
 
   // Fix the unified voting endpoint with proper authentication
-  app.post('/api/vote', async (req: Request, res: Response) => {
+  app.post('/api/vote', jwtAuth, async (req: Request, res: Response) => {
     const voteSchema = z.object({
       targetType: z.enum(["politician", "bill", "post", "comment", "petition", "news", "finance"]),
       targetId: z.number().int(),
@@ -1043,7 +1039,7 @@ export async function registerRoutes(app: Express): Promise<void> {
       
       // For development, use demo user ID
       const userId = process.env.NODE_ENV !== 'production' ? '42199639' : 
-        (req.isAuthenticated() && req.user ? (req.user as any).id : null);
+        (req.user ? (req.user as any).id : null);
 
       if (!userId) {
         return res.status(401).json({ message: "Authentication required" });
@@ -1103,7 +1099,7 @@ export async function registerRoutes(app: Express): Promise<void> {
       });
 
     } catch (error) {
-      console.error("Error processing vote:", error);
+      logger.error({ msg: 'Error processing vote', error });
       res.status(500).json({ message: "Failed to process vote" });
     }
   });
@@ -1112,7 +1108,7 @@ export async function registerRoutes(app: Express): Promise<void> {
   app.get("/api/vote/:targetType/:targetId", async (req, res) => {
     try {
       const { targetType, targetId } = req.params;
-      const userId = req.isAuthenticated() && req.user ? (req.user as any).id : null;
+      const userId = req.user ? (req.user as any).id : null;
 
       const voteCountsResult = await db.execute(sql`
         SELECT upvotes, downvotes, total_score
@@ -1121,14 +1117,16 @@ export async function registerRoutes(app: Express): Promise<void> {
       `);
       const voteCounts = voteCountsResult.rows?.[0];
 
-      let userVote = null;
+      let userVote: string | null = null;
       if (userId) {
         const userVoteResult = await db.execute(sql`
           SELECT vote_type
           FROM user_votes
           WHERE user_id = ${userId} AND target_type = ${targetType} AND target_id = ${targetId}
         `);
-        userVote = userVoteResult.rows?.[0]?.vote_type || null;
+        userVote = (userVoteResult.rows?.[0] && typeof userVoteResult.rows[0].vote_type === 'string')
+          ? userVoteResult.rows[0].vote_type
+          : null;
       }
 
       res.json({
@@ -1138,7 +1136,7 @@ export async function registerRoutes(app: Express): Promise<void> {
         userVote: userVote
       });
     } catch (error) {
-      console.error("Error fetching vote counts:", error);
+      logger.error({ msg: 'Error fetching vote counts', error });
       res.status(500).json({ message: "Failed to fetch vote counts" });
     }
   });
@@ -1147,7 +1145,7 @@ export async function registerRoutes(app: Express): Promise<void> {
   app.post("/api/forum/posts/:id/like", async (req, res) => {
     try {
       const postId = parseInt(req.params.id);
-      const userId = req.isAuthenticated() && req.user ? (req.user as any).id : null;
+      const userId = req.user ? (req.user as any).id : null;
 
       // Check if user already liked this post
       const existingLike = await db.execute(sql`
@@ -1181,7 +1179,7 @@ export async function registerRoutes(app: Express): Promise<void> {
 
       res.json({ isLiked, likeCount });
     } catch (error) {
-      console.error("Error processing post like:", error);
+      logger.error({ msg: 'Error processing post like', error });
       res.status(500).json({ message: "Failed to process like" });
     }
   });
@@ -1190,7 +1188,7 @@ export async function registerRoutes(app: Express): Promise<void> {
   app.post("/api/forum/replies/:id/like", async (req, res) => {
     try {
       const replyId = parseInt(req.params.id);
-      const userId = req.isAuthenticated() && req.user ? (req.user as any).id : null;
+      const userId = req.user ? (req.user as any).id : null;
 
       // Check if user already liked this reply
       const existingLike = await db.execute(sql`
@@ -1224,7 +1222,7 @@ export async function registerRoutes(app: Express): Promise<void> {
 
       res.json({ isLiked, likeCount });
     } catch (error) {
-      console.error("Error processing reply like:", error);
+      logger.error({ msg: 'Error processing reply like', error });
       res.status(500).json({ message: "Failed to process like" });
     }
   });
@@ -1233,7 +1231,7 @@ export async function registerRoutes(app: Express): Promise<void> {
   app.post("/api/forum/replies", async (req, res) => {
     try {
       const { postId, content, parentReplyId } = req.body;
-      const userId = req.isAuthenticated() && req.user ? (req.user as any).id : null;
+      const userId = req.user ? (req.user as any).id : null;
 
       if (!content || !content.trim()) {
         return res.status(400).json({ message: "Reply content is required" });
@@ -1261,7 +1259,7 @@ export async function registerRoutes(app: Express): Promise<void> {
         message: "Reply created successfully" 
       });
     } catch (error) {
-      console.error("Error creating reply:", error);
+      logger.error({ msg: 'Error creating reply', error });
       res.status(500).json({ message: "Failed to create reply" });
     }
   });
@@ -1311,7 +1309,7 @@ export async function registerRoutes(app: Express): Promise<void> {
 
       res.json(replies.rows || []);
     } catch (error) {
-      console.error("Error fetching replies:", error);
+      logger.error({ msg: 'Error fetching replies', error });
       res.status(500).json({ message: "Failed to fetch replies" });
     }
   });
@@ -1332,7 +1330,7 @@ export async function registerRoutes(app: Express): Promise<void> {
       `);
       res.json(politicians.rows);
     } catch (error) {
-      console.error("Error fetching politicians:", error);
+      logger.error({ msg: 'Error fetching politicians', error });
       res.status(500).json({ message: "Failed to fetch politicians" });
     }
   });
@@ -1353,7 +1351,7 @@ export async function registerRoutes(app: Express): Promise<void> {
       `);
       res.json(bills.rows);
     } catch (error) {
-      console.error("Error fetching bills:", error);
+      logger.error({ msg: 'Error fetching bills', error });
       res.status(500).json({ message: "Failed to fetch bills" });
     }
   });
@@ -1375,13 +1373,15 @@ export async function registerRoutes(app: Express): Promise<void> {
         WHERE target_type = ${targetType} AND target_id = ${targetId}
       `);
 
-      let userVote = null;
+      let userVote: string | null = null;
       if (userId) {
         const userVoteResult = await db.execute(sql`
           SELECT vote_type FROM user_votes 
           WHERE user_id = ${userId} AND target_type = ${targetType} AND target_id = ${targetId}
         `);
-        userVote = userVoteResult.rows[0]?.vote_type || null;
+        userVote = (userVoteResult.rows[0] && typeof userVoteResult.rows[0].vote_type === 'string')
+          ? userVoteResult.rows[0].vote_type
+          : null;
       }
 
       const counts = voteCounts.rows[0] || { upvotes: 0, downvotes: 0, total_score: 0 };
@@ -1393,7 +1393,7 @@ export async function registerRoutes(app: Express): Promise<void> {
         userVote
       });
     } catch (error) {
-      console.error("Error fetching vote data:", error);
+      logger.error({ msg: 'Error fetching vote data', error });
       res.status(500).json({ message: "Failed to fetch vote data" });
     }
   });
@@ -1445,7 +1445,7 @@ export async function registerRoutes(app: Express): Promise<void> {
   }
 
   // Fixed commenting system for targetType/targetId routes - HIGH PRIORITY ROUTE
-  app.post('/api/comments/:targetType/:targetId', async (req: Request, res: Response) => {
+  app.post('/api/comments/:targetType/:targetId', jwtAuth, async (req: Request, res: Response) => {
     const commentSchema = z.object({
       content: z.string().min(1),
       parentCommentId: z.string().optional(),
@@ -1458,7 +1458,7 @@ export async function registerRoutes(app: Express): Promise<void> {
       }
       const { content, parentCommentId } = parsed.data;
       // Production authentication only
-      const userId = req.user && (req.user as any).claims && (req.user as any).claims.sub;
+      const userId = req.user ? (req.user as any).id : null;
       if (!userId) {
         return res.status(401).json({ message: "Authentication required" });
       }
@@ -1490,17 +1490,17 @@ export async function registerRoutes(app: Express): Promise<void> {
         comment: comment
       });
     } catch (error) {
-      console.error("Error posting comment:", error);
+      logger.error({ msg: 'Error posting comment', error });
       res.status(500).json({ message: "Failed to post comment" });
     }
   });
 
   // Comprehensive commenting system with moderation (alternative endpoint)
-  app.post('/api/comments', async (req: any, res) => {
+  app.post('/api/comments', jwtAuth, async (req: any, res) => {
     try {
       const { targetType, targetId, content, parentCommentId } = req.body;
       // Production authentication only
-      const userId = req.user && (req.user as any).claims && (req.user as any).claims.sub;
+      const userId = req.user ? (req.user as any).id : null;
       if (!userId) {
         return res.status(401).json({ message: "Authentication required" });
       }
@@ -1530,7 +1530,7 @@ export async function registerRoutes(app: Express): Promise<void> {
         message: "Comment posted successfully" 
       });
     } catch (error) {
-      console.error("Error posting comment:", error);
+      logger.error({ msg: 'Error posting comment', error });
       res.status(500).json({ message: "Failed to post comment" });
     }
   });
@@ -1627,17 +1627,17 @@ export async function registerRoutes(app: Express): Promise<void> {
       });
       res.json(cleanedComments);
     } catch (error) {
-      console.error("Error fetching comments:", error);
+      logger.error({ msg: 'Error fetching comments', error });
       res.status(500).json({ message: "Failed to fetch comments" });
     }
   });
 
   // Delete comment (user can only delete their own comments)
-  app.delete('/api/comments/:commentId', async (req: any, res) => {
+  app.delete('/api/comments/:commentId', jwtAuth, async (req: any, res) => {
     try {
       const { commentId } = req.params;
       // Production authentication only
-      const userId = req.user && (req.user as any).claims && (req.user as any).claims.sub;
+      const userId = req.user ? (req.user as any).id : null;
       if (!userId) {
         return res.status(401).json({ message: "Authentication required" });
       }
@@ -1656,18 +1656,18 @@ export async function registerRoutes(app: Express): Promise<void> {
       await db.execute(sql`DELETE FROM comments WHERE id = ${commentId}`);
       res.json({ message: "Comment deleted successfully" });
     } catch (error) {
-      console.error("Error deleting comment:", error);
+      logger.error({ msg: 'Error deleting comment', error });
       res.status(500).json({ message: "Failed to delete comment" });
     }
   });
 
   // Edit comment (user can only edit their own comments)
-  app.put('/api/comments/:commentId', async (req: any, res) => {
+  app.put('/api/comments/:commentId', jwtAuth, async (req: any, res) => {
     try {
       const { commentId } = req.params;
       const { content } = req.body;
       // Production authentication only
-      const userId = req.user && (req.user as any).claims && (req.user as any).claims.sub;
+      const userId = req.user ? (req.user as any).id : null;
       if (!userId) {
         return res.status(401).json({ message: "Authentication required" });
       }
@@ -1713,7 +1713,7 @@ export async function registerRoutes(app: Express): Promise<void> {
         editCount: newEditCount
       });
     } catch (error) {
-      console.error("Error updating comment:", error);
+      logger.error({ msg: 'Error updating comment', error });
       res.status(500).json({ message: "Failed to update comment" });
     }
   });
@@ -1733,17 +1733,17 @@ export async function registerRoutes(app: Express): Promise<void> {
 
       res.json(history.rows);
     } catch (error) {
-      console.error("Error fetching comment history:", error);
+      logger.error({ msg: 'Error fetching comment history', error });
       res.status(500).json({ message: "Failed to fetch comment history" });
     }
   });
 
   // Like/unlike comments
-  app.post('/api/comments/like', async (req: any, res) => {
+  app.post('/api/comments/like', jwtAuth, async (req: any, res) => {
     try {
       const { commentId } = req.body;
       // Production authentication only
-      const userId = req.user && (req.user as any).claims && (req.user as any).claims.sub;
+      const userId = req.user ? (req.user as any).id : null;
       if (!userId) {
         return res.status(401).json({ message: "Authentication required" });
       }
@@ -1776,7 +1776,7 @@ export async function registerRoutes(app: Express): Promise<void> {
         message: "Comment like toggled successfully" 
       });
     } catch (error) {
-      console.error("Error liking comment:", error);
+      logger.error({ msg: 'Error liking comment', error });
       res.status(500).json({ message: "Failed to like comment" });
     }
   });
@@ -1796,7 +1796,7 @@ export async function registerRoutes(app: Express): Promise<void> {
       `);
       res.json(categories.rows);
     } catch (error) {
-      console.error("Error fetching forum categories:", error);
+      logger.error({ msg: 'Error fetching forum categories', error });
       res.status(500).json({ message: "Failed to fetch forum categories" });
     }
   });
@@ -1818,7 +1818,7 @@ export async function registerRoutes(app: Express): Promise<void> {
       `);
       res.json(subcategories.rows);
     } catch (error) {
-      console.error("Error fetching forum subcategories:", error);
+      logger.error({ msg: 'Error fetching forum subcategories', error });
       res.status(500).json({ message: "Failed to fetch forum subcategories" });
     }
   });
@@ -1884,13 +1884,13 @@ export async function registerRoutes(app: Express): Promise<void> {
       `);
       res.json(posts.rows);
     } catch (error) {
-      console.error("Error fetching forum posts:", error);
+      logger.error({ msg: 'Error fetching forum posts', error });
       res.status(500).json({ message: "Failed to fetch forum posts" });
     }
   });
 
   // Create new forum post
-  app.post("/api/forum/posts", isAuthenticated, async (req: Request, res: Response) => {
+  app.post("/api/forum/posts", jwtAuth, async (req: Request, res: Response) => {
     const postSchema = z.object({
       title: z.string().min(3),
       content: z.string().min(10),
@@ -1921,13 +1921,13 @@ export async function registerRoutes(app: Express): Promise<void> {
         postId: result.rows[0].id
       });
     } catch (error) {
-      console.error("Error creating forum post:", error);
+      logger.error({ msg: 'Error creating forum post', error });
       res.status(500).json({ message: "Failed to create forum post" });
     }
   });
 
   // Politician data enhancement endpoint
-  app.post('/api/admin/enhance-politicians', isAuthenticated, async (req: any, res) => {
+  app.post('/api/admin/enhance-politicians', jwtAuth, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       
@@ -1948,18 +1948,18 @@ export async function registerRoutes(app: Express): Promise<void> {
         stats 
       });
     } catch (error) {
-      console.error("Error enhancing politician data:", error);
+      logger.error({ msg: 'Error enhancing politician data', error });
       res.status(500).json({ message: "Failed to enhance politician data" });
     }
   });
 
   // Get enhancement statistics
-  app.get('/api/admin/politician-stats', isAuthenticated, async (req: any, res) => {
+  app.get('/api/admin/politician-stats', jwtAuth, async (req: any, res) => {
     try {
       const stats = await politicianDataEnhancer.getEnhancementStats();
       res.json(stats);
     } catch (error) {
-      console.error("Error getting politician stats:", error);
+      logger.error({ msg: 'Error getting politician stats', error });
       res.status(500).json({ message: "Failed to get politician statistics" });
     }
   });
@@ -2126,15 +2126,15 @@ export async function registerRoutes(app: Express): Promise<void> {
       
       res.json(charterRights);
     } catch (error) {
-      console.error("Error fetching charter rights:", error);
+      logger.error({ msg: 'Error fetching charter rights', error });
       res.status(500).json({ message: "Failed to fetch charter rights" });
     }
   });
 
   // Clear notifications endpoint
-  app.delete('/api/notifications/clear', isAuthenticated, async (req: any, res) => {
+  app.delete('/api/notifications/clear', jwtAuth, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user ? (req.user as any).id : null;
       
       await db.execute(sql`
         DELETE FROM notifications WHERE user_id = ${userId}
@@ -2142,15 +2142,15 @@ export async function registerRoutes(app: Express): Promise<void> {
       
       res.json({ message: "All notifications cleared successfully" });
     } catch (error) {
-      console.error("Error clearing notifications:", error);
+      logger.error({ msg: 'Error clearing notifications', error });
       res.status(500).json({ message: "Failed to clear notifications" });
     }
   });
 
   // Clear specific notification
-  app.delete('/api/notifications/:id', isAuthenticated, async (req: any, res) => {
+  app.delete('/api/notifications/:id', jwtAuth, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user ? (req.user as any).id : null;
       const notificationId = parseInt(req.params.id);
       
       await db.execute(sql`
@@ -2160,7 +2160,7 @@ export async function registerRoutes(app: Express): Promise<void> {
       
       res.json({ message: "Notification cleared successfully" });
     } catch (error) {
-      console.error("Error clearing notification:", error);
+      logger.error({ msg: 'Error clearing notification', error });
       res.status(500).json({ message: "Failed to clear notification" });
     }
   });
@@ -2247,7 +2247,7 @@ export async function registerRoutes(app: Express): Promise<void> {
       
       res.json(constitutionalCases);
     } catch (error) {
-      console.error("Error fetching constitutional cases:", error);
+      logger.error({ msg: 'Error fetching constitutional cases', error });
       res.status(500).json({ message: "Failed to fetch constitutional cases" });
     }
   });
@@ -2527,7 +2527,7 @@ export async function registerRoutes(app: Express): Promise<void> {
       
       res.json(legalDatabase);
     } catch (error) {
-      console.error("Error fetching legal database:", error);
+      logger.error({ msg: 'Error fetching legal database', error });
       res.status(500).json({ message: "Failed to fetch legal database" });
     }
   });
@@ -2709,7 +2709,7 @@ export async function registerRoutes(app: Express): Promise<void> {
       
       res.json(searchResults);
     } catch (error) {
-      console.error("Error performing legal search:", error);
+      logger.error({ msg: 'Error performing legal search', error });
       res.status(500).json({ message: "Failed to perform legal search" });
     }
   });
@@ -2817,7 +2817,7 @@ export async function registerRoutes(app: Express): Promise<void> {
       
       res.json(provincialRights);
     } catch (error) {
-      console.error("Error fetching provincial rights:", error);
+      logger.error({ msg: 'Error fetching provincial rights', error });
       res.status(500).json({ message: "Failed to fetch provincial rights" });
     }
   });
@@ -2860,7 +2860,7 @@ export async function registerRoutes(app: Express): Promise<void> {
         sessionToken
       });
     } catch (error) {
-      console.error("Error with external authentication:", error);
+      logger.error({ msg: 'Error with external authentication', error });
       res.status(500).json({ message: "External authentication failed" });
     }
   });
@@ -2923,7 +2923,7 @@ export async function registerRoutes(app: Express): Promise<void> {
         amount: amount
       });
     } catch (error: any) {
-      console.error("Payment session creation error:", error);
+      logger.error({ msg: 'Payment session creation error', error });
       res.status(500).json({ 
         message: "Error creating payment session: " + error.message 
       });
@@ -3021,7 +3021,7 @@ export async function registerRoutes(app: Express): Promise<void> {
       }));
       res.json(cleanedComments);
     } catch (error) {
-      console.error("Error fetching comments:", error);
+      logger.error({ msg: 'Error fetching comments', error });
       res.status(500).json({ message: "Failed to fetch comments" });
     }
   });
@@ -3111,7 +3111,7 @@ export async function registerRoutes(app: Express): Promise<void> {
       
       res.json(searchResults);
     } catch (error) {
-      console.error("Error performing legal search:", error);
+      logger.error({ msg: 'Error performing legal search', error });
       res.status(500).json({ message: "Failed to perform legal search" });
     }
   });

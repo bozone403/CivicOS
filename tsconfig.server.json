@@ -1,5 +1,8 @@
 {
-  "include": ["server/**/*", "shared/**/*"],
+  "include": [
+    "server/**/*.ts",
+    "tests/**/*.ts"
+  ],
   "exclude": ["node_modules", "build", "dist", "**/*.test.ts"],
   "compilerOptions": {
     "target": "ES2022",

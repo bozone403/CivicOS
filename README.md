@@ -20,7 +20,7 @@ A comprehensive Canadian civic engagement platform built with React, TypeScript,
 - **Frontend**: React + TypeScript + Vite + Tailwind CSS
 - **Backend**: Node.js + Express + TypeScript
 - **Database**: PostgreSQL with Drizzle ORM
-- **Authentication**: Replit Auth
+- **Authentication**: JWT-based Auth (no Replit)
 - **Deployment**: Render
 
 ## Quick Start
@@ -43,9 +43,6 @@ Required environment variables:
 - `SESSION_SECRET` - Session encryption key
 - `OPENAI_API_KEY` - OpenAI API key for AI features
 - `STRIPE_SECRET_KEY` - Stripe payment processing
-- `REPLIT_DOMAINS` - Authentication domains
-- `REPL_ID` - Replit project ID
-- `ISSUER_URL` - Authentication issuer URL
 - `FRONTEND_BASE_URL` - Frontend base URL
 
 ## Development
@@ -61,6 +58,25 @@ npm run check
 npm run db:push
 ```
 
+## Testing
+
+### Backend Integration Tests
+Run backend tests with:
+```
+npm run test:backend
+```
+
+### Frontend E2E Tests
+Run frontend E2E tests with:
+```
+npm run test:frontend:e2e
+```
+
+## Test Structure
+
+- **Backend integration tests:** `tests/` (e.g., `tests/auth.test.ts`)
+- **Frontend E2E tests:** `tests/e2e/` (e.g., `tests/e2e/auth.e2e.ts`)
+
 ## Production Deployment
 
 The application is configured for deployment on Render with:
@@ -72,3 +88,11 @@ The application is configured for deployment on Render with:
 ---
 
 **Status**: ✅ Production ready with comprehensive audit completed
+
+> **Security Note:** Never use production data or secrets in test environments. Use dedicated test credentials and databases for all automated tests.
+> **Test Safety:** Create a `.env.test` file with a test database connection string. Never use your production `.env` for tests. Example:
+> 
+> ```env
+> DATABASE_URL=postgres://user:password@localhost:5432/civicos_test
+> SESSION_SECRET=your_test_secret
+> ```

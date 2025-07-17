@@ -1,6 +1,8 @@
 import { db } from "./db.js";
 import { sql } from "drizzle-orm";
 import * as schema from "../shared/schema.js";
+import pino from "pino";
+const logger = pino();
 
 interface VoteOption {
   id: string;
@@ -52,7 +54,7 @@ export class VotingSystem {
       }).returning();
       return Number(result.id);
     } catch (error) {
-      console.error("Error creating voting item:", error);
+      logger.error({ msg: 'Error creating voting item', error });
       throw error;
     }
   }
@@ -109,7 +111,7 @@ export class VotingSystem {
       
       return true;
     } catch (error) {
-      console.error("Error casting vote:", error);
+      logger.error({ msg: 'Error casting vote', error });
       throw error;
     }
   }
@@ -145,7 +147,7 @@ export class VotingSystem {
         eligibleVoters: typeof row.eligible_voters === 'string' ? JSON.parse(row.eligible_voters) : (row.eligible_voters || ['all'])
       })) as VotingItem[];
     } catch (error) {
-      console.error("Error getting active voting items:", error);
+      logger.error({ msg: 'Error getting active voting items', error });
       throw error;
     }
   }
@@ -190,7 +192,7 @@ export class VotingSystem {
         }))
       };
     } catch (error) {
-      console.error("Error getting voting results:", error);
+      logger.error({ msg: 'Error getting voting results', error });
       return { itemId, results: [], totalVotes: 0 };
     }
   }
@@ -229,7 +231,7 @@ export class VotingSystem {
 
       return votingItem;
     } catch (error) {
-      console.error("Error creating bill vote:", error);
+      logger.error({ msg: 'Error creating bill vote', error });
       throw error;
     }
   }
@@ -246,7 +248,7 @@ export class VotingSystem {
 
       return vote.rows.length > 0;
     } catch (error) {
-      console.error("Error checking user vote:", error);
+      logger.error({ msg: 'Error checking user vote', error });
       return false;
     }
   }
@@ -282,7 +284,7 @@ export class VotingSystem {
         };
       });
     } catch (error) {
-      console.error("Error getting user voting history:", error);
+      logger.error({ msg: 'Error getting user voting history', error });
       return [];
     }
   }
@@ -298,7 +300,7 @@ export class VotingSystem {
         WHERE id = ${itemId}
       `);
     } catch (error) {
-      console.error("Error updating vote counts:", error);
+      logger.error({ msg: 'Error updating vote counts', error });
     }
   }
 
@@ -315,7 +317,7 @@ export class VotingSystem {
 
       return await this.getVotingResults(itemId);
     } catch (error) {
-      console.error("Error ending voting:", error);
+      logger.error({ msg: 'Error ending voting', error });
       throw error;
     }
   }

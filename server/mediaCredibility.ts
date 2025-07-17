@@ -1,4 +1,6 @@
 import OpenAI from 'openai';
+import pino from "pino";
+const logger = pino();
 
 // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
 const openai = new OpenAI({
@@ -332,7 +334,7 @@ export async function analyzeArticleCredibility(articleText: string, sourceName:
       recommendation: generateRecommendation(outlet, analysis)
     };
   } catch (error) {
-    console.error('Error analyzing article credibility:', error);
+    logger.error({ msg: 'Error analyzing article credibility', error });
     return {
       credibilityScore: outlet ? outlet.credibilityScore : 50,
       biasDetected: outlet ? outlet.biasRating : "unknown",

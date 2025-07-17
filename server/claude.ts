@@ -1,5 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import type { PoliticianStatement } from "../shared/schema.js";
+import pino from "pino";
+const logger = pino();
 
 // the newest Anthropic model is "claude-sonnet-4-20250514" which was released May 14, 2025. Use this by default unless user has already selected claude-3-7-sonnet-20250219
 const anthropic = new Anthropic({
@@ -31,7 +33,7 @@ ${billText}`
 
     return message.content[0].type === 'text' ? message.content[0].text : "Summary could not be generated.";
   } catch (error) {
-    console.error("Error generating bill summary:", error);
+    logger.error({ msg: 'Error generating bill summary', error });
     throw new Error("Failed to generate AI summary");
   }
 }
@@ -71,7 +73,7 @@ Be factual and unbiased in your analysis.`
 
     return message.content[0].type === 'text' ? message.content[0].text : "Analysis could not be generated.";
   } catch (error) {
-    console.error("Error analyzing politician statement:", error);
+    logger.error({ msg: 'Error analyzing politician statement', error });
     throw new Error("Failed to generate politician analysis");
   }
 }
@@ -96,7 +98,7 @@ ${billText}`
     const result = JSON.parse(content);
     return result.points || [];
   } catch (error) {
-    console.error("Error generating key points:", error);
+    logger.error({ msg: 'Error generating key points', error });
     return [];
   }
 }

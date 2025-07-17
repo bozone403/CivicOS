@@ -1,6 +1,8 @@
 import { db } from "./db.js";
 import { sql } from "drizzle-orm";
 import * as cheerio from "cheerio";
+import pino from "pino";
+const logger = pino();
 
 /**
  * Parliament of Canada Open Data Integration
@@ -72,7 +74,7 @@ export class ParliamentAPIService {
       
       return mps;
     } catch (error) {
-      console.error("Error fetching Parliament MPs:", error);
+      logger.error({ msg: 'Error fetching Parliament MPs', error });
       return [];
     }
   }
@@ -135,7 +137,7 @@ export class ParliamentAPIService {
       
       return bills;
     } catch (error) {
-      console.error("Error fetching federal bills:", error);
+      logger.error({ msg: 'Error fetching federal bills', error });
       return [];
     }
   }
@@ -156,7 +158,7 @@ export class ParliamentAPIService {
     } catch (error) {
       // Ignore duplicate entries to prevent conflicts
       if (!(error as Error).message?.includes('duplicate key')) {
-        console.error("Error storing MP data:", error);
+        logger.error({ msg: 'Error storing MP data', error });
       }
     }
   }
@@ -179,7 +181,7 @@ export class ParliamentAPIService {
           updated_at = NOW()
       `);
     } catch (error) {
-      console.error("Error storing bill data:", error);
+      logger.error({ msg: 'Error storing bill data', error });
     }
   }
 

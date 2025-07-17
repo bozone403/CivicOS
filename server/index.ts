@@ -8,6 +8,24 @@ import { realTimeMonitoring } from "./realTimeMonitoring.js";
 import { confirmedAPIs } from "./confirmedAPIs.js";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
+import jwt from "jsonwebtoken";
+import pino from "pino";
+const logger = pino();
+const JWT_SECRET = process.env.SESSION_SECRET || "changeme";
+function jwtAuth(req: any, res: any, next: any) {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    return res.status(401).json({ message: "Missing or invalid token" });
+  }
+  try {
+    const token = authHeader.split(" ")[1];
+    const decoded = jwt.verify(token, JWT_SECRET);
+    req.user = decoded;
+    next();
+  } catch (err) {
+    return res.status(401).json({ message: "Invalid or expired token" });
+  }
+}
 
 const app = express();
 
@@ -57,6 +75,11 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
 app.use((req, res, next) => {
+  logger.info({ method: req.method, url: req.url, ip: req.ip });
+  next();
+});
+
+app.use((req, res, next) => {
   const start = Date.now();
   const path = req.path;
   let capturedJsonResponse: Record<string, any> | undefined = undefined;
@@ -99,26 +122,21 @@ app.use(rateLimit({
   const required = [
     'DATABASE_URL',
     'SESSION_SECRET',
-    'REPLIT_DOMAINS',
-    'REPL_ID',
-    'ISSUER_URL',
-    'STRIPE_SECRET_KEY',
-    'OPENAI_API_KEY',
-    'FRONTEND_BASE_URL',
+    // Remove Replit and other auth-specific envs
   ];
   const missing = required.filter((k) => !process.env[k]);
   if (missing.length) {
-    console.error('Missing required environment variables:', missing.join(', '));
+    logger.error({ msg: 'Missing required environment variables', missing });
     process.exit(1);
   }
 })();
 
 // Global error handler for unhandled promise rejections
 process.on('unhandledRejection', (reason, promise) => {
-  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+  logger.error({ msg: 'Unhandled Rejection', promise, reason });
 });
 process.on('uncaughtException', (err) => {
-  console.error('Uncaught Exception thrown:', err);
+  logger.error({ msg: 'Uncaught Exception thrown', err });
   process.exit(1);
 });
 
@@ -130,9 +148,8 @@ process.on('uncaughtException', (err) => {
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
     const message = err.message || "Internal Server Error";
-
+    logger.error({ msg: 'Express error handler', err });
     res.status(status).json({ message });
-    throw err;
   });
 
   // REMOVE serveStatic(app);
@@ -148,12 +165,10 @@ process.on('uncaughtException', (err) => {
   // It is the only port that is not firewalled.
   const port = 5000;
   server.listen(port, "0.0.0.0", () => {
-    // log(`serving on port ${port}`); // This line is removed as per the edit hint
+    logger.info({ msg: `serving on port ${port}` });
     
     // Initialize automatic government data sync
     initializeDataSync();
-    
-    // Local authentication removed - using Replit Auth
     
     // Initialize confirmed government API data enhancement
     async function initializeConfirmedAPIs() {
@@ -162,7 +177,7 @@ process.on('uncaughtException', (err) => {
         try {
           await confirmedAPIs.enhanceDataWithConfirmedAPIs();
         } catch (error) {
-          console.error("Government API enhancement error:", error);
+          logger.error({ msg: "Government API enhancement error", error });
         }
       }, 12 * 60 * 60 * 1000); // Every 12 hours
       
@@ -182,7 +197,7 @@ process.on('uncaughtException', (err) => {
           // Politician enhancement completed
         }, 120000); // 2 minute delay to let initial data load
       } catch (error) {
-        console.error('Error enhancing politician data:', error);
+        logger.error({ msg: 'Error enhancing politician data', error });
       }
     }
     
@@ -194,13 +209,13 @@ process.on('uncaughtException', (err) => {
     
     // Start comprehensive Canadian news analysis
     comprehensiveNewsAnalyzer.performComprehensiveAnalysis().catch(error => {
-      console.error("Error in comprehensive news analysis:", error);
+      logger.error({ msg: "Error in comprehensive news analysis", error });
     });
 
     // Schedule regular comprehensive news analysis (every 2 hours)
     setInterval(() => {
       comprehensiveNewsAnalyzer.performComprehensiveAnalysis().catch(error => {
-        console.error("Error in scheduled news analysis:", error);
+        logger.error({ msg: "Error in scheduled news analysis", error });
       });
     }, 2 * 60 * 60 * 1000); // 2 hours
     
@@ -224,10 +239,14 @@ app.get('/api/monitoring/health', (req, res) => {
   res.json({ status: 'ok', uptime: process.uptime(), timestamp: new Date().toISOString() });
 });
 
+// Health check endpoint for Render monitoring
+app.get("/health", (_req, res) => {
+  res.status(200).json({ status: "ok" });
+});
+
 // Admin session cleanup endpoint (admin only)
-app.post('/api/admin/session/cleanup', async (req, res) => {
-  // Add real admin auth check
-  if (!req.user || !(req.user as any).isAdmin) {
+app.post('/api/admin/session/cleanup', jwtAuth, async (req, res) => {
+  if (!req.user || !req.user.isAdmin) {
     return res.status(403).json({ message: 'Forbidden' });
   }
   try {
@@ -238,13 +257,17 @@ app.post('/api/admin/session/cleanup', async (req, res) => {
       res.status(500).json({ message: 'Session store does not support cleanup' });
     }
   } catch (error) {
-    console.error('Error clearing sessions:', error);
+    logger.error({ msg: 'Error clearing sessions', error });
     res.status(500).json({ message: 'Failed to clear sessions' });
   }
 });
 
-app.get("/api/admin/identity-review", async (req, res) => {
+app.get("/api/admin/identity-review", jwtAuth, async (req, res) => {
+  if (!req.user || !req.user.isAdmin) {
+    return res.status(403).json({ message: 'Forbidden' });
+  }
   // Admin identity review endpoint
-  // Add real admin auth check
   res.json({ message: "Admin endpoint" });
 });
+
+export { app };

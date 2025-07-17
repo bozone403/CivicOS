@@ -2,6 +2,8 @@ import { Router } from "express";
 import { db } from "./db.js";
 import { notifications } from "../shared/schema.js";
 import { eq, and, desc } from "drizzle-orm";
+import pino from "pino";
+const logger = pino();
 
 const router = Router();
 
@@ -14,7 +16,7 @@ router.get("/", async (req: any, res) => {
     
     res.json(result);
   } catch (error) {
-    console.error("Error fetching notifications:", error instanceof Error ? error.message : String(error));
+    logger.error({ msg: 'Error fetching notifications', error: error instanceof Error ? error.message : String(error) });
     res.status(500).json({ message: "Failed to fetch notifications" });
   }
 });
@@ -30,7 +32,7 @@ router.patch("/:id/read", async (req: any, res) => {
     
     res.json({ success: true });
   } catch (error) {
-    console.error("Error marking notification as read:", error instanceof Error ? error.message : String(error));
+    logger.error({ msg: 'Error marking notification as read', error: error instanceof Error ? error.message : String(error) });
     res.status(500).json({ message: "Failed to mark notification as read" });
   }
 });
@@ -45,7 +47,7 @@ router.delete("/:id", async (req: any, res) => {
     
     res.json({ success: true });
   } catch (error) {
-    console.error("Error deleting notification:", error instanceof Error ? error.message : String(error));
+    logger.error({ msg: 'Error deleting notification', error: error instanceof Error ? error.message : String(error) });
     res.status(500).json({ message: "Failed to delete notification" });
   }
 });
@@ -59,7 +61,7 @@ router.delete("/", async (req: any, res) => {
     
     res.json({ success: true });
   } catch (error) {
-    console.error("Error clearing notifications:", error instanceof Error ? error.message : String(error));
+    logger.error({ msg: 'Error clearing notifications', error: error instanceof Error ? error.message : String(error) });
     res.status(500).json({ message: "Failed to clear notifications" });
   }
 });

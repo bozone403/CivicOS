@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { getToken } from "@/lib/queryClient";
 
 // Add User type
 export interface User {
@@ -21,22 +22,21 @@ export function useAuth() {
   const { data: user, isLoading, error } = useQuery<User | null>({
     queryKey: ["/api/auth/user"],
     retry: false,
+    enabled: !!getToken(), // Only fetch if JWT is present
   });
 
   const logout = useMutation({
     mutationFn: async () => {
+      localStorage.removeItem('civicos-jwt');
       return apiRequest("/api/auth/logout", "POST");
     },
     onSuccess: () => {
-      // Clear all cached data
       queryClient.clear();
-      // Invalidate user query to trigger re-fetch
       queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
       toast({
         title: "Logged out",
         description: "You have been successfully logged out.",
       });
-      // Redirect to login page
       window.location.href = "/auth";
     },
     onError: (error: any) => {
@@ -50,7 +50,9 @@ export function useAuth() {
 
   const login = useMutation({
     mutationFn: async (credentials: { email: string; password: string }) => {
-      return apiRequest("/api/auth/login", "POST", credentials);
+      const result = await apiRequest("/api/auth/login", "POST", credentials);
+      if (result.token) localStorage.setItem('civicos-jwt', result.token);
+      return result;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
@@ -72,7 +74,7 @@ export function useAuth() {
   return {
     user: user || null,
     isLoading,
-    isAuthenticated: !!user && !error,
+    isAuthenticated: !!getToken() && !!user && !error,
     logout,
     login,
   };

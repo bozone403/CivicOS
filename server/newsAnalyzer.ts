@@ -4,6 +4,8 @@ import { db } from './db.js';
 import * as schema from '../shared/schema.js';
 import { eq } from 'drizzle-orm';
 import OpenAI from 'openai';
+import pino from "pino";
+const logger = pino();
 
 // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
 const openai = new OpenAI({
@@ -227,7 +229,7 @@ export async function scrapeFromRSS(source: NewsSource): Promise<ScrapedArticle[
     
     return articles;
   } catch (error) {
-    console.error(`Error scraping RSS for ${source.name}:`, error);
+    logger.error({ msg: `Error scraping RSS for ${source.name}`, error });
     return [];
   }
 }
@@ -279,7 +281,7 @@ export async function scrapeWebsite(source: NewsSource): Promise<ScrapedArticle[
     
     return articles.slice(0, 10); // Limit to 10 articles per source
   } catch (error) {
-    console.error(`Error scraping website for ${source.name}:`, error);
+    logger.error({ msg: `Error scraping website for ${source.name}`, error });
     return [];
   }
 }
@@ -340,7 +342,7 @@ export async function fetchArticleContent(article: ScrapedArticle, source: NewsS
     
     return article;
   } catch (error) {
-    console.error(`Error fetching content for ${article.url}:`, error);
+    logger.error({ msg: `Error fetching content for ${article.url}`, error });
     return article;
   }
 }
@@ -418,7 +420,7 @@ Respond in JSON format with these exact keys:
       analysisNotes: analysis.analysisNotes || 'AI analysis completed'
     };
   } catch (error) {
-    console.error('Error analyzing article:', error);
+    logger.error({ msg: 'Error analyzing article', error });
     return {
       truthScore: 50,
       biasScore: 0,
@@ -507,7 +509,7 @@ Respond in JSON format:
       analysisDetails: analysis.analysisDetails || 'Propaganda analysis completed'
     };
   } catch (error) {
-    console.error('Error detecting propaganda:', error);
+    logger.error({ msg: 'Error detecting propaganda', error });
     return {
       techniques: [],
       riskLevel: 'low',
@@ -575,7 +577,7 @@ export async function storeArticleAnalysis(article: ScrapedArticle, analysis: Ne
     });
     
   } catch (error) {
-    console.error('Error storing article analysis:', error);
+    logger.error({ msg: 'Error storing article analysis', error });
   }
 }
 
@@ -623,7 +625,7 @@ export async function updateSourceCredibility(sourceName: string): Promise<void>
     });
     
   } catch (error) {
-    console.error(`Error updating source credibility for ${sourceName}:`, error);
+    logger.error({ msg: `Error updating source credibility for ${sourceName}`, error });
   }
 }
 
@@ -662,7 +664,7 @@ export async function runNewsAnalysis(): Promise<void> {
           // Brief delay to avoid overwhelming the AI service
           await new Promise(resolve => setTimeout(resolve, 1000));
         } catch (error) {
-          console.error(`Error processing article: ${article.title}`, error);
+          logger.error({ msg: `Error processing article: ${article.title}`, error });
         }
       }
       
@@ -670,7 +672,7 @@ export async function runNewsAnalysis(): Promise<void> {
       await updateSourceCredibility(source.name);
       
     } catch (error) {
-      console.error(`Error analyzing source ${source.name}:`, error);
+      logger.error({ msg: `Error analyzing source ${source.name}`, error });
     }
   }
   

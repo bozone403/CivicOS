@@ -2,6 +2,8 @@ import OpenAI from "openai";
 import { db } from "./db.js";
 import { sql } from "drizzle-orm";
 import * as cheerio from "cheerio";
+import pino from "pino";
+const logger = pino();
 
 // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
 
@@ -90,7 +92,7 @@ export class OpenAINewsAnalyzer {
         await this.scrapeAndAnalyzeSource(source);
         await this.delay(2000); // Rate limiting
       } catch (error) {
-        console.error(`Error analyzing ${source.name}:`, error);
+        logger.error({ msg: `Error analyzing ${source.name}`, error });
       }
     }
 
@@ -136,11 +138,11 @@ export class OpenAINewsAnalyzer {
           const analysis = await this.analyzeArticle(article.title, article.description);
           await this.storeArticleAnalysis(article, analysis, source);
         } catch (error) {
-          console.error(`Error analyzing article: ${article.title}`, error);
+          logger.error({ msg: `Error analyzing article: ${article.title}`, error });
         }
       }
     } catch (error) {
-      console.error(`Error scraping ${source.name}:`, error);
+      logger.error({ msg: `Error scraping ${source.name}`, error });
     }
   }
 
@@ -189,7 +191,7 @@ Provide analysis in JSON format:
         summary: analysis.summary || title
       };
     } catch (error) {
-      console.error("Error in OpenAI analysis:", error);
+      logger.error({ msg: 'Error in OpenAI analysis', error });
       return {
         sentiment: 'neutral',
         credibility: 50,
@@ -235,7 +237,7 @@ Provide analysis in JSON format:
           updated_at = NOW()
       `);
     } catch (error) {
-      console.error("Error storing article analysis:", error);
+      logger.error({ msg: 'Error storing article analysis', error });
     }
   }
 
@@ -255,7 +257,7 @@ Provide analysis in JSON format:
         await this.compareTopicCoverage(topic);
       }
     } catch (error) {
-      console.error("Error in cross-source comparison:", error);
+      logger.error({ msg: 'Error in cross-source comparison', error });
     }
   }
 
@@ -275,7 +277,7 @@ Provide analysis in JSON format:
       const comparison = await this.generateTopicComparison(topic, articles.rows);
       await this.storeComparison(topic, comparison);
     } catch (error) {
-      console.error(`Error comparing topic ${topic}:`, error);
+      logger.error({ msg: `Error comparing topic ${topic}`, error });
     }
   }
 
@@ -324,7 +326,7 @@ Provide comparison in JSON format:
         divergence: Array.isArray(analysis.divergence) ? analysis.divergence : []
       };
     } catch (error) {
-      console.error("Error generating topic comparison:", error);
+      logger.error({ msg: 'Error generating topic comparison', error });
       return {
         topic,
         articles: [],
@@ -353,7 +355,7 @@ Provide comparison in JSON format:
           analysis_date = EXCLUDED.analysis_date
       `);
     } catch (error) {
-      console.error("Error storing comparison:", error);
+      logger.error({ msg: 'Error storing comparison', error });
     }
   }
 
@@ -397,7 +399,7 @@ Provide comparison in JSON format:
         lastUpdated: new Date().toISOString()
       };
     } catch (error) {
-      console.error("Error getting news analytics:", error);
+      logger.error({ msg: 'Error getting news analytics', error });
       return {
         summary: {},
         biasDistribution: [],

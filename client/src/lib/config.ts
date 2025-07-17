@@ -5,10 +5,8 @@ interface Config {
 }
 
 const getConfig = (): Config => {
-  // Check if we're in production (Vercel deployment)
-  const isProduction = window.location.hostname === 'civicos.ca' || 
-                      window.location.hostname === 'www.civicos.ca' ||
-                      window.location.hostname.includes('vercel.app');
+  // Check if we're in production (Civicos deployment)
+  const isProduction = window.location.hostname === 'civicos.ca' || window.location.hostname === 'www.civicos.ca';
 
   if (isProduction) {
     return {

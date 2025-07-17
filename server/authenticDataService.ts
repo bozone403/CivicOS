@@ -1,5 +1,7 @@
 import { db } from "./db.js";
 import { sql } from "drizzle-orm";
+import pino from "pino";
+const logger = pino();
 
 /**
  * Authentic Canadian Government Data Service
@@ -33,7 +35,7 @@ export class AuthenticDataService {
         jurisdictions: Number(row?.jurisdictions) || 0
       };
     } catch (error) {
-      console.error("Error fetching verified politicians:", error);
+      logger.error({ msg: 'Error fetching verified politicians', error });
       return { total: "0", federal: "0", provincial: "0", municipal: "0", parties: 0, jurisdictions: 0 };
     }
   }
@@ -59,7 +61,7 @@ export class AuthenticDataService {
         pending: String(Number(row?.pending) || 0)
       };
     } catch (error) {
-      console.error("Error fetching authentic bills:", error);
+      logger.error({ msg: 'Error fetching authentic bills', error });
       return { total: "0", active: "0", passed: "0", pending: "0" };
     }
   }
@@ -87,7 +89,7 @@ export class AuthenticDataService {
         cases: String(Number(legalCases.rows[0]?.total) || 0)
       };
     } catch (error) {
-      console.error("Error fetching verified legal data:", error);
+      logger.error({ msg: 'Error fetching verified legal data', error });
       return {
         criminalSections: 0,
         acts: "0",
@@ -114,7 +116,7 @@ export class AuthenticDataService {
       `);
       return result.rows || [];
     } catch (error) {
-      console.error("Error fetching party distribution:", error);
+      logger.error({ msg: 'Error fetching party distribution', error });
       return [];
     }
   }
@@ -135,7 +137,7 @@ export class AuthenticDataService {
       `);
       return result.rows || [];
     } catch (error) {
-      console.error("Error fetching jurisdictional breakdown:", error);
+      logger.error({ msg: 'Error fetching jurisdictional breakdown', error });
       return [];
     }
   }
@@ -162,7 +164,7 @@ export class AuthenticDataService {
         avgSentiment: Number(row?.avgSentiment) || 0
       };
     } catch (error) {
-      console.error("Error fetching news analytics:", error);
+      logger.error({ msg: 'Error fetching news analytics', error });
       return { total: 0, recent: 0, avgCredibility: 0, avgSentiment: 0 };
     }
   }
@@ -219,7 +221,7 @@ export class AuthenticDataService {
         }
       };
     } catch (error) {
-      console.error("Error generating comprehensive dashboard data:", error);
+      logger.error({ msg: 'Error generating comprehensive dashboard data', error });
       return {
         politicians: { total: 0, parties: 0, jurisdictions: 0 },
         bills: { total: 0, active: 0, passed: 0 },

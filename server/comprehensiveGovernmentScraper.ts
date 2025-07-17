@@ -2,6 +2,8 @@ import * as cheerio from 'cheerio';
 import fetch from 'node-fetch';
 import { db } from './db.js';
 import { politicians, bills, votes, politicianStatements, elections, candidates } from '../shared/schema.js';
+import pino from "pino";
+const logger = pino();
 
 interface DataSource {
   name: string;
@@ -310,7 +312,7 @@ export class ComprehensiveGovernmentScraper {
         await this.storeScrapedData(scrapedData, source);
         
       } catch (error) {
-        console.error(`❌ Error scraping ${source.name}:`, (error as Error).message);
+        logger.error({ msg: `❌ Error scraping ${source.name}`, error: (error as Error).message });
         continue;
       }
     }
@@ -460,7 +462,7 @@ export class ComprehensiveGovernmentScraper {
       });
 
     } catch (error) {
-      console.error(`Error scraping politicians from ${source.name}:`, (error as Error).message);
+      logger.error({ msg: `Error scraping politicians from ${source.name}`, error: (error as Error).message });
     }
 
     return politicians;
@@ -548,7 +550,7 @@ export class ComprehensiveGovernmentScraper {
       });
 
     } catch (error) {
-      console.error(`Error scraping bills from ${source.name}:`, (error as Error).message);
+      logger.error({ msg: `Error scraping bills from ${source.name}`, error: (error as Error).message });
     }
 
     return bills;
@@ -627,7 +629,7 @@ export class ComprehensiveGovernmentScraper {
       });
 
     } catch (error) {
-      console.error(`Error scraping votes from ${source.name}:`, (error as Error).message);
+      logger.error({ msg: `Error scraping votes from ${source.name}`, error: (error as Error).message });
     }
 
     return votes;
@@ -685,7 +687,7 @@ export class ComprehensiveGovernmentScraper {
       });
 
     } catch (error) {
-      console.error(`Error scraping committees from ${source.name}:`, (error as Error).message);
+      logger.error({ msg: `Error scraping committees from ${source.name}`, error: (error as Error).message });
     }
 
     return committees;
@@ -739,7 +741,7 @@ export class ComprehensiveGovernmentScraper {
       });
 
     } catch (error) {
-      console.error(`Error scraping elections from ${source.name}:`, (error as Error).message);
+      logger.error({ msg: `Error scraping elections from ${source.name}`, error: (error as Error).message });
     }
 
     return elections;
@@ -766,7 +768,7 @@ export class ComprehensiveGovernmentScraper {
       }
 
     } catch (error) {
-      console.error(`Error storing data from ${source.name}:`, (error as Error).message);
+      logger.error({ msg: `Error storing data from ${source.name}`, error: (error as Error).message });
     }
   }
 

@@ -5,6 +5,8 @@ interface ImportMetaEnv {
   readonly VITE_FORCE_DEMO_DATA?: string;
   readonly VITE_API_URL?: string;
   readonly VITE_STRIPE_PUBLIC_KEY?: string;
+  readonly VITE_SUPABASE_URL?: string;
+  readonly VITE_SUPABASE_ANON_KEY?: string;
   readonly NODE_ENV?: string;
   readonly MODE?: string;
 }
