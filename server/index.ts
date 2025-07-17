@@ -29,6 +29,12 @@ function jwtAuth(req: any, res: any, next: any) {
 
 const app = express();
 
+// Add JwtPayload type for req.user
+interface JwtPayload {
+  id: string;
+  email: string;
+}
+
 // CORS configuration
 app.use((req, res, next) => {
   const allowedOrigins = [
@@ -121,8 +127,7 @@ app.use(rateLimit({
 (function checkRequiredEnvVars() {
   const required = [
     'DATABASE_URL',
-    'SESSION_SECRET',
-    // Remove Replit and other auth-specific envs
+    'SESSION_SECRET'
   ];
   const missing = required.filter((k) => !process.env[k]);
   if (missing.length) {
@@ -246,7 +251,8 @@ app.get("/health", (_req, res) => {
 
 // Admin session cleanup endpoint (admin only)
 app.post('/api/admin/session/cleanup', jwtAuth, async (req, res) => {
-  if (!req.user || !req.user.isAdmin) {
+  const user = req.user as JwtPayload;
+  if (!user || user.email !== process.env.ADMIN_EMAIL) {
     return res.status(403).json({ message: 'Forbidden' });
   }
   try {
@@ -263,7 +269,8 @@ app.post('/api/admin/session/cleanup', jwtAuth, async (req, res) => {
 });
 
 app.get("/api/admin/identity-review", jwtAuth, async (req, res) => {
-  if (!req.user || !req.user.isAdmin) {
+  const user = req.user as JwtPayload;
+  if (!user || user.email !== process.env.ADMIN_EMAIL) {
     return res.status(403).json({ message: 'Forbidden' });
   }
   // Admin identity review endpoint
