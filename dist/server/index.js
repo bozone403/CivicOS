@@ -1,5 +1,6 @@
 import express from "express";
 import { registerRoutes } from "./appRoutes.js";
+import { fileURLToPath } from 'url';
 import path from "path";
 import { initializeDataSync } from "./dataSync.js";
 import { initializeNewsAnalysis } from "./newsAnalyzer.js";
@@ -8,10 +9,12 @@ import { realTimeMonitoring } from "./realTimeMonitoring.js";
 import { confirmedAPIs } from "./confirmedAPIs.js";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
-import * as jwt from "jsonwebtoken";
+import jwt from "jsonwebtoken";
 import pino from "pino";
 const logger = pino();
 const JWT_SECRET = process.env.SESSION_SECRET || "changeme";
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 function jwtAuth(req, res, next) {
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
