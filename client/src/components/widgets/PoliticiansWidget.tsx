@@ -23,7 +23,39 @@ interface Politician {
   profileImage?: string;
 }
 
+const MOCK_DASHBOARD = true;
+
 export default function PoliticiansWidget() {
+  if (MOCK_DASHBOARD) {
+    const politicians = [
+      { id: 1, name: 'Jane Doe', position: 'MP', party: 'Liberal', level: 'federal', trustScore: 'A', contact: {}, recentActivity: 'Spoke in Parliament', profileImage: '' },
+      { id: 2, name: 'John Smith', position: 'MLA', party: 'Conservative', level: 'provincial', trustScore: 'B', contact: {}, recentActivity: 'Introduced Bill', profileImage: '' },
+    ];
+    const featuredPolitician = politicians[0];
+    return (
+      <Card className="h-96 flex flex-col">
+        <CardHeader className="pb-3 flex-shrink-0">
+          <CardTitle className="flex items-center space-x-2">
+            <Users className="h-4 w-4 sm:h-5 sm:w-5" />
+            <span className="text-sm sm:text-base">Active Politicians (Demo)</span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-2">
+            {politicians.map((p) => (
+              <div key={p.id} className="border rounded-lg p-3">
+                <div className="font-bold">{p.name}</div>
+                <div className="text-xs text-gray-600">{p.position} • {p.party} • {p.level}</div>
+                <div className="text-xs text-gray-500">Trust: {p.trustScore}</div>
+                <div className="text-xs text-gray-400">{p.recentActivity}</div>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
   const { data: politicians = [], isLoading } = useQuery<Politician[]>({
     queryKey: ['/api/politicians'],
     refetchInterval: 120000, // Refresh every 2 minutes for new politicians

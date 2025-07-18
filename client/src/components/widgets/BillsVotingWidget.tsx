@@ -31,7 +31,40 @@ interface UserVote {
   timestamp: string;
 }
 
+const MOCK_DASHBOARD = true;
+
 export default function BillsVotingWidget() {
+  if (MOCK_DASHBOARD) {
+    const bills = [
+      { id: 1, billNumber: 'C-1', title: 'Demo Bill 1', status: 'active', summary: 'A bill for demo purposes', yesVotes: 100, noVotes: 20, totalVotes: 120, publicSupport: 80, category: 'Demo', jurisdiction: 'Federal', urgency: 'high', estimatedImpact: 5 },
+      { id: 2, billNumber: 'C-2', title: 'Demo Bill 2', status: 'pending', summary: 'Another demo bill', yesVotes: 50, noVotes: 10, totalVotes: 60, publicSupport: 60, category: 'Demo', jurisdiction: 'Provincial', urgency: 'medium', estimatedImpact: 3 },
+    ];
+    const votingStats = { totalParticipants: 200 };
+    return (
+      <Card className="h-96 flex flex-col">
+        <CardHeader className="pb-3 flex-shrink-0">
+          <CardTitle className="flex items-center space-x-2">
+            <Vote className="h-4 w-4 sm:h-5 sm:w-5" />
+            <span className="text-sm sm:text-base">Bills & Voting (Demo)</span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-2">
+            {bills.map((b) => (
+              <div key={b.id} className="border rounded-lg p-3">
+                <div className="font-bold">{b.title}</div>
+                <div className="text-xs text-gray-600">{b.billNumber} • {b.status}</div>
+                <div className="text-xs text-gray-500">Yes: {b.yesVotes} No: {b.noVotes}</div>
+                <div className="text-xs text-gray-400">Support: {b.publicSupport}%</div>
+              </div>
+            ))}
+            <div className="mt-2 text-xs text-gray-700">Total Participants: {votingStats.totalParticipants}</div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
   const { data: bills = [], isLoading: billsLoading } = useQuery<Bill[]>({
     queryKey: ['/api/bills'],
     refetchInterval: 120000, // Refresh every 2 minutes

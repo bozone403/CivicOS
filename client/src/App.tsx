@@ -51,6 +51,7 @@ import IdentityReview from "@/pages/admin/identity-review";
 import Manifesto from "@/pages/manifesto";
 import NotFound from "@/pages/not-found";
 import canadianCrest from "./assets/ChatGPT Image Jun 20, 2025, 06_03_54 PM_1750464244456.png";
+import DashboardDemo from "@/pages/dashboard-demo";
 
 // Add a simple error boundary
 class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { hasError: boolean; error: any }> {
@@ -162,6 +163,7 @@ function Router() {
                 <Route path="/admin/identity-review" component={IdentityReview} />
                 <Route path="/notifications" component={Notifications} />
                 <Route path="/users/:userId" component={UserProfile} />
+                <Route path="/dashboard-demo" component={DashboardDemo} />
                 <Route path="*">
                   {() => <NotFound />}
                 </Route>

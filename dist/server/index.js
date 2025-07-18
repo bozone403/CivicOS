@@ -117,7 +117,7 @@ app.use(rateLimit({
 })();
 // Global error handler for unhandled promise rejections
 process.on('unhandledRejection', (reason, promise) => {
-    logger.error({ msg: 'Unhandled Rejection', promise, reason });
+    console.error('Unhandled Rejection at:', promise, 'reason:', reason);
 });
 process.on('uncaughtException', (err) => {
     logger.error({ msg: 'Uncaught Exception thrown', err });

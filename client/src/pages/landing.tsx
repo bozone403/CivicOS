@@ -17,12 +17,72 @@ import {
   Scale,
   MapPin,
   Building,
-  Search
+  Search,
+  Heart
 } from "lucide-react";
+import { useState } from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import DonationPopup from "@/components/DonationPopup";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
 
 export default function Landing() {
+  const [showDebugPopup, setShowDebugPopup] = useState(true);
+  const [showDonationPopup, setShowDonationPopup] = useState(false);
+  const { toast } = useToast();
+
+  const handleDemoLogin = async () => {
+    try {
+      await apiRequest("/api/auth/login", "POST", {
+        email: "demo_user",
+        password: "demo_password",
+      });
+      toast({
+        title: "Demo Login Successful",
+        description: "You are now viewing the demo dashboard.",
+      });
+      window.location.href = "/dashboard";
+    } catch (err: any) {
+      toast({
+        title: "Demo Login Failed",
+        description: err.message || "Unable to log in as demo user.",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <div className="min-h-screen bg-white">
+      {/* Debugging Popup */}
+      <Dialog open={showDebugPopup} onOpenChange={setShowDebugPopup}>
+        <DialogContent className="max-w-md mx-auto bg-white shadow-xl rounded-xl border border-red-200">
+          <DialogHeader>
+            <DialogTitle className="flex items-center space-x-2">
+              <span>Platform Notice</span>
+            </DialogTitle>
+            <DialogDescription>
+              CivicOS is currently undergoing live maintenance and upgrades. Some features may be temporarily unavailable or behave unexpectedly as we work to improve your experience. Thank you for your patience and support during this process!
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 text-center">
+            <p className="text-lg font-bold text-red-700">CivicOS is currently undergoing live maintenance and upgrades.</p>
+            <p className="text-gray-700">Some features may be temporarily unavailable or behave unexpectedly as we work to improve your experience. Thank you for your patience and support during this process!</p>
+            <Button
+              onClick={() => setShowDonationPopup(true)}
+              className="w-full justify-center space-x-2 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-200 group text-base h-11 px-4"
+            >
+              <Heart className="w-5 h-5 group-hover:scale-105 transition-transform duration-150" />
+              <span className="font-semibold">Consider supporting our development</span>
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+      {/* Stripe Donation Popup */}
+      <DonationPopup
+        isOpen={showDonationPopup}
+        onClose={() => setShowDonationPopup(false)}
+        onSuccess={() => setShowDonationPopup(false)}
+      />
       {/* Professional Platform Header */}
       <header className="bg-white shadow-sm border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -46,7 +106,7 @@ export default function Landing() {
                 <div className="text-xs text-gray-500">Independent • Transparent • Authentic</div>
               </div>
               <Button 
-                onClick={() => window.location.href = '/login'}
+                onClick={() => window.location.href = '/dashboard'}
                 className="bg-red-600 text-white hover:bg-red-700 font-semibold px-6 sm:px-8 py-2 sm:py-3 rounded-lg text-base sm:text-lg w-full sm:w-auto"
               >
                 Access Platform
@@ -101,7 +161,7 @@ export default function Landing() {
             <div className="flex flex-col sm:flex-row gap-6 justify-center mb-16">
               <Button 
                 size="lg"
-                onClick={() => window.location.href = '/login'}
+                onClick={() => window.location.href = '/dashboard'}
                 className="bg-red-600 hover:bg-red-700 text-white px-10 py-4 font-bold text-lg rounded-lg shadow-lg hover:shadow-xl transition-all"
               >
                 Access Platform / Accéder à la Plateforme
@@ -303,7 +363,7 @@ export default function Landing() {
           </div>
           <Button 
             size="lg"
-            onClick={() => window.location.href = '/login'}
+            onClick={() => window.location.href = '/dashboard'}
             className="bg-white text-red-600 hover:bg-red-50 px-8 py-3 text-lg font-semibold"
           >
             Access Platform / Accéder à la Plateforme

@@ -1,21 +1,12 @@
-
 import { useState } from "react";
-import { useAuth } from "@/hooks/useAuth";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { IdentityVerificationBanner } from "@/components/IdentityVerificationBanner";
 import { 
-  Users, 
-  FileText, 
+  Activity, 
   Vote, 
-  TrendingUp, 
-  Shield, 
-  AlertTriangle,
-  CheckCircle,
-  Activity,
-  Eye,
-  Zap
+  Eye, 
+  Shield 
 } from "lucide-react";
-
 import PoliticiansWidget from "@/components/widgets/PoliticiansWidget";
 import BillsVotingWidget from "@/components/widgets/BillsVotingWidget";
 import PetitionsWidget from "@/components/widgets/PetitionsWidget";
@@ -24,27 +15,12 @@ import { LegalSystemWidget } from "@/components/widgets/LegalSystemWidget";
 import ComprehensiveNewsWidget from "@/components/widgets/ComprehensiveNewsWidget";
 import { PrimeMinisterIntelligence } from "@/components/widgets/PrimeMinisterIntelligence";
 
-export default function Dashboard() {
-  // const { user, isAuthenticated } = useAuth();
+export default function DashboardDemo() {
   const [selectedTab, setSelectedTab] = useState("overview");
-
-  // Remove authentication check for demo access
-  // if (!isAuthenticated) {
-  //   return (
-  //     <div className="flex items-center justify-center min-h-screen">
-  //       <div className="text-center">
-  //         <Shield className="w-16 h-16 mx-auto mb-4 text-blue-600" />
-  //         <h2 className="text-2xl font-bold mb-2">Authentication Required</h2>
-  //         <p className="text-gray-600 mb-4">Please log in to access your civic dashboard</p>
-  //       </div>
-  //     </div>
-  //   );
-  // }
 
   return (
     <div className="space-y-6">
       <IdentityVerificationBanner />
-
       <Tabs value={selectedTab} onValueChange={setSelectedTab} className="space-y-6">
         <TabsList className="grid w-full grid-cols-2 lg:grid-cols-4 gap-1">
           <TabsTrigger value="overview" className="flex items-center justify-center space-x-1 lg:space-x-2 text-xs lg:text-sm p-2 lg:p-3">
@@ -101,4 +77,4 @@ export default function Dashboard() {
       </Tabs>
     </div>
   );
-}
+} 

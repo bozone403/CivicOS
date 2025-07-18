@@ -40,7 +40,40 @@ interface PetitionStats {
   totalSignatures: number;
 }
 
+const MOCK_DASHBOARD = true;
+
 export default function PetitionsWidget() {
+  if (MOCK_DASHBOARD) {
+    const petitions = [
+      { id: 1, title: 'Demo Petition 1', description: 'A demo petition', targetSignatures: 1000, currentSignatures: 500, status: 'active', category: 'Demo', creator: { name: 'Jane Doe', verified: true }, createdAt: '', impact: 'federal', urgency: 'high', recentActivity: { signaturesLast24h: 10, trending: true } },
+      { id: 2, title: 'Demo Petition 2', description: 'Another demo petition', targetSignatures: 500, currentSignatures: 250, status: 'active', category: 'Demo', creator: { name: 'John Smith', verified: false }, createdAt: '', impact: 'provincial', urgency: 'medium', recentActivity: { signaturesLast24h: 5, trending: false } },
+    ];
+    const petitionStats = { totalSignatures: 750 };
+    return (
+      <Card className="h-96 flex flex-col">
+        <CardHeader className="pb-3 flex-shrink-0">
+          <CardTitle className="flex items-center space-x-2">
+            <FileText className="h-4 w-4 sm:h-5 sm:w-5" />
+            <span className="text-sm sm:text-base">Active Petitions (Demo)</span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-2">
+            {petitions.map((p) => (
+              <div key={p.id} className="border rounded-lg p-3">
+                <div className="font-bold">{p.title}</div>
+                <div className="text-xs text-gray-600">{p.category} • {p.impact}</div>
+                <div className="text-xs text-gray-500">Signatures: {p.currentSignatures}/{p.targetSignatures}</div>
+                <div className="text-xs text-gray-400">Trending: {p.recentActivity.trending ? 'Yes' : 'No'}</div>
+              </div>
+            ))}
+            <div className="mt-2 text-xs text-gray-700">Total Signatures: {petitionStats.totalSignatures}</div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
   const { data: petitions = [], isLoading: petitionsLoading } = useQuery<Petition[]>({
     queryKey: ['/api/petitions'],
     refetchInterval: 180000, // Refresh every 3 minutes

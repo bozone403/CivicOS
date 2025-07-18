@@ -110,12 +110,18 @@ export async function registerRoutes(app: Express): Promise<void> {
 
   // JWT Login
   app.post('/api/auth/login', async (req, res) => {
-    const { email, password } = req.body;
-    if (!email || !password) return res.status(400).json({ message: "Email and password required" });
-    const [user] = await db.select().from(users).where(eq(users.email, email));
-    if (!user || !user.password) return res.status(401).json({ message: "Invalid credentials" });
-    const token = generateToken(user);
-    res.json({ token, user: { id: user.id, email: user.email } });
+    try {
+      const { email, password } = req.body;
+      if (!email || !password) return res.status(400).json({ message: "Email and password required" });
+      const [user] = await db.select().from(users).where(eq(users.email, email));
+      if (!user || !user.password) return res.status(401).json({ message: "Invalid credentials" });
+      // TODO: Add password hash comparison here if not present
+      const token = generateToken(user);
+      res.json({ token, user: { id: user.id, email: user.email } });
+    } catch (err) {
+      console.error('Login error:', (err as any)?.stack || err);
+      res.status(500).json({ message: (err as any)?.message || 'Login failed' });
+    }
   });
 
   // Auth user endpoint (JWT)

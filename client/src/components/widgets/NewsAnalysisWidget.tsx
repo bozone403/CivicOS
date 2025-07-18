@@ -82,10 +82,81 @@ interface NewsComparison {
   };
 }
 
+const MOCK_DASHBOARD = true;
+
 export function NewsAnalysisWidget() {
   const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null);
   const [analysisData, setAnalysisData] = useState<NewsComparison | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+
+  if (MOCK_DASHBOARD) {
+    const articles = [
+      { id: 1, title: 'Demo News 1', summary: 'Demo summary', source: 'Demo Source', publishedAt: '2024-07-18', credibilityScore: 90, bias: 'center', category: 'Demo' },
+      { id: 2, title: 'Demo News 2', summary: 'Another summary', source: 'Demo Source', publishedAt: '2024-07-17', credibilityScore: 80, bias: 'left', category: 'Demo' },
+    ];
+    const trending = [articles[0]];
+    return (
+      <Card className="glass-card">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Brain className="h-5 w-5 text-civic-blue" />
+            AI News Analysis (Demo)
+            <Badge variant="secondary" className="ml-auto">
+              <Zap className="h-3 w-3 mr-1" />
+              AI-Powered
+            </Badge>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            <div className="space-y-3">
+              <h3 className="font-semibold flex items-center gap-2 text-sm">
+                <TrendingUp className="h-4 w-4 text-civic-green" />
+                Trending Stories
+              </h3>
+              {trending.map((article) => (
+                <div 
+                  key={article.id}
+                  className="p-3 border rounded-lg hover:bg-gray-50 cursor-pointer transition-colors"
+                >
+                  <h4 className="font-medium text-sm mb-2">{article.title}</h4>
+                  <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                    <span>{article.source}</span>
+                    <Badge variant="outline">{article.bias}</Badge>
+                    <span>{article.credibilityScore}% credible</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <Separator />
+            <div className="space-y-3">
+              <h3 className="font-semibold flex items-center gap-2 text-sm">
+                <Eye className="h-4 w-4 text-civic-blue" />
+                Recent Articles
+              </h3>
+              {articles.map((article) => (
+                <div 
+                  key={article.id}
+                  className="p-3 border rounded-lg hover:bg-gray-50 cursor-pointer transition-colors"
+                >
+                  <h4 className="font-medium text-sm mb-2">{article.title}</h4>
+                  <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                    <span>{article.source}</span>
+                    <Badge variant="outline">{article.bias}</Badge>
+                    <span>{article.credibilityScore}% credible</span>
+                    <span className="flex items-center gap-1">
+                      <Clock className="h-3 w-3" />
+                      {new Date(article.publishedAt).toLocaleDateString()}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   const { data: articles = [], isLoading } = useQuery<NewsArticle[]>({
     queryKey: ["/api/news/articles"],

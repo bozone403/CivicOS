@@ -119,8 +119,8 @@ export default function DonationPopup({ isOpen, onClose, onSuccess }: DonationPo
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="w-[95vw] max-w-md max-h-[90vh] overflow-hidden p-0 mx-auto">
-        <div className="max-h-[90vh] overflow-y-auto">
+      <DialogContent className="w-[95vw] max-w-md max-h-[90vh] overflow-hidden p-0 mx-auto bg-white text-gray-900">
+        <div className="max-h-[90vh] overflow-y-auto bg-white text-gray-900">
           <DialogHeader className="flex flex-row items-center justify-between p-3 sm:p-4 pb-2 sticky top-0 bg-white z-10 border-b">
             <DialogTitle className="text-base sm:text-lg font-bold text-gray-900 flex items-center">
               <Heart className="w-4 h-4 sm:w-5 sm:h-5 text-red-600 mr-2" />
