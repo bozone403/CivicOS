@@ -10,10 +10,11 @@ import multer from "multer";
 import { users } from "../shared/schema.js";
 import { randomBytes } from "crypto";
 import { z } from "zod";
-import * as jwt from "jsonwebtoken";
+import jwt from "jsonwebtoken";
 import * as bcrypt from "bcryptjs";
 import { v4 as uuidv4 } from "uuid";
 import pino from "pino";
+import Stripe from 'stripe';
 const logger = pino();
 const FRONTEND_BASE_URL = process.env.FRONTEND_BASE_URL || "https://civicos.ca";
 const JWT_SECRET = process.env.SESSION_SECRET || "changeme";
@@ -81,9 +82,9 @@ export async function registerRoutes(app) {
             if (!email || !password)
                 return res.status(400).json({ message: "Email and password required" });
             const [user] = await db.select().from(users).where(eq(users.email, email));
-            if (!user || !user.password)
+            if (!user || !user.password || !(await bcrypt.compare(password, user.password))) {
                 return res.status(401).json({ message: "Invalid credentials" });
-            // TODO: Add password hash comparison here if not present
+            }
             const token = generateToken(user);
             res.json({ token, user: { id: user.id, email: user.email } });
         }
@@ -640,29 +641,15 @@ export async function registerRoutes(app) {
         }
     });
     // AI Chat endpoint
-    app.post('/api/civic/chat', async (req, res) => {
-        const chatSchema = z.object({
-            query: z.string().min(1),
-            region: z.string().optional()
-        });
+    app.post('/api/ai/chat', async (req, res) => {
         try {
-            const parsed = chatSchema.safeParse(req.body);
-            if (!parsed.success) {
-                return res.status(400).json({ message: "Invalid chat data", errors: parsed.error.errors });
-            }
-            const { query, region } = parsed.data;
-            if (!query) {
-                return res.status(400).json({ message: "Query is required" });
-            }
-            const response = await civicAI.processQuery({
-                query,
-                region: region || 'canada'
-            });
+            const { message, conversationHistory, region } = req.body;
+            const response = await civicAI.processQuery({ query: message, region, conversationHistory });
             res.json(response);
         }
-        catch (error) {
-            logger.error({ msg: 'Error processing civic AI query', error });
-            res.status(500).json({ message: "Failed to process query" });
+        catch (err) {
+            console.error('AI chat error:', err?.stack || err);
+            res.status(500).json({ message: 'AI chat failed', error: err?.message });
         }
     });
     // News routes
@@ -2955,6 +2942,33 @@ export async function registerRoutes(app) {
         catch (error) {
             logger.error({ msg: 'Error performing legal search', error });
             res.status(500).json({ message: "Failed to perform legal search" });
+        }
+    });
+    // Public endpoint: Get total donations (CAD)
+    app.get('/api/donations/total', async (_req, res) => {
+        try {
+            const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: '2024-04-10' });
+            let total = 0;
+            let hasMore = true;
+            let startingAfter = undefined;
+            while (hasMore) {
+                const charges = await stripe.charges.list({
+                    limit: 100,
+                    starting_after: startingAfter,
+                });
+                for (const charge of charges.data) {
+                    if (charge.paid && charge.status === 'succeeded' && charge.currency === 'cad') {
+                        total += charge.amount;
+                    }
+                }
+                hasMore = charges.has_more;
+                startingAfter = charges.data.length > 0 ? charges.data[charges.data.length - 1].id : undefined;
+            }
+            // Stripe amounts are in cents
+            res.json({ total: total / 100 });
+        }
+        catch (err) {
+            res.status(500).json({ message: 'Failed to fetch donation total', error: err?.message });
         }
     });
     const httpServer = createServer(app);

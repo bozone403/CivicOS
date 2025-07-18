@@ -24,6 +24,18 @@ export default function DonationPopup({ isOpen, onClose, onSuccess }: DonationPo
   const [customAmount, setCustomAmount] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
   const { toast } = useToast();
+  const [donationTotal, setDonationTotal] = useState<number>(0);
+  const donationGoal = 25000;
+
+  useEffect(() => {
+    if (isOpen) {
+      apiRequest('/api/donations/total', 'GET').then((data) => {
+        setDonationTotal(data.total || 0);
+      });
+    }
+  }, [isOpen]);
+
+  const progressPercent = Math.min(100, Math.round((donationTotal / donationGoal) * 100));
 
   const presetAmounts = [5, 10, 25, 50];
 
@@ -150,6 +162,20 @@ export default function DonationPopup({ isOpen, onClose, onSuccess }: DonationPo
                   Impact: Every dollar directly funds real-time government data access, 
                   server infrastructure, and the tools that keep 85,000+ politicians accountable to Canadians.
                 </p>
+              </div>
+            </div>
+
+            {/* Progress Bar */}
+            <div className="my-4">
+              <div className="flex justify-between items-center mb-1">
+                <span className="text-xs font-semibold text-gray-700">Donation Progress</span>
+                <span className="text-xs font-semibold text-gray-700">${donationTotal.toLocaleString('en-CA', { style: 'currency', currency: 'CAD' })} / ${donationGoal.toLocaleString('en-CA', { style: 'currency', currency: 'CAD' })}</span>
+              </div>
+              <div className="w-full bg-gray-200 rounded-full h-3">
+                <div
+                  className="bg-green-500 h-3 rounded-full transition-all duration-500"
+                  style={{ width: `${progressPercent}%` }}
+                ></div>
               </div>
             </div>
 

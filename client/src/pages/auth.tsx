@@ -26,7 +26,9 @@ export default function Auth() {
 
   const loginMutation = useMutation({
     mutationFn: async (credentials: { email: string; password: string }) => {
-      return apiRequest("/api/auth/login", "POST", credentials);
+      const result = await apiRequest("/api/auth/login", "POST", credentials);
+      if (result.token) localStorage.setItem('civicos-jwt', result.token); // Ensure token is stored
+      return result;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });

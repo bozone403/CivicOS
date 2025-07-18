@@ -25,6 +25,12 @@ export function useAuth() {
     enabled: !!getToken(), // Only fetch if JWT is present
   });
 
+  // Handle 401 errors by clearing token and redirecting to login
+  if (error && error.message && error.message.includes("401")) {
+    localStorage.removeItem('civicos-jwt');
+    window.location.href = "/auth";
+  }
+
   const logout = useMutation({
     mutationFn: async () => {
       localStorage.removeItem('civicos-jwt');
