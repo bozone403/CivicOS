@@ -1,14 +1,18 @@
 import { db } from "./db.js";
 import { newsArticles, newsComparisons } from "../shared/schema.js";
 // import { eq, desc, and, gte, sql } from "drizzle-orm";
-import OpenAI from 'openai';
 import * as cheerio from 'cheerio';
 import fetch from 'node-fetch';
 
-// the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY!,
-});
+async function callOllamaMistral(prompt: string): Promise<string> {
+  const response = await fetch('http://89.25.97.3:11434/api/generate', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ model: 'mistral', prompt, stream: false })
+  });
+  const data: any = await response.json();
+  return data.response || data.generated_text || '';
+}
 
 interface NewsSource {
   name: string;
@@ -746,7 +750,6 @@ export class ComprehensiveNewsAnalyzer {
         // Use RSS description if full article fetch fails
       }
 
-      // the newest Anthropic model is "claude-sonnet-4-20250514" which was released May 14, 2025. Use this by default unless user has already selected claude-3-7-sonnet-20250219
       const analysisPrompt = `
 Analyze this Canadian news article for political bias, propaganda techniques, and factual accuracy:
 
@@ -785,46 +788,18 @@ Focus on Canadian political context and identify:
 - Appeal to fear/emotion
 `;
 
-      // Use OpenAI for analysis instead of Anthropic
-      try {
-        const response = await openai.chat.completions.create({
-          model: "gpt-4o",
-          messages: [{
-            role: "system",
-            content: "You are a Canadian political analyst specializing in detecting propaganda and analyzing news content. Respond only in valid JSON format."
-          }, {
-            role: "user",
-            content: analysisPrompt
-          }],
-          response_format: { type: "json_object" },
-          max_tokens: 2000
-        });
-
-        const analysisText = response.choices[0]?.message?.content || '';
-        
-        if (analysisText) {
-          const analysis = JSON.parse(analysisText);
-          return {
-            ...article,
-            propagandaTechniques: analysis.propagandaTechniques || [],
-            keyTopics: analysis.keyTopics || this.extractBasicTopics(article.title),
-            politiciansInvolved: analysis.politiciansInvolved || this.extractPoliticians(article.title + ' ' + (article.content || '')),
-            factualityScore: analysis.factualityScore || 70,
-            emotionalTone: analysis.emotionalTone || 'neutral',
-            claims: analysis.claims || []
-          };
-        }
-      } catch (error) {
-        console.error(`OpenAI analysis failed for ${article.title}:`, error);
-      }
+      const responseText = await callOllamaMistral(analysisPrompt);
+      const analysis = this.parseAnalysisResponse(responseText);
       
-      // Basic content extraction when AI analysis unavailable
-      article.propagandaTechniques = [];
-      article.keyTopics = this.extractBasicTopics(article.title);
-      article.politiciansInvolved = this.extractPoliticians(article.title + ' ' + (article.content || ''));
-      article.factualityScore = 70;
-      article.emotionalTone = 'neutral';
-      article.claims = [];
+      return {
+        ...article,
+        propagandaTechniques: analysis.propagandaTechniques || [],
+        keyTopics: analysis.keyTopics || this.extractBasicTopics(article.title),
+        politiciansInvolved: analysis.politiciansInvolved || this.extractPoliticians(article.title + ' ' + (article.content || '')),
+        factualityScore: analysis.factualityScore || 70,
+        emotionalTone: analysis.emotionalTone || 'neutral',
+        claims: analysis.claims || []
+      };
 
     } catch (error) {
       console.error(`Error analyzing article ${article.title}:`, error);
@@ -927,7 +902,6 @@ Focus on Canadian political context and identify:
    */
   private async performTopicComparison(topic: string, articles: ArticleAnalysis[]): Promise<void> {
     try {
-      // the newest Anthropic model is "claude-sonnet-4-20250514" which was released May 14, 2025. Use this by default unless user has already selected claude-3-7-sonnet-20250219
       const comparisonPrompt = `
 Compare these ${articles.length} Canadian news articles covering "${topic}":
 
@@ -962,34 +936,13 @@ Focus on:
 - Emotional manipulation differences
 `;
 
-      try {
-        const response = await openai.chat.completions.create({
-          model: 'gpt-4o',
-          max_tokens: 1500,
-          messages: [
-            {
-              role: 'system',
-              content: 'You are a Canadian media analyst. Respond only in valid JSON format.'
-            },
-            {
-              role: 'user',
-              content: comparisonPrompt
-            }
-          ],
-          response_format: { type: "json_object" }
-        });
-
-        const comparisonText = response.choices[0]?.message?.content || '';
-        const comparison = this.parseAnalysisResponse(comparisonText);
-        
-        // Store comparison results
-        await this.storeTopicComparison(topic, articles, comparison);
-      } catch (error) {
-        return; // Skip when API unavailable
-      }
-
+      const responseText = await callOllamaMistral(comparisonPrompt);
+      const comparison = this.parseAnalysisResponse(responseText);
+      
+      // Store comparison results
+      await this.storeTopicComparison(topic, articles, comparison);
     } catch (error) {
-      console.error(`Error comparing topic ${topic}:`, error);
+      return; // Skip when API unavailable
     }
   }
 

@@ -1,8 +1,6 @@
-import OpenAI from "openai";
 import { db } from "./db.js";
 import { sql } from "drizzle-orm";
-
-// the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
+import fetch from 'node-fetch';
 
 interface AIRequest {
   query: string;
@@ -24,12 +22,10 @@ interface AIResponse {
 }
 
 export class OpenAICivicAIService {
-  private openai: OpenAI;
+  private openai: any; // This will be removed as OpenAI is no longer used
 
   constructor() {
-    this.openai = new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY
-    });
+    // This constructor will be removed as OpenAI is no longer used
   }
 
   async processQuery(request: AIRequest): Promise<AIResponse> {
@@ -83,20 +79,8 @@ Provide analysis in JSON format:
   "timeframe": "current|historical|future|unspecified"
 }`;
 
-      const response = await this.openai.chat.completions.create({
-        model: "gpt-4o",
-        messages: [
-          {
-            role: "system",
-            content: "You are an expert Canadian political analyst. Analyze civic queries to understand user intent and extract relevant political entities."
-          },
-          { role: "user", content: prompt }
-        ],
-        response_format: { type: "json_object" },
-        max_tokens: 300
-      });
-
-      return JSON.parse(response.choices[0].message.content || "{}");
+      const response = await callOllamaMistral(prompt);
+      return JSON.parse(response);
     } catch (error) {
       console.error("Error analyzing query:", error);
       return {
@@ -304,17 +288,7 @@ Include specific details about:
 
 Keep the response conversational but authoritative.`;
 
-      const response = await this.openai.chat.completions.create({
-        model: "gpt-4o",
-        messages: [
-          {
-            role: "system",
-            content: "You are an expert Canadian political analyst and civic engagement specialist. Provide accurate, helpful information about Canadian politics, government, and civic processes."
-          },
-          { role: "user", content: prompt }
-        ],
-        max_tokens: 1000
-      });
+      const responseText = await callOllamaMistral(prompt);
 
       const analysisType = this.determineAnalysisType(query, data);
       const confidence = this.calculateConfidence(data);
@@ -322,7 +296,7 @@ Keep the response conversational but authoritative.`;
       const followUps = this.generateFollowUps(analysisType, data);
 
       return {
-        response: response.choices[0].message.content || "I couldn't generate a response. Please try again.",
+        response: responseText,
         analysisType,
         confidence,
         sources,
@@ -392,6 +366,16 @@ Keep the response conversational but authoritative.`;
     
     return suggestions;
   }
+}
+
+async function callOllamaMistral(prompt: string): Promise<string> {
+  const response = await fetch('http://89.25.97.3:11434/api/generate', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ model: 'mistral', prompt, stream: false })
+  });
+  const data: any = await response.json();
+  return data.response || data.generated_text || '';
 }
 
 export const openaiCivicAI = new OpenAICivicAIService();

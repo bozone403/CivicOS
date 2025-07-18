@@ -1,30 +1,23 @@
-import Anthropic from '@anthropic-ai/sdk';
+import fetch from 'node-fetch';
 import pino from "pino";
 const logger = pino();
-// the newest Anthropic model is "claude-sonnet-4-20250514" which was released May 14, 2025. Use this by default unless user has already selected claude-3-7-sonnet-20250219
-const anthropic = new Anthropic({
-    apiKey: process.env.ANTHROPIC_API_KEY,
-});
-// the newest Anthropic model is "claude-sonnet-4-20250514" which was released May 14, 2025. Use this by default unless user has already selected claude-3-7-sonnet-20250219
+async function callOllamaMistral(prompt) {
+    const response = await fetch('http://89.25.97.3:11434/api/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ model: 'mistral', prompt, stream: false })
+    });
+    const data = await response.json();
+    return data.response || data.generated_text || '';
+}
 export async function summarizeBill(billText) {
-    if (!process.env.ANTHROPIC_API_KEY) {
-        throw new Error("AI features require Anthropic API key configuration");
-    }
     try {
-        const message = await anthropic.messages.create({
-            max_tokens: 1024,
-            messages: [
-                {
-                    role: 'user',
-                    content: `You are an expert legislative analyst. Summarize this bill in clear, plain language that ordinary citizens can understand. Focus on key provisions, who is affected, and practical implications. Keep the summary concise but comprehensive.
+        const prompt = `You are an expert legislative analyst. Summarize this bill in clear, plain language that ordinary citizens can understand. Focus on key provisions, who is affected, and practical implications. Keep the summary concise but comprehensive.
 
 Bill text:
-${billText}`
-                }
-            ],
-            model: 'claude-sonnet-4-20250514',
-        });
-        return message.content[0].type === 'text' ? message.content[0].text : "Summary could not be generated.";
+${billText}`;
+        const responseText = await callOllamaMistral(prompt);
+        return responseText;
     }
     catch (error) {
         logger.error({ msg: 'Error generating bill summary', error });
@@ -32,16 +25,8 @@ ${billText}`
     }
 }
 export async function analyzePoliticianStatement(statementText, politicianName, party) {
-    if (!process.env.ANTHROPIC_API_KEY) {
-        throw new Error("AI features require Anthropic API key configuration");
-    }
     try {
-        const message = await anthropic.messages.create({
-            max_tokens: 1024,
-            messages: [
-                {
-                    role: 'user',
-                    content: `You are an expert political analyst. Analyze these statements from ${politicianName} (${party}) and provide insights into their political consistency, key positions, and any notable patterns or contradictions.
+        const prompt = `You are an expert political analyst. Analyze these statements from ${politicianName} (${party}) and provide insights into their political consistency, key positions, and any notable patterns or contradictions.
 
 Statements to analyze:
 ${statementText}
@@ -53,12 +38,9 @@ Provide a comprehensive analysis covering:
 4. Communication style and rhetoric
 5. Alignment with party positions
 
-Be factual and unbiased in your analysis.`
-                }
-            ],
-            model: 'claude-sonnet-4-20250514',
-        });
-        return message.content[0].type === 'text' ? message.content[0].text : "Analysis could not be generated.";
+Be factual and unbiased in your analysis.`;
+        const responseText = await callOllamaMistral(prompt);
+        return responseText;
     }
     catch (error) {
         logger.error({ msg: 'Error analyzing politician statement', error });
@@ -67,22 +49,13 @@ Be factual and unbiased in your analysis.`
 }
 export async function generateBillKeyPoints(billText) {
     try {
-        const message = await anthropic.messages.create({
-            max_tokens: 1024,
-            messages: [
-                {
-                    role: 'user',
-                    content: `Extract 3-5 key bullet points from this legislation. Each point should be concise and highlight important provisions. Respond in JSON format with an array of strings under the key "points".
+        const prompt = `Extract 3-5 key bullet points from this legislation. Each point should be concise and highlight important provisions. Respond in JSON format with an array of strings under the key "points".
 
 Bill text:
-${billText}`
-                }
-            ],
-            model: 'claude-sonnet-4-20250514',
-        });
-        const content = message.content[0].type === 'text' ? message.content[0].text : '{"points": []}';
-        const result = JSON.parse(content);
-        return result.points || [];
+${billText}`;
+        const responseText = await callOllamaMistral(prompt);
+        const content = JSON.parse(responseText);
+        return content.points || [];
     }
     catch (error) {
         logger.error({ msg: 'Error generating key points', error });

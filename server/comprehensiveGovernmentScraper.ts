@@ -14,7 +14,6 @@ interface DataSource {
   type: 'federal' | 'provincial' | 'municipal';
   jurisdiction: string;
   dataTypes: string[];
-  apiKey?: string;
   rateLimit: number; // requests per minute
 }
 

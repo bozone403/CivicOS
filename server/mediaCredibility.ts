@@ -1,11 +1,16 @@
-import OpenAI from 'openai';
+import fetch from 'node-fetch';
 import pino from "pino";
 const logger = pino();
 
-// the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+async function callOllamaMistral(prompt: string): Promise<string> {
+  const response = await fetch('http://89.25.97.3:11434/api/generate', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ model: 'mistral', prompt, stream: false })
+  });
+  const data: any = await response.json();
+  return data.response || data.generated_text || '';
+}
 
 interface MediaOutlet {
   id: string;
@@ -298,31 +303,16 @@ export async function analyzeArticleCredibility(articleText: string, sourceName:
   );
 
   try {
-    const response = await openai.chat.completions.create({
-      model: 'gpt-4o',
-      max_tokens: 1024,
-      messages: [
-        {
-          role: 'system',
-          content: `You are an expert media literacy analyst. Analyze this news article for credibility, bias, and propaganda techniques. Respond in JSON format with these exact keys:
+    const prompt = `You are an expert media literacy analyst. Analyze this news article for credibility, bias, and propaganda techniques. Respond in JSON format with these exact keys:
           {
             "credibilityScore": number (0-100),
             "biasDetected": string (political lean detected),
             "factualAccuracy": number (0-100),
             "propagandaTechniques": array of strings,
             "analysisNotes": string
-          }`
-        },
-        {
-          role: 'user',
-          content: `Analyze this article for credibility and bias:\n\n${articleText.substring(0, 2000)}`
-        }
-      ],
-      response_format: { type: "json_object" }
-    });
-
-    const analysisText = response.choices[0]?.message?.content || '{}';
-    const analysis = JSON.parse(analysisText);
+          }`;
+    const responseText = await callOllamaMistral(`Analyze this article for credibility and bias:\n\n${articleText.substring(0, 2000)}`);
+    const analysis = JSON.parse(responseText);
     
     return {
       credibilityScore: outlet ? outlet.credibilityScore : analysis.credibilityScore,

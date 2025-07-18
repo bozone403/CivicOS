@@ -1,4 +1,4 @@
-import OpenAI from 'openai';
+import fetch from 'node-fetch';
 
 // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
 import { storage } from './storage';
@@ -6,10 +6,15 @@ import { db } from './db.js';
 import { bills, politicians, votes, politicianStatements } from '../shared/schema.js';
 import { eq, and, sql, desc, like } from 'drizzle-orm';
 
-// the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+async function callOllamaMistral(prompt: string): Promise<string> {
+  const response = await fetch('http://89.25.97.3:11434/api/generate', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ model: 'mistral', prompt, stream: false })
+  });
+  const data: any = await response.json();
+  return data.response || data.generated_text || '';
+}
 
 interface AIRequest {
   query: string;
@@ -33,16 +38,23 @@ interface AIResponse {
 }
 
 export class CivicAIService {
-  private openai: OpenAI;
+  private openai: any;
 
   constructor() {
-    if (!process.env.OPENAI_API_KEY) {
-      throw new Error('OPENAI_API_KEY environment variable is required for AI features');
-    }
-    
-    this.openai = new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY,
-    });
+    // Removed OpenAI_API_KEY environment variable check
+    this.openai = {
+      chat: {
+        completions: {
+          create: async (options: any) => {
+            const prompt = options.messages.map((msg: any) => `${msg.role}: ${msg.content}`).join('\n');
+            const responseText = await callOllamaMistral(prompt);
+            return {
+              choices: [{ message: { content: responseText } }]
+            };
+          }
+        }
+      }
+    };
   }
 
   async processQuery(request: AIRequest): Promise<AIResponse> {
@@ -80,7 +92,7 @@ Guidelines:
         response: responseText,
         analysisType,
         confidence: 0.85,
-        sources: ["Canadian Government Data", "Parliamentary Records", "CivicOS Intelligence"],
+        sources: ["Canadian Government Data", "Parliamentary Records", "CivicOS Intelligence"] as string[],
         truthScore,
         propagandaRisk: this.assessPropagandaRisk(responseText),
         relatedData: {
@@ -93,7 +105,7 @@ Guidelines:
           "Analyze their financial connections and lobbyist ties",
           "Compare their promises to actual legislative outcomes",
           "Detect propaganda techniques in their messaging"
-        ]
+        ] as string[],
       };
     } catch (error) {
       console.error("OpenAI error, using local analysis:", error);
@@ -193,7 +205,7 @@ Guidelines:
       response,
       analysisType,
       confidence: 0.80,
-      sources: ["CivicOS Intelligence Database", "Parliamentary Records", "Financial Disclosures"],
+      sources: ["CivicOS Intelligence Database", "Parliamentary Records", "Financial Disclosures"] as string[],
       truthScore,
       propagandaRisk,
       relatedData: {
@@ -206,7 +218,7 @@ Guidelines:
         "Request analysis of recent political statements",
         "Check corporate connections and lobbyist ties",
         "Compare campaign promises to actual actions"
-      ]
+      ] as string[],
     };
   }
 
@@ -516,7 +528,7 @@ Guidelines:
         response: responseText,
         analysisType: "general",
         confidence: 0.7,
-        sources: ["General Canadian Government Knowledge"],
+        sources: ["General Canadian Government Knowledge"] as string[],
         relatedData: {
           bills: [],
           politicians: [],
@@ -526,7 +538,7 @@ Guidelines:
           "Can you provide more specific details?",
           "How does this affect my province or territory?",
           "What are the key facts about this topic?"
-        ]
+        ] as string[],
       };
     } catch (error) {
       console.error("Error generating direct response:", error);

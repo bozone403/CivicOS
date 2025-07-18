@@ -1,20 +1,33 @@
-import OpenAI from 'openai';
+import fetch from 'node-fetch';
 import { db } from './db.js';
 import { bills, politicians, votes, politicianStatements } from '../shared/schema.js';
 import { sql, desc, like } from 'drizzle-orm';
-// the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
-const openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY,
-});
+async function callOllamaMistral(prompt) {
+    const response = await fetch('http://89.25.97.3:11434/api/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ model: 'mistral', prompt, stream: false })
+    });
+    const data = await response.json();
+    return data.response || data.generated_text || '';
+}
 export class CivicAIService {
     openai;
     constructor() {
-        if (!process.env.OPENAI_API_KEY) {
-            throw new Error('OPENAI_API_KEY environment variable is required for AI features');
-        }
-        this.openai = new OpenAI({
-            apiKey: process.env.OPENAI_API_KEY,
-        });
+        // Removed OpenAI_API_KEY environment variable check
+        this.openai = {
+            chat: {
+                completions: {
+                    create: async (options) => {
+                        const prompt = options.messages.map((msg) => `${msg.role}: ${msg.content}`).join('\n');
+                        const responseText = await callOllamaMistral(prompt);
+                        return {
+                            choices: [{ message: { content: responseText } }]
+                        };
+                    }
+                }
+            }
+        };
     }
     async processQuery(request) {
         const { query, region } = request;
@@ -59,7 +72,7 @@ Guidelines:
                     "Analyze their financial connections and lobbyist ties",
                     "Compare their promises to actual legislative outcomes",
                     "Detect propaganda techniques in their messaging"
-                ]
+                ],
             };
         }
         catch (error) {
@@ -165,7 +178,7 @@ Guidelines:
                 "Request analysis of recent political statements",
                 "Check corporate connections and lobbyist ties",
                 "Compare campaign promises to actual actions"
-            ]
+            ],
         };
     }
     async analyzeQuery(query) {
@@ -458,7 +471,7 @@ Guidelines:
                     "Can you provide more specific details?",
                     "How does this affect my province or territory?",
                     "What are the key facts about this topic?"
-                ]
+                ],
             };
         }
         catch (error) {

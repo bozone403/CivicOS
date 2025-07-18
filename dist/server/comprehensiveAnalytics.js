@@ -1,10 +1,16 @@
 import { db } from "./db.js";
 import { politicians, bills, votes, politicianStatements } from "../shared/schema.js";
 import { eq, desc, count, sql } from "drizzle-orm";
-import Anthropic from '@anthropic-ai/sdk';
-const anthropic = new Anthropic({
-    apiKey: process.env.ANTHROPIC_API_KEY,
-});
+import fetch from 'node-fetch';
+async function callOllamaMistral(prompt) {
+    const response = await fetch('http://89.25.97.3:11434/api/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ model: 'mistral', prompt, stream: false })
+    });
+    const data = await response.json();
+    return data.response || data.generated_text || '';
+}
 /**
  * Comprehensive analytics service for granular political data analysis
  */

@@ -1,12 +1,17 @@
-import OpenAI from 'openai';
+import fetch from 'node-fetch';
 import { db } from './db.js';
 import { newsArticles } from '../shared/schema.js';
 import { eq, and, gte, desc } from 'drizzle-orm';
 
-// the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+async function callOllamaMistral(prompt: string): Promise<string> {
+  const response = await fetch('http://89.25.97.3:11434/api/generate', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ model: 'mistral', prompt, stream: false })
+  });
+  const data: any = await response.json();
+  return data.response || data.generated_text || '';
+}
 
 interface CrossSourceAnalysis {
   sourceComparison: Array<{
@@ -167,20 +172,8 @@ Provide analysis in JSON format with:
 7. recommendations: Advice for readers on interpreting this story
 `;
 
-    const response = await openai.chat.completions.create({
-      model: 'gpt-4o',
-      max_tokens: 3000,
-      messages: [
-        { 
-          role: 'system', 
-          content: "You are an expert media analyst specializing in detecting bias, propaganda, and providing unbiased news analysis. Focus on Canadian media and political context. Respond only in valid JSON format."
-        },
-        { role: 'user', content: analysisPrompt }
-      ],
-      response_format: { type: "json_object" }
-    });
-
-    return JSON.parse(response.choices[0]?.message?.content || '{}');
+    const responseText = await callOllamaMistral(analysisPrompt);
+    return JSON.parse(responseText);
   }
 
   /**
@@ -207,20 +200,8 @@ Respond in JSON format with:
 - unsupportedStatements: Claims lacking evidence
 `;
 
-    const response = await openai.chat.completions.create({
-      model: 'gpt-4o',
-      max_tokens: 2000,
-      messages: [
-        { 
-          role: 'system', 
-          content: "You are a professional fact-checker with expertise in Canadian politics and government. Verify claims against official sources. Respond only in valid JSON format."
-        },
-        { role: 'user', content: factCheckPrompt }
-      ],
-      response_format: { type: "json_object" }
-    });
-
-    return JSON.parse(response.choices[0]?.message?.content || '{}');
+    const responseText = await callOllamaMistral(factCheckPrompt);
+    return JSON.parse(responseText);
   }
 
   /**

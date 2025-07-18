@@ -1,11 +1,9 @@
-import OpenAI from "openai";
 import { db } from "./db.js";
 import { sql } from "drizzle-orm";
 import * as cheerio from "cheerio";
 import pino from "pino";
+import fetch from 'node-fetch';
 const logger = pino();
-
-// the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
 
 interface NewsSource {
   name: string;
@@ -39,8 +37,17 @@ interface NewsComparison {
   divergence: string[];
 }
 
+async function callOllamaMistral(prompt: string): Promise<string> {
+  const response = await fetch('http://89.25.97.3:11434/api/generate', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ model: 'mistral', prompt, stream: false })
+  });
+  const data: any = await response.json();
+  return data.response || data.generated_text || '';
+}
+
 export class OpenAINewsAnalyzer {
-  private openai: OpenAI;
   private sources: NewsSource[] = [
     {
       name: "CBC News",
@@ -78,12 +85,6 @@ export class OpenAINewsAnalyzer {
       credibility: 78
     }
   ];
-
-  constructor() {
-    this.openai = new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY
-    });
-  }
 
   async performComprehensiveAnalysis(): Promise<void> {
     
@@ -165,20 +166,8 @@ Provide analysis in JSON format:
   "summary": "brief summary"
 }`;
 
-      const response = await this.openai.chat.completions.create({
-        model: "gpt-4o",
-        messages: [
-          {
-            role: "system",
-            content: "You are an expert Canadian political news analyst. Analyze articles for bias, credibility, and propaganda techniques used in Canadian media."
-          },
-          { role: "user", content: prompt }
-        ],
-        response_format: { type: "json_object" },
-        max_tokens: 800
-      });
-
-      const analysis = JSON.parse(response.choices[0].message.content || "{}");
+      const responseText = await callOllamaMistral(prompt);
+      const analysis = JSON.parse(responseText || "{}");
       
       return {
         sentiment: analysis.sentiment || 'neutral',
@@ -304,20 +293,8 @@ Provide comparison in JSON format:
   "overallTrend": "positive|negative|neutral"
 }`;
 
-      const response = await this.openai.chat.completions.create({
-        model: "gpt-4o",
-        messages: [
-          {
-            role: "system",
-            content: "You are analyzing Canadian media coverage patterns to identify bias and consensus across news sources."
-          },
-          { role: "user", content: prompt }
-        ],
-        response_format: { type: "json_object" },
-        max_tokens: 600
-      });
-
-      const analysis = JSON.parse(response.choices[0].message.content || "{}");
+      const responseText = await callOllamaMistral(prompt);
+      const analysis = JSON.parse(responseText || "{}");
 
       return {
         topic,

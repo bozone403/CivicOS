@@ -1,12 +1,17 @@
-import OpenAI from "openai";
 import { db } from "./db.js";
 import { newsArticles } from "../shared/schema.js";
 import { desc } from "drizzle-orm";
 import * as cheerio from "cheerio";
-// the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
-const openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY,
-});
+import fetch from 'node-fetch';
+async function callOllamaMistral(prompt) {
+    const response = await fetch('http://89.25.97.3:11434/api/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ model: 'mistral', prompt, stream: false })
+    });
+    const data = await response.json();
+    return data.response || data.generated_text || '';
+}
 /**
  * Revolutionary news aggregator using OpenAI for Canadian political intelligence
  */
@@ -134,22 +139,8 @@ Provide comprehensive analysis in JSON format with these fields:
 - summary: string (concise 2-sentence summary)
 - publicImpact: number (0-100, impact on public opinion)`;
         try {
-            const response = await openai.chat.completions.create({
-                model: "gpt-4o",
-                messages: [
-                    {
-                        role: "system",
-                        content: "You are a Canadian political intelligence analyst. Analyze news articles for political significance, bias, and public impact. Respond only with valid JSON."
-                    },
-                    {
-                        role: "user",
-                        content: prompt
-                    }
-                ],
-                response_format: { type: "json_object" },
-                max_tokens: 800
-            });
-            const analysis = JSON.parse(response.choices[0].message.content || '{}');
+            const responseText = await callOllamaMistral(prompt);
+            const analysis = JSON.parse(responseText);
             return {
                 title: article.title,
                 content: article.description,

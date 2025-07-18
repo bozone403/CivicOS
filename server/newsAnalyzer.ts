@@ -3,14 +3,18 @@ import fetch from 'node-fetch';
 import { db } from './db.js';
 import * as schema from '../shared/schema.js';
 import { eq } from 'drizzle-orm';
-import OpenAI from 'openai';
 import pino from "pino";
 const logger = pino();
 
-// the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+async function callOllamaMistral(prompt: string): Promise<string> {
+  const response = await fetch('http://89.25.97.3:11434/api/generate', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ model: 'mistral', prompt, stream: false })
+  });
+  const data: any = await response.json();
+  return data.response || data.generated_text || '';
+}
 
 interface NewsSource {
   name: string;
@@ -388,21 +392,8 @@ Respond in JSON format with these exact keys:
   "analysisNotes": "detailed analysis explanation"
 }`;
 
-    const response = await openai.chat.completions.create({
-      model: 'gpt-4o',
-      max_tokens: 2000,
-      messages: [
-        {
-          role: 'system',
-          content: 'You are a Canadian news analyst. Respond only in valid JSON format.'
-        },
-        { role: 'user', content: prompt }
-      ],
-      response_format: { type: "json_object" }
-    });
-
-    const analysisText = response.choices[0]?.message?.content || '{}';
-    const analysis = JSON.parse(analysisText);
+    const responseText = await callOllamaMistral(prompt);
+    const analysis = JSON.parse(responseText);
     
     return {
       truthScore: Math.max(0, Math.min(100, analysis.truthScore || 50)),
@@ -482,21 +473,8 @@ Respond in JSON format:
   "analysisDetails": "detailed explanation"
 }`;
 
-    const response = await openai.chat.completions.create({
-      model: 'gpt-4o',
-      max_tokens: 1500,
-      messages: [
-        {
-          role: 'system',
-          content: 'You are a propaganda detection expert. Respond only in valid JSON format.'
-        },
-        { role: 'user', content: prompt }
-      ],
-      response_format: { type: "json_object" }
-    });
-
-    const analysisText = response.choices[0]?.message?.content || '{}';
-    const analysis = JSON.parse(analysisText);
+    const responseText = await callOllamaMistral(prompt);
+    const analysis = JSON.parse(responseText);
     
     return {
       techniques: analysis.techniques || [],

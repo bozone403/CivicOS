@@ -1,12 +1,10 @@
-import OpenAI from "openai";
 import { db } from "./db.js";
 import { sql } from "drizzle-orm";
+import fetch from 'node-fetch';
 export class OpenAICivicAIService {
-    openai;
+    openai; // This will be removed as OpenAI is no longer used
     constructor() {
-        this.openai = new OpenAI({
-            apiKey: process.env.OPENAI_API_KEY
-        });
+        // This constructor will be removed as OpenAI is no longer used
     }
     async processQuery(request) {
         try {
@@ -48,19 +46,8 @@ Provide analysis in JSON format:
   "entities": ["entity1", "entity2"],
   "timeframe": "current|historical|future|unspecified"
 }`;
-            const response = await this.openai.chat.completions.create({
-                model: "gpt-4o",
-                messages: [
-                    {
-                        role: "system",
-                        content: "You are an expert Canadian political analyst. Analyze civic queries to understand user intent and extract relevant political entities."
-                    },
-                    { role: "user", content: prompt }
-                ],
-                response_format: { type: "json_object" },
-                max_tokens: 300
-            });
-            return JSON.parse(response.choices[0].message.content || "{}");
+            const response = await callOllamaMistral(prompt);
+            return JSON.parse(response);
         }
         catch (error) {
             console.error("Error analyzing query:", error);
@@ -237,23 +224,13 @@ Include specific details about:
 - Contact information for user's representatives
 
 Keep the response conversational but authoritative.`;
-            const response = await this.openai.chat.completions.create({
-                model: "gpt-4o",
-                messages: [
-                    {
-                        role: "system",
-                        content: "You are an expert Canadian political analyst and civic engagement specialist. Provide accurate, helpful information about Canadian politics, government, and civic processes."
-                    },
-                    { role: "user", content: prompt }
-                ],
-                max_tokens: 1000
-            });
+            const responseText = await callOllamaMistral(prompt);
             const analysisType = this.determineAnalysisType(query, data);
             const confidence = this.calculateConfidence(data);
             const sources = this.extractSources(data);
             const followUps = this.generateFollowUps(analysisType, data);
             return {
-                response: response.choices[0].message.content || "I couldn't generate a response. Please try again.",
+                response: responseText,
                 analysisType,
                 confidence,
                 sources,
@@ -323,5 +300,14 @@ Keep the response conversational but authoritative.`;
         }
         return suggestions;
     }
+}
+async function callOllamaMistral(prompt) {
+    const response = await fetch('http://89.25.97.3:11434/api/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ model: 'mistral', prompt, stream: false })
+    });
+    const data = await response.json();
+    return data.response || data.generated_text || '';
 }
 export const openaiCivicAI = new OpenAICivicAIService();
