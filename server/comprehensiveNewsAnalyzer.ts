@@ -10,8 +10,15 @@ async function callOllamaMistral(prompt: string): Promise<string> {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ model: 'mistral', prompt, stream: false })
   });
-  const data: any = await response.json();
-  return data.response || data.generated_text || '';
+  let data: any = null;
+  try {
+    data = await response.json();
+  } catch (err) {
+    const text = await response.text().catch(() => '');
+    console.error('Ollama response not valid JSON:', text, err);
+    return '';
+  }
+  return data?.response || data?.generated_text || '';
 }
 
 interface NewsSource {
