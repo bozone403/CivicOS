@@ -113,11 +113,12 @@ export default function Login() {
                   <Input
                     id="username"
                     type="text"
+                    placeholder="Email or Username"
                     value={credentials.username}
                     onChange={(e) => setCredentials(prev => ({ ...prev, username: e.target.value }))}
-                    className="pl-10 h-12 border-2 border-gray-300 focus:border-red-500"
-                    placeholder="Enter your username"
-                    required
+                    className="h-12 text-base"
+                    disabled={isLoading}
+                    autoComplete="username"
                   />
                 </div>
               </div>
@@ -130,11 +131,11 @@ export default function Login() {
                   <Input
                     id="password"
                     type={showPassword ? "text" : "password"}
+                    placeholder="Password"
                     value={credentials.password}
                     onChange={(e) => setCredentials(prev => ({ ...prev, password: e.target.value }))}
-                    className="pl-10 pr-10 h-12 border-2 border-gray-300 focus:border-red-500"
-                    placeholder="Enter your password"
-                    required
+                    className="h-12 text-base"
+                    disabled={isLoading}
                     autoComplete="current-password"
                   />
                   <button

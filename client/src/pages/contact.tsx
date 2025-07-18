@@ -180,6 +180,7 @@ export default function Contact() {
                       type="email" 
                       required 
                       className="mt-1 border-gray-300 focus:border-red-500 focus:ring-red-500"
+                      autoComplete="username"
                     />
                   </div>
                   

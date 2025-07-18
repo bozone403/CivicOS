@@ -266,6 +266,7 @@ export default function Settings() {
                   type="email"
                   defaultValue={(user as any)?.email || ''}
                   placeholder="Enter your email"
+                  autoComplete="username"
                 />
               </div>
               <Button>Save Changes</Button>
@@ -305,6 +306,7 @@ export default function Settings() {
                     onChange={(e) => setPasswordForm(prev => ({ ...prev, currentPassword: e.target.value }))}
                     placeholder="Enter current password"
                     disabled={changePasswordMutation.isPending}
+                    autoComplete="current-password"
                   />
                 </div>
 
@@ -317,6 +319,7 @@ export default function Settings() {
                     onChange={(e) => setPasswordForm(prev => ({ ...prev, newPassword: e.target.value }))}
                     placeholder="Enter new password (min 6 characters)"
                     disabled={changePasswordMutation.isPending}
+                    autoComplete="new-password"
                   />
                 </div>
 
@@ -329,6 +332,7 @@ export default function Settings() {
                     onChange={(e) => setPasswordForm(prev => ({ ...prev, confirmPassword: e.target.value }))}
                     placeholder="Confirm new password"
                     disabled={changePasswordMutation.isPending}
+                    autoComplete="new-password"
                   />
                 </div>
 

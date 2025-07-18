@@ -51,7 +51,6 @@ import IdentityReview from "@/pages/admin/identity-review";
 import Manifesto from "@/pages/manifesto";
 import NotFound from "@/pages/not-found";
 import canadianCrest from "./assets/ChatGPT Image Jun 20, 2025, 06_03_54 PM_1750464244456.png";
-import { SupabaseTest } from "@/components/SupabaseTest";
 
 // Add a simple error boundary
 class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { hasError: boolean; error: any }> {
@@ -200,7 +199,6 @@ function Router() {
 function AppWithBot() {
   return (
     <>
-      <SupabaseTest />
       <Router />
       <FloatingChatButton />
     </>
@@ -213,7 +211,6 @@ function App() {
       <TooltipProvider>
         <ErrorBoundary>
           <Toaster />
-          <SupabaseTest />
           <Router />
           <FloatingChatButton />
         </ErrorBoundary>

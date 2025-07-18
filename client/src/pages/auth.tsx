@@ -59,7 +59,11 @@ export default function Auth() {
       window.location.href = "/dashboard";
     },
     onError: (error: any) => {
-      setErrors(prev => ({ ...prev, register: error.message || "Registration failed" }));
+      let message = error.message || "Registration failed";
+      if (error.status === 409 || (error.message && error.message.toLowerCase().includes("409"))) {
+        message = "Email already registered. Please use a different email or log in.";
+      }
+      setErrors(prev => ({ ...prev, register: message }));
     },
   });
 
@@ -159,6 +163,7 @@ export default function Auth() {
                       onChange={(e) => setLoginData(prev => ({ ...prev, email: e.target.value }))}
                       className="h-10 sm:h-11 text-sm sm:text-base"
                       disabled={loginMutation.isPending}
+                      autoComplete="username"
                     />
                   </div>
 
@@ -175,6 +180,7 @@ export default function Auth() {
                       onChange={(e) => setLoginData(prev => ({ ...prev, password: e.target.value }))}
                       className="h-10 sm:h-11 text-sm sm:text-base"
                       disabled={loginMutation.isPending}
+                      autoComplete="current-password"
                     />
                   </div>
 
@@ -242,6 +248,7 @@ export default function Auth() {
                       className="h-11"
                       disabled={registerMutation.isPending}
                       required
+                      autoComplete="username"
                     />
                   </div>
 
@@ -259,6 +266,7 @@ export default function Auth() {
                       className="h-11"
                       disabled={registerMutation.isPending}
                       required
+                      autoComplete="new-password"
                     />
                   </div>
 
@@ -273,6 +281,7 @@ export default function Auth() {
                       className="h-11"
                       disabled={registerMutation.isPending}
                       required
+                      autoComplete="new-password"
                     />
                   </div>
 
