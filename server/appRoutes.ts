@@ -15,7 +15,7 @@ import multer, { FileFilterCallback } from "multer";
 import { users } from "../shared/schema.js";
 import { randomBytes } from "crypto";
 import { z } from "zod";
-import * as jwt from "jsonwebtoken";
+import jwt from "jsonwebtoken";
 import * as bcrypt from "bcryptjs";
 import { v4 as uuidv4 } from "uuid";
 import pino from "pino";
