@@ -38,48 +38,47 @@ export class MasterDataOrchestrator {
    */
   private scheduleDataCollection(): void {
     // Government data scraping - Every 2 hours
-    cron.schedule('0 */2 * * *', async () => {
-      try {
-        this.systemHealth.governmentScraper = 'running';
-        await comprehensiveGovernmentScraper.performComprehensiveScraping();
-        this.systemHealth.governmentScraper = 'completed';
-        this.lastUpdate = new Date();
-      } catch (error) {
-        this.systemHealth.governmentScraper = 'error';
-      }
-    });
+    // cron.schedule('0 */2 * * *', async () => {
+    //   try {
+    //     this.systemHealth.governmentScraper = 'running';
+    //     await comprehensiveGovernmentScraper.performComprehensiveScraping();
+    //     this.systemHealth.governmentScraper = 'completed';
+    //   } catch (error) {
+    //     this.systemHealth.governmentScraper = 'error';
+    //   }
+    // });
 
     // News aggregation - Every 30 minutes
-    cron.schedule('*/30 * * * *', async () => {
-      try {
-        this.systemHealth.newsAggregator = 'running';
-        await revolutionaryNewsAggregator.performComprehensiveAggregation();
-        this.systemHealth.newsAggregator = 'completed';
-        this.lastUpdate = new Date();
-      } catch (error) {
-        this.systemHealth.newsAggregator = 'error';
-      }
-    });
+    // cron.schedule('*/30 * * * *', async () => {
+    //   try {
+    //     this.systemHealth.newsAggregator = 'running';
+    //     await revolutionaryNewsAggregator.performComprehensiveAggregation();
+    //     this.systemHealth.newsAggregator = 'completed';
+    //     this.lastUpdate = new Date();
+    //   } catch (error) {
+    //     this.systemHealth.newsAggregator = 'error';
+    //   }
+    // });
 
     // Analytics generation - Every hour
-    cron.schedule('0 * * * *', async () => {
-      try {
-        this.systemHealth.analytics = 'running';
-        await comprehensiveAnalytics.generateComprehensiveAnalytics();
-        this.systemHealth.analytics = 'completed';
-      } catch (error) {
-        this.systemHealth.analytics = 'error';
-      }
-    });
+    // cron.schedule('0 * * * *', async () => {
+    //   try {
+    //     this.systemHealth.analytics = 'running';
+    //     await comprehensiveAnalytics.generateComprehensiveAnalytics();
+    //     this.systemHealth.analytics = 'completed';
+    //   } catch (error) {
+    //     this.systemHealth.analytics = 'error';
+    //   }
+    // });
 
     // System health monitoring - Every 5 minutes
-    cron.schedule('*/5 * * * *', async () => {
-      try {
-        await realTimeMonitoring.collectMetrics();
-      } catch (error) {
-        // Optionally log or handle error, but do not leave empty block
-      }
-    });
+    // cron.schedule('*/5 * * * *', async () => {
+    //   try {
+    //     await realTimeMonitoring.collectMetrics();
+    //   } catch (error) {
+    //     // Optionally log or handle error, but do not leave empty block
+    //   }
+    // });
   }
 
   /**
