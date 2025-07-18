@@ -114,8 +114,9 @@ export async function registerRoutes(app: Express): Promise<void> {
       const { email, password } = req.body;
       if (!email || !password) return res.status(400).json({ message: "Email and password required" });
       const [user] = await db.select().from(users).where(eq(users.email, email));
-      if (!user || !user.password) return res.status(401).json({ message: "Invalid credentials" });
-      // TODO: Add password hash comparison here if not present
+      if (!user || !user.password || !(await bcrypt.compare(password, user.password))) {
+        return res.status(401).json({ message: "Invalid credentials" });
+      }
       const token = generateToken(user);
       res.json({ token, user: { id: user.id, email: user.email } });
     } catch (err) {
@@ -695,31 +696,14 @@ export async function registerRoutes(app: Express): Promise<void> {
   });
 
   // AI Chat endpoint
-  app.post('/api/civic/chat', async (req: Request, res: Response) => {
-    const chatSchema = z.object({
-      query: z.string().min(1),
-      region: z.string().optional()
-    });
+  app.post('/api/ai/chat', async (req, res) => {
     try {
-      const parsed = chatSchema.safeParse(req.body);
-      if (!parsed.success) {
-        return res.status(400).json({ message: "Invalid chat data", errors: parsed.error.errors });
-      }
-      const { query, region } = parsed.data;
-      
-      if (!query) {
-        return res.status(400).json({ message: "Query is required" });
-      }
-
-      const response = await civicAI.processQuery({
-        query,
-        region: region || 'canada'
-      });
-
+      const { message, conversationHistory, region } = req.body;
+      const response = await civicAI.processQuery({ query: message, region, conversationHistory });
       res.json(response);
-    } catch (error) {
-      logger.error({ msg: 'Error processing civic AI query', error });
-      res.status(500).json({ message: "Failed to process query" });
+    } catch (err) {
+      console.error('AI chat error:', (err as any)?.stack || err);
+      res.status(500).json({ message: 'AI chat failed', error: (err as any)?.message });
     }
   });
 
