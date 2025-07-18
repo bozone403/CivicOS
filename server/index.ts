@@ -161,12 +161,11 @@ process.on('uncaughtException', (err) => {
     res.status(status).json({ message });
   });
 
-  // REMOVE serveStatic(app);
-  // Instead, serve static files directly with express.static
+  // Patch static file serving to use ESM-compatible __dirname
   const distPath = path.resolve(__dirname, "../client/dist/public");
   app.use(express.static(distPath));
-  app.use("*", (_req, res) => {
-    res.sendFile(path.resolve(distPath, "index.html"));
+  app.get("*", (req, res) => {
+    res.sendFile(path.join(distPath, "index.html"));
   });
 
   // ALWAYS serve the app on port 5000
