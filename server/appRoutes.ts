@@ -19,6 +19,7 @@ import jwt from "jsonwebtoken";
 import * as bcrypt from "bcryptjs";
 import { v4 as uuidv4 } from "uuid";
 import pino from "pino";
+import Stripe from 'stripe';
 
 const logger = pino();
 
@@ -3103,6 +3104,33 @@ export async function registerRoutes(app: Express): Promise<void> {
     } catch (error) {
       logger.error({ msg: 'Error performing legal search', error });
       res.status(500).json({ message: "Failed to perform legal search" });
+    }
+  });
+
+  // Public endpoint: Get total donations (CAD)
+  app.get('/api/donations/total', async (_req, res) => {
+    try {
+      const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2024-04-10' });
+      let total = 0;
+      let hasMore = true;
+      let startingAfter: string | undefined = undefined;
+      while (hasMore) {
+        const charges = await stripe.charges.list({
+          limit: 100,
+          starting_after: startingAfter,
+        });
+        for (const charge of charges.data) {
+          if (charge.paid && charge.status === 'succeeded' && charge.currency === 'cad') {
+            total += charge.amount;
+          }
+        }
+        hasMore = charges.has_more;
+        startingAfter = charges.data.length > 0 ? charges.data[charges.data.length - 1].id : undefined;
+      }
+      // Stripe amounts are in cents
+      res.json({ total: total / 100 });
+    } catch (err) {
+      res.status(500).json({ message: 'Failed to fetch donation total', error: (err as any)?.message });
     }
   });
 
