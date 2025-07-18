@@ -3110,7 +3110,7 @@ export async function registerRoutes(app: Express): Promise<void> {
   // Public endpoint: Get total donations (CAD)
   app.get('/api/donations/total', async (_req, res) => {
     try {
-      const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2024-04-10' as any });
+      const stripe: any = new (Stripe as any)(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2024-04-10' });
       let total = 0;
       let hasMore = true;
       let startingAfter: string | undefined = undefined;
