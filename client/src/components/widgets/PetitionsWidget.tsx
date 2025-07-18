@@ -40,7 +40,7 @@ interface PetitionStats {
   totalSignatures: number;
 }
 
-const MOCK_DASHBOARD = true;
+const MOCK_DASHBOARD = false;
 
 export default function PetitionsWidget() {
   if (MOCK_DASHBOARD) {

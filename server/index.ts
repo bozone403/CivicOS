@@ -8,7 +8,7 @@ import { realTimeMonitoring } from "./realTimeMonitoring.js";
 import { confirmedAPIs } from "./confirmedAPIs.js";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
-import jwt from "jsonwebtoken";
+import * as jwt from "jsonwebtoken";
 import pino from "pino";
 const logger = pino();
 const JWT_SECRET = process.env.SESSION_SECRET || "changeme";

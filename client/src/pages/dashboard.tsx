@@ -25,21 +25,20 @@ import ComprehensiveNewsWidget from "@/components/widgets/ComprehensiveNewsWidge
 import { PrimeMinisterIntelligence } from "@/components/widgets/PrimeMinisterIntelligence";
 
 export default function Dashboard() {
-  // const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   const [selectedTab, setSelectedTab] = useState("overview");
 
-  // Remove authentication check for demo access
-  // if (!isAuthenticated) {
-  //   return (
-  //     <div className="flex items-center justify-center min-h-screen">
-  //       <div className="text-center">
-  //         <Shield className="w-16 h-16 mx-auto mb-4 text-blue-600" />
-  //         <h2 className="text-2xl font-bold mb-2">Authentication Required</h2>
-  //         <p className="text-gray-600 mb-4">Please log in to access your civic dashboard</p>
-  //       </div>
-  //     </div>
-  //   );
-  // }
+  if (!isAuthenticated) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <Shield className="w-16 h-16 mx-auto mb-4 text-blue-600" />
+          <h2 className="text-2xl font-bold mb-2">Authentication Required</h2>
+          <p className="text-gray-600 mb-4">Please log in to access your civic dashboard</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

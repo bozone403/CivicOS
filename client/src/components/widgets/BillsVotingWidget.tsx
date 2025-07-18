@@ -31,7 +31,7 @@ interface UserVote {
   timestamp: string;
 }
 
-const MOCK_DASHBOARD = true;
+const MOCK_DASHBOARD = false;
 
 export default function BillsVotingWidget() {
   if (MOCK_DASHBOARD) {

@@ -82,7 +82,7 @@ interface NewsComparison {
   };
 }
 
-const MOCK_DASHBOARD = true;
+const MOCK_DASHBOARD = false;
 
 export function NewsAnalysisWidget() {
   const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null);

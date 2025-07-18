@@ -23,7 +23,7 @@ interface Politician {
   profileImage?: string;
 }
 
-const MOCK_DASHBOARD = true;
+const MOCK_DASHBOARD = false;
 
 export default function PoliticiansWidget() {
   if (MOCK_DASHBOARD) {

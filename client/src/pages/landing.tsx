@@ -106,7 +106,7 @@ export default function Landing() {
                 <div className="text-xs text-gray-500">Independent • Transparent • Authentic</div>
               </div>
               <Button 
-                onClick={() => window.location.href = '/dashboard'}
+                onClick={() => window.location.href = '/login'}
                 className="bg-red-600 text-white hover:bg-red-700 font-semibold px-6 sm:px-8 py-2 sm:py-3 rounded-lg text-base sm:text-lg w-full sm:w-auto"
               >
                 Access Platform
@@ -161,7 +161,7 @@ export default function Landing() {
             <div className="flex flex-col sm:flex-row gap-6 justify-center mb-16">
               <Button 
                 size="lg"
-                onClick={() => window.location.href = '/dashboard'}
+                onClick={() => window.location.href = '/login'}
                 className="bg-red-600 hover:bg-red-700 text-white px-10 py-4 font-bold text-lg rounded-lg shadow-lg hover:shadow-xl transition-all"
               >
                 Access Platform / Accéder à la Plateforme
@@ -363,7 +363,7 @@ export default function Landing() {
           </div>
           <Button 
             size="lg"
-            onClick={() => window.location.href = '/dashboard'}
+            onClick={() => window.location.href = '/login'}
             className="bg-white text-red-600 hover:bg-red-50 px-8 py-3 text-lg font-semibold"
           >
             Access Platform / Accéder à la Plateforme
