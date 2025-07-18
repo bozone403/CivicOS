@@ -28,6 +28,7 @@ function jwtAuth(req: any, res: any, next: any) {
 }
 
 const app = express();
+app.set('trust proxy', 1); // Trust first proxy (Render, Heroku, etc.)
 
 // Add JwtPayload type for req.user
 interface JwtPayload {

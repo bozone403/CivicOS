@@ -28,6 +28,7 @@ function jwtAuth(req, res, next) {
     }
 }
 const app = express();
+app.set('trust proxy', 1); // Trust first proxy (Render, Heroku, etc.)
 // CORS configuration
 app.use((req, res, next) => {
     const allowedOrigins = [
