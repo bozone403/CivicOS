@@ -12,9 +12,9 @@ export default function PlatformNotice({ onClose }: { onClose: () => void }) {
         >
           ×
         </button>
-        <h2 className="text-lg font-bold mb-2 text-red-700">Platform Notice: Live Upgrades & Civic Expansion Underway</h2>
+        <h2 className="text-lg font-bold mb-2 text-red-700">Platform Notice</h2>
         <p className="mb-3 text-gray-700 text-sm">
-          CivicOS is in the midst of a major live upgrade to expand our infrastructure and enhance platform stability. Some features may be temporarily limited—thank you for your patience as we build a stronger, more transparent democracy.
+          CivicOS is currently undergoing live upgrades and maintenance to expand our infrastructure and improve platform stability. Some features may be temporarily unavailable or behave unexpectedly as we work to enhance your experience. Thank you for your patience and support during this process!
         </p>
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-2 mb-2">
           <p className="text-xs text-blue-800 font-medium">
@@ -34,7 +34,7 @@ export default function PlatformNotice({ onClose }: { onClose: () => void }) {
           </p>
         </div>
         <p className="text-xs text-gray-700 mb-2">
-          If you value independent, nonpartisan civic oversight, please consider supporting our mission. Your contribution helps us scale, innovate, and keep Canadian democracy open and accountable.
+          If you value independent, nonpartisan civic oversight, please consider supporting our development. Your contribution helps us scale, innovate, and keep Canadian democracy open and accountable.
         </p>
         <Button
           className="w-full mt-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm"

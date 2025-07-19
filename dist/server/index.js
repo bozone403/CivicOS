@@ -137,7 +137,7 @@ process.on('uncaughtException', (err) => {
         res.status(status).json({ message });
     });
     // Patch static file serving to use ESM-compatible __dirname
-    const distPath = path.resolve(__dirname, "../client/dist/public");
+    const distPath = path.resolve(__dirname, "../dist/public");
     app.use(express.static(distPath));
     app.get("*", (req, res) => {
         res.sendFile(path.join(distPath, "index.html"));
