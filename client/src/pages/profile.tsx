@@ -1,10 +1,13 @@
 
 import { useAuth } from "@/hooks/useAuth";
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Trophy, Zap, Vote, MessageSquare, FileText, Users } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
+import { Button } from "@/components/ui/button";
+import { toast } from "@/hooks/use-toast";
 
 // Add UserStats interface
 interface UserStats {
@@ -21,6 +24,43 @@ interface UserStats {
 export default function Profile() {
   const { user: rawUser, isAuthenticated } = useAuth();
   const user = rawUser as any;
+  const [showWelcome, setShowWelcome] = useState(false);
+
+  useEffect(() => {
+    // Show welcome notice only for new users (e.g., just registered)
+    // This could be improved by checking a query param or user context
+    if (window.location.search.includes("welcome")) {
+      setShowWelcome(true);
+    }
+  }, []);
+
+  if (showWelcome) {
+    return (
+      <Card className="max-w-xl mx-auto mt-12 p-6 bg-yellow-50 border-yellow-400 text-center">
+        <CardContent>
+          <h2 className="text-2xl font-bold mb-2">Welcome to CivicOS Beta!</h2>
+          <p className="mb-4 text-gray-700">
+            <strong>Note:</strong> This is a beta version of CivicOS. Some data (politicians, bills, news, etc.) may be generated or demo due to limited access to official APIs or government data. We are actively working on full, real-time integration for all features.
+          </p>
+          <p className="mb-4 text-gray-700">
+            Your feedback and participation are crucial! The more people who join, the faster we can improve and unlock full civic intelligence for everyone.
+          </p>
+          <Button
+            className="mb-2"
+            onClick={() => {
+              navigator.clipboard.writeText(window.location.origin);
+              toast({ title: "Link copied!", description: "Share CivicOS with your friends and help us grow." });
+            }}
+          >
+            Invite Friends
+          </Button>
+          <div className="text-xs text-gray-500 mt-2">
+            Exposure is key—spread the word and help build a better civic future!
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   // Use UserStats as the generic type
   const { data: userStats } = useQuery<UserStats>({

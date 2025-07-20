@@ -1,4 +1,4 @@
-import { Switch, Route } from "wouter";
+import { Switch, Route, Link } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -52,6 +52,12 @@ import Manifesto from "@/pages/manifesto";
 import NotFound from "@/pages/not-found";
 import canadianCrest from "./assets/ChatGPT Image Jun 20, 2025, 06_03_54 PM_1750464244456.png";
 import DashboardDemo from "@/pages/dashboard-demo";
+import CivicSocialLayout from "./pages/civicsocial";
+import CivicSocialFeed from "./pages/civicsocial-feed";
+import CivicSocialProfile from "./pages/civicsocial-profile";
+import CivicSocialFriends from "./pages/civicsocial-friends";
+import { Button } from "./components/ui/button";
+import NotificationBell from "./components/NotificationBell";
 
 // Add a simple error boundary
 class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { hasError: boolean; error: any }> {
@@ -167,6 +173,27 @@ function Router() {
                 <Route path="/notifications" component={Notifications} />
                 <Route path="/users/:userId" component={UserProfile} />
                 <Route path="/dashboard-demo" component={DashboardDemo} />
+                {/* CivicSocial routes (flat, Wouter style) */}
+                <Route path="/civicsocial/feed" component={() => (
+                  <CivicSocialLayout>
+                    <CivicSocialFeed />
+                  </CivicSocialLayout>
+                )} />
+                <Route path="/civicsocial/profile" component={() => (
+                  <CivicSocialLayout>
+                    <CivicSocialProfile />
+                  </CivicSocialLayout>
+                )} />
+                <Route path="/civicsocial/friends" component={() => (
+                  <CivicSocialLayout>
+                    <CivicSocialFriends />
+                  </CivicSocialLayout>
+                )} />
+                {/* Optionally, redirect /civicsocial to /civicsocial/feed */}
+                <Route path="/civicsocial" component={() => {
+                  window.location.replace("/civicsocial/feed");
+                  return null;
+                }} />
                 <Route path="*">
                   {() => <NotFound />}
                 </Route>

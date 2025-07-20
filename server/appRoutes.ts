@@ -2,6 +2,7 @@ import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage.js";
 import simpleNotificationsRouter from "./simpleNotifications.js";
+import civicSocialRouter from "./civicSocial.js";
 
 import { authenticDataService } from "./authenticDataService.js";
 import { politicianDataEnhancer } from "./politicianDataEnhancer.js";
@@ -96,6 +97,9 @@ const postIdParamSchema = z.object({ postId: z.string().regex(/^\d+$/) });
 export async function registerRoutes(app: Express): Promise<void> {
   // Simple notifications routes (no auth required)
   app.use("/api/notifications", simpleNotificationsRouter);
+
+  // CivicSocial routes (JWT protected)
+  app.use("/api/social", jwtAuth, civicSocialRouter);
 
   // JWT Registration
   app.post('/api/auth/register', async (req, res) => {
@@ -3278,4 +3282,38 @@ export async function registerRoutes(app: Express): Promise<void> {
 
   const httpServer = createServer(app);
   httpServer.listen(3000);
+
+  // Add after other auth routes:
+  app.post('/api/verify-temporary', jwtAuth, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      await storage.updateUserVerification(userId, true);
+      const updatedUser = await storage.getUser(userId);
+      res.json({ success: true, user: updatedUser });
+    } catch (error) {
+      res.status(500).json({ success: false, error: (error instanceof Error ? error.message : String(error)) });
+    }
+  });
+
+  // Add after other auth/user routes:
+  app.get('/api/identity/status', jwtAuth, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const user = await storage.getUser(userId);
+      if (!user) return res.status(404).json({ isVerified: false, verificationLevel: 'none' });
+      res.json({
+        isVerified: !!user.isVerified,
+        verificationLevel: user.isVerified ? 'Temporary Verified' : 'none',
+        verifiedAt: user.isVerified ? user.updatedAt : null,
+        permissions: {
+          canVote: !!user.isVerified,
+          canComment: true,
+          canCreatePetitions: !!user.isVerified,
+          canAccessFOI: !!user.isVerified
+        }
+      });
+    } catch (error) {
+      res.status(500).json({ isVerified: false, verificationLevel: 'none', error: (error instanceof Error ? error.message : String(error)) });
+    }
+  });
 }

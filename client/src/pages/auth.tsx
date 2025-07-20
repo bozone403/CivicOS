@@ -58,7 +58,7 @@ export default function Auth() {
         title: "Welcome to CivicOS",
         description: "Your account has been created successfully",
       });
-      window.location.href = "/dashboard";
+      window.location.href = "/profile";
     },
     onError: (error: any) => {
       let message = error.message || "Registration failed";

@@ -1214,3 +1214,49 @@ export type CharterRight = typeof charterRights.$inferSelect;
 export type InsertCharterRight = typeof charterRights.$inferInsert;
 export type ProvincialRight = typeof provincialRights.$inferSelect;
 export type InsertProvincialRight = typeof provincialRights.$inferInsert;
+
+// --- CivicSocial: Social Feed, Comments, Likes, Friends ---
+
+export const socialPosts = pgTable("social_posts", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  content: text("content"),
+  imageUrl: varchar("image_url"),
+  type: varchar("type").default("post"), // post, share
+  originalItemId: integer("original_item_id"), // for shares: id of bill, petition, news, etc
+  originalItemType: varchar("original_item_type"), // bill, petition, news
+  comment: text("comment"), // for shares
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const socialComments = pgTable("social_comments", {
+  id: serial("id").primaryKey(),
+  postId: integer("post_id").notNull().references(() => socialPosts.id),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  content: text("content").notNull(),
+  parentCommentId: integer("parent_comment_id"), // for threading
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const socialLikes = pgTable("social_likes", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  postId: integer("post_id").references(() => socialPosts.id),
+  commentId: integer("comment_id"), // nullable, for liking comments
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => ({
+  uniqueLike: unique().on(table.userId, table.postId, table.commentId),
+}));
+
+export const userFriends = pgTable("user_friends", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  friendId: varchar("friend_id").notNull().references(() => users.id),
+  status: varchar("status").default("pending"), // pending, accepted, blocked
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => ({
+  uniqueFriendship: unique().on(table.userId, table.friendId),
+}));

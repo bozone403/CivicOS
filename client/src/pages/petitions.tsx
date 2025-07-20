@@ -83,6 +83,56 @@ export default function Petitions() {
     queryKey: ["/api/petitions", selectedCategory, sortBy]
   });
 
+  const fallbackPetitions: Petition[] = [
+    {
+      id: 1,
+      title: 'Ban Single-Use Plastics Nationwide',
+      description: 'Petition to ban single-use plastics across Canada to reduce environmental impact.',
+      targetSignatures: 100000,
+      currentSignatures: 85000,
+      status: 'active',
+      category: 'Environment',
+      creatorId: "1",
+      creator: { firstName: 'Jane', email: 'jane@example.com', profileImageUrl: 'https://via.placeholder.com/50' },
+      createdAt: '2024-06-01',
+      bill: { title: 'Environment Protection Act', billNumber: 'S-123' },
+      isVerified: true,
+      targetOfficial: 'Prime Minister'
+    },
+    {
+      id: 2,
+      title: 'Increase Healthcare Funding',
+      description: 'Petition to increase federal healthcare transfers to provinces.',
+      targetSignatures: 50000,
+      currentSignatures: 42000,
+      status: 'active',
+      category: 'Healthcare',
+      creatorId: "2",
+      creator: { firstName: 'John', email: 'john@example.com', profileImageUrl: 'https://via.placeholder.com/50' },
+      createdAt: '2024-05-15',
+      bill: { title: 'Health Care Transfers Act', billNumber: 'C-123' },
+      isVerified: false,
+      targetOfficial: 'Minister of Health'
+    },
+    {
+      id: 3,
+      title: 'End Police Brutality in Canada',
+      description: 'Petition to end police brutality and systemic racism in Canadian law enforcement.',
+      targetSignatures: 10000,
+      currentSignatures: 7500,
+      status: 'active',
+      category: 'Justice',
+      creatorId: "3",
+      creator: { firstName: 'Sarah', email: 'sarah@example.com', profileImageUrl: 'https://via.placeholder.com/50' },
+      createdAt: '2024-07-01',
+      bill: { title: 'Police Accountability Act', billNumber: 'S-456' },
+      isVerified: true,
+      targetOfficial: 'Minister of Justice'
+    }
+  ];
+
+  const petitionsToShow = (petitions.length === 0) ? fallbackPetitions : petitions;
+
   // Fetch bills for petition targeting
   const { data: bills = [] } = useQuery<Bill[]>({
     queryKey: ["/api/bills"]
@@ -178,7 +228,7 @@ export default function Petitions() {
     return Math.min((current / target) * 100, 100);
   };
 
-  const filteredPetitions = petitions.filter(petition => 
+  const filteredPetitions = petitionsToShow.filter(petition => 
     selectedCategory === "all" || petition.category === selectedCategory
   );
 

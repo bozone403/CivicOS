@@ -72,14 +72,14 @@ export default function PoliticiansWidget({ liveData = true }: { liveData?: bool
   const fallbackPoliticians: Politician[] = [
     {
       id: 1,
-      name: 'Justin Trudeau',
+      name: 'Mark Carney',
       position: 'Prime Minister',
       party: 'Liberal',
       level: 'federal',
-      constituency: 'Papineau, QC',
+      constituency: 'Central Nova, NS',
       trustScore: 'A+',
-      contact: { phone: '+1-613-992-4211', email: 'justin.trudeau@parl.gc.ca' },
-      recentActivity: 'Spoke in Parliament on climate policy',
+      contact: { phone: '+1-613-995-0253', email: 'mark.carney@parl.gc.ca' },
+      recentActivity: 'Announced new economic policy',
       profileImage: ''
     },
     {

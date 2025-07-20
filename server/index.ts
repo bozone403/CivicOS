@@ -153,7 +153,7 @@ process.on('uncaughtException', (err) => {
 (async () => {
   await registerRoutes(app);
   const { createServer } = await import("http");
-  const server = createServer(app);
+  const httpServer = createServer(app);
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
@@ -172,87 +172,84 @@ process.on('uncaughtException', (err) => {
   // ALWAYS serve the app on port 5000
   // this serves both the API and the client.
   // It is the only port that is not firewalled.
-  const port = 5000;
-  server.listen(port, "0.0.0.0", () => {
-    logger.info({ msg: `serving on port ${port}` });
-    
-    // Initialize automatic government data sync
-    initializeDataSync();
-    
-    // Run immediate data scraping on startup
-    setTimeout(async () => {
-      try {
-        console.log("Starting immediate data scraping...");
-        const { syncAllGovernmentData } = await import('./dataSync.js');
-        await syncAllGovernmentData();
-        console.log("Initial data scraping completed");
-      } catch (error) {
-        console.error("Initial data scraping failed:", error);
-      }
-    }, 5000); // 5 second delay
-    
-    // Initialize confirmed government API data enhancement
-    async function initializeConfirmedAPIs() {
-      // Statistics Canada and Open Government API enhancement
-      setInterval(async () => {
-        try {
-          await confirmedAPIs.enhanceDataWithConfirmedAPIs();
-        } catch (error) {
-          logger.error({ msg: "Government API enhancement error", error });
-        }
-      }, 12 * 60 * 60 * 1000); // Every 12 hours
-      
-      // Initial enhancement
-      setTimeout(() => {
-        confirmedAPIs.enhanceDataWithConfirmedAPIs();
-      }, 60000); // 1 minute delay to let scraping start first
+  httpServer.listen(5001);
+  
+  // Initialize automatic government data sync
+  initializeDataSync();
+  
+  // Run immediate data scraping on startup
+  setTimeout(async () => {
+    try {
+      console.log("Starting immediate data scraping...");
+      const { syncAllGovernmentData } = await import('./dataSync.js');
+      await syncAllGovernmentData();
+      console.log("Initial data scraping completed");
+    } catch (error) {
+      console.error("Initial data scraping failed:", error);
     }
-    
-    // Initialize politician data enhancement
-    async function initializePoliticianEnhancement() {
+  }, 5000); // 5 second delay
+  
+  // Initialize confirmed government API data enhancement
+  async function initializeConfirmedAPIs() {
+    // Statistics Canada and Open Government API enhancement
+    setInterval(async () => {
       try {
-        const { politicianDataEnhancer } = await import('./politicianDataEnhancer.js');
-        setTimeout(async () => {
-          await politicianDataEnhancer.enhanceAllPoliticians();
-          const stats = await politicianDataEnhancer.getEnhancementStats();
-          // Politician enhancement completed
-        }, 120000); // 2 minute delay to let initial data load
+        await confirmedAPIs.enhanceDataWithConfirmedAPIs();
       } catch (error) {
-        logger.error({ msg: 'Error enhancing politician data', error });
+        logger.error({ msg: "Government API enhancement error", error });
       }
-    }
+    }, 12 * 60 * 60 * 1000); // Every 12 hours
     
-    initializeConfirmedAPIs();
-    initializePoliticianEnhancement();
-    
-    // Initialize daily news analysis and propaganda detection
-    initializeNewsAnalysis();
-    
-    // Start comprehensive Canadian news analysis
-    comprehensiveNewsAnalyzer.performComprehensiveAnalysis().catch(error => {
-      logger.error({ msg: "Error in comprehensive news analysis", error });
-    });
-
-    // Schedule regular comprehensive news analysis (every 2 hours)
-    setInterval(() => {
-      comprehensiveNewsAnalyzer.performComprehensiveAnalysis().catch(error => {
-        logger.error({ msg: "Error in scheduled news analysis", error });
-      });
-    }, 2 * 60 * 60 * 1000); // 2 hours
-    
-    // Start real-time platform monitoring
-    realTimeMonitoring.startMonitoring();
-    
-    // Initialize comprehensive legal database
+    // Initial enhancement
     setTimeout(() => {
-      // Legal data populator removed during cleanup
-    }, 5000);
-    
-    // Populate forum with civic discussions (disabled to prevent duplicates)
-    // setTimeout(() => {
-    //   forumPopulator.populateInitialDiscussions().catch(console.error);
-    // }, 8000);
+      confirmedAPIs.enhanceDataWithConfirmedAPIs();
+    }, 60000); // 1 minute delay to let scraping start first
+  }
+  
+  // Initialize politician data enhancement
+  async function initializePoliticianEnhancement() {
+    try {
+      const { politicianDataEnhancer } = await import('./politicianDataEnhancer.js');
+      setTimeout(async () => {
+        await politicianDataEnhancer.enhanceAllPoliticians();
+        const stats = await politicianDataEnhancer.getEnhancementStats();
+        // Politician enhancement completed
+      }, 120000); // 2 minute delay to let initial data load
+    } catch (error) {
+      logger.error({ msg: 'Error enhancing politician data', error });
+    }
+  }
+  
+  initializeConfirmedAPIs();
+  initializePoliticianEnhancement();
+  
+  // Initialize daily news analysis and propaganda detection
+  initializeNewsAnalysis();
+  
+  // Start comprehensive Canadian news analysis
+  comprehensiveNewsAnalyzer.performComprehensiveAnalysis().catch(error => {
+    logger.error({ msg: "Error in comprehensive news analysis", error });
   });
+
+  // Schedule regular comprehensive news analysis (every 2 hours)
+  setInterval(() => {
+    comprehensiveNewsAnalyzer.performComprehensiveAnalysis().catch(error => {
+      logger.error({ msg: "Error in scheduled news analysis", error });
+    });
+  }, 2 * 60 * 60 * 1000); // 2 hours
+  
+  // Start real-time platform monitoring
+  realTimeMonitoring.startMonitoring();
+  
+  // Initialize comprehensive legal database
+  setTimeout(() => {
+    // Legal data populator removed during cleanup
+  }, 5000);
+  
+  // Populate forum with civic discussions (disabled to prevent duplicates)
+  // setTimeout(() => {
+  //   forumPopulator.populateInitialDiscussions().catch(console.error);
+  // }, 8000);
 })();
 
 // Monitoring/health endpoint

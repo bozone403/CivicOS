@@ -105,6 +105,7 @@ export function MobileNavigation() {
         { title: "Civic Ledger", href: "/ledger", icon: BookOpen, badge: "Personal" },
         { title: "Discussions", href: "/discussions", icon: MessageSquare, badge: "24" },
         { title: "Petitions", href: "/petitions", icon: FileText },
+        { title: "CivicSocial", href: "/civicsocial", icon: Users, badge: "New" },
         { title: "Contact Officials", href: "/contacts", icon: Users }
       ]
     },
