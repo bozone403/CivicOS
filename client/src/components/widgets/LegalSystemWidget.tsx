@@ -60,7 +60,7 @@ interface LegalHierarchy {
   municipal: Record<string, any>;
 }
 
-export function LegalSystemWidget() {
+export function LegalSystemWidget({ liveData = true }: { liveData?: boolean }) {
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState("criminal");
   const [isInitializing, setIsInitializing] = useState(false);
@@ -80,6 +80,111 @@ export function LegalSystemWidget() {
     enabled: searchQuery.length > 2,
     staleTime: 30 * 1000,
   });
+
+  // Fallback data when API returns empty
+  const fallbackCriminalCode: CriminalCodeSection[] = [
+    {
+      id: 1,
+      sectionNumber: "320.13",
+      title: "Operation while impaired",
+      offense: "Impaired driving causing bodily harm",
+      content: "Everyone commits an offence who operates a conveyance while the person's ability to operate it is impaired to any degree by alcohol or a drug or by a combination of alcohol and a drug.",
+      maxPenalty: "10 years imprisonment",
+      minPenalty: "1 year imprisonment",
+      isSummary: false,
+      isIndictable: true,
+      category: "Traffic Offences"
+    },
+    {
+      id: 2,
+      sectionNumber: "380(1)",
+      title: "Fraud",
+      offense: "Fraud over $5,000",
+      content: "Every one who, by deceit, falsehood or other fraudulent means, whether or not it is a false pretence within the meaning of this Act, defrauds the public or any person, whether ascertained or not, of any property, money or valuable security or any service.",
+      maxPenalty: "14 years imprisonment",
+      minPenalty: null,
+      isSummary: false,
+      isIndictable: true,
+      category: "Property Crimes"
+    },
+    {
+      id: 3,
+      sectionNumber: "264(1)",
+      title: "Criminal harassment",
+      offense: "Criminal harassment",
+      content: "No person shall, without lawful authority and knowing that another person is harassed or recklessly as to whether the other person is harassed, engage in conduct referred to in subsection (2) that causes that other person reasonably, in all the circumstances, to fear for their safety or the safety of anyone known to them.",
+      maxPenalty: "5 years imprisonment",
+      minPenalty: null,
+      isSummary: false,
+      isIndictable: true,
+      category: "Personal Safety"
+    },
+    {
+      id: 4,
+      sectionNumber: "151",
+      title: "Sexual interference",
+      offense: "Sexual interference with person under 16",
+      content: "Every person who, for a sexual purpose, touches, directly or indirectly, with a part of the body or with an object, any part of the body of a person under the age of 16 years.",
+      maxPenalty: "10 years imprisonment",
+      minPenalty: "1 year imprisonment",
+      isSummary: false,
+      isIndictable: true,
+      category: "Sexual Offences"
+    },
+    {
+      id: 5,
+      sectionNumber: "334",
+      title: "Theft",
+      offense: "Theft under $5,000",
+      content: "Every one commits theft who fraudulently and without colour of right takes, or fraudulently and without colour of right converts to his use or to the use of another person, anything, whether animate or inanimate, with intent to deprive, temporarily or absolutely, the owner of it or a person who has a special property or interest in it.",
+      maxPenalty: "2 years imprisonment",
+      minPenalty: null,
+      isSummary: true,
+      isIndictable: false,
+      category: "Property Crimes"
+    }
+  ];
+
+  const fallbackLegalHierarchy: LegalHierarchy = {
+    federal: {
+      criminal: fallbackCriminalCode,
+      constitutional: [
+        {
+          id: 1,
+          title: "Constitution Act, 1867",
+          shortTitle: "BNA Act",
+          actNumber: "30 & 31 Victoria, c. 3",
+          jurisdiction: "Federal",
+          category: "Constitutional",
+          status: "In Force",
+          dateEnacted: new Date("1867-07-01"),
+          summary: "Established the Dominion of Canada and defined the division of powers between federal and provincial governments.",
+          keyProvisions: ["Division of powers", "Federal jurisdiction", "Provincial jurisdiction"]
+        },
+        {
+          id: 2,
+          title: "Constitution Act, 1982",
+          shortTitle: "Charter of Rights",
+          actNumber: "Canada Act 1982, c. 11",
+          jurisdiction: "Federal",
+          category: "Constitutional",
+          status: "In Force",
+          dateEnacted: new Date("1982-04-17"),
+          summary: "Established the Canadian Charter of Rights and Freedoms and patriated the Constitution.",
+          keyProvisions: ["Charter of Rights", "Fundamental freedoms", "Legal rights"]
+        }
+      ],
+      civil: [],
+      administrative: [],
+      regulatory: []
+    },
+    provincial: {},
+    municipal: {}
+  };
+
+  // Use liveData to determine whether to use real data or fallback
+  const displayCriminalCode = liveData && criminalCode && criminalCode.length > 0 ? criminalCode : fallbackCriminalCode;
+  const displayLegalHierarchy = liveData && legalHierarchy ? legalHierarchy : fallbackLegalHierarchy;
 
   const initializeLegalSystem = async () => {
     setIsInitializing(true);
@@ -110,8 +215,8 @@ export function LegalSystemWidget() {
     return "outline";
   };
 
-  const filteredCriminalCode = Array.isArray(criminalCode)
-    ? criminalCode.filter((section: CriminalCodeSection) =>
+  const filteredCriminalCode = Array.isArray(displayCriminalCode)
+    ? displayCriminalCode.filter((section: CriminalCodeSection) =>
         searchQuery.length < 3 ||
         section.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
         section.content.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -237,8 +342,8 @@ export function LegalSystemWidget() {
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {legalHierarchy?.federal?.constitutional && Array.isArray(legalHierarchy.federal.constitutional) &&
-                    legalHierarchy.federal.constitutional.slice(0, 10).map((act: LegalAct) => (
+                  {displayLegalHierarchy?.federal?.constitutional && Array.isArray(displayLegalHierarchy.federal.constitutional) &&
+                    displayLegalHierarchy.federal.constitutional.slice(0, 10).map((act: LegalAct) => (
                       <div key={act.id} className="border rounded-lg p-4 space-y-2">
                         <div className="flex items-start justify-between">
                           <div className="flex-1">

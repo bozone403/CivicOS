@@ -10,7 +10,7 @@ const getConfig = (): Config => {
 
   if (isProduction) {
     return {
-      apiUrl: 'https://civicos.ca', // Same domain for API
+      apiUrl: 'https://civicos.onrender.com', // Backend on Render
       environment: 'production'
     };
   }

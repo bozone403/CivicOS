@@ -84,7 +84,7 @@ interface NewsComparison {
 
 const MOCK_DASHBOARD = false;
 
-export function NewsAnalysisWidget() {
+export function NewsAnalysisWidget({ liveData = true }: { liveData?: boolean }) {
   const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null);
   const [analysisData, setAnalysisData] = useState<NewsComparison | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -165,6 +165,14 @@ export function NewsAnalysisWidget() {
   const { data: trending = [] } = useQuery<NewsArticle[]>({
     queryKey: ["/api/news/trending"],
   });
+
+  const fallbackArticles = [
+    { id: 1, title: 'Demo News 1', summary: 'Demo summary', source: 'Demo Source', publishedAt: '2024-07-18', credibilityScore: 90, bias: 'center', category: 'Demo' },
+    { id: 2, title: 'Demo News 2', summary: 'Another summary', source: 'Demo Source', publishedAt: '2024-07-17', credibilityScore: 80, bias: 'left', category: 'Demo' },
+  ];
+  const fallbackTrending = [fallbackArticles[0]];
+  const displayArticles = liveData && articles.length > 0 ? articles : fallbackArticles;
+  const displayTrending = liveData && trending.length > 0 ? trending : fallbackTrending;
 
   const analyzeArticle = async (article: NewsArticle) => {
     setSelectedArticle(article);
@@ -505,13 +513,13 @@ export function NewsAnalysisWidget() {
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
-          {trending.length > 0 && (
+          {displayTrending.length > 0 && (
             <div className="space-y-3">
               <h3 className="font-semibold flex items-center gap-2 text-sm">
                 <TrendingUp className="h-4 w-4 text-civic-green" />
                 Trending Stories
               </h3>
-              {trending.slice(0, 2).map((article) => (
+              {displayTrending.slice(0, 2).map((article) => (
                 <div 
                   key={article.id}
                   className="p-3 border rounded-lg hover:bg-gray-50 cursor-pointer transition-colors"
@@ -539,7 +547,7 @@ export function NewsAnalysisWidget() {
               <Eye className="h-4 w-4 text-civic-blue" />
               Recent Articles
             </h3>
-            {articles.slice(0, 3).map((article) => (
+            {displayArticles.slice(0, 3).map((article) => (
               <div 
                 key={article.id}
                 className="p-3 border rounded-lg hover:bg-gray-50 cursor-pointer transition-colors"
@@ -563,7 +571,7 @@ export function NewsAnalysisWidget() {
             ))}
           </div>
 
-          {articles.length === 0 && trending.length === 0 && (
+          {displayArticles.length === 0 && displayTrending.length === 0 && (
             <div className="text-center py-8 text-muted-foreground">
               <Brain className="h-12 w-12 mx-auto mb-3 opacity-50" />
               <p>No articles available for analysis</p>

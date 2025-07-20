@@ -28,10 +28,9 @@ import { apiRequest } from "@/lib/queryClient";
 import PlatformNotice from "@/components/PlatformNotice";
 
 export default function Landing() {
-  const [showDebugPopup, setShowDebugPopup] = useState(true);
-  const [showDonationPopup, setShowDonationPopup] = useState(false);
   const { toast } = useToast();
   const [showNotice, setShowNotice] = useState(false);
+  const [showDonation, setShowDonation] = useState(false);
 
   useEffect(() => {
     if (!sessionStorage.getItem('civicos-platform-notice-shown')) {
@@ -39,6 +38,11 @@ export default function Landing() {
       sessionStorage.setItem('civicos-platform-notice-shown', 'true');
     }
   }, []);
+
+  const handleSupportClick = () => {
+    setShowNotice(false);
+    setShowDonation(true);
+  };
 
   const handleDemoLogin = async () => {
     try {
@@ -62,38 +66,9 @@ export default function Landing() {
 
   return (
     <>
-      {showNotice && <PlatformNotice onClose={() => setShowNotice(false)} />}
+      {showNotice && <PlatformNotice onClose={() => setShowNotice(false)} onSupport={handleSupportClick} />}
+      {showDonation && <DonationPopup isOpen={showDonation} onClose={() => setShowDonation(false)} onSuccess={() => {}} />}
       <div className="min-h-screen bg-white">
-        {/* Debugging Popup */}
-        <Dialog open={showDebugPopup} onOpenChange={setShowDebugPopup}>
-          <DialogContent className="max-w-md mx-auto bg-white shadow-xl rounded-xl border border-red-200">
-            <DialogHeader>
-              <DialogTitle className="flex items-center space-x-2">
-                <span>Platform Notice</span>
-              </DialogTitle>
-              <DialogDescription>
-                CivicOS is currently undergoing live maintenance and upgrades. Some features may be temporarily unavailable or behave unexpectedly as we work to improve your experience. Thank you for your patience and support during this process!
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4 text-center">
-              <p className="text-lg font-bold text-red-700">CivicOS is currently undergoing live maintenance and upgrades.</p>
-              <p className="text-gray-700">Some features may be temporarily unavailable or behave unexpectedly as we work to improve your experience. Thank you for your patience and support during this process!</p>
-              <Button
-                onClick={() => setShowDonationPopup(true)}
-                className="w-full justify-center space-x-2 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-200 group text-base h-11 px-4"
-              >
-                <Heart className="w-5 h-5 group-hover:scale-105 transition-transform duration-150" />
-                <span className="font-semibold">Consider supporting our development</span>
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
-        {/* Stripe Donation Popup */}
-        <DonationPopup
-          isOpen={showDonationPopup}
-          onClose={() => setShowDonationPopup(false)}
-          onSuccess={() => setShowDonationPopup(false)}
-        />
         {/* Professional Platform Header */}
         <header className="bg-white shadow-sm border-b border-gray-200">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

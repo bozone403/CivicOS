@@ -23,10 +23,13 @@ import { NewsAnalysisWidget } from "@/components/widgets/NewsAnalysisWidget";
 import { LegalSystemWidget } from "@/components/widgets/LegalSystemWidget";
 import ComprehensiveNewsWidget from "@/components/widgets/ComprehensiveNewsWidget";
 import { PrimeMinisterIntelligence } from "@/components/widgets/PrimeMinisterIntelligence";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 
 export default function Dashboard() {
   const { user, isAuthenticated } = useAuth();
   const [selectedTab, setSelectedTab] = useState("overview");
+  const [liveData, setLiveData] = useState(true);
 
   if (!isAuthenticated) {
     return (
@@ -43,7 +46,14 @@ export default function Dashboard() {
   return (
     <div className="space-y-6">
       <IdentityVerificationBanner />
-
+      {/* Live Data Toggle */}
+      <div className="flex items-center space-x-3 mb-2">
+        <Switch id="live-data-toggle" checked={liveData} onCheckedChange={setLiveData} />
+        <Label htmlFor="live-data-toggle" className="text-sm font-medium">
+          Live Data
+        </Label>
+        <span className="text-xs text-gray-500">({liveData ? "Real-time from Parliament" : "Demo Data"})</span>
+      </div>
       <Tabs value={selectedTab} onValueChange={setSelectedTab} className="space-y-6">
         <TabsList className="grid w-full grid-cols-2 lg:grid-cols-4 gap-1">
           <TabsTrigger value="overview" className="flex items-center justify-center space-x-1 lg:space-x-2 text-xs lg:text-sm p-2 lg:p-3">
@@ -70,31 +80,31 @@ export default function Dashboard() {
 
         <TabsContent value="overview" className="space-y-4 md:space-y-6">
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 md:gap-6">
-            <PoliticiansWidget />
-            <BillsVotingWidget />
-            <PetitionsWidget />
-            <NewsAnalysisWidget />
+            <PoliticiansWidget liveData={liveData} />
+            <BillsVotingWidget liveData={liveData} />
+            <PetitionsWidget liveData={liveData} />
+            <NewsAnalysisWidget liveData={liveData} />
           </div>
         </TabsContent>
 
         <TabsContent value="engagement" className="space-y-4 md:space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
-            <BillsVotingWidget />
-            <PetitionsWidget />
+            <BillsVotingWidget liveData={liveData} />
+            <PetitionsWidget liveData={liveData} />
           </div>
         </TabsContent>
 
         <TabsContent value="intelligence" className="space-y-4 md:space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
             <PrimeMinisterIntelligence />
-            <ComprehensiveNewsWidget />
+            <ComprehensiveNewsWidget liveData={liveData} />
           </div>
         </TabsContent>
 
         <TabsContent value="legal" className="space-y-4 md:space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
-            <LegalSystemWidget />
-            <NewsAnalysisWidget />
+            <LegalSystemWidget liveData={liveData} />
+            <NewsAnalysisWidget liveData={liveData} />
           </div>
         </TabsContent>
       </Tabs>

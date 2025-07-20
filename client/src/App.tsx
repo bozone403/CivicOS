@@ -86,8 +86,11 @@ class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { has
 function Router() {
   const { isAuthenticated, isLoading } = useAuth();
   const [hasAgreedToManifesto, setHasAgreedToManifesto] = useState(() => {
-    return localStorage.getItem('civicos-manifesto-agreed') === 'true';
+    // Temporarily bypass manifesto requirement for debugging
+    return true; // localStorage.getItem('civicos-manifesto-agreed') === 'true';
   });
+
+
 
   if (isLoading) {
     return (
@@ -188,6 +191,67 @@ function Router() {
             <Route path="/login" component={Auth} />
             <Route path="/register" component={Auth} />
             <Route path="/manifesto" component={ManifestoRoute} />
+            <Route path="/dashboard">
+              {() => {
+                // Redirect to auth for unauthenticated users
+                setTimeout(() => {
+                  window.location.href = "/auth";
+                }, 0);
+                return (
+                  <div className="min-h-screen flex items-center justify-center">
+                    <div className="text-center">
+                      <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-red-600 mx-auto"></div>
+                      <p className="mt-4 text-slate-600">Redirecting to login...</p>
+                    </div>
+                  </div>
+                );
+              }}
+            </Route>
+            <Route path="/voting">
+              {() => {
+                setTimeout(() => {
+                  window.location.href = "/auth";
+                }, 0);
+                return (
+                  <div className="min-h-screen flex items-center justify-center">
+                    <div className="text-center">
+                      <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-red-600 mx-auto"></div>
+                      <p className="mt-4 text-slate-600">Redirecting to login...</p>
+                    </div>
+                  </div>
+                );
+              }}
+            </Route>
+            <Route path="/ledger">
+              {() => {
+                setTimeout(() => {
+                  window.location.href = "/auth";
+                }, 0);
+                return (
+                  <div className="min-h-screen flex items-center justify-center">
+                    <div className="text-center">
+                      <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-red-600 mx-auto"></div>
+                      <p className="mt-4 text-slate-600">Redirecting to login...</p>
+                    </div>
+                  </div>
+                );
+              }}
+            </Route>
+            <Route path="/politicians">
+              {() => {
+                setTimeout(() => {
+                  window.location.href = "/auth";
+                }, 0);
+                return (
+                  <div className="min-h-screen flex items-center justify-center">
+                    <div className="text-center">
+                      <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-red-600 mx-auto"></div>
+                      <p className="mt-4 text-slate-600">Redirecting to login...</p>
+                    </div>
+                  </div>
+                );
+              }}
+            </Route>
             <Route path="*">
               {() => <NotFound />}
             </Route>

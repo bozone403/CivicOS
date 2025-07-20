@@ -1,7 +1,7 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
 
-export default function PlatformNotice({ onClose }: { onClose: () => void }) {
+export default function PlatformNotice({ onClose, onSupport }: { onClose: () => void; onSupport?: () => void }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
       <div className="bg-white rounded-lg shadow-lg max-w-md w-full p-6 relative">
@@ -38,7 +38,7 @@ export default function PlatformNotice({ onClose }: { onClose: () => void }) {
         </p>
         <Button
           className="w-full mt-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm"
-          onClick={() => window.open('https://civicos.ca/donate', '_blank')}
+          onClick={onSupport ? onSupport : () => window.open('https://civicos.ca/donate', '_blank')}
         >
           Learn More / Donate
         </Button>

@@ -13,7 +13,7 @@ import {
   MessageSquare, 
   BarChart3, 
   Globe, 
-  Bell, 
+  Bell,
   Settings, 
   LogOut,
   ChevronRight,
@@ -37,19 +37,25 @@ import {
   Handshake,
   Briefcase,
   Target,
-  Zap
+  Zap,
+  Crown,
+  Brain,
+  Activity,
+  Heart
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import canadianCrest from "../assets/ChatGPT Image Jun 20, 2025, 06_03_54 PM_1750464244456.png";
+import DonationPopup from "@/components/DonationPopup";
 
 export function MobileNavigation() {
   const [location] = useLocation();
   const { user: rawUser, logout } = useAuth();
   const user = rawUser as any;
   const [expandedSections, setExpandedSections] = useState<string[]>(["Democratic Systems"]);
+  const [showDonationPopup, setShowDonationPopup] = useState(false);
 
   const toggleSection = (sectionTitle: string) => {
     setExpandedSections(prev => 
@@ -67,53 +73,62 @@ export function MobileNavigation() {
 
   const navigationSections = [
     {
-      title: "Democratic Systems",
+      title: "Political Intelligence Hub",
       items: [
-        { title: "Dashboard", href: "/", icon: Home, badge: "Live" },
-        { title: "Politicians", href: "/politicians", icon: Users, badge: "85K+" },
-        { title: "Voting System", href: "/voting", icon: Vote, badge: "Active" },
-        { title: "Elections", href: "/elections", icon: Target, badge: "2025" },
-        { title: "Civic Ledger", href: "/ledger", icon: BookOpen },
-        { title: "Pulse Monitor", href: "/pulse", icon: TrendingUp, badge: "Real-time" }
+        { title: "Dashboard", href: "/", icon: Home },
+        { title: "Politicians", href: "/politicians", icon: Users, badge: "2,847" },
+        { title: "Bills & Voting", href: "/voting", icon: FileText, badge: "Active" },
+        { title: "Elections", href: "/elections", icon: Crown },
+        { title: "News Analysis", href: "/news", icon: TrendingUp, badge: "Live" }
       ]
     },
     {
-      title: "Legal Framework",
+      title: "Civic Engagement Suite",
       items: [
-        { title: "Legal Database", href: "/legal", icon: Scale, badge: "Complete" },
-        { title: "Legal Search", href: "/legal-search", icon: Search },
-        { title: "Court Cases", href: "/cases", icon: Gavel, badge: "Active" },
-        { title: "Rights Portal", href: "/rights", icon: Shield },
-        { title: "Procurement", href: "/procurement", icon: DollarSign, badge: "Tracked" }
+        { title: "Civic Ledger", href: "/ledger", icon: BookOpen, badge: "Personal" },
+        { title: "Discussions", href: "/discussions", icon: MessageSquare, badge: "24" },
+        { title: "Petitions", href: "/petitions", icon: FileText },
+        { title: "Contact Officials", href: "/contacts", icon: Users }
       ]
     },
     {
-      title: "Civic Intelligence",
+      title: "Government Integrity Tools",
       items: [
-        { title: "News Analysis", href: "/news", icon: Newspaper, badge: "AI" },
-        { title: "Finance Tracker", href: "/finance", icon: BarChart3, badge: "Live" },
-        { title: "Lobbyist Watch", href: "/lobbyists", icon: Handshake, badge: "Monitored" },
-        { title: "Corruption Intel", href: "/corruption", icon: AlertTriangle, badge: "Active" },
-        { title: "Trust Metrics", href: "/trust", icon: UserCheck },
-        { title: "Memory Bank", href: "/memory", icon: Archive, badge: "Historical" }
+        { title: "Campaign Finance", href: "/finance", icon: DollarSign, badge: "New" },
+        { title: "Lobbyist Mapping", href: "/lobbyists", icon: Eye },
+        { title: "Procurement Tracker", href: "/procurement", icon: Building },
+        { title: "Political Memory", href: "/memory", icon: Brain }
       ]
     },
     {
-      title: "Engagement Tools",
+      title: "Legal Oversight Grid",
       items: [
-        { title: "Discussion Forum", href: "/discussions", icon: MessageSquare, badge: "Active" },
-        { title: "Petitions", href: "/petitions", icon: PenTool, badge: "Open" },
-        { title: "Whistleblower", href: "/whistleblower", icon: AlertTriangle, badge: "Secure" },
-        { title: "FOI Requests", href: "/foi", icon: FileText, badge: "Tracked" },
-        { title: "Service Tracker", href: "/services", icon: Building },
-        { title: "Contact Officials", href: "/contacts", icon: Megaphone }
+        { title: "Legal System", href: "/legal", icon: Gavel },
+        { title: "Your Rights", href: "/rights", icon: Shield, badge: "Charter" },
+        { title: "Constitutional Cases", href: "/cases", icon: Scale },
+        { title: "Legal Search", href: "/legal-search", icon: Search }
       ]
     },
     {
-      title: "Intelligence Hub",
+      title: "Transparency Arsenal",
       items: [
-        { title: "Maps & Data", href: "/maps", icon: Map, badge: "Interactive" },
-        { title: "Leaks Portal", href: "/leaks", icon: Zap, badge: "Verified" },
+        { title: "Document Leaks", href: "/leaks", icon: Archive, badge: "Secure" },
+        { title: "Freedom of Information", href: "/foi", icon: Eye },
+        { title: "Whistleblower Portal", href: "/whistleblower", icon: AlertTriangle },
+        { title: "Corruption Patterns", href: "/corruption", icon: Activity }
+      ]
+    },
+    {
+      title: "Civic Analytics",
+      items: [
+        { title: "Civic Pulse", href: "/pulse", icon: Activity, badge: "Live" },
+        { title: "Trust Metrics", href: "/trust", icon: BarChart3 },
+        { title: "Engagement Maps", href: "/maps", icon: TrendingUp }
+      ]
+    },
+    {
+      title: "Platform Hub",
+      items: [
         { title: "Manifesto", href: "/manifesto", icon: BookOpen, badge: "Core" }
       ]
     }
@@ -219,6 +234,14 @@ export function MobileNavigation() {
           {/* Footer with Settings and Logout */}
           <div className="flex-shrink-0 p-4 border-t border-gray-200 dark:border-gray-700">
             <div className="space-y-2">
+              {/* Support Button */}
+              <Button
+                onClick={() => setShowDonationPopup(true)}
+                className="w-full justify-start space-x-2 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-200 group text-sm h-10 mb-2"
+              >
+                <Heart className="w-4 h-4 group-hover:scale-105 transition-transform duration-150" />
+                <span className="font-semibold">Support Platform</span>
+              </Button>
               <Link href="/settings">
                 <Button
                   variant={isActive("/settings") ? "secondary" : "ghost"}
@@ -266,6 +289,12 @@ export function MobileNavigation() {
               </div>
             </div>
           </div>
+          {/* Donation Popup */}
+          <DonationPopup
+            isOpen={showDonationPopup}
+            onClose={() => setShowDonationPopup(false)}
+            onSuccess={() => setShowDonationPopup(false)}
+          />
         </div>
       </SheetContent>
     </Sheet>

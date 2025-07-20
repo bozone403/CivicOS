@@ -147,7 +147,7 @@ export function CivicChatBot({ onClose }: CivicChatBotProps) {
 
   return (
     <Card className={cn(
-      "fixed bottom-6 right-6 z-50 shadow-2xl border-red-200",
+      "fixed bottom-6 right-6 z-50 shadow-2xl border-red-200 bg-white",
       isMinimized ? "w-80 h-16" : "w-96 h-[600px]"
     )}>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3 bg-red-600 text-white rounded-t-lg">

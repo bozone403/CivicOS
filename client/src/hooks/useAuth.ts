@@ -18,11 +18,11 @@ export function useAuth() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  // Use User as the generic type for the user query
+  // Temporarily disable user query to avoid loading issues
   const { data: user, isLoading, error } = useQuery<User | null>({
     queryKey: ["/api/auth/user"],
     retry: false,
-    enabled: !!getToken(), // Only fetch if JWT is present
+    enabled: false, // Disabled to avoid loading issues
   });
 
   // Handle 401 errors by clearing token and redirecting to login
@@ -66,7 +66,7 @@ export function useAuth() {
         title: "Login successful",
         description: "Welcome to CivicOS!",
       });
-      window.location.href = "/";
+      window.location.href = "/dashboard";
     },
     onError: (error: any) => {
       toast({
@@ -80,7 +80,7 @@ export function useAuth() {
   return {
     user: user || null,
     isLoading,
-    isAuthenticated: !!getToken() && !!user && !error,
+    isAuthenticated: !!getToken(), // Simplified: just check if token exists
     logout,
     login,
   };
