@@ -1,16 +1,7 @@
-import fetch from 'node-fetch';
 import { db } from './db.js';
 import { bills, politicians, votes, politicianStatements } from '../shared/schema.js';
 import { sql, desc, like } from 'drizzle-orm';
-async function callOllamaMistral(prompt) {
-    const response = await fetch('https://looked-english-boolean-surf.trycloudflare.com/api/generate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ model: 'mistral', prompt, stream: false })
-    });
-    const data = await response.json();
-    return data.response || data.generated_text || '';
-}
+import { callOllamaMistral } from './utils/aiService.js';
 export class CivicAIService {
     openai;
     constructor() {

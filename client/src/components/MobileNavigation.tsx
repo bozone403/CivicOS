@@ -45,10 +45,21 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import canadianCrest from "../assets/ChatGPT Image Jun 20, 2025, 06_03_54 PM_1750464244456.png";
 import DonationPopup from "@/components/DonationPopup";
+
+// Add Notification type for clarity
+interface Notification {
+  id: string | number;
+  type: string;
+  title: string;
+  message: string;
+  timestamp: string;
+  read: boolean;
+  priority: string;
+}
 
 export function MobileNavigation() {
   const [location] = useLocation();
@@ -70,6 +81,12 @@ export function MobileNavigation() {
     if (href !== "/" && location.startsWith(href)) return true;
     return false;
   };
+
+  const { data: notifications = [] } = useQuery<Notification[]>({
+    queryKey: ["/api/notifications"],
+    enabled: true,
+  });
+  const unreadCount = notifications.filter((n) => !n.read).length;
 
   const navigationSections = [
     {
@@ -259,7 +276,9 @@ export function MobileNavigation() {
                 >
                   <Bell className="w-4 h-4" />
                   <span>Notifications</span>
-                  <Badge variant="destructive" className="ml-auto text-xs">3</Badge>
+                  {unreadCount > 0 && (
+                    <Badge variant="destructive" className="ml-auto text-xs">{unreadCount}</Badge>
+                  )}
                 </Button>
               </Link>
               

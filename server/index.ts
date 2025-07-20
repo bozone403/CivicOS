@@ -11,6 +11,7 @@ import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 import jwt from "jsonwebtoken";
 import pino from "pino";
+import 'dotenv/config';
 const logger = pino();
 const JWT_SECRET = process.env.SESSION_SECRET || "changeme";
 const __filename = fileURLToPath(import.meta.url);
@@ -177,6 +178,18 @@ process.on('uncaughtException', (err) => {
     
     // Initialize automatic government data sync
     initializeDataSync();
+    
+    // Run immediate data scraping on startup
+    setTimeout(async () => {
+      try {
+        console.log("Starting immediate data scraping...");
+        const { syncAllGovernmentData } = await import('./dataSync.js');
+        await syncAllGovernmentData();
+        console.log("Initial data scraping completed");
+      } catch (error) {
+        console.error("Initial data scraping failed:", error);
+      }
+    }, 5000); // 5 second delay
     
     // Initialize confirmed government API data enhancement
     async function initializeConfirmedAPIs() {

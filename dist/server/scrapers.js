@@ -20,19 +20,14 @@ export async function scrapeCurrentMPs() {
         // Enhanced data collection from multiple official sources
         const sources = [
             {
-                name: "OpenParliament API",
-                url: `${OPEN_PARLIAMENT_API}politicians/?format=json&current=true`,
-                parser: parseOpenParliamentData
-            },
-            {
-                name: "Parliament of Canada Directory",
-                url: "https://www.ourcommons.ca/Members/en/search/xml",
-                parser: parseOfficialDirectoryData
-            },
-            {
-                name: "House of Commons Members",
-                url: "https://www.ourcommons.ca/members/en/addresses",
+                name: "Parliament of Canada Members",
+                url: "https://www.ourcommons.ca/members/en",
                 parser: parseHouseOfCommonsData
+            },
+            {
+                name: "CBC News Politics",
+                url: "https://www.cbc.ca/news/politics",
+                parser: parseCBCPoliticsData
             }
         ];
         let allMPs = [];
@@ -122,19 +117,23 @@ async function parseHouseOfCommonsData(data) {
     try {
         const $ = cheerio.load(data);
         const members = [];
-        $('.member-card, .mp-profile, .member-listing').each((_, element) => {
-            const $member = $(element);
-            const name = $member.find('.name, .member-name, h3').first().text().trim();
-            const party = $member.find('.party, .member-party').first().text().trim();
-            const constituency = $member.find('.constituency, .riding').first().text().trim();
-            if (name) {
+        // Parliament of Canada MPs use .ce-mip-mp-tile
+        $('.ce-mip-mp-tile').each((_, element) => {
+            const $mp = $(element);
+            const name = $mp.find('.ce-mip-mp-name').text().trim();
+            const party = $mp.find('.ce-mip-mp-party').text().trim();
+            const constituency = $mp.find('.ce-mip-mp-constituency').text().trim();
+            const province = $mp.find('.ce-mip-mp-province').text().trim();
+            const email = $mp.find('a[href^="mailto:"]').attr('href')?.replace('mailto:', '') || '';
+            const website = $mp.find('a[href^="http"]').attr('href') || '';
+            if (name && party && constituency) {
                 members.push({
                     name,
                     party,
                     constituency,
-                    province: extractProvinceFromConstituency(constituency),
-                    email: $member.find('a[href^="mailto:"]').attr('href')?.replace('mailto:', '') || '',
-                    website: $member.find('a[href^="http"]').attr('href') || ''
+                    province,
+                    email,
+                    website
                 });
             }
         });
@@ -142,6 +141,59 @@ async function parseHouseOfCommonsData(data) {
     }
     catch (error) {
         // Error parsing House of Commons data
+        return [];
+    }
+}
+/**
+ * Parse CBC Politics data for politician mentions
+ */
+async function parseCBCPoliticsData(data) {
+    try {
+        const $ = cheerio.load(data);
+        const members = [];
+        // Look for politician names in news articles
+        const politicianNames = [
+            'Justin Trudeau', 'Pierre Poilievre', 'Jagmeet Singh',
+            'Yves-François Blanchet', 'Elizabeth May', 'Chrystia Freeland'
+        ];
+        $('a[href*="/news/"]').each((_, element) => {
+            const $link = $(element);
+            const title = $link.text().trim();
+            for (const name of politicianNames) {
+                if (title.includes(name)) {
+                    // Extract party from context
+                    let party = '';
+                    if (title.includes('Liberal') || name === 'Justin Trudeau' || name === 'Chrystia Freeland') {
+                        party = 'Liberal';
+                    }
+                    else if (title.includes('Conservative') || name === 'Pierre Poilievre') {
+                        party = 'Conservative';
+                    }
+                    else if (title.includes('NDP') || name === 'Jagmeet Singh') {
+                        party = 'NDP';
+                    }
+                    else if (title.includes('Bloc') || name === 'Yves-François Blanchet') {
+                        party = 'Bloc Québécois';
+                    }
+                    else if (title.includes('Green') || name === 'Elizabeth May') {
+                        party = 'Green';
+                    }
+                    members.push({
+                        name,
+                        party,
+                        constituency: '',
+                        province: '',
+                        email: '',
+                        website: ''
+                    });
+                    break;
+                }
+            }
+        });
+        return members;
+    }
+    catch (error) {
+        // Error parsing CBC Politics data
         return [];
     }
 }
@@ -323,9 +375,9 @@ export async function scrapeFederalBills() {
         // Enhanced bill collection from multiple official sources
         const sources = [
             {
-                name: "Parliament Bills RSS",
-                url: PARLIAMENT_RSS_BILLS,
-                type: "rss"
+                name: "Parliament Bills Page",
+                url: "https://www.parl.ca/LegisInfo/en/bills",
+                type: "html"
             },
             {
                 name: "LegisInfo Bills API",
@@ -401,19 +453,25 @@ async function parseHTMLBills(data) {
     try {
         const $ = cheerio.load(data);
         const bills = [];
-        $('.bill-item, .legislation-item, .bill-listing').each((_, element) => {
-            const $bill = $(element);
-            const title = $bill.find('.title, .bill-title, h3').first().text().trim();
-            const number = $bill.find('.bill-number, .number').first().text().trim();
-            if (title && number) {
+        // Parliament of Canada bills use .legisinfo__bill-row
+        $('.legisinfo__bill-row').each((_, element) => {
+            const $row = $(element);
+            const number = $row.find('.legisinfo__bill-number').text().trim();
+            const title = $row.find('.legisinfo__bill-title').text().trim();
+            const status = $row.find('.legisinfo__bill-status').text().trim();
+            const sponsor = $row.find('.legisinfo__bill-sponsor').text().trim();
+            const lastAction = $row.find('.legisinfo__bill-last-action').text().trim();
+            const summary = $row.find('.legisinfo__bill-summary').text().trim() || title;
+            const fullTextUrl = $row.find('a[href*="/DocumentViewer/"]').attr('href') || '';
+            if (number && title) {
                 bills.push({
                     number,
                     title,
-                    summary: $bill.find('.summary, .description').first().text().trim(),
-                    status: $bill.find('.status, .stage').first().text().trim(),
-                    sponsor: $bill.find('.sponsor, .minister').first().text().trim(),
-                    lastAction: $bill.find('.last-action, .updated').first().text().trim(),
-                    fullTextUrl: $bill.find('a[href*="bill"]').attr('href') || ''
+                    summary,
+                    status,
+                    sponsor,
+                    lastAction,
+                    fullTextUrl
                 });
             }
         });

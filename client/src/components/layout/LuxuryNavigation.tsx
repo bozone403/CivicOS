@@ -9,7 +9,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { useAuth } from "@/hooks/useAuth";
 import { VerificationStatusBadge } from "@/components/VerificationStatusBadge";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { CanadianCoatOfArms, CanadianMapleLeaf } from "@/components/CanadianCoatOfArms";
@@ -119,6 +119,17 @@ const navigationSections = [
   }
 ];
 
+// Add Notification type for clarity
+interface Notification {
+  id: string | number;
+  type: string;
+  title: string;
+  message: string;
+  timestamp: string;
+  read: boolean;
+  priority: string;
+}
+
 export function LuxuryNavigation() {
   const [location] = useLocation();
   const { user: rawUser, logout } = useAuth();
@@ -165,6 +176,12 @@ export function LuxuryNavigation() {
     if (href !== "/" && location.startsWith(href)) return true;
     return false;
   };
+
+  const { data: notifications = [] } = useQuery<Notification[]>({
+    queryKey: ["/api/notifications"],
+    enabled: true,
+  });
+  const unreadCount = notifications.filter((n) => !n.read).length;
 
   return (
     <div className={cn(
@@ -321,7 +338,9 @@ export function LuxuryNavigation() {
             >
               <Bell className="w-3 h-3 lg:w-4 lg:h-4" />
               <span>Notifications</span>
-              <Badge variant="destructive" className="ml-auto text-xs">3</Badge>
+              {unreadCount > 0 && (
+                <Badge variant="destructive" className="ml-auto text-xs">{unreadCount}</Badge>
+              )}
             </Button>
           </Link>
           

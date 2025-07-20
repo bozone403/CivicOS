@@ -91,13 +91,21 @@ export default function Landing() {
                   <div className="text-xs sm:text-sm text-gray-600 font-medium">Canadian Government Accountability</div>
                   <div className="text-xs text-gray-500">Independent • Transparent • Authentic</div>
                 </div>
-                <Button 
-                  onClick={() => window.location.href = '/login'}
-                  className="bg-red-600 text-white hover:bg-red-700 font-semibold px-6 sm:px-8 py-2 sm:py-3 rounded-lg text-base sm:text-lg w-full sm:w-auto"
-                >
-                  Access Platform
-                  <ArrowRight className="w-5 h-5 ml-2" />
-                </Button>
+                <div className="flex flex-row gap-2 mt-2 sm:mt-0">
+                  <Button 
+                    onClick={() => window.location.href = '/auth'}
+                    className="bg-red-600 text-white hover:bg-red-700 font-semibold px-4 sm:px-6 py-2 rounded-lg text-base sm:text-lg"
+                  >
+                    Login
+                  </Button>
+                  <Button 
+                    onClick={() => window.location.href = '/auth'}
+                    variant="outline"
+                    className="border-2 border-red-600 text-red-600 hover:bg-red-50 font-semibold px-4 sm:px-6 py-2 rounded-lg text-base sm:text-lg"
+                  >
+                    Sign Up
+                  </Button>
+                </div>
               </div>
             </div>
           </div>
@@ -147,10 +155,10 @@ export default function Landing() {
               <div className="flex flex-col sm:flex-row gap-6 justify-center mb-16">
                 <Button 
                   size="lg"
-                  onClick={() => window.location.href = '/login'}
+                  onClick={() => window.location.href = '/auth'}
                   className="bg-red-600 hover:bg-red-700 text-white px-10 py-4 font-bold text-lg rounded-lg shadow-lg hover:shadow-xl transition-all"
                 >
-                  Access Platform / Accéder à la Plateforme
+                  Login / Sign Up
                   <ArrowRight className="w-5 h-5 ml-3" />
                 </Button>
                 <Button 
@@ -161,6 +169,15 @@ export default function Landing() {
                 >
                   Learn More / En Savoir Plus
                   <FileText className="w-5 h-5 ml-3" />
+                </Button>
+                <Button 
+                  size="lg"
+                  variant="secondary"
+                  onClick={handleDemoLogin}
+                  className="bg-gray-100 text-gray-700 hover:bg-gray-200 px-10 py-4 font-semibold text-lg rounded-lg border border-gray-300"
+                >
+                  Demo Login
+                  <Shield className="w-5 h-5 ml-3" />
                 </Button>
               </div>
 

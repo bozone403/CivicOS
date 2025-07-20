@@ -3,10 +3,27 @@ import { db } from "./db.js";
 import { notifications } from "../shared/schema.js";
 import { eq, and, desc } from "drizzle-orm";
 import pino from "pino";
+import jwt from "jsonwebtoken";
 const logger = pino();
 const router = Router();
-// Get notifications - no auth required for demo
-router.get("/", async (req, res) => {
+// JWT Authentication middleware
+function jwtAuth(req, res, next) {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return res.status(401).json({ message: 'No token provided' });
+    }
+    const token = authHeader.substring(7);
+    try {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback-secret');
+        req.user = decoded;
+        next();
+    }
+    catch (error) {
+        return res.status(401).json({ message: 'Invalid token' });
+    }
+}
+// Get notifications
+router.get("/", jwtAuth, async (req, res) => {
     try {
         const result = await db.select().from(notifications)
             .where(eq(notifications.userId, req.user.id))
@@ -19,7 +36,7 @@ router.get("/", async (req, res) => {
     }
 });
 // Mark as read
-router.patch("/:id/read", async (req, res) => {
+router.patch("/:id/read", jwtAuth, async (req, res) => {
     try {
         const notificationId = parseInt(req.params.id);
         await db.update(notifications)
@@ -33,7 +50,7 @@ router.patch("/:id/read", async (req, res) => {
     }
 });
 // Delete notification
-router.delete("/:id", async (req, res) => {
+router.delete("/:id", jwtAuth, async (req, res) => {
     try {
         const notificationId = parseInt(req.params.id);
         await db.delete(notifications)
@@ -46,7 +63,7 @@ router.delete("/:id", async (req, res) => {
     }
 });
 // Clear all notifications
-router.delete("/", async (req, res) => {
+router.delete("/", jwtAuth, async (req, res) => {
     try {
         await db.delete(notifications)
             .where(eq(notifications.userId, req.user.id));

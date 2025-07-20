@@ -37,15 +37,7 @@ interface NewsComparison {
   divergence: string[];
 }
 
-async function callOllamaMistral(prompt: string): Promise<string> {
-  const response = await fetch('https://looked-english-boolean-surf.trycloudflare.com/api/generate', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ model: 'mistral', prompt, stream: false })
-  });
-  const data: any = await response.json();
-  return data.response || data.generated_text || '';
-}
+import { callOllamaMistral } from './utils/aiService.js';
 
 export class OpenAINewsAnalyzer {
   private sources: NewsSource[] = [

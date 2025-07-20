@@ -3,15 +3,7 @@ import { db } from './db.js';
 import { newsArticles } from '../shared/schema.js';
 import { eq, and, gte, desc } from 'drizzle-orm';
 
-async function callOllamaMistral(prompt: string): Promise<string> {
-  const response = await fetch('https://looked-english-boolean-surf.trycloudflare.com/api/generate', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ model: 'mistral', prompt, stream: false })
-  });
-  const data: any = await response.json();
-  return data.response || data.generated_text || '';
-}
+import { callOllamaMistral } from './utils/aiService.js';
 
 interface CrossSourceAnalysis {
   sourceComparison: Array<{

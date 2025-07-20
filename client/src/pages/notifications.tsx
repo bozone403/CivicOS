@@ -14,6 +14,7 @@ import {
   FileText, Users, Vote, Megaphone, Calendar, Check, Trash2
 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
+import { cn } from "@/lib/utils";
 
 // Fallback types if @shared/schema is missing
 interface Notification {
@@ -132,6 +133,7 @@ export default function Notifications() {
         localStorage.setItem('civicos-notifications', JSON.stringify(updated));
         return updated;
       });
+      queryClient.invalidateQueries({ queryKey: ["/api/notifications"] });
       toast({
         title: "Notification deleted",
         description: "The notification has been removed.",
@@ -177,9 +179,21 @@ export default function Notifications() {
 
   // Mark as read mutation
   const markAsReadMutation = useMutation({
-    mutationFn: (id: number) => apiRequest(`/api/notifications/${id}/read`, 'PATCH'),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/notifications'] });
+    mutationFn: async (id: number) => {
+      try {
+        await apiRequest(`/api/notifications/${id}/read`, 'POST');
+      } catch (error) {
+        console.log('API mark as read failed, using local state');
+      }
+      return id;
+    },
+    onSuccess: (id: number) => {
+      setLocalNotifications(prev => {
+        const updated = prev.map(n => n.id === id ? { ...n, read: true } : n);
+        localStorage.setItem('civicos-notifications', JSON.stringify(updated));
+        return updated;
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/notifications"] });
     }
   });
 
@@ -386,57 +400,37 @@ export default function Notifications() {
           </Card>
         ) : (
           filteredNotifications.map((notification) => (
-            <Card key={notification.id} className={`${!notification.read ? 'border-l-4 border-l-blue-500' : ''}`}>
-              <CardContent className="p-6">
-                <div className="flex items-start justify-between">
-                  <div className="flex items-start space-x-4 flex-1">
-                    <div className={`p-2 rounded-full ${!notification.read ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-600'}`}>
-                      {getNotificationIcon(notification.type)}
-                    </div>
-                    
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center space-x-2 mb-1">
-                        <h3 className={`text-sm font-medium ${!notification.read ? 'text-gray-900' : 'text-gray-600'}`}>
-                          {notification.title}
-                        </h3>
-                        <Badge variant={getPriorityColor(notification.priority)} className="text-xs">
-                          {notification.priority}
-                        </Badge>
-                        {!notification.read && (
-                          <div className="w-2 h-2 bg-blue-500 rounded-full" />
-                        )}
-                      </div>
-                      
-                      <p className="text-sm text-muted-foreground mb-2">
-                        {notification.message}
-                      </p>
-                      
-                      <p className="text-xs text-muted-foreground">
-                        {formatTimestamp(notification.timestamp)}
-                      </p>
-                    </div>
+            <Card key={notification.id} className={cn("border", notification.read ? "border-gray-200" : "border-blue-400")}> 
+              <CardContent className="flex flex-col gap-2 p-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Badge variant={notification.read ? "secondary" : "default"} className={notification.read ? "bg-gray-200 text-gray-500" : "bg-blue-600 text-white"}>
+                      {notification.type}
+                    </Badge>
+                    <span className="font-semibold text-sm">{notification.title}</span>
                   </div>
-                  
-                  <div className="flex items-center space-x-2 ml-4">
-                    {!notification.read && (
-                      <Button 
-                        variant="ghost" 
-                        size="sm"
-                        onClick={() => markAsReadMutation.mutate(notification.id as number)}
-                        disabled={markAsReadMutation.isPending}
-                      >
-                        <Check className="w-4 h-4" />
-                      </Button>
-                    )}
-                    <Button 
-                      variant="ghost" 
+                  {!notification.read && (
+                    <Button
                       size="sm"
-                      onClick={() => deleteNotificationMutation.mutate(notification.id as number)}
-                      disabled={deleteNotificationMutation.isPending}
+                      variant="outline"
+                      className="text-xs px-2 py-1 ml-2"
+                      onClick={() => markAsReadMutation.mutate(notification.id as number)}
                     >
-                      <Trash2 className="w-4 h-4" />
+                      Mark as Read
                     </Button>
-                  </div>
+                  )}
+                </div>
+                <div className="text-xs text-gray-600">{notification.message}</div>
+                <div className="flex items-center justify-between mt-2">
+                  <span className="text-xs text-gray-400">{new Date(notification.timestamp).toLocaleString()}</span>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="text-xs text-red-600 hover:bg-red-50"
+                    onClick={() => deleteNotificationMutation.mutate(notification.id as number)}
+                  >
+                    Delete
+                  </Button>
                 </div>
               </CardContent>
             </Card>

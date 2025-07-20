@@ -136,7 +136,7 @@ export default function Discussions() {
   const defaultCategories: ForumCategory[] = [
     {
       id: 1,
-      name: "General Politics",
+      name: "General Discussions",
       description: "General political discussions and current events",
       color: "#3B82F6",
       icon: "message-circle",
@@ -209,7 +209,7 @@ export default function Discussions() {
   const defaultPosts: ForumPost[] = [
     {
       id: 1,
-      title: "Welcome to CivicOS Discussions!",
+      title: "Welcome to the CivicOS Community!",
       content: "This is the first discussion post in our community. Feel free to start meaningful conversations about Canadian politics, government transparency, and civic engagement. Let's build a more accountable democracy together!",
       authorId: "1",
       categoryId: 1,
@@ -225,7 +225,7 @@ export default function Discussions() {
         email: "admin@civicos.ca"
       },
       category: {
-        name: "General Politics",
+        name: "General Discussions",
         color: "#3B82F6",
         icon: "message-circle"
       }

@@ -1,6 +1,5 @@
 import { db } from "./db.js";
 import { sql } from "drizzle-orm";
-import fetch from 'node-fetch';
 export class OpenAICivicAIService {
     openai; // This will be removed as OpenAI is no longer used
     constructor() {
@@ -301,13 +300,5 @@ Keep the response conversational but authoritative.`;
         return suggestions;
     }
 }
-async function callOllamaMistral(prompt) {
-    const response = await fetch('https://looked-english-boolean-surf.trycloudflare.com/api/generate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ model: 'mistral', prompt, stream: false })
-    });
-    const data = await response.json();
-    return data.response || data.generated_text || '';
-}
+import { callOllamaMistral } from './utils/aiService.js';
 export const openaiCivicAI = new OpenAICivicAIService();
