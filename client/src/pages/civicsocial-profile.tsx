@@ -4,7 +4,7 @@ import { Button } from "../components/ui/button";
 import { useCivicSocialFeed, useCivicSocialPost, useCivicSocialLike, useCivicSocialComment, useCivicSocialFriends } from "../hooks/useCivicSocial";
 import { useAuth } from "../hooks/useAuth";
 import { useLocation } from "wouter";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "../components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "../components/ui/dialog";
 import { Input } from "../components/ui/input";
 import { Textarea } from "../components/ui/textarea";
 import { Badge } from "../components/ui/badge";
@@ -55,6 +55,15 @@ export default function CivicSocialProfile() {
   const userShares = feed ? feed.filter((post: any) => post.userId === user.id && post.type === "share") : [];
   const friends = friendsData?.friends || [];
 
+  // Helper: get friend status for a userId
+  function getFriendStatus(userId: string) {
+    if (!user || user.id === userId) return null;
+    if (friends.some((f: any) => f.friendId === userId || f.userId === userId)) return "Friend";
+    if (friendsData?.sent?.some((req: any) => req.friendId === userId)) return "Pending";
+    if (friendsData?.received?.some((req: any) => req.userId === userId)) return "Requested";
+    return null;
+  }
+
   const handlePost = (e: React.FormEvent) => {
     e.preventDefault();
     if (!content.trim()) return;
@@ -63,7 +72,7 @@ export default function CivicSocialProfile() {
   };
 
   const handleLike = (postId: number) => {
-    likeMutation.mutate(postId);
+    likeMutation.mutate({ postId, reaction: "👍" });
   };
 
   const handleComment = (postId: number) => {
@@ -111,7 +120,16 @@ export default function CivicSocialProfile() {
           />
         </div>
         <div className="flex-1 flex flex-col items-center md:items-start">
-          <div className="font-bold text-lg mb-1">{editName}</div>
+          <div className="font-bold text-lg mb-1 flex items-center gap-2">{editName}
+            {(() => {
+              const status = getFriendStatus(String(user.id)); // Ensure string
+              if (!status) return null;
+              if (status === "Friend") return <span className="px-2 py-0.5 rounded-full bg-green-100 text-green-700 text-xs font-medium">Friend</span>;
+              if (status === "Pending") return <span className="px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-700 text-xs font-medium">Pending</span>;
+              if (status === "Requested") return <span className="px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 text-xs font-medium">Requested</span>;
+              return null;
+            })()}
+          </div>
           <div className="text-muted-foreground mb-2">@{user.email?.split("@")[0]}</div>
           {bio && <div className="text-sm text-gray-700 mb-2 text-center md:text-left max-w-xs">{bio}</div>}
           <div className="flex gap-2 flex-wrap">
@@ -123,6 +141,7 @@ export default function CivicSocialProfile() {
               <DialogContent className="max-w-md">
                 <DialogHeader>
                   <DialogTitle>Edit Profile</DialogTitle>
+                  <DialogDescription>Update your display name and bio for CivicSocial.</DialogDescription>
                 </DialogHeader>
                 <form
                   className="flex flex-col gap-4"

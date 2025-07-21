@@ -92,7 +92,7 @@ export function MobileNavigation() {
     {
       title: "Political Intelligence Hub",
       items: [
-        { title: "Dashboard", href: "/", icon: Home },
+        { title: "Dashboard", href: "/dashboard", icon: Home },
         { title: "Politicians", href: "/politicians", icon: Users, badge: "2,847" },
         { title: "Bills & Voting", href: "/voting", icon: FileText, badge: "Active" },
         { title: "Elections", href: "/elections", icon: Crown },

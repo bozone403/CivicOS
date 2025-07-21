@@ -21,6 +21,10 @@ import * as bcrypt from "bcryptjs";
 import { v4 as uuidv4 } from "uuid";
 import pino from "pino";
 import Stripe from 'stripe';
+import rateLimit from "express-rate-limit";
+import { userBadges } from "../shared/schema.js";
+import { badges } from "../shared/schema.js";
+import { userFriends } from "../shared/schema.js";
 
 const logger = pino();
 
@@ -154,7 +158,12 @@ export async function registerRoutes(app: Express): Promise<void> {
         const user = await storage.getUser(userId);
         if (user) {
           console.log("[/api/auth/user] Found user", userId);
-          return res.json(user);
+          // Add bio, location, website, and social fields
+          const bio = user.bio || "This user hasn't added a bio yet.";
+          const location = user.location || null;
+          const website = user.website || null;
+          const social = user.social || {};
+          return res.json({ user, bio, location, website, social });
         } else {
           console.error("[/api/auth/user] User not found", userId);
           return res.status(404).json({ message: "User not found" });
@@ -202,8 +211,54 @@ export async function registerRoutes(app: Express): Promise<void> {
       const { userId } = req.params;
       const user = await storage.getUser(userId);
       if (!user) return res.status(404).json({ message: "User not found" });
-      // Optionally, fetch posts, votes, etc. from DB here
-      res.json({ user });
+      // Fetch badges
+      const userBadgesRows = await db
+        .select({
+          id: userBadges.id,
+          badgeId: userBadges.badgeId,
+          earnedAt: userBadges.earnedAt,
+          isCompleted: userBadges.isCompleted,
+          name: badges.name,
+          description: badges.description,
+          icon: badges.icon,
+          rarity: badges.rarity,
+          category: badges.category,
+        })
+        .from(userBadges)
+        .leftJoin(badges, eq(userBadges.badgeId, badges.id))
+        .where(eq(userBadges.userId, userId));
+      // Fetch mutual friends if authenticated
+      let mutualFriends: any[] = [];
+      const currentUserId = req.user?.id;
+      if (currentUserId && currentUserId !== userId) {
+        // Get friends of profile user
+        const profileFriends = await db
+          .select({ friendId: userFriends.friendId, userId: userFriends.userId })
+          .from(userFriends)
+          .where(eq(userFriends.status, "accepted"));
+        const profileFriendIds = new Set(
+          profileFriends
+            .filter(f => f.userId === userId || f.friendId === userId)
+            .map(f => f.userId === userId ? f.friendId : f.userId)
+        );
+        // Get friends of current user
+        const currentUserFriends = profileFriends
+          .filter(f => f.userId === currentUserId || f.friendId === currentUserId)
+          .map(f => f.userId === currentUserId ? f.friendId : f.userId);
+        // Mutual friends are in both sets
+        mutualFriends = Array.from(new Set(currentUserFriends.filter(fid => profileFriendIds.has(fid))));
+        // Optionally fetch their names/emails
+        if (mutualFriends.length > 0) {
+          const mutualRows = await db.select().from(users).where(sql`id = ANY(${mutualFriends})`);
+          mutualFriends = mutualRows.map(u => ({ id: u.id, firstName: u.firstName, lastName: u.lastName, email: u.email, profileImageUrl: u.profileImageUrl }));
+        }
+      }
+      // Add a bio field (placeholder for now)
+      const bio = user.bio || "This user hasn't added a bio yet.";
+      const location = user.location || null;
+      const website = user.website || null;
+      const social = user.social || {};
+      res.json({ user, badges: userBadgesRows, mutualFriends, bio, location, website, social });
     } catch (error) {
       logger.error({ msg: 'Error fetching user profile', error });
       res.status(500).json({ message: "Internal server error" });
@@ -3239,21 +3294,6 @@ export async function registerRoutes(app: Express): Promise<void> {
     }
   });
 
-  // Debug endpoint to echo JWT claims
-  app.get('/api/auth/debug-token', (req, res) => {
-    const authHeader = req.headers.authorization;
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return res.status(400).json({ error: 'Missing Authorization header' });
-    }
-    const token = authHeader.split(' ')[1];
-    try {
-      const decoded = jwt.verify(token, JWT_SECRET);
-      res.json({ decoded });
-    } catch (err) {
-      res.status(401).json({ error: 'Invalid or expired token', details: (err as Error).message });
-    }
-  });
-
   // GCKey OAuth callback endpoint
   app.get('/api/auth/gckey/callback', async (req, res) => {
     try {
@@ -3284,6 +3324,49 @@ export async function registerRoutes(app: Express): Promise<void> {
       return res.redirect('/identity-verification?verified=1');
     } catch (error) {
       res.status(500).json({ error: (error instanceof Error ? error.message : String(error)) });
+    }
+  });
+
+  // User search endpoint (no auth, but rate-limited)
+  app.use("/api/users/search", rateLimit({ windowMs: 60 * 1000, max: 30 }));
+  app.get("/api/users/search", async (req, res) => {
+    const q = (req.query.q as string || "").trim();
+    if (!q || q.length < 2) return res.status(400).json({ error: "Query too short" });
+    try {
+      const users = await storage.searchUsers(q);
+      // Only return safe fields
+      const safeUsers = users.map(u => ({
+        id: u.id,
+        email: u.email,
+        firstName: u.firstName,
+        lastName: u.lastName,
+        profileImageUrl: u.profileImageUrl,
+      }));
+      res.json({ users: safeUsers });
+    } catch (err) {
+      res.status(500).json({ error: "Failed to search users", details: err });
+    }
+  });
+
+  // PATCH /api/users/:userId/profile - update bio, location, website, social
+  app.patch('/api/users/:userId/profile', jwtAuth, async (req, res) => {
+    try {
+      const { userId } = req.params;
+      if (req.user?.id !== userId) return res.status(403).json({ message: "Forbidden" });
+      const { bio, location, website, social } = req.body;
+      await db.update(users)
+        .set({
+          bio,
+          location,
+          website,
+          social,
+          updatedAt: new Date(),
+        })
+        .where(eq(users.id, userId));
+      res.json({ success: true });
+    } catch (error) {
+      logger.error({ msg: 'Error updating user profile', error });
+      res.status(500).json({ message: "Failed to update profile" });
     }
   });
 }

@@ -2,7 +2,6 @@
 import { useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { IdentityVerificationBanner } from "@/components/IdentityVerificationBanner";
 import { 
   Users, 
   FileText, 
@@ -45,7 +44,6 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-6">
-      <IdentityVerificationBanner />
       {/* Live Data Toggle */}
       <div className="flex items-center space-x-3 mb-2">
         <Switch id="live-data-toggle" checked={liveData} onCheckedChange={setLiveData} />

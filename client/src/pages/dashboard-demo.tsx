@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { IdentityVerificationBanner } from "@/components/IdentityVerificationBanner";
 import { 
   Activity, 
   Vote, 
@@ -20,7 +19,6 @@ export default function DashboardDemo() {
 
   return (
     <div className="space-y-6">
-      <IdentityVerificationBanner />
       <Tabs value={selectedTab} onValueChange={setSelectedTab} className="space-y-6">
         <TabsList className="grid w-full grid-cols-2 lg:grid-cols-4 gap-1">
           <TabsTrigger value="overview" className="flex items-center justify-center space-x-1 lg:space-x-2 text-xs lg:text-sm p-2 lg:p-3">

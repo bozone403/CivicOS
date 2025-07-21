@@ -4,6 +4,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { useAuth } from "@/hooks/useAuth";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 
 import { VotingButtons } from "@/components/VotingButtons";
 import { 
@@ -19,6 +27,7 @@ import {
   ThumbsDown,
   Eye
 } from "lucide-react";
+import { useState } from "react";
 
 interface UserProfileData {
   user: {
@@ -56,10 +65,48 @@ interface UserProfileData {
     bill_number: string;
     created_at: string;
   }>;
+  badges: Array<{
+    id: string;
+    name: string;
+    description: string;
+    icon?: string;
+    rarity: 'common' | 'rare' | 'epic' | 'legendary';
+  }>;
+  mutualFriends: Array<{
+    id: string;
+    firstName: string;
+    lastName: string;
+    profileImageUrl?: string;
+  }>;
+  bio?: string;
+  location?: string;
+  website?: string;
+  social?: {
+    twitter?: string;
+    facebook?: string;
+    linkedin?: string;
+    instagram?: string;
+  };
 }
 
 export default function UserProfile() {
   const { userId } = useParams();
+  const { user: currentUser } = useAuth();
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  const [editOpen, setEditOpen] = useState(false);
+  const [editBio, setEditBio] = useState("");
+  const [editLocation, setEditLocation] = useState("");
+  const [editWebsite, setEditWebsite] = useState("");
+  const [editSocial, setEditSocial] = useState({ twitter: "", facebook: "", linkedin: "", instagram: "" });
+  const updateProfile = useMutation({
+    mutationFn: async (fields: any) => apiRequest(`/api/users/${userId}/profile`, "PATCH", fields),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/users/${userId}/profile`] });
+      setEditOpen(false);
+      toast({ title: "Profile updated!", description: "Your changes have been saved." });
+    },
+  });
   
   const { data: profile, isLoading } = useQuery<UserProfileData>({
     queryKey: [`/api/users/${userId}/profile`],
@@ -94,7 +141,7 @@ export default function UserProfile() {
     );
   }
 
-  const { user, interactions, posts, votes } = profile;
+  const { user, interactions, posts, votes, badges = [], mutualFriends = [], bio, location, website, social = {} } = profile;
 
   const getEngagementColor = (level: string) => {
     switch (level) {
@@ -127,52 +174,67 @@ export default function UserProfile() {
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-6xl mx-auto py-8 px-4 space-y-8">
         {/* Profile Header */}
-        <Card>
-          <CardContent className="p-8">
-            <div className="flex items-start space-x-6">
-              <Avatar className="w-24 h-24">
+        <Card className="bg-gradient-to-br from-blue-500 to-purple-600 text-white rounded-3xl p-8 shadow-2xl">
+          <CardContent className="flex flex-col md:flex-row items-center justify-between">
+            <div className="flex items-center mb-4 md:mb-0">
+              <Avatar className="w-24 h-24 mr-6">
                 <AvatarImage src={user.profile_image_url} />
-                <AvatarFallback className="text-2xl">
+                <AvatarFallback className="text-3xl font-bold">
                   {user.first_name?.[0]}{user.last_name?.[0]}
                 </AvatarFallback>
               </Avatar>
-              
-              <div className="flex-1">
-                <h1 className="text-3xl font-bold text-gray-900 mb-2">
-                  {user.first_name} {user.last_name}
-                </h1>
-                <p className="text-gray-600 mb-4">{user.email}</p>
-                
-                <div className="flex flex-wrap gap-2 mb-4">
-                  <Badge variant="outline" className={getEngagementColor(user.engagement_level)}>
-                    {user.engagement_level}
-                  </Badge>
-                  <Badge className={`text-white ${getTierColor(user.achievement_tier)}`}>
-                    {user.achievement_tier} tier
-                  </Badge>
-                  <Badge variant="secondary">
-                    Level {user.current_level}
-                  </Badge>
-                </div>
-                
-                <div className="grid grid-cols-3 gap-6 text-center">
-                  <div>
-                    <div className="text-2xl font-bold text-blue-600">{user.civic_points}</div>
-                    <div className="text-sm text-gray-500">Civic Points</div>
-                  </div>
-                  <div>
-                    <div className="text-2xl font-bold text-green-600">{parseFloat(user.trust_score).toFixed(0)}%</div>
-                    <div className="text-sm text-gray-500">Trust Score</div>
-                  </div>
-                  <div>
-                    <div className="text-2xl font-bold text-purple-600">{posts.length}</div>
-                    <div className="text-sm text-gray-500">Forum Posts</div>
-                  </div>
-                </div>
+              <div>
+                <h1 className="text-4xl font-bold mb-1">{user.first_name} {user.last_name}</h1>
+                <p className="text-lg text-gray-200">{user.email}</p>
+                <p className="text-sm text-gray-300 mt-2">{bio || "No bio available."}</p>
               </div>
+            </div>
+            <div className="flex flex-wrap gap-4">
+              <Badge variant="secondary" className="text-white">
+                Level {user.current_level}
+              </Badge>
+              <Badge className={`text-white ${getTierColor(user.achievement_tier)}`}>
+                {user.achievement_tier} tier
+              </Badge>
+              <Badge variant="outline" className={getEngagementColor(user.engagement_level)}>
+                {user.engagement_level}
+              </Badge>
             </div>
           </CardContent>
         </Card>
+
+        {/* Badges section */}
+        {badges.length > 0 && (
+          <div className="mt-4 mb-6">
+            <h2 className="text-lg font-bold mb-2 flex items-center gap-2"><Award className="w-5 h-5 text-yellow-500" /> Badges</h2>
+            <div className="flex flex-wrap gap-3">
+              {badges.map(badge => (
+                <div key={badge.id} className="flex flex-col items-center p-2 bg-gray-50 rounded-lg border border-gray-200 shadow-sm" title={badge.description}>
+                  {badge.icon && <img src={badge.icon} alt={badge.name} className="w-8 h-8 mb-1" />}
+                  <span className="font-semibold text-xs mb-0.5">{badge.name}</span>
+                  <span className={`text-xxs rounded px-1 ${badge.rarity === 'epic' ? 'bg-purple-200 text-purple-800' : badge.rarity === 'rare' ? 'bg-blue-200 text-blue-800' : badge.rarity === 'legendary' ? 'bg-yellow-200 text-yellow-800' : 'bg-gray-200 text-gray-700'}`}>{badge.rarity}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+        {/* Mutual Friends section */}
+        {mutualFriends.length > 0 && (
+          <div className="mt-4 mb-6">
+            <h2 className="text-lg font-bold mb-2 flex items-center gap-2"><Users className="w-5 h-5 text-green-600" /> Mutual Friends</h2>
+            <div className="flex flex-wrap gap-3">
+              {mutualFriends.map(friend => (
+                <div key={friend.id} className="flex items-center gap-2 bg-white rounded px-2 py-1 border border-green-100">
+                  <Avatar className="w-6 h-6">
+                    <AvatarImage src={friend.profileImageUrl} />
+                    <AvatarFallback>{friend.firstName?.[0]}{friend.lastName?.[0]}</AvatarFallback>
+                  </Avatar>
+                  <span className="font-medium text-xs">{friend.firstName} {friend.lastName}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Activity Tabs */}
         <Tabs defaultValue="posts" className="space-y-6">
@@ -184,8 +246,8 @@ export default function UserProfile() {
           </TabsList>
 
           <TabsContent value="posts" className="space-y-4">
-            <Card>
-              <CardHeader>
+            <Card className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6">
+              <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between space-y-2 sm:space-y-0">
                 <CardTitle className="flex items-center space-x-2">
                   <MessageCircle className="w-5 h-5" />
                   <span>Forum Posts ({posts.length})</span>
@@ -213,8 +275,8 @@ export default function UserProfile() {
           </TabsContent>
 
           <TabsContent value="votes" className="space-y-4">
-            <Card>
-              <CardHeader>
+            <Card className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6">
+              <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between space-y-2 sm:space-y-0">
                 <CardTitle className="flex items-center space-x-2">
                   <Vote className="w-5 h-5" />
                   <span>Voting Record ({votes.length})</span>
@@ -246,8 +308,8 @@ export default function UserProfile() {
           </TabsContent>
 
           <TabsContent value="interactions" className="space-y-4">
-            <Card>
-              <CardHeader>
+            <Card className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6">
+              <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between space-y-2 sm:space-y-0">
                 <CardTitle className="flex items-center space-x-2">
                   <TrendingUp className="w-5 h-5" />
                   <span>Recent Activity ({interactions.length})</span>
@@ -285,8 +347,8 @@ export default function UserProfile() {
 
           <TabsContent value="stats" className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <Card>
-                <CardHeader>
+              <Card className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6">
+                <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between space-y-2 sm:space-y-0">
                   <CardTitle>Engagement Metrics</CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -307,8 +369,8 @@ export default function UserProfile() {
                 </CardContent>
               </Card>
 
-              <Card>
-                <CardHeader>
+              <Card className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6">
+                <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between space-y-2 sm:space-y-0">
                   <CardTitle>Account Info</CardTitle>
                 </CardHeader>
                 <CardContent>

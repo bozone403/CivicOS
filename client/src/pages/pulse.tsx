@@ -36,53 +36,54 @@ export default function PulsePage() {
     }
   };
 
-  const liveActivity = [
-    {
-      id: 1,
-      type: "vote",
-      action: "voted on Bill C-27 discussion",
-      user: "Anonymous User",
-      location: "Toronto, ON",
-      timestamp: "2 minutes ago",
-      impact: "medium"
-    },
-    {
-      id: 2,
-      type: "petition",
-      action: "signed petition for healthcare funding",
-      user: "Anonymous User", 
-      location: "Vancouver, BC",
-      timestamp: "4 minutes ago",
-      impact: "high"
-    },
-    {
-      id: 3,
-      type: "discussion",
-      action: "started discussion on municipal budget",
-      user: "Anonymous User",
-      location: "Calgary, AB",
-      timestamp: "7 minutes ago",
-      impact: "medium"
-    },
-    {
-      id: 4,
-      type: "foi",
-      action: "submitted FOI request to Health Canada",
-      user: "Anonymous User",
-      location: "Ottawa, ON",
-      timestamp: "12 minutes ago",
-      impact: "high"
-    },
-    {
-      id: 5,
-      type: "report",
-      action: "reported potential procurement irregularity",
-      user: "Anonymous User",
-      location: "Montreal, QC",
-      timestamp: "18 minutes ago",
-      impact: "critical"
-    }
-  ];
+  // Remove the liveActivity array and replace with API data only
+  // const liveActivity = [
+  //   {
+  //     id: 1,
+  //     type: "vote",
+  //     action: "voted on Bill C-27 discussion",
+  //     user: "Anonymous User",
+  //     location: "Toronto, ON",
+  //     timestamp: "2 minutes ago",
+  //     impact: "medium"
+  //   },
+  //   {
+  //     id: 2,
+  //     type: "petition",
+  //     action: "signed petition for healthcare funding",
+  //     user: "Anonymous User", 
+  //     location: "Vancouver, BC",
+  //     timestamp: "4 minutes ago",
+  //     impact: "high"
+  //   },
+  //   {
+  //     id: 3,
+  //     type: "discussion",
+  //     action: "started discussion on municipal budget",
+  //     user: "Anonymous User",
+  //     location: "Calgary, AB",
+  //     timestamp: "7 minutes ago",
+  //     impact: "medium"
+  //   },
+  //   {
+  //     id: 4,
+  //     type: "foi",
+  //     action: "submitted FOI request to Health Canada",
+  //     user: "Anonymous User",
+  //     location: "Ottawa, ON",
+  //     timestamp: "12 minutes ago",
+  //     impact: "high"
+  //   },
+  //   {
+  //     id: 5,
+  //     type: "report",
+  //     action: "reported potential procurement irregularity",
+  //     user: "Anonymous User",
+  //     location: "Montreal, QC",
+  //     timestamp: "18 minutes ago",
+  //     impact: "critical"
+  //   }
+  // ];
 
   const regionalActivity = [
     {
@@ -351,29 +352,9 @@ export default function PulsePage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {liveActivity.map((activity) => {
-                  const Icon = getActivityIcon(activity.type);
-                  return (
-                    <div key={activity.id} className="flex items-start space-x-3 p-3 rounded-lg hover:bg-muted/50 transition-colors">
-                      <div className={`p-2 rounded-full ${getActivityColor(activity.type)}`}>
-                        <Icon className="w-4 h-4" />
-                      </div>
-                      <div className="flex-1">
-                        <div className="flex items-center justify-between">
-                          <p className="text-sm font-medium">{activity.user}</p>
-                          <div className="flex items-center space-x-2">
-                            <Badge variant="outline" className={getImpactColor(activity.impact)}>
-                              {activity.impact}
-                            </Badge>
-                            <span className="text-xs text-muted-foreground">{activity.timestamp}</span>
-                          </div>
-                        </div>
-                        <p className="text-sm text-muted-foreground">{activity.action}</p>
-                        <p className="text-xs text-muted-foreground">{activity.location}</p>
-                      </div>
-                    </div>
-                  );
-                })}
+                {/* Use API data only. If no data, show fallback UI. */}
+                {/* For now, we'll show a placeholder message */}
+                <p className="text-center text-muted-foreground">No activity data available.</p>
               </div>
             </CardContent>
           </Card>

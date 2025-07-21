@@ -15,6 +15,10 @@ import * as bcrypt from "bcryptjs";
 import { v4 as uuidv4 } from "uuid";
 import pino from "pino";
 import Stripe from 'stripe';
+import rateLimit from "express-rate-limit";
+import { userBadges } from "../shared/schema.js";
+import { badges } from "../shared/schema.js";
+import { userFriends } from "../shared/schema.js";
 const logger = pino();
 const FRONTEND_BASE_URL = process.env.FRONTEND_BASE_URL || "https://civicos.ca";
 const JWT_SECRET = process.env.SESSION_SECRET || "changeme";
@@ -98,35 +102,48 @@ export async function registerRoutes(app) {
     // Auth user endpoint (JWT)
     app.get('/api/auth/user', jwtAuth, async (req, res) => {
         try {
+            // Paranoid: log the full Authorization header
+            console.log("[/api/auth/user] Authorization header:", req.headers.authorization);
+            // Paranoid: try to decode the JWT and log it
+            try {
+                const token = req.headers.authorization?.split(' ')[1];
+                if (token) {
+                    const decoded = require('jsonwebtoken').decode(token);
+                    console.log("[/api/auth/user] Decoded JWT:", decoded);
+                }
+            }
+            catch (jwtDecodeError) {
+                console.error("[/api/auth/user] JWT decode error:", jwtDecodeError);
+            }
             const userId = req.user?.id;
-            if (!userId)
+            if (!userId) {
+                console.error("[/api/auth/user] No userId in JWT");
                 return res.status(401).json({ message: "Unauthorized" });
-            // Try to get user from database first
+            }
             try {
                 const user = await storage.getUser(userId);
                 if (user) {
-                    return res.json(user);
+                    console.log("[/api/auth/user] Found user", userId);
+                    // Add bio, location, website, and social fields
+                    const bio = user.bio || "This user hasn't added a bio yet.";
+                    const location = user.location || null;
+                    const website = user.website || null;
+                    const social = user.social || {};
+                    return res.json({ user, bio, location, website, social });
+                }
+                else {
+                    console.error("[/api/auth/user] User not found", userId);
+                    return res.status(404).json({ message: "User not found" });
                 }
             }
             catch (dbError) {
-                logger.error({ msg: 'Database error fetching user', error: dbError });
+                console.error("[/api/auth/user] Database error", dbError);
+                return res.status(500).json({ message: "Internal server error" });
             }
-            // Fallback: return user info from JWT token
-            const userInfo = {
-                id: userId,
-                email: req.user?.email,
-                firstName: "Demo",
-                lastName: "User",
-                isVerified: true,
-                civicLevel: "Verified",
-                createdAt: new Date().toISOString(),
-                updatedAt: new Date().toISOString()
-            };
-            res.json(userInfo);
         }
         catch (error) {
-            logger.error({ msg: 'Error fetching user', error });
-            res.status(500).json({ message: "Failed to fetch user" });
+            console.error("[/api/auth/user] Handler error", error);
+            res.status(500).json({ message: "Internal server error" });
         }
     });
     // Logout route (no-op for JWT)
@@ -159,91 +176,59 @@ export async function registerRoutes(app) {
     app.get('/api/users/:userId/profile', async (req, res) => {
         try {
             const { userId } = req.params;
-            // Return the user profile data for the authenticated user
-            const profileData = {
-                user: {
-                    id: userId,
-                    first_name: "Jordan",
-                    last_name: "",
-                    email: "jordan@iron-oak.ca",
-                    profile_image_url: null,
-                    civic_level: "Community Member",
-                    civic_points: 1247,
-                    current_level: 3,
-                    achievement_tier: "silver",
-                    engagement_level: "active",
-                    trust_score: "78.5",
-                    created_at: "2025-05-28.basil",
-                    updated_at: new Date().toISOString()
-                },
-                interactions: [
-                    {
-                        interaction_type: "vote",
-                        target_type: "politician",
-                        target_id: 12345,
-                        content: "upvote",
-                        created_at: new Date().toISOString()
-                    },
-                    {
-                        interaction_type: "post",
-                        target_type: "forum",
-                        target_id: 67890,
-                        content: "Created discussion about municipal transparency",
-                        created_at: new Date(Date.now() - 86400000).toISOString()
-                    },
-                    {
-                        interaction_type: "comment",
-                        target_type: "bill",
-                        target_id: 15432,
-                        content: "Commented on Bill C-123",
-                        created_at: new Date(Date.now() - 172800000).toISOString()
-                    }
-                ],
-                posts: [
-                    {
-                        id: 1,
-                        title: "Thoughts on Recent Municipal Elections",
-                        content: "I've been following the recent municipal elections and wanted to share some observations about voter turnout and engagement across different demographics...",
-                        created_at: new Date(Date.now() - 172800000).toISOString(),
-                        category_name: "Municipal Politics"
-                    },
-                    {
-                        id: 2,
-                        title: "Federal Budget Analysis 2024",
-                        content: "The recent federal budget announcement includes several key items that will impact civic engagement and democratic participation...",
-                        created_at: new Date(Date.now() - 432000000).toISOString(),
-                        category_name: "Federal Politics"
-                    }
-                ],
-                votes: [
-                    {
-                        id: 1,
-                        vote_choice: "yes",
-                        bill_title: "Municipal Transparency Act",
-                        bill_number: "C-123",
-                        created_at: new Date(Date.now() - 259200000).toISOString()
-                    },
-                    {
-                        id: 2,
-                        vote_choice: "no",
-                        bill_title: "Digital Privacy Enhancement Bill",
-                        bill_number: "C-456",
-                        created_at: new Date(Date.now() - 345600000).toISOString()
-                    },
-                    {
-                        id: 3,
-                        vote_choice: "yes",
-                        bill_title: "Climate Action Framework",
-                        bill_number: "C-789",
-                        created_at: new Date(Date.now() - 518400000).toISOString()
-                    }
-                ]
-            };
-            res.json(profileData);
+            const user = await storage.getUser(userId);
+            if (!user)
+                return res.status(404).json({ message: "User not found" });
+            // Fetch badges
+            const userBadgesRows = await db
+                .select({
+                id: userBadges.id,
+                badgeId: userBadges.badgeId,
+                earnedAt: userBadges.earnedAt,
+                isCompleted: userBadges.isCompleted,
+                name: badges.name,
+                description: badges.description,
+                icon: badges.icon,
+                rarity: badges.rarity,
+                category: badges.category,
+            })
+                .from(userBadges)
+                .leftJoin(badges, eq(userBadges.badgeId, badges.id))
+                .where(eq(userBadges.userId, userId));
+            // Fetch mutual friends if authenticated
+            let mutualFriends = [];
+            const currentUserId = req.user?.id;
+            if (currentUserId && currentUserId !== userId) {
+                // Get friends of profile user
+                const profileFriends = await db
+                    .select({ friendId: userFriends.friendId, userId: userFriends.userId })
+                    .from(userFriends)
+                    .where(eq(userFriends.status, "accepted"));
+                const profileFriendIds = new Set(profileFriends
+                    .filter(f => f.userId === userId || f.friendId === userId)
+                    .map(f => f.userId === userId ? f.friendId : f.userId));
+                // Get friends of current user
+                const currentUserFriends = profileFriends
+                    .filter(f => f.userId === currentUserId || f.friendId === currentUserId)
+                    .map(f => f.userId === currentUserId ? f.friendId : f.userId);
+                // Mutual friends are in both sets
+                mutualFriends = Array.from(new Set(currentUserFriends.filter(fid => profileFriendIds.has(fid))));
+                // Optionally fetch their names/emails
+                if (mutualFriends.length > 0) {
+                    const mutualRows = await db.select().from(users).where(sql `id = ANY(${mutualFriends})`);
+                    mutualFriends = mutualRows.map(u => ({ id: u.id, firstName: u.firstName, lastName: u.lastName, email: u.email, profileImageUrl: u.profileImageUrl }));
+                }
+            }
+            // Add a bio field (placeholder for now)
+            const bio = user.bio || "This user hasn't added a bio yet.";
+            const location = user.location || null;
+            const website = user.website || null;
+            const social = user.social || {};
+            res.json({ user, badges: userBadgesRows, mutualFriends, bio, location, website, social });
         }
         catch (error) {
             logger.error({ msg: 'Error fetching user profile', error });
-            res.status(500).json({ message: "Failed to fetch user profile" });
+            res.status(500).json({ message: "Internal server error" });
         }
     });
     // Dashboard comprehensive data
@@ -3148,19 +3133,83 @@ export async function registerRoutes(app) {
             res.status(500).json({ isVerified: false, verificationLevel: 'none', error: (error instanceof Error ? error.message : String(error)) });
         }
     });
-    // Debug endpoint to echo JWT claims
-    app.get('/api/auth/debug-token', (req, res) => {
-        const authHeader = req.headers.authorization;
-        if (!authHeader || !authHeader.startsWith('Bearer ')) {
-            return res.status(400).json({ error: 'Missing Authorization header' });
-        }
-        const token = authHeader.split(' ')[1];
+    // GCKey OAuth callback endpoint
+    app.get('/api/auth/gckey/callback', async (req, res) => {
         try {
-            const decoded = jwt.verify(token, JWT_SECRET);
-            res.json({ decoded });
+            // In production, validate the code and state with GCKey
+            const { code, state } = req.query;
+            // TODO: Exchange code for user info with GCKey
+            // For now, simulate verification for the logged-in user (JWT in cookie or header)
+            let userId = null;
+            // Try to get userId from JWT in Authorization header
+            const authHeader = req.headers.authorization;
+            if (authHeader && authHeader.startsWith('Bearer ')) {
+                const token = authHeader.split(' ')[1];
+                try {
+                    const decoded = jwt.verify(token, JWT_SECRET);
+                    if (typeof decoded === 'object' && decoded && 'id' in decoded) {
+                        userId = decoded.id;
+                    }
+                }
+                catch (err) {
+                    return res.status(401).json({ error: 'Invalid or expired token' });
+                }
+            }
+            // Optionally, support session/cookie-based auth here
+            if (!userId) {
+                return res.status(401).json({ error: 'User not authenticated' });
+            }
+            await storage.updateUserVerification(userId, true);
+            // Redirect to frontend with success (customize as needed)
+            return res.redirect('/identity-verification?verified=1');
+        }
+        catch (error) {
+            res.status(500).json({ error: (error instanceof Error ? error.message : String(error)) });
+        }
+    });
+    // User search endpoint (no auth, but rate-limited)
+    app.use("/api/users/search", rateLimit({ windowMs: 60 * 1000, max: 30 }));
+    app.get("/api/users/search", async (req, res) => {
+        const q = (req.query.q || "").trim();
+        if (!q || q.length < 2)
+            return res.status(400).json({ error: "Query too short" });
+        try {
+            const users = await storage.searchUsers(q);
+            // Only return safe fields
+            const safeUsers = users.map(u => ({
+                id: u.id,
+                email: u.email,
+                firstName: u.firstName,
+                lastName: u.lastName,
+                profileImageUrl: u.profileImageUrl,
+            }));
+            res.json({ users: safeUsers });
         }
         catch (err) {
-            res.status(401).json({ error: 'Invalid or expired token', details: err.message });
+            res.status(500).json({ error: "Failed to search users", details: err });
+        }
+    });
+    // PATCH /api/users/:userId/profile - update bio, location, website, social
+    app.patch('/api/users/:userId/profile', jwtAuth, async (req, res) => {
+        try {
+            const { userId } = req.params;
+            if (req.user?.id !== userId)
+                return res.status(403).json({ message: "Forbidden" });
+            const { bio, location, website, social } = req.body;
+            await db.update(users)
+                .set({
+                bio,
+                location,
+                website,
+                social,
+                updatedAt: new Date(),
+            })
+                .where(eq(users.id, userId));
+            res.json({ success: true });
+        }
+        catch (error) {
+            logger.error({ msg: 'Error updating user profile', error });
+            res.status(500).json({ message: "Failed to update profile" });
         }
     });
 }

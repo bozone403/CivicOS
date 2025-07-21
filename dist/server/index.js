@@ -12,7 +12,11 @@ import rateLimit from "express-rate-limit";
 import jwt from "jsonwebtoken";
 import pino from "pino";
 const logger = pino();
-const JWT_SECRET = process.env.SESSION_SECRET || "changeme";
+// Enforce SESSION_SECRET is set before anything else
+if (!process.env.SESSION_SECRET) {
+    throw new Error("SESSION_SECRET must be set as an environment variable. Refusing to start.");
+}
+const JWT_SECRET = process.env.SESSION_SECRET;
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 function jwtAuth(req, res, next) {
@@ -118,6 +122,11 @@ app.use(rateLimit({
         process.exit(1);
     }
 })();
+// Force Node.js to ignore SSL errors (paranoid fix for Supabase self-signed certs)
+process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
+// Paranoid logging for Node.js version and SSL config
+console.log('[Startup] Node.js version:', process.version);
+console.log('[Startup] NODE_TLS_REJECT_UNAUTHORIZED:', process.env.NODE_TLS_REJECT_UNAUTHORIZED);
 // Global error handler for unhandled promise rejections
 process.on('unhandledRejection', (reason, promise) => {
     console.error('Unhandled Rejection at:', promise, 'reason:', reason);
@@ -126,15 +135,50 @@ process.on('uncaughtException', (err) => {
     logger.error({ msg: 'Uncaught Exception thrown', err });
     process.exit(1);
 });
+// Paranoid: Log every /api/* request
+app.use('/api', (req, res, next) => {
+    console.log('[API ROUTE]', req.method, req.originalUrl);
+    next();
+});
+// DB health check endpoint
+app.get('/api/monitoring/db', async (req, res) => {
+    try {
+        const { pool } = await import('./db.js');
+        const result = await pool.query('SELECT NOW() as now');
+        res.json({ status: 'ok', time: result.rows[0].now });
+    }
+    catch (error) {
+        res.status(500).json({ status: 'error', error: error instanceof Error ? error.message : String(error) });
+    }
+});
+// Monitoring/health endpoint
+app.get('/api/monitoring/health', (req, res) => {
+    res.json({ status: 'ok', uptime: process.uptime(), timestamp: new Date().toISOString() });
+});
+// Health check endpoint for Render monitoring
+app.get("/health", (_req, res) => {
+    res.status(200).json({ status: "ok" });
+});
+// Register all API routes before static serving and SPA fallback
 (async () => {
     await registerRoutes(app);
     const { createServer } = await import("http");
     const httpServer = createServer(app);
-    app.use((err, _req, res, _next) => {
+    // Global error handler (must be before static serving and SPA fallback)
+    app.use((err, req, res, _next) => {
         const status = err.status || err.statusCode || 500;
         const message = err.message || "Internal Server Error";
-        logger.error({ msg: 'Express error handler', err });
-        res.status(status).json({ message });
+        console.error("[GLOBAL ERROR]", err);
+        if (req.path && req.path.startsWith("/api/")) {
+            res.status(status).json({ message });
+        }
+        else {
+            res.status(status).send(message);
+        }
+    });
+    // Add a catch-all 404 handler for /api/* routes (must be after all API routes)
+    app.all('/api/*', (req, res) => {
+        res.status(404).json({ message: 'API route not found', path: req.originalUrl });
     });
     // Patch static file serving to use ESM-compatible __dirname
     const distPath = path.resolve(__dirname, "../public");
@@ -216,14 +260,6 @@ process.on('uncaughtException', (err) => {
     //   forumPopulator.populateInitialDiscussions().catch(console.error);
     // }, 8000);
 })();
-// Monitoring/health endpoint
-app.get('/api/monitoring/health', (req, res) => {
-    res.json({ status: 'ok', uptime: process.uptime(), timestamp: new Date().toISOString() });
-});
-// Health check endpoint for Render monitoring
-app.get("/health", (_req, res) => {
-    res.status(200).json({ status: "ok" });
-});
 // Admin session cleanup endpoint (admin only)
 app.post('/api/admin/session/cleanup', jwtAuth, async (req, res) => {
     const user = req.user;

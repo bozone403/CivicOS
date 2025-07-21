@@ -10,393 +10,393 @@ export default function MapsPage() {
   const [selectedProvince, setSelectedProvince] = useState("all");
   const [engagementType, setEngagementType] = useState("all");
 
-  // Geographic engagement data across Canada - All Provinces and Territories
-  const provincialEngagement = [
-    {
-      province: "Ontario",
-      abbreviation: "ON",
-      population: 15109293,
-      activeUsers: 234567,
-      engagementRate: 1.6,
-      topIssues: ["Healthcare", "Housing", "Education"],
-      recentActivity: 8934,
-      politicalActivity: {
-        discussions: 3456,
-        petitions: 1789,
-        foiRequests: 234,
-        votes: 3455
-      },
-      demographics: {
-        "18-34": 31,
-        "35-54": 40,
-        "55+": 29
-      },
-      urbanRural: {
-        urban: 86,
-        rural: 14
-      }
-    },
-    {
-      province: "Quebec",
-      abbreviation: "QC",
-      population: 8604495,
-      activeUsers: 167834,
-      engagementRate: 1.9,
-      topIssues: ["Language Rights", "Healthcare", "Environment"],
-      recentActivity: 6234,
-      politicalActivity: {
-        discussions: 2891,
-        petitions: 1234,
-        foiRequests: 178,
-        votes: 2931
-      },
-      demographics: {
-        "18-34": 29,
-        "35-54": 39,
-        "55+": 32
-      },
-      urbanRural: {
-        urban: 81,
-        rural: 19
-      }
-    },
-    {
-      province: "British Columbia",
-      abbreviation: "BC",
-      population: 5214805,
-      activeUsers: 78429,
-      engagementRate: 1.5,
-      topIssues: ["Housing Crisis", "Climate Change", "Healthcare"],
-      recentActivity: 2847,
-      politicalActivity: {
-        discussions: 1204,
-        petitions: 567,
-        foiRequests: 89,
-        votes: 987
-      },
-      demographics: {
-        "18-34": 32,
-        "35-54": 41,
-        "55+": 27
-      },
-      urbanRural: {
-        urban: 87,
-        rural: 13
-      }
-    },
-    {
-      province: "Alberta",
-      abbreviation: "AB", 
-      population: 4428112,
-      activeUsers: 52134,
-      engagementRate: 1.2,
-      topIssues: ["Energy Policy", "Healthcare", "Economy"],
-      recentActivity: 1823,
-      politicalActivity: {
-        discussions: 789,
-        petitions: 234,
-        foiRequests: 67,
-        votes: 733
-      },
-      demographics: {
-        "18-34": 35,
-        "35-54": 38,
-        "55+": 27
-      },
-      urbanRural: {
-        urban: 83,
-        rural: 17
-      }
-    },
-    {
-      province: "Nova Scotia",
-      abbreviation: "NS",
-      population: 992055,
-      activeUsers: 14567,
-      engagementRate: 1.5,
-      topIssues: ["Healthcare", "Economy", "Immigration"],
-      recentActivity: 567,
-      politicalActivity: {
-        discussions: 234,
-        petitions: 123,
-        foiRequests: 34,
-        votes: 176
-      },
-      demographics: {
-        "18-34": 26,
-        "35-54": 37,
-        "55+": 37
-      },
-      urbanRural: {
-        urban: 56,
-        rural: 44
-      }
-    },
-    {
-      province: "New Brunswick",
-      abbreviation: "NB",
-      population: 789225,
-      activeUsers: 9876,
-      engagementRate: 1.2,
-      topIssues: ["Healthcare", "Economy", "Bilingualism"],
-      recentActivity: 345,
-      politicalActivity: {
-        discussions: 156,
-        petitions: 78,
-        foiRequests: 23,
-        votes: 88
-      },
-      demographics: {
-        "18-34": 25,
-        "35-54": 36,
-        "55+": 39
-      },
-      urbanRural: {
-        urban: 51,
-        rural: 49
-      }
-    },
-    {
-      province: "Manitoba",
-      abbreviation: "MB",
-      population: 1386333,
-      activeUsers: 18934,
-      engagementRate: 1.4,
-      topIssues: ["Healthcare", "Indigenous Rights", "Economy"],
-      recentActivity: 634,
-      politicalActivity: {
-        discussions: 287,
-        petitions: 145,
-        foiRequests: 45,
-        votes: 157
-      },
-      demographics: {
-        "18-34": 30,
-        "35-54": 38,
-        "55+": 32
-      },
-      urbanRural: {
-        urban: 72,
-        rural: 28
-      }
-    },
-    {
-      province: "Saskatchewan",
-      abbreviation: "SK",
-      population: 1196994,
-      activeUsers: 8934,
-      engagementRate: 0.7,
-      topIssues: ["Agriculture", "Healthcare", "Infrastructure"],
-      recentActivity: 412,
-      politicalActivity: {
-        discussions: 178,
-        petitions: 89,
-        foiRequests: 23,
-        votes: 122
-      },
-      demographics: {
-        "18-34": 28,
-        "35-54": 42,
-        "55+": 30
-      },
-      urbanRural: {
-        urban: 66,
-        rural: 34
-      }
-    },
-    {
-      province: "Manitoba",
-      abbreviation: "MB",
-      population: 1380935,
-      activeUsers: 12847,
-      engagementRate: 0.9,
-      topIssues: ["Healthcare", "Indigenous Rights", "Economy"],
-      recentActivity: 534,
-      politicalActivity: {
-        discussions: 234,
-        petitions: 123,
-        foiRequests: 34,
-        votes: 143
-      },
-      demographics: {
-        "18-34": 31,
-        "35-54": 39,
-        "55+": 30
-      },
-      urbanRural: {
-        urban: 72,
-        rural: 28
-      }
-    },
-    {
-      province: "Ontario",
-      abbreviation: "ON",
-      population: 15109293,
-      activeUsers: 189234,
-      engagementRate: 1.3,
-      topIssues: ["Housing", "Healthcare", "Education"],
-      recentActivity: 6847,
-      politicalActivity: {
-        discussions: 2934,
-        petitions: 1456,
-        foiRequests: 278,
-        votes: 2179
-      },
-      demographics: {
-        "18-34": 33,
-        "35-54": 40,
-        "55+": 27
-      },
-      urbanRural: {
-        urban: 86,
-        rural: 14
-      }
-    },
-    {
-      province: "Quebec",
-      abbreviation: "QC",
-      population: 8575779,
-      activeUsers: 94567,
-      engagementRate: 1.1,
-      topIssues: ["Language Rights", "Healthcare", "Environment"],
-      recentActivity: 3456,
-      politicalActivity: {
-        discussions: 1567,
-        petitions: 789,
-        foiRequests: 134,
-        votes: 966
-      },
-      demographics: {
-        "18-34": 29,
-        "35-54": 41,
-        "55+": 30
-      },
-      urbanRural: {
-        urban: 81,
-        rural: 19
-      }
-    },
-    {
-      province: "Prince Edward Island",
-      abbreviation: "PE",
-      population: 164318,
-      activeUsers: 2456,
-      engagementRate: 1.5,
-      topIssues: ["Healthcare", "Tourism", "Agriculture"],
-      recentActivity: 89,
-      politicalActivity: {
-        discussions: 43,
-        petitions: 21,
-        foiRequests: 7,
-        votes: 18
-      },
-      demographics: {
-        "18-34": 24,
-        "35-54": 35,
-        "55+": 41
-      },
-      urbanRural: {
-        urban: 47,
-        rural: 53
-      }
-    },
-    {
-      province: "Newfoundland and Labrador",
-      abbreviation: "NL",
-      population: 520553,
-      activeUsers: 6789,
-      engagementRate: 1.3,
-      topIssues: ["Economy", "Outmigration", "Healthcare"],
-      recentActivity: 234,
-      politicalActivity: {
-        discussions: 123,
-        petitions: 67,
-        foiRequests: 18,
-        votes: 26
-      },
-      demographics: {
-        "18-34": 23,
-        "35-54": 36,
-        "55+": 41
-      },
-      urbanRural: {
-        urban: 58,
-        rural: 42
-      }
-    },
-    {
-      province: "Yukon",
-      abbreviation: "YT",
-      population: 42986,
-      activeUsers: 567,
-      engagementRate: 1.3,
-      topIssues: ["Indigenous Rights", "Mining", "Climate"],
-      recentActivity: 23,
-      politicalActivity: {
-        discussions: 12,
-        petitions: 5,
-        foiRequests: 2,
-        votes: 4
-      },
-      demographics: {
-        "18-34": 28,
-        "35-54": 42,
-        "55+": 30
-      },
-      urbanRural: {
-        urban: 68,
-        rural: 32
-      }
-    },
-    {
-      province: "Northwest Territories",
-      abbreviation: "NT",
-      population: 45504,
-      activeUsers: 612,
-      engagementRate: 1.3,
-      topIssues: ["Indigenous Rights", "Mining", "Cost of Living"],
-      recentActivity: 28,
-      politicalActivity: {
-        discussions: 15,
-        petitions: 7,
-        foiRequests: 3,
-        votes: 3
-      },
-      demographics: {
-        "18-34": 31,
-        "35-54": 41,
-        "55+": 28
-      },
-      urbanRural: {
-        urban: 47,
-        rural: 53
-      }
-    },
-    {
-      province: "Nunavut",
-      abbreviation: "NU",
-      population: 39403,
-      activeUsers: 423,
-      engagementRate: 1.1,
-      topIssues: ["Indigenous Rights", "Housing", "Education"],
-      recentActivity: 18,
-      politicalActivity: {
-        discussions: 9,
-        petitions: 4,
-        foiRequests: 2,
-        votes: 3
-      },
-      demographics: {
-        "18-34": 38,
-        "35-54": 35,
-        "55+": 27
-      },
-      urbanRural: {
-        urban: 32,
-        rural: 68
-      }
-    }
-  ];
+  // Remove the provincialEngagement array and replace with API data only
+  // const provincialEngagement = [
+  //   {
+  //     province: "Ontario",
+  //     abbreviation: "ON",
+  //     population: 15109293,
+  //     activeUsers: 234567,
+  //     engagementRate: 1.6,
+  //     topIssues: ["Healthcare", "Housing", "Education"],
+  //     recentActivity: 8934,
+  //     politicalActivity: {
+  //       discussions: 3456,
+  //       petitions: 1789,
+  //       foiRequests: 234,
+  //       votes: 3455
+  //     },
+  //     demographics: {
+  //       "18-34": 31,
+  //       "35-54": 40,
+  //       "55+": 29
+  //     },
+  //     urbanRural: {
+  //       urban: 86,
+  //       rural: 14
+  //     }
+  //   },
+  //   {
+  //     province: "Quebec",
+  //     abbreviation: "QC",
+  //     population: 8604495,
+  //     activeUsers: 167834,
+  //     engagementRate: 1.9,
+  //     topIssues: ["Language Rights", "Healthcare", "Environment"],
+  //     recentActivity: 6234,
+  //     politicalActivity: {
+  //       discussions: 2891,
+  //       petitions: 1234,
+  //       foiRequests: 178,
+  //       votes: 2931
+  //     },
+  //     demographics: {
+  //       "18-34": 29,
+  //       "35-54": 39,
+  //       "55+": 32
+  //     },
+  //     urbanRural: {
+  //       urban: 81,
+  //       rural: 19
+  //     }
+  //   },
+  //   {
+  //     province: "British Columbia",
+  //     abbreviation: "BC",
+  //     population: 5214805,
+  //     activeUsers: 78429,
+  //     engagementRate: 1.5,
+  //     topIssues: ["Housing Crisis", "Climate Change", "Healthcare"],
+  //     recentActivity: 2847,
+  //     politicalActivity: {
+  //       discussions: 1204,
+  //       petitions: 567,
+  //       foiRequests: 89,
+  //       votes: 987
+  //     },
+  //     demographics: {
+  //       "18-34": 32,
+  //       "35-54": 41,
+  //       "55+": 27
+  //     },
+  //     urbanRural: {
+  //       urban: 87,
+  //       rural: 13
+  //     }
+  //   },
+  //   {
+  //     province: "Alberta",
+  //     abbreviation: "AB", 
+  //     population: 4428112,
+  //     activeUsers: 52134,
+  //     engagementRate: 1.2,
+  //     topIssues: ["Energy Policy", "Healthcare", "Economy"],
+  //     recentActivity: 1823,
+  //     politicalActivity: {
+  //       discussions: 789,
+  //       petitions: 234,
+  //       foiRequests: 67,
+  //       votes: 733
+  //     },
+  //     demographics: {
+  //       "18-34": 35,
+  //       "35-54": 38,
+  //       "55+": 27
+  //     },
+  //     urbanRural: {
+  //       urban: 83,
+  //       rural: 17
+  //     }
+  //   },
+  //   {
+  //     province: "Nova Scotia",
+  //     abbreviation: "NS",
+  //     population: 992055,
+  //     activeUsers: 14567,
+  //     engagementRate: 1.5,
+  //     topIssues: ["Healthcare", "Economy", "Immigration"],
+  //     recentActivity: 567,
+  //     politicalActivity: {
+  //       discussions: 234,
+  //       petitions: 123,
+  //       foiRequests: 34,
+  //       votes: 176
+  //     },
+  //     demographics: {
+  //       "18-34": 26,
+  //       "35-54": 37,
+  //       "55+": 37
+  //     },
+  //     urbanRural: {
+  //       urban: 56,
+  //       rural: 44
+  //     }
+  //   },
+  //   {
+  //     province: "New Brunswick",
+  //     abbreviation: "NB",
+  //     population: 789225,
+  //     activeUsers: 9876,
+  //     engagementRate: 1.2,
+  //     topIssues: ["Healthcare", "Economy", "Bilingualism"],
+  //     recentActivity: 345,
+  //     politicalActivity: {
+  //       discussions: 156,
+  //       petitions: 78,
+  //       foiRequests: 23,
+  //       votes: 88
+  //     },
+  //     demographics: {
+  //       "18-34": 25,
+  //       "35-54": 36,
+  //       "55+": 39
+  //     },
+  //     urbanRural: {
+  //       urban: 51,
+  //       rural: 49
+  //     }
+  //   },
+  //   {
+  //     province: "Manitoba",
+  //     abbreviation: "MB",
+  //     population: 1386333,
+  //     activeUsers: 18934,
+  //     engagementRate: 1.4,
+  //     topIssues: ["Healthcare", "Indigenous Rights", "Economy"],
+  //     recentActivity: 634,
+  //     politicalActivity: {
+  //       discussions: 287,
+  //       petitions: 145,
+  //       foiRequests: 45,
+  //       votes: 157
+  //     },
+  //     demographics: {
+  //       "18-34": 30,
+  //       "35-54": 38,
+  //       "55+": 32
+  //     },
+  //     urbanRural: {
+  //       urban: 72,
+  //       rural: 28
+  //     }
+  //   },
+  //   {
+  //     province: "Saskatchewan",
+  //     abbreviation: "SK",
+  //     population: 1196994,
+  //     activeUsers: 8934,
+  //     engagementRate: 0.7,
+  //     topIssues: ["Agriculture", "Healthcare", "Infrastructure"],
+  //     recentActivity: 412,
+  //     politicalActivity: {
+  //       discussions: 178,
+  //       petitions: 89,
+  //       foiRequests: 23,
+  //       votes: 122
+  //     },
+  //     demographics: {
+  //       "18-34": 28,
+  //       "35-54": 42,
+  //       "55+": 30
+  //     },
+  //     urbanRural: {
+  //       urban: 66,
+  //       rural: 34
+  //     }
+  //   },
+  //   {
+  //     province: "Manitoba",
+  //     abbreviation: "MB",
+  //     population: 1380935,
+  //     activeUsers: 12847,
+  //     engagementRate: 0.9,
+  //     topIssues: ["Healthcare", "Indigenous Rights", "Economy"],
+  //     recentActivity: 534,
+  //     politicalActivity: {
+  //       discussions: 234,
+  //       petitions: 123,
+  //       foiRequests: 34,
+  //       votes: 143
+  //     },
+  //     demographics: {
+  //       "18-34": 31,
+  //       "35-54": 39,
+  //       "55+": 30
+  //     },
+  //     urbanRural: {
+  //       urban: 72,
+  //       rural: 28
+  //     }
+  //   },
+  //   {
+  //     province: "Ontario",
+  //     abbreviation: "ON",
+  //     population: 15109293,
+  //     activeUsers: 189234,
+  //     engagementRate: 1.3,
+  //     topIssues: ["Housing", "Healthcare", "Education"],
+  //     recentActivity: 6847,
+  //     politicalActivity: {
+  //       discussions: 2934,
+  //       petitions: 1456,
+  //       foiRequests: 278,
+  //       votes: 2179
+  //     },
+  //     demographics: {
+  //       "18-34": 33,
+  //       "35-54": 40,
+  //       "55+": 27
+  //     },
+  //     urbanRural: {
+  //       urban: 86,
+  //       rural: 14
+  //     }
+  //   },
+  //   {
+  //     province: "Quebec",
+  //     abbreviation: "QC",
+  //     population: 8575779,
+  //     activeUsers: 94567,
+  //     engagementRate: 1.1,
+  //     topIssues: ["Language Rights", "Healthcare", "Environment"],
+  //     recentActivity: 3456,
+  //     politicalActivity: {
+  //       discussions: 1567,
+  //       petitions: 789,
+  //       foiRequests: 134,
+  //       votes: 966
+  //     },
+  //     demographics: {
+  //       "18-34": 29,
+  //       "35-54": 41,
+  //       "55+": 30
+  //     },
+  //     urbanRural: {
+  //       urban: 81,
+  //       rural: 19
+  //     }
+  //   },
+  //   {
+  //     province: "Prince Edward Island",
+  //     abbreviation: "PE",
+  //     population: 164318,
+  //     activeUsers: 2456,
+  //     engagementRate: 1.5,
+  //     topIssues: ["Healthcare", "Tourism", "Agriculture"],
+  //     recentActivity: 89,
+  //     politicalActivity: {
+  //       discussions: 43,
+  //       petitions: 21,
+  //       foiRequests: 7,
+  //       votes: 18
+  //     },
+  //     demographics: {
+  //       "18-34": 24,
+  //       "35-54": 35,
+  //       "55+": 41
+  //     },
+  //     urbanRural: {
+  //       urban: 47,
+  //       rural: 53
+  //     }
+  //   },
+  //   {
+  //     province: "Newfoundland and Labrador",
+  //     abbreviation: "NL",
+  //     population: 520553,
+  //     activeUsers: 6789,
+  //     engagementRate: 1.3,
+  //     topIssues: ["Economy", "Outmigration", "Healthcare"],
+  //     recentActivity: 234,
+  //     politicalActivity: {
+  //       discussions: 123,
+  //       petitions: 67,
+  //       foiRequests: 18,
+  //       votes: 26
+  //     },
+  //     demographics: {
+  //       "18-34": 23,
+  //       "35-54": 36,
+  //       "55+": 41
+  //     },
+  //     urbanRural: {
+  //       urban: 58,
+  //       rural: 42
+  //     }
+  //   },
+  //   {
+  //     province: "Yukon",
+  //     abbreviation: "YT",
+  //     population: 42986,
+  //     activeUsers: 567,
+  //     engagementRate: 1.3,
+  //     topIssues: ["Indigenous Rights", "Mining", "Climate"],
+  //     recentActivity: 23,
+  //     politicalActivity: {
+  //       discussions: 12,
+  //       petitions: 5,
+  //       foiRequests: 2,
+  //       votes: 4
+  //     },
+  //     demographics: {
+  //       "18-34": 28,
+  //       "35-54": 42,
+  //       "55+": 30
+  //     },
+  //     urbanRural: {
+  //       urban: 68,
+  //       rural: 32
+  //     }
+  //   },
+  //   {
+  //     province: "Northwest Territories",
+  //     abbreviation: "NT",
+  //     population: 45504,
+  //     activeUsers: 612,
+  //     engagementRate: 1.3,
+  //     topIssues: ["Indigenous Rights", "Mining", "Cost of Living"],
+  //     recentActivity: 28,
+  //     politicalActivity: {
+  //       discussions: 15,
+  //       petitions: 7,
+  //       foiRequests: 3,
+  //       votes: 3
+  //     },
+  //     demographics: {
+  //       "18-34": 31,
+  //       "35-54": 41,
+  //       "55+": 28
+  //     },
+  //     urbanRural: {
+  //       urban: 47,
+  //       rural: 53
+  //     }
+  //   },
+  //   {
+  //     province: "Nunavut",
+  //     abbreviation: "NU",
+  //     population: 39403,
+  //     activeUsers: 423,
+  //     engagementRate: 1.1,
+  //     topIssues: ["Indigenous Rights", "Housing", "Education"],
+  //     recentActivity: 18,
+  //     politicalActivity: {
+  //       discussions: 9,
+  //       petitions: 4,
+  //       foiRequests: 2,
+  //       votes: 3
+  //     },
+  //     demographics: {
+  //       "18-34": 38,
+  //       "35-54": 35,
+  //       "55+": 27
+  //     },
+  //     urbanRural: {
+  //       urban: 32,
+  //       rural: 68
+  //     }
+  //   }
+  // ];
 
   const cityEngagement = [
     {
@@ -456,11 +456,11 @@ export default function MapsPage() {
   ];
 
   const engagementMetrics = {
-    totalActiveUsers: provincialEngagement.reduce((sum, p) => sum + p.activeUsers, 0),
-    averageEngagement: 1.3,
-    mostActiveProvince: "British Columbia",
-    fastestGrowing: "Ontario",
-    totalActivities: provincialEngagement.reduce((sum, p) => sum + p.recentActivity, 0)
+    totalActiveUsers: 0, // Will be updated from API
+    averageEngagement: 0, // Will be updated from API
+    mostActiveProvince: "N/A", // Will be updated from API
+    fastestGrowing: "N/A", // Will be updated from API
+    totalActivities: 0 // Will be updated from API
   };
 
   const getEngagementColor = (rate: number) => {
@@ -520,11 +520,8 @@ export default function MapsPage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Provinces</SelectItem>
-                {provincialEngagement.map((province) => (
-                  <SelectItem key={province.abbreviation} value={province.abbreviation}>
-                    {province.province}
-                  </SelectItem>
-                ))}
+                {/* Provinces will be fetched from API and displayed here */}
+                <SelectItem value="all">No Provinces Available</SelectItem>
               </SelectContent>
             </Select>
             <Select value={engagementType} onValueChange={setEngagementType}>
@@ -542,72 +539,18 @@ export default function MapsPage() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {provincialEngagement.map((province) => (
-              <Card key={province.abbreviation} className="hover:shadow-lg transition-shadow">
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <CardTitle className="text-lg">{province.province}</CardTitle>
-                      <CardDescription>
-                        Population: {formatNumber(province.population)}
-                      </CardDescription>
-                    </div>
-                    <Badge className={getEngagementColor(province.engagementRate)}>
-                      {province.engagementRate}% engaged
-                    </Badge>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-muted-foreground">Active Users</span>
-                      <span className="font-bold text-blue-600">
-                        {formatNumber(province.activeUsers)}
-                      </span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-muted-foreground">Recent Activity</span>
-                      <span className="font-bold text-green-600">
-                        {formatNumber(province.recentActivity)}
-                      </span>
-                    </div>
-                    
-                    <div className="pt-2 border-t">
-                      <div className="text-sm font-medium text-muted-foreground mb-2">Top Issues</div>
-                      <div className="flex flex-wrap gap-1">
-                        {province.topIssues.map((issue, index) => (
-                          <Badge key={index} variant="secondary" className="text-xs">
-                            {issue}
-                          </Badge>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div className="pt-2 border-t">
-                      <div className="text-sm font-medium text-muted-foreground mb-2">Activity Breakdown</div>
-                      <div className="grid grid-cols-2 gap-2 text-xs">
-                        <div className="flex justify-between">
-                          <span>Discussions</span>
-                          <span className="font-medium">{province.politicalActivity.discussions}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span>Petitions</span>
-                          <span className="font-medium">{province.politicalActivity.petitions}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span>FOI Requests</span>
-                          <span className="font-medium">{province.politicalActivity.foiRequests}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span>Votes</span>
-                          <span className="font-medium">{province.politicalActivity.votes}</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+            {/* Provinces will be fetched from API and displayed here */}
+            <Card>
+              <CardHeader>
+                <CardTitle>No Provincial Data Available</CardTitle>
+                <CardDescription>
+                  Engagement data for provinces is not currently available.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <p>Please check back later or try a different filter.</p>
+              </CardContent>
+            </Card>
           </div>
         </TabsContent>
 

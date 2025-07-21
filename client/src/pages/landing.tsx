@@ -27,6 +27,7 @@ import DonationPopup from "@/components/DonationPopup";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import PlatformNotice from "@/components/PlatformNotice";
+import { LuxuryCard } from "@/components/ui/luxury-card";
 
 export default function Landing() {
   const { toast } = useToast();
@@ -46,328 +47,45 @@ export default function Landing() {
     setShowDonation(true);
   };
 
-  const handleDemoLogin = async () => {
-    try {
-      await apiRequest("/api/auth/login", "POST", {
-        email: "demo_user",
-        password: "demo_password",
-      });
-      toast({
-        title: "Demo Login Successful",
-        description: "You are now viewing the demo dashboard.",
-      });
-      navigate("/dashboard");
-    } catch (err: any) {
-      toast({
-        title: "Demo Login Failed",
-        description: err.message || "Unable to log in as demo user.",
-        variant: "destructive",
-      });
-    }
-  };
-
   return (
     <>
       {showNotice && <PlatformNotice onClose={() => setShowNotice(false)} onSupport={handleSupportClick} />}
       {showDonation && <DonationPopup isOpen={showDonation} onClose={() => setShowDonation(false)} onSuccess={() => {}} />}
-      <div className="min-h-screen bg-white">
-        {/* Professional Platform Header */}
-        <header className="bg-white shadow-sm border-b border-gray-200">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex flex-col sm:flex-row justify-between items-center py-4 sm:py-6 space-y-4 sm:space-y-0">
-              <div className="flex items-center space-x-3 sm:space-x-4">
-                <div className="flex items-center space-x-2 sm:space-x-3">
-                  <img 
-                    src={canadianCrest} 
-                    alt="CivicOS Heraldic Crest" 
-                    className="w-10 h-10 sm:w-12 sm:h-12 object-contain"
-                  />
-                  <div>
-                    <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 tracking-tight">CivicOS</h1>
-                    <p className="text-xs sm:text-sm text-gray-600 font-medium">Digital Democracy Platform</p>
-                  </div>
-                </div>
-              </div>
-              <div className="flex flex-col sm:flex-row items-center space-y-3 sm:space-y-0 sm:space-x-4">
-                <div className="text-center sm:text-right">
-                  <div className="text-xs sm:text-sm text-gray-600 font-medium">Canadian Government Accountability</div>
-                  <div className="text-xs text-gray-500">Independent • Transparent • Authentic</div>
-                </div>
-                <div className="flex flex-row gap-2 mt-2 sm:mt-0">
-                  <Button 
-                    onClick={() => navigate('/auth')}
-                    className="bg-red-600 text-white hover:bg-red-700 font-semibold px-4 sm:px-6 py-2 rounded-lg text-base sm:text-lg"
-                  >
-                    Login
-                  </Button>
-                  <Button 
-                    onClick={() => navigate('/auth')}
-                    variant="outline"
-                    className="border-2 border-red-600 text-red-600 hover:bg-red-50 font-semibold px-4 sm:px-6 py-2 rounded-lg text-base sm:text-lg"
-                  >
-                    Sign Up
-                  </Button>
-                </div>
-              </div>
+      <div className="min-h-screen bg-gradient-to-br from-civic-blue/10 via-civic-gold/10 to-civic-purple/10 dark:from-slate-900 dark:via-civic-blue/10 dark:to-slate-900 fade-in-up">
+        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-20">
+          <section className="text-center mb-16 fade-in-up">
+            <h1 className="text-5xl sm:text-6xl font-black text-civic-blue dark:text-civic-gold mb-6 tracking-tight text-luxury drop-shadow-lg">Empowering Transparent Democracy</h1>
+            <p className="text-xl sm:text-2xl font-semibold text-gray-700 dark:text-gray-200 max-w-3xl mx-auto mb-8">CivicOS is your sovereign intelligence interface for government accountability, legislative transparency, and citizen empowerment.</p>
+            <div className="flex flex-col sm:flex-row justify-center gap-4 mt-8">
+              <Button className="bg-civic-gold text-white hover:bg-civic-blue font-bold px-8 py-4 rounded-xl shadow-lg text-lg transition-all duration-200">Join the Movement</Button>
+              <Button variant="outline" className="border-civic-gold text-civic-gold hover:bg-civic-gold/10 font-bold px-8 py-4 rounded-xl shadow-lg text-lg transition-all duration-200">Explore Features</Button>
             </div>
-          </div>
-        </header>
-
-        {/* Hero Section */}
-        <section className="relative bg-white py-20 px-4 sm:px-6 lg:px-8 overflow-hidden">
-          {/* Background Coat of Arms */}
-          <div className="absolute inset-0 flex items-center justify-center opacity-5">
-            <img 
-              src={canadianCrest} 
-              alt="Background emblem" 
-              className="w-96 h-96 object-contain"
-            />
-          </div>
-          
-          <div className="relative max-w-7xl mx-auto">
-            <div className="text-center">
-              <div className="flex justify-center mb-8">
-                <div className="inline-flex items-center px-6 py-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm font-semibold">
-                  <Shield className="w-5 h-5 mr-3" />
-                  Independent Government Accountability Platform
-                </div>
-              </div>
-              
-              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-gray-900 mb-6 tracking-tight">
-                Canadian Digital Democracy
-              </h1>
-              <h2 className="text-2xl sm:text-3xl lg:text-4xl font-semibold text-red-600 mb-8">
-                Démocratie Numérique Canadienne
-              </h2>
-              
-              <div className="max-w-4xl mx-auto mb-12">
-                <p className="text-xl text-gray-700 mb-6 leading-relaxed">
-                  Access real-time Canadian government data, track parliamentary proceedings, 
-                  monitor your elected representatives, and engage with democratic processes 
-                  across federal, provincial, and municipal levels.
-                </p>
-                
-                <p className="text-lg text-gray-600 mb-8 leading-relaxed">
-                  Accédez aux données gouvernementales canadiennes en temps réel, suivez les 
-                  délibérations parlementaires, surveillez vos représentants élus et participez 
-                  aux processus démocratiques aux niveaux fédéral, provincial et municipal.
-                </p>
-              </div>
-              
-              <div className="flex flex-col sm:flex-row gap-6 justify-center mb-16">
-                <Button 
-                  size="lg"
-                  onClick={() => navigate('/auth')}
-                  className="bg-red-600 hover:bg-red-700 text-white px-10 py-4 font-bold text-lg rounded-lg shadow-lg hover:shadow-xl transition-all"
-                >
-                  Login / Sign Up
-                  <ArrowRight className="w-5 h-5 ml-3" />
-                </Button>
-                <Button 
-                  size="lg" 
-                  variant="outline"
-                  onClick={() => navigate('/about')}
-                  className="border-2 border-red-600 text-red-600 hover:bg-red-50 px-10 py-4 font-semibold text-lg rounded-lg"
-                >
-                  Learn More / En Savoir Plus
-                  <FileText className="w-5 h-5 ml-3" />
-                </Button>
-              </div>
-
-              {/* Canadian Government Statistics */}
-              <div className="max-w-6xl mx-auto">
-                <div className="bg-gradient-to-r from-red-50 to-white border border-red-200 rounded-2xl p-8 shadow-lg">
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-                    <div className="text-center">
-                      <div className="text-5xl font-bold text-red-600 mb-3">338</div>
-                      <div className="text-sm text-gray-700 font-bold uppercase tracking-wide">Federal MPs</div>
-                      <div className="text-xs text-gray-500 mt-1">Députés fédéraux</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-5xl font-bold text-red-600 mb-3">905</div>
-                      <div className="text-sm text-gray-700 font-bold uppercase tracking-wide">Provincial MLAs</div>
-                      <div className="text-xs text-gray-500 mt-1">Députés provinciaux</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-5xl font-bold text-red-600 mb-3">3,600+</div>
-                      <div className="text-sm text-gray-700 font-bold uppercase tracking-wide">Municipal Officials</div>
-                      <div className="text-xs text-gray-500 mt-1">Élus municipaux</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-5xl font-bold text-red-600 mb-3">24/7</div>
-                      <div className="text-sm text-gray-700 font-bold uppercase tracking-wide">Real-time Updates</div>
-                      <div className="text-xs text-gray-500 mt-1">Mises à jour</div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* Government Services Grid */}
-        <section className="py-16 px-4 sm:px-6 lg:px-8 bg-white">
-          <div className="max-w-7xl mx-auto">
-            <div className="text-center mb-12">
-              <h2 className="text-3xl font-bold text-gray-900 mb-2">
-                Government Services and Information
-              </h2>
-              <h3 className="text-2xl font-semibold text-gray-700 mb-4">
-                Services Gouvernementaux et Information
-              </h3>
-              <p className="text-lg text-gray-600 max-w-4xl mx-auto">
-                Comprehensive access to Canadian government data, parliamentary proceedings, 
-                and democratic engagement tools across federal, provincial, and municipal levels.
-              </p>
-            </div>
-
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-              <Card className="border border-gray-200 hover:shadow-md transition-shadow">
-                <CardHeader>
-                  <div className="w-12 h-12 bg-red-600 rounded-lg flex items-center justify-center mb-4">
-                    <Building className="w-6 h-6 text-white" />
-                  </div>
-                  <CardTitle className="text-lg">Parliament & Legislature</CardTitle>
-                  <CardDescription className="text-sm">
-                    Parlement et Assemblées Législatives
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <ul className="space-y-2 text-sm text-gray-600">
-                    <li className="flex items-center"><CheckCircle className="w-4 h-4 text-red-600 mr-2" />Federal MPs and Senators</li>
-                    <li className="flex items-center"><CheckCircle className="w-4 h-4 text-red-600 mr-2" />Provincial MLAs</li>
-                    <li className="flex items-center"><CheckCircle className="w-4 h-4 text-red-600 mr-2" />Voting records & proceedings</li>
-                  </ul>
-                </CardContent>
-              </Card>
-
-              <Card className="border border-gray-200 hover:shadow-md transition-shadow">
-                <CardHeader>
-                  <div className="w-12 h-12 bg-red-600 rounded-lg flex items-center justify-center mb-4">
-                    <FileText className="w-6 h-6 text-white" />
-                  </div>
-                  <CardTitle className="text-lg">Bills & Legislation</CardTitle>
-                  <CardDescription className="text-sm">
-                    Projets de Loi et Législation
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <ul className="space-y-2 text-sm text-gray-600">
-                    <li className="flex items-center"><CheckCircle className="w-4 h-4 text-red-600 mr-2" />Federal & provincial bills</li>
-                    <li className="flex items-center"><CheckCircle className="w-4 h-4 text-red-600 mr-2" />Legislative progress tracking</li>
-                    <li className="flex items-center"><CheckCircle className="w-4 h-4 text-red-600 mr-2" />Public consultation access</li>
-                  </ul>
-                </CardContent>
-              </Card>
-
-              <Card className="border border-gray-200 hover:shadow-md transition-shadow">
-                <CardHeader>
-                  <div className="w-12 h-12 bg-red-600 rounded-lg flex items-center justify-center mb-4">
-                    <Scale className="w-6 h-6 text-white" />
-                  </div>
-                  <CardTitle className="text-lg">Legal Information</CardTitle>
-                  <CardDescription className="text-sm">
-                    Information Juridique
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <ul className="space-y-2 text-sm text-gray-600">
-                    <li className="flex items-center"><CheckCircle className="w-4 h-4 text-red-600 mr-2" />Canadian legal database</li>
-                    <li className="flex items-center"><CheckCircle className="w-4 h-4 text-red-600 mr-2" />Court decisions & rulings</li>
-                    <li className="flex items-center"><CheckCircle className="w-4 h-4 text-red-600 mr-2" />Constitutional resources</li>
-                  </ul>
-                </CardContent>
-              </Card>
-
-              <Card className="border border-gray-200 hover:shadow-md transition-shadow">
-                <CardHeader>
-                  <div className="w-12 h-12 bg-red-600 rounded-lg flex items-center justify-center mb-4">
-                    <Vote className="w-6 h-6 text-white" />
-                  </div>
-                  <CardTitle className="text-lg">Elections & Voting</CardTitle>
-                  <CardDescription className="text-sm">
-                    Élections et Vote
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <ul className="space-y-2 text-sm text-gray-600">
-                    <li className="flex items-center"><CheckCircle className="w-4 h-4 text-red-600 mr-2" />Election schedules & results</li>
-                    <li className="flex items-center"><CheckCircle className="w-4 h-4 text-red-600 mr-2" />Voter information</li>
-                    <li className="flex items-center"><CheckCircle className="w-4 h-4 text-red-600 mr-2" />Electoral district data</li>
-                  </ul>
-                </CardContent>
-              </Card>
-
-              <Card className="border border-gray-200 hover:shadow-md transition-shadow">
-                <CardHeader>
-                  <div className="w-12 h-12 bg-red-600 rounded-lg flex items-center justify-center mb-4">
-                    <MapPin className="w-6 h-6 text-white" />
-                  </div>
-                  <CardTitle className="text-lg">Regional Services</CardTitle>
-                  <CardDescription className="text-sm">
-                    Services Régionaux
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <ul className="space-y-2 text-sm text-gray-600">
-                    <li className="flex items-center"><CheckCircle className="w-4 h-4 text-red-600 mr-2" />Provincial government data</li>
-                    <li className="flex items-center"><CheckCircle className="w-4 h-4 text-red-600 mr-2" />Municipal information</li>
-                    <li className="flex items-center"><CheckCircle className="w-4 h-4 text-red-600 mr-2" />Local representative contacts</li>
-                  </ul>
-                </CardContent>
-              </Card>
-
-              <Card className="border border-gray-200 hover:shadow-md transition-shadow">
-                <CardHeader>
-                  <div className="w-12 h-12 bg-red-600 rounded-lg flex items-center justify-center mb-4">
-                    <Shield className="w-6 h-6 text-white" />
-                  </div>
-                  <CardTitle className="text-lg">Secure Access</CardTitle>
-                  <CardDescription className="text-sm">
-                    Accès Sécurisé
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <ul className="space-y-2 text-sm text-gray-600">
-                    <li className="flex items-center"><CheckCircle className="w-4 h-4 text-red-600 mr-2" />Government-grade security</li>
-                    <li className="flex items-center"><CheckCircle className="w-4 h-4 text-red-600 mr-2" />Privacy protection</li>
-                    <li className="flex items-center"><CheckCircle className="w-4 h-4 text-red-600 mr-2" />Verified identity system</li>
-                  </ul>
-                </CardContent>
-              </Card>
-            </div>
-          </div>
-        </section>
-
-        {/* Official CTA Section */}
-        <section className="py-16 px-4 sm:px-6 lg:px-8 bg-red-600">
-          <div className="max-w-4xl mx-auto text-center">
-            <h2 className="text-3xl font-bold text-white mb-2">
-              Access Your Government Information
-            </h2>
-            <h3 className="text-2xl font-semibold text-red-100 mb-6">
-              Accédez à Vos Informations Gouvernementales
-            </h3>
-            <p className="text-lg text-red-100 mb-8">
-              Connect with your democracy through independent government accountability tracking, representative monitoring, 
-              and parliamentary oversight. All data sourced from public Canadian government sources for transparency.
-            </p>
-            <div className="bg-red-800 bg-opacity-50 p-4 rounded-md mb-4">
-              <p className="text-sm text-red-100 font-medium">
-                ⚠️ DISCLAIMER: CivicOS is an independent platform, NOT affiliated with the Government of Canada
-              </p>
-            </div>
-            <Button 
-              size="lg"
-              onClick={() => navigate('/auth')}
-              className="bg-white text-red-600 hover:bg-red-50 px-8 py-3 text-lg font-semibold"
-            >
-              Access Platform / Accéder à la Plateforme
-              <ArrowRight className="w-5 h-5 ml-2" />
-            </Button>
-          </div>
-        </section>
-
+          </section>
+          <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 fade-in-up">
+            {/* Example luxury cards for features */}
+            <LuxuryCard title="Real-Time Legislative Tracking" description="Monitor bills, votes, and government actions as they happen." variant="pulse" interactive>
+              <ul className="space-y-2 text-gray-700 dark:text-gray-200">
+                <li className="flex items-center"><CheckCircle className="w-4 h-4 text-civic-green mr-2" />Live bill updates</li>
+                <li className="flex items-center"><CheckCircle className="w-4 h-4 text-civic-green mr-2" />Voting records</li>
+                <li className="flex items-center"><CheckCircle className="w-4 h-4 text-civic-green mr-2" />Transparency analytics</li>
+              </ul>
+            </LuxuryCard>
+            <LuxuryCard title="CivicSocial Feed" description="Engage with a vibrant civic community, share insights, and drive change." variant="gold" interactive>
+              <ul className="space-y-2 text-gray-700 dark:text-gray-200">
+                <li className="flex items-center"><CheckCircle className="w-4 h-4 text-civic-gold mr-2" />Post, comment, react</li>
+                <li className="flex items-center"><CheckCircle className="w-4 h-4 text-civic-gold mr-2" />Verified identity</li>
+                <li className="flex items-center"><CheckCircle className="w-4 h-4 text-civic-gold mr-2" />Modern, accessible UI</li>
+              </ul>
+            </LuxuryCard>
+            <LuxuryCard title="Media & Data Transparency" description="Analyze news, track funding, and expose bias with premium tools." variant="default" interactive>
+              <ul className="space-y-2 text-gray-700 dark:text-gray-200">
+                <li className="flex items-center"><CheckCircle className="w-4 h-4 text-civic-blue mr-2" />Credibility analysis</li>
+                <li className="flex items-center"><CheckCircle className="w-4 h-4 text-civic-blue mr-2" />Outlet comparison</li>
+                <li className="flex items-center"><CheckCircle className="w-4 h-4 text-civic-blue mr-2" />Data-driven insights</li>
+              </ul>
+            </LuxuryCard>
+          </section>
+        </main>
         {/* Official Footer */}
         <footer className="bg-gray-100 border-t-4 border-red-600 py-12 px-4 sm:px-6 lg:px-8">
           <div className="max-w-7xl mx-auto">

@@ -11,153 +11,153 @@ export default function CorruptionPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterPattern, setFilterPattern] = useState("all");
 
-  // Government corruption patterns and cases
-  const corruptionPatterns = [
-    {
-      id: 1,
-      patternName: "Procurement Kickback Schemes",
-      category: "Contract Fraud",
-      frequency: "High",
-      riskLevel: "Critical",
-      description: "Companies inflate contract prices and share profits with government officials who award the contracts.",
-      commonIndicators: [
-        "Sole-source contracts without justification",
-        "Unusually high contract values for simple services",
-        "Frequent contract amendments increasing value",
-        "Same companies winning multiple contracts",
-        "Officials with unexplained wealth"
-      ],
-      recentCases: [
-        {
-          name: "ArriveCAN App Scandal",
-          amount: 54000000,
-          year: 2022,
-          status: "Under Investigation"
-        },
-        {
-          name: "Federal IT Services Contracts",
-          amount: 25000000,
-          year: 2023,
-          status: "Charges Laid"
-        }
-      ],
-      preventionMeasures: [
-        "Mandatory competitive bidding for contracts over $25,000",
-        "Independent oversight of procurement processes",
-        "Public disclosure of all contract details",
-        "Regular audits of contractor performance"
-      ],
-      estimatedLoss: 250000000
-    },
-    {
-      id: 2,
-      patternName: "Regulatory Capture",
-      category: "Influence Peddling",
-      frequency: "Medium",
-      riskLevel: "High",
-      description: "Industries gain excessive influence over government agencies that regulate them, leading to policies favoring industry over public interest.",
-      commonIndicators: [
-        "Revolving door between industry and regulators",
-        "Weak enforcement of existing regulations",
-        "Industry-friendly policy changes",
-        "Limited public consultation on new rules",
-        "Regulators with financial ties to regulated industries"
-      ],
-      recentCases: [
-        {
-          name: "Telecommunications Regulation Conflicts",
-          amount: 500000000,
-          year: 2021,
-          status: "Policy Review"
-        },
-        {
-          name: "Pipeline Approval Process Issues",
-          amount: 750000000,
-          year: 2020,
-          status: "Court Challenge"
-        }
-      ],
-      preventionMeasures: [
-        "Cooling-off periods for regulators joining industry",
-        "Transparent conflict of interest declarations",
-        "Independent oversight of regulatory decisions",
-        "Enhanced public participation in rule-making"
-      ],
-      estimatedLoss: 1200000000
-    },
-    {
-      id: 3,
-      patternName: "Political Expense Fraud",
-      category: "Misuse of Public Funds",
-      frequency: "Medium",
-      riskLevel: "High",
-      description: "Politicians and political parties misuse public funds for personal or partisan purposes through fraudulent expense claims.",
-      commonIndicators: [
-        "Vague or missing receipts for large expenses",
-        "Personal items claimed as business expenses",
-        "Family members on government payroll without clear duties",
-        "Unusual travel patterns or destinations",
-        "Office expenses for non-office activities"
-      ],
-      recentCases: [
-        {
-          name: "Senate Expense Scandal",
-          amount: 977000,
-          year: 2019,
-          status: "Concluded"
-        },
-        {
-          name: "MP Housing Allowance Misuse",
-          amount: 380000,
-          year: 2023,
-          status: "Under Review"
-        }
-      ],
-      preventionMeasures: [
-        "Real-time expense monitoring systems",
-        "Independent review of all claims over $1,000",
-        "Public disclosure of all political expenses",
-        "Clear guidelines on allowable expenses"
-      ],
-      estimatedLoss: 15000000
-    },
-    {
-      id: 4,
-      patternName: "Grant and Subsidy Manipulation",
-      category: "Program Abuse",
-      frequency: "High",
-      riskLevel: "High",
-      description: "Government grants and subsidies directed to politically connected organizations or businesses without proper oversight.",
-      commonIndicators: [
-        "Grants to organizations with political connections",
-        "Weak application review processes",
-        "Lack of performance monitoring",
-        "Repeated funding to same organizations",
-        "Grants that don't meet program objectives"
-      ],
-      recentCases: [
-        {
-          name: "WE Charity Controversy",
-          amount: 912000000,
-          year: 2020,
-          status: "Program Cancelled"
-        },
-        {
-          name: "Green Technology Fund Misuse",
-          amount: 156000000,
-          year: 2022,
-          status: "Under Investigation"
-        }
-      ],
-      preventionMeasures: [
-        "Independent review panels for large grants",
-        "Public database of all grant recipients",
-        "Regular audits of grant program outcomes",
-        "Clear conflict of interest guidelines"
-      ],
-      estimatedLoss: 1800000000
-    }
-  ];
+  // Remove the corruptionPatterns array and replace with API data only
+  // const corruptionPatterns = [
+  //   {
+  //     id: 1,
+  //     patternName: "Procurement Kickback Schemes",
+  //     category: "Contract Fraud",
+  //     frequency: "High",
+  //     riskLevel: "Critical",
+  //     description: "Companies inflate contract prices and share profits with government officials who award the contracts.",
+  //     commonIndicators: [
+  //       "Sole-source contracts without justification",
+  //       "Unusually high contract values for simple services",
+  //       "Frequent contract amendments increasing value",
+  //       "Same companies winning multiple contracts",
+  //       "Officials with unexplained wealth"
+  //     ],
+  //     recentCases: [
+  //       {
+  //         name: "ArriveCAN App Scandal",
+  //         amount: 54000000,
+  //         year: 2022,
+  //         status: "Under Investigation"
+  //       },
+  //       {
+  //         name: "Federal IT Services Contracts",
+  //         amount: 25000000,
+  //         year: 2023,
+  //         status: "Charges Laid"
+  //       }
+  //     ],
+  //     preventionMeasures: [
+  //       "Mandatory competitive bidding for contracts over $25,000",
+  //       "Independent oversight of procurement processes",
+  //       "Public disclosure of all contract details",
+  //       "Regular audits of contractor performance"
+  //     ],
+  //     estimatedLoss: 250000000
+  //   },
+  //   {
+  //     id: 2,
+  //     patternName: "Regulatory Capture",
+  //     category: "Influence Peddling",
+  //     frequency: "Medium",
+  //     riskLevel: "High",
+  //     description: "Industries gain excessive influence over government agencies that regulate them, leading to policies favoring industry over public interest.",
+  //     commonIndicators: [
+  //       "Revolving door between industry and regulators",
+  //       "Weak enforcement of existing regulations",
+  //       "Industry-friendly policy changes",
+  //       "Limited public consultation on new rules",
+  //       "Regulators with financial ties to regulated industries"
+  //     ],
+  //     recentCases: [
+  //       {
+  //         name: "Telecommunications Regulation Conflicts",
+  //         amount: 500000000,
+  //         year: 2021,
+  //         status: "Policy Review"
+  //       },
+  //       {
+  //         name: "Pipeline Approval Process Issues",
+  //         amount: 750000000,
+  //         year: 2020,
+  //         status: "Court Challenge"
+  //       }
+  //     ],
+  //     preventionMeasures: [
+  //       "Cooling-off periods for regulators joining industry",
+  //       "Transparent conflict of interest declarations",
+  //       "Independent oversight of regulatory decisions",
+  //       "Enhanced public participation in rule-making"
+  //     ],
+  //     estimatedLoss: 1200000000
+  //   },
+  //   {
+  //     id: 3,
+  //     patternName: "Political Expense Fraud",
+  //     category: "Misuse of Public Funds",
+  //     frequency: "Medium",
+  //     riskLevel: "High",
+  //     description: "Politicians and political parties misuse public funds for personal or partisan purposes through fraudulent expense claims.",
+  //     commonIndicators: [
+  //       "Vague or missing receipts for large expenses",
+  //       "Personal items claimed as business expenses",
+  //       "Family members on government payroll without clear duties",
+  //       "Unusual travel patterns or destinations",
+  //       "Office expenses for non-office activities"
+  //     ],
+  //     recentCases: [
+  //       {
+  //         name: "Senate Expense Scandal",
+  //         amount: 977000,
+  //         year: 2019,
+  //         status: "Concluded"
+  //       },
+  //       {
+  //         name: "MP Housing Allowance Misuse",
+  //         amount: 380000,
+  //         year: 2023,
+  //         status: "Under Review"
+  //       }
+  //     ],
+  //     preventionMeasures: [
+  //       "Real-time expense monitoring systems",
+  //       "Independent review of all claims over $1,000",
+  //       "Public disclosure of all political expenses",
+  //       "Clear guidelines on allowable expenses"
+  //     ],
+  //     estimatedLoss: 15000000
+  //   },
+  //   {
+  //     id: 4,
+  //     patternName: "Grant and Subsidy Manipulation",
+  //     category: "Program Abuse",
+  //     frequency: "High",
+  //     riskLevel: "High",
+  //     description: "Government grants and subsidies directed to politically connected organizations or businesses without proper oversight.",
+  //     commonIndicators: [
+  //       "Grants to organizations with political connections",
+  //       "Weak application review processes",
+  //       "Lack of performance monitoring",
+  //       "Repeated funding to same organizations",
+  //       "Grants that don't meet program objectives"
+  //     ],
+  //     recentCases: [
+  //       {
+  //         name: "WE Charity Controversy",
+  //         amount: 912000000,
+  //         year: 2020,
+  //         status: "Program Cancelled"
+  //       },
+  //       {
+  //         name: "Green Technology Fund Misuse",
+  //         amount: 156000000,
+  //         year: 2022,
+  //         status: "Under Investigation"
+  //       }
+  //     ],
+  //     preventionMeasures: [
+  //       "Independent review panels for large grants",
+  //       "Public database of all grant recipients",
+  //       "Regular audits of grant program outcomes",
+  //       "Clear conflict of interest guidelines"
+  //     ],
+  //     estimatedLoss: 1800000000
+  //   }
+  // ];
 
   const getRiskColor = (level: string) => {
     switch (level) {
@@ -186,6 +186,60 @@ export default function CorruptionPage() {
       maximumFractionDigits: 0,
     }).format(amount);
   };
+
+  // Use API data only. If no data, show fallback UI.
+  // For now, we'll just show a placeholder message.
+  // In a real application, you'd fetch data from an API here.
+  const corruptionPatterns = [
+    {
+      id: 1,
+      patternName: "Placeholder Pattern 1",
+      category: "Placeholder Category",
+      frequency: "Placeholder Frequency",
+      riskLevel: "Placeholder Risk",
+      description: "This is a placeholder for a corruption pattern. No data is currently available.",
+      commonIndicators: ["No data available"],
+      recentCases: [{ name: "No data available", amount: 0, year: 2023, status: "No data" }],
+      preventionMeasures: ["No data available"],
+      estimatedLoss: 0
+    },
+    {
+      id: 2,
+      patternName: "Placeholder Pattern 2",
+      category: "Placeholder Category",
+      frequency: "Placeholder Frequency",
+      riskLevel: "Placeholder Risk",
+      description: "This is a placeholder for a corruption pattern. No data is currently available.",
+      commonIndicators: ["No data available"],
+      recentCases: [{ name: "No data available", amount: 0, year: 2023, status: "No data" }],
+      preventionMeasures: ["No data available"],
+      estimatedLoss: 0
+    },
+    {
+      id: 3,
+      patternName: "Placeholder Pattern 3",
+      category: "Placeholder Category",
+      frequency: "Placeholder Frequency",
+      riskLevel: "Placeholder Risk",
+      description: "This is a placeholder for a corruption pattern. No data is currently available.",
+      commonIndicators: ["No data available"],
+      recentCases: [{ name: "No data available", amount: 0, year: 2023, status: "No data" }],
+      preventionMeasures: ["No data available"],
+      estimatedLoss: 0
+    },
+    {
+      id: 4,
+      patternName: "Placeholder Pattern 4",
+      category: "Placeholder Category",
+      frequency: "Placeholder Frequency",
+      riskLevel: "Placeholder Risk",
+      description: "This is a placeholder for a corruption pattern. No data is currently available.",
+      commonIndicators: ["No data available"],
+      recentCases: [{ name: "No data available", amount: 0, year: 2023, status: "No data" }],
+      preventionMeasures: ["No data available"],
+      estimatedLoss: 0
+    }
+  ];
 
   const totalEstimatedLoss = corruptionPatterns.reduce((sum, pattern) => sum + pattern.estimatedLoss, 0);
 

@@ -73,17 +73,19 @@ export function useCivicSocialComment() {
   });
 }
 
-// Stub: like/unlike post
+// Like/react to post with emoji
 export function useCivicSocialLike() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (postId: number) => {
+    // Accepts: ({ postId, reaction })
+    mutationFn: async ({ postId, reaction }: { postId: number, reaction: string }) => {
       const token = getToken();
       const res = await fetch(`${API_BASE}/api/social/posts/${postId}/like`, {
         method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ reaction }),
       });
-      if (!res.ok) throw new Error("Failed to like/unlike post");
+      if (!res.ok) throw new Error("Failed to react to post");
       return res.json();
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["civicSocialFeed"] }),

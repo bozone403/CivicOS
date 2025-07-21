@@ -681,6 +681,17 @@ export class DatabaseStorage implements IStorage {
       };
     }
   }
+
+  // Search users by name or email (case-insensitive, partial match, limit 10)
+  async searchUsers(query: string): Promise<User[]> {
+    const q = `%${query.toLowerCase()}%`;
+    // Use pool.query for parameterized SQL
+    const result = await pool.query(
+      `SELECT * FROM users WHERE LOWER(email) LIKE $1 OR LOWER(first_name) LIKE $1 OR LOWER(last_name) LIKE $1 LIMIT 10`,
+      [q]
+    );
+    return result.rows as User[];
+  }
 }
 
 export const storage = new DatabaseStorage();

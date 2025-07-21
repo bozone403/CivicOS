@@ -1,27 +1,80 @@
 // PARANOID: All CivicSocial endpoints must use real, production data only. No demo/test logic allowed. All endpoints must remain JWT-protected via parent router. If you add new endpoints, ensure they are protected and use only real data.
 import { Router, Request, Response } from "express";
 import { db } from "./db.js";
-import { socialPosts, socialComments, socialLikes, userFriends, users } from "../shared/schema.js";
-import { eq, desc, and, isNull, or } from "drizzle-orm";
+import { socialPosts, socialComments, socialLikes, userFriends, users, notifications } from "../shared/schema.js";
+import { eq, desc, and, isNull, or, inArray } from "drizzle-orm";
 
 const router = Router();
+
+// Helper: check and notify if a post is trending
+async function checkAndNotifyTrending(postId: number) {
+  // Count reactions
+  const reactions = await db.select().from(socialLikes).where(eq(socialLikes.postId, postId));
+  const reactionCount = reactions.length;
+  // Count comments
+  const comments = await db.select().from(socialComments).where(eq(socialComments.postId, postId));
+  const commentCount = comments.length;
+  if (reactionCount >= 10 || commentCount >= 5) {
+    // Get post and author
+    const [post] = await db.select().from(socialPosts).where(eq(socialPosts.id, postId));
+    if (!post) return;
+    // Check if already notified
+    const existing = await db.select().from(notifications).where(
+      and(
+        eq(notifications.userId, post.userId),
+        eq(notifications.type, "social"),
+        eq(notifications.sourceId, String(postId)),
+        eq(notifications.title, "Your post is trending!")
+      )
+    );
+    if (existing.length === 0) {
+      await db.insert(notifications).values({
+        userId: post.userId,
+        type: "social",
+        title: "Your post is trending!",
+        message: "Your post is getting lots of engagement. Check it out!",
+        sourceModule: "CivicSocial",
+        sourceId: String(postId),
+        priority: "high",
+      });
+    }
+  }
+}
 
 // GET /api/social/feed - Get the user's CivicSocial feed
 router.get("/feed", async (req: Request, res: Response) => {
   try {
-    // Try id, then sub (JWT), then query param
     const userId = ((req.user as any)?.id || (req.user as any)?.sub || req.query.userId) as string | undefined;
     if (!userId) return res.status(401).json({ error: "Not authenticated" });
 
-    // Get posts from user and friends (basic version: just all posts, newest first)
     const posts = await db
       .select()
       .from(socialPosts)
       .orderBy(desc(socialPosts.createdAt))
       .limit(50);
 
-    // TODO: Join with user info, likes, comments, etc.
-    res.json({ feed: posts });
+    // For each post, get reactions grouped by emoji
+    const postIds = posts.map((p: any) => p.id);
+    let reactions: any[] = [];
+    if (postIds.length > 0) {
+      reactions = await db
+        .select({ postId: socialLikes.postId, reaction: socialLikes.reaction, userId: socialLikes.userId })
+        .from(socialLikes)
+        .where(inArray(socialLikes.postId, postIds));
+    }
+    // Group reactions by postId and emoji
+    const reactionMap: Record<number, Record<string, string[]>> = {};
+    for (const r of reactions) {
+      if (!reactionMap[r.postId]) reactionMap[r.postId] = {};
+      if (!reactionMap[r.postId][r.reaction]) reactionMap[r.postId][r.reaction] = [];
+      reactionMap[r.postId][r.reaction].push(r.userId);
+    }
+    // Attach reactions to posts
+    const postsWithReactions = posts.map((p: any) => ({
+      ...p,
+      reactions: reactionMap[p.id] || {},
+    }));
+    res.json({ feed: postsWithReactions });
   } catch (err) {
     console.error("Feed error:", err);
     res.status(500).json({ error: "Failed to fetch feed", details: err });
@@ -101,7 +154,9 @@ router.post("/posts/:id/like", async (req: Request, res: Response) => {
     const postId = parseInt(req.params.id, 10);
     if (isNaN(postId)) return res.status(400).json({ error: "Invalid post ID." });
 
-    // Check if like exists
+    const reaction = req.body.reaction || "👍";
+
+    // Check if a reaction exists for this user/post
     const existing = await db
       .select()
       .from(socialLikes)
@@ -112,20 +167,30 @@ router.post("/posts/:id/like", async (req: Request, res: Response) => {
       ));
 
     if (existing.length > 0) {
-      // Unlike (remove like)
-      await db.delete(socialLikes).where(eq(socialLikes.id, existing[0].id));
-      return res.json({ liked: false });
+      if (existing[0].reaction === reaction) {
+        // Remove reaction (toggle off)
+        await db.delete(socialLikes).where(eq(socialLikes.id, existing[0].id));
+        return res.json({ reacted: false });
+      } else {
+        // Change reaction
+        const [updated] = await db
+          .update(socialLikes)
+          .set({ reaction })
+          .where(eq(socialLikes.id, existing[0].id))
+          .returning();
+        return res.json({ reacted: true, reaction: updated.reaction });
+      }
     } else {
-      // Like (add like)
+      // Add new reaction
       const [inserted] = await db
         .insert(socialLikes)
-        .values({ userId, postId })
+        .values({ userId, postId, reaction })
         .returning();
-      return res.json({ liked: true, like: inserted });
+      return res.json({ reacted: true, reaction: inserted.reaction });
     }
   } catch (err) {
-    console.error("Like error:", err);
-    res.status(500).json({ error: "Failed to like/unlike post", details: err });
+    console.error("Reaction error:", err);
+    res.status(500).json({ error: "Failed to react to post", details: err });
   }
 });
 

@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
@@ -109,98 +109,50 @@ export default function Politicians() {
   const [selectedProvince, setSelectedProvince] = useState<string>("all");
   const [selectedPolitician, setSelectedPolitician] = useState<PoliticianData | null>(null);
 
+  // Fetch politicians from API (replace with your actual data fetching logic)
+  const { data: politicians = [], isLoading, isError } = useQuery<PoliticianData[]>({
+    queryKey: ["/api/politicians"],
+    enabled: isAuthenticated,
+  });
+
   // Redirect if not authenticated
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
       toast({
         title: "Authentication Required",
-        description: "You need to be logged in to view politician data.",
+        description: "Please log in to access this page.",
         variant: "destructive",
       });
-      setTimeout(() => {
-        navigate("/auth");
-      }, 1000);
+      navigate("/auth");
     }
-  }, [isAuthenticated, authLoading, toast, navigate]);
-
-  const { data: politicians = [], isLoading, error, refetch } = useQuery<PoliticianData[]>({
-    queryKey: ['/api/politicians', { search: searchTerm, level: selectedLevel, party: selectedParty, province: selectedProvince }],
-    enabled: isAuthenticated,
-    retry: 1,
-    refetchOnWindowFocus: false,
-  });
-
-  const politiciansToShow = (error || !politicians || politicians.length === 0) ? fallbackPoliticians : politicians;
-
-  // Show loading state while checking authentication
-  if (authLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Verifying authentication...</p>
-        </div>
-      </div>
-    );
-  }
-
-  // Show authentication required message
-  if (!isAuthenticated) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Card className="max-w-md mx-auto">
-          <CardHeader>
-            <CardTitle className="flex items-center">
-              <Lock className="w-5 h-5 mr-2" />
-              Authentication Required
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-gray-600 mb-4">
-              You need to be logged in to access politician data and platform features.
-            </p>
-            <Button onClick={() => navigate("/auth")} className="w-full">
-              Login to Continue
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
+  }, [authLoading, isAuthenticated, navigate, toast]);
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 p-6">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-            <p className="text-gray-600">Loading verified politician data...</p>
-            <p className="text-sm text-gray-500 mt-2">Fetching from official government sources</p>
-          </div>
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <h2 className="text-xl font-bold mb-2">Loading politicians...</h2>
+          <p className="text-gray-600">Fetching the latest data from Parliament and provincial legislatures.</p>
         </div>
       </div>
     );
   }
 
-  if (error || !politiciansToShow || politiciansToShow.length === 0) {
+  if (isError || !politicians || politicians.length === 0) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 p-6">
-        <div className="max-w-7xl mx-auto">
-          <Alert className="max-w-2xl mx-auto mt-12">
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription>
-              <div className="space-y-2">
-                <p className="font-medium">No politician data available.</p>
-                <p>Unable to connect to government data sources and no fallback data is present.</p>
-              </div>
-            </AlertDescription>
-          </Alert>
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="text-5xl mb-4">🕵️‍♂️</div>
+          <h2 className="text-xl font-bold mb-2">No politicians found</h2>
+          <p className="text-gray-600 mb-2">Data may be syncing or temporarily unavailable.</p>
+          <p className="text-gray-500">Please check back soon. If this persists, contact support or try refreshing the page.</p>
         </div>
       </div>
     );
   }
 
-  const filteredPoliticians = politiciansToShow.filter(politician => {
+  const filteredPoliticians = politicians.filter(politician => {
     const matchesSearch = politician.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          politician.riding?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          politician.constituency?.toLowerCase().includes(searchTerm.toLowerCase());
@@ -211,7 +163,7 @@ export default function Politicians() {
     return matchesSearch && matchesParty && matchesLevel && matchesProvince;
   });
 
-  const hasRegionalData = politiciansToShow.length > 0;
+  const hasRegionalData = politicians.length > 0;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 p-6">
@@ -221,7 +173,7 @@ export default function Politicians() {
             Canadian Politicians & Party Leaders
           </h1>
           <p className="text-xl text-gray-600 dark:text-gray-300 mb-6">
-            Verified data on {politiciansToShow?.length || 0} politicians across all levels of Canadian government
+            Verified data on {politicians?.length || 0} politicians across all levels of Canadian government
           </p>
 
           {/* Party Leaders Section */}
@@ -549,7 +501,7 @@ export default function Politicians() {
                     Try adjusting your search criteria or check back later.
                   </p>
                 </div>
-                <Button variant="outline" size="sm" onClick={() => refetch()}>
+                <Button variant="outline" size="sm">
                   Refresh Data
                 </Button>
               </div>
@@ -704,6 +656,7 @@ export default function Politicians() {
                     )}
                   </div>
                 </DialogTitle>
+                <DialogDescription>Detailed information and data sources for this politician.</DialogDescription>
               </DialogHeader>
 
               <div className="space-y-6 mt-6">

@@ -59,7 +59,7 @@ const navigationSections = [
   {
     title: "Political Intelligence Hub",
     items: [
-      { title: "Dashboard", href: "/", icon: Home },
+      { title: "Dashboard", href: "/dashboard", icon: Home },
       { title: "Politicians", href: "/politicians", icon: Users, badge: "2,847" },
       { title: "Bills & Voting", href: "/voting", icon: FileText, badge: "Active" },
       { title: "Elections", href: "/elections", icon: Crown },
@@ -72,7 +72,6 @@ const navigationSections = [
       { title: "Civic Ledger", href: "/ledger", icon: BookOpen, badge: "Personal" },
       { title: "Discussions", href: "/discussions", icon: MessageSquare, badge: "24" },
       { title: "Petitions", href: "/petitions", icon: FileText },
-      { title: "CivicSocial", href: "/civicsocial", icon: Users, badge: "New" },
       { title: "Contact Officials", href: "/contacts", icon: Users }
     ]
   },
@@ -203,7 +202,7 @@ export function LuxuryNavigation() {
               {isCollapsed ? <Menu className="w-5 h-5" /> : <X className="w-5 h-5" />}
             </Button>
           </div>
-          
+          {/* Add top-level CivicSocial button */}
           {!isCollapsed && (
             <div className="space-y-4">
               <div className="flex items-center justify-center space-x-2">
@@ -214,14 +213,23 @@ export function LuxuryNavigation() {
                 />
                 <h1 className="text-2xl font-bold text-gray-900 tracking-tight">CivicOS</h1>
               </div>
+              <Link href="/civicsocial/feed">
+                <Button
+                  className={cn(
+                    "w-full justify-center bg-gradient-to-r from-blue-600 to-blue-800 text-white font-bold shadow-lg hover:from-blue-700 hover:to-blue-900 transition-all duration-200 text-lg h-12",
+                    isActive("/civicsocial") && "ring-2 ring-blue-400"
+                  )}
+                >
+                  CivicSocial
+                </Button>
+              </Link>
             </div>
           )}
         </div>
-            
         {/* User Profile Section */}
         {user && !isCollapsed && (
           <div className="bg-gray-50 border-t border-gray-200 px-3 lg:px-4 py-2 lg:py-3">
-            <Link href={`/users/${user?.id || 'profile'}`}>
+            <Link href="/profile">
               <div className="flex items-center space-x-2 lg:space-x-3 hover:bg-gray-100 rounded p-2 transition-colors cursor-pointer">
                 <div className="w-6 h-6 lg:w-8 lg:h-8 rounded-full bg-red-600 flex items-center justify-center flex-shrink-0">
                   <span className="text-xs lg:text-sm font-bold text-white">

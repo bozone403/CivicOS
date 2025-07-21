@@ -9,6 +9,7 @@ userActivity,
  } from "../shared/schema.js";
 import { db } from "./db.js";
 import { eq, desc, and, sql, count } from "drizzle-orm";
+import { pool } from "./db.js";
 export class DatabaseStorage {
     // User operations
     async getUser(id) {
@@ -125,6 +126,7 @@ export class DatabaseStorage {
         return bill;
     }
     async createBill(bill) {
+        console.log('[DB][storage] Attempting to create bill. Pool type:', typeof pool, 'DATABASE_URL:', process.env.DATABASE_URL, 'NODE_TLS_REJECT_UNAUTHORIZED:', process.env.NODE_TLS_REJECT_UNAUTHORIZED);
         const [newBill] = await db.insert(bills).values(bill).returning();
         return newBill;
     }
@@ -184,6 +186,7 @@ export class DatabaseStorage {
         return politician;
     }
     async createPolitician(politician) {
+        console.log('[DB][storage] Attempting to create politician. Pool type:', typeof pool, 'DATABASE_URL:', process.env.DATABASE_URL, 'NODE_TLS_REJECT_UNAUTHORIZED:', process.env.NODE_TLS_REJECT_UNAUTHORIZED);
         const [newPolitician] = await db.insert(politicians).values(politician).returning();
         return newPolitician;
     }
@@ -531,6 +534,13 @@ export class DatabaseStorage {
                 activities: []
             };
         }
+    }
+    // Search users by name or email (case-insensitive, partial match, limit 10)
+    async searchUsers(query) {
+        const q = `%${query.toLowerCase()}%`;
+        // Use pool.query for parameterized SQL
+        const result = await pool.query(`SELECT * FROM users WHERE LOWER(email) LIKE $1 OR LOWER(first_name) LIKE $1 OR LOWER(last_name) LIKE $1 LIMIT 10`, [q]);
+        return result.rows;
     }
 }
 export const storage = new DatabaseStorage();

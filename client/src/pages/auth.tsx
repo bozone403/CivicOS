@@ -13,9 +13,10 @@ import { useToast } from "@/hooks/use-toast";
 import canadianCrest from "../../../attached_assets/ChatGPT Image Jun 20, 2025, 06_03_54 PM_1750464244456.png";
 import { useLocation } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
+import { config } from "@/lib/config";
 
 export default function Auth() {
-  const [, navigate] = useLocation();
+  const [location, navigate] = useLocation();
   const [loginData, setLoginData] = useState({ email: "", password: "" });
   const [registerData, setRegisterData] = useState({ 
     email: "", 
@@ -26,8 +27,20 @@ export default function Auth() {
   });
   const [errors, setErrors] = useState({ login: "", register: "" });
   const { toast } = useToast();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, authError } = useAuth();
   const [pendingRedirect, setPendingRedirect] = useState<"dashboard" | "profile" | null>(null);
+
+  // Redirect authenticated users away from /auth
+  React.useEffect(() => {
+    console.debug("[Auth] config.apiUrl", config.apiUrl);
+    if (isAuthenticated) {
+      if (location === "/auth" || location === "/login") {
+        navigate("/dashboard");
+      } else if (location === "/register") {
+        navigate("/profile");
+      }
+    }
+  }, [isAuthenticated, location, navigate]);
 
   // After successful login or registration, set pendingRedirect
   const loginMutation = useMutation({
@@ -42,7 +55,7 @@ export default function Auth() {
         title: "Welcome to CivicOS",
         description: "You have successfully logged in",
       });
-      window.location.href = "/dashboard";
+      navigate("/dashboard");
     },
     onError: (error: any) => {
       setErrors(prev => ({ ...prev, login: error.message || "Invalid email or password" }));
@@ -64,7 +77,7 @@ export default function Auth() {
         title: "Welcome to CivicOS",
         description: "Your account has been created successfully",
       });
-      window.location.href = "/profile";
+      navigate("/profile?welcome=1");
     },
     onError: (error: any) => {
       let message = error.message || "Registration failed";
@@ -122,6 +135,18 @@ export default function Auth() {
       lastName: registerData.lastName
     });
   };
+
+  if (authError) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-red-50">
+        <div className="max-w-md w-full bg-white shadow-lg rounded-lg p-8 text-center">
+          <h1 className="text-2xl font-bold text-red-600 mb-2">Authentication Error</h1>
+          <p className="text-gray-700 mb-4">{authError}</p>
+          <button className="bg-red-600 text-white px-4 py-2 rounded" onClick={() => navigate("/auth")}>Go to Login</button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 flex items-center justify-center p-4 sm:p-6">

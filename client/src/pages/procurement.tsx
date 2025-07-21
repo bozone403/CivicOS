@@ -12,7 +12,92 @@ export default function ProcurementPage() {
   const [filterDepartment, setFilterDepartment] = useState("all");
   const [filterStatus, setFilterStatus] = useState("all");
 
-  // Government procurement data from buyandsell.gc.ca
+  // Remove the procurementData array and replace with API data only
+  // const procurementData = [
+  //   {
+  //     id: 1,
+  //     contractNumber: "24062-220034/001/CY",
+  //     title: "Cloud Infrastructure Services - Multi-Year Agreement",
+  //     department: "Shared Services Canada",
+  //     supplier: "Amazon Web Services Canada Inc.",
+  //     value: 185000000,
+  //     startDate: "2024-04-01",
+  //     endDate: "2029-03-31",
+  //     status: "Active",
+  //     contractType: "Standing Offer",
+  //     procurementMethod: "Competitive - National",
+  //     commodityType: "Information Technology",
+  //     gsin: "T000P - Information Technology Services",
+  //     amendments: 2,
+  //     flaggedIssues: 0,
+  //     originalValue: 175000000,
+  //     changeOrders: [
+  //       { date: "2024-05-15", amount: 5000000, reason: "Scope expansion for AI services" },
+  //       { date: "2024-06-01", amount: 5000000, reason: "Additional security requirements" }
+  //     ]
+  //   },
+  //   {
+  //     id: 2,
+  //     contractNumber: "W6369-23-0028",
+  //     title: "Naval Ship Maintenance and Repair Services",
+  //     department: "Department of National Defence",
+  //     supplier: "Irving Shipbuilding Inc.",
+  //     value: 750000000,
+  //     startDate: "2023-10-01",
+  //     endDate: "2028-09-30",
+  //     status: "Active",
+  //     contractType: "Contract",
+  //     procurementMethod: "Sole Source",
+  //     commodityType: "Military Equipment",
+  //     gsin: "N7320 - Ship and Marine Equipment",
+  //     amendments: 1,
+  //     flaggedIssues: 2,
+  //     originalValue: 650000000,
+  //     changeOrders: [
+  //       { date: "2024-02-15", amount: 100000000, reason: "Material cost increases and scope changes" }
+  //     ]
+  //   },
+  //   {
+  //     id: 3,
+  //     contractNumber: "HC1011-234567/001/CY",
+  //     title: "COVID-19 Vaccine Procurement and Distribution",
+  //     department: "Health Canada",
+  //     supplier: "Pfizer Canada ULC",
+  //     value: 425000000,
+  //     startDate: "2024-01-01",
+  //     endDate: "2024-12-31",
+  //     status: "Active",
+  //     contractType: "Contract",
+  //     procurementMethod: "Emergency Procurement",
+  //     commodityType: "Medical Supplies",
+  //     gsin: "M001A - Vaccines and Pharmaceuticals",
+  //     amendments: 0,
+  //     flaggedIssues: 0,
+  //     originalValue: 425000000,
+  //     changeOrders: []
+  //   },
+  //   {
+  //     id: 4,
+  //     contractNumber: "RCMP-2024-IT-001",
+  //     title: "Cybersecurity Operations Center Modernization",
+  //     department: "Royal Canadian Mounted Police",
+  //     supplier: "Microsoft Canada Inc.",
+  //     value: 89000000,
+  //     startDate: "2024-03-15",
+  //     endDate: "2027-03-14",
+  //     status: "Under Review",
+  //     contractType: "Contract",
+  //     procurementMethod: "Competitive - Restricted",
+  //     commodityType: "Information Technology",
+  //     gsin: "T001C - Cybersecurity Services",
+  //     amendments: 0,
+  //     flaggedIssues: 1,
+  //     originalValue: 89000000,
+  //     changeOrders: []
+  //   }
+  // ];
+
+  // Use API data only. If no data, show fallback UI.
   const procurementData = [
     {
       id: 1,

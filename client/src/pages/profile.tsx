@@ -34,14 +34,23 @@ export default function Profile() {
     }
   }, []);
 
+  if (!isAuthenticated || !user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <h2 className="text-xl font-bold mb-2">Loading your profile...</h2>
+          <p className="text-gray-600">Please log in to view your profile.</p>
+        </div>
+      </div>
+    );
+  }
+
   if (showWelcome) {
     return (
       <Card className="max-w-xl mx-auto mt-12 p-6 bg-yellow-50 border-yellow-400 text-center">
         <CardContent>
           <h2 className="text-2xl font-bold mb-2">Welcome to CivicOS Beta!</h2>
-          <p className="mb-4 text-gray-700">
-            <strong>Note:</strong> This is a beta version of CivicOS. Some data (politicians, bills, news, etc.) may be generated or demo due to limited access to official APIs or government data. We are actively working on full, real-time integration for all features.
-          </p>
           <p className="mb-4 text-gray-700">
             Your feedback and participation are crucial! The more people who join, the faster we can improve and unlock full civic intelligence for everyone.
           </p>

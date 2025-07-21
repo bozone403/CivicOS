@@ -13,6 +13,8 @@ interface Notification {
   type: string;
   title: string;
   message: string;
+  sourceModule?: string;
+  sourceId?: string;
   timestamp?: string;
   createdAt?: string;
   read?: boolean;
@@ -123,29 +125,39 @@ export default function NotificationBell() {
                 No notifications.
               </li>
             )}
-            {notifications.map((notif) => (
-              <li
-                key={notif.id}
-                className={`p-3 flex items-start gap-2 cursor-pointer hover:bg-accent focus:bg-accent outline-none ${notif.read ? '' : 'bg-blue-50'}`}
-                tabIndex={0}
-                role="option"
-                aria-selected={!notif.read}
-                onClick={() => handleNotificationClick(notif)}
-                onKeyDown={e => handleNotificationKeyDown(e, notif)}
-              >
-                <span className="flex-shrink-0 mt-1">
-                  {notif.type === 'friend_request' && <User className="w-5 h-5 text-primary" aria-hidden="true" />}
-                  {notif.type === 'comment' && <MessageCircle className="w-5 h-5 text-primary" aria-hidden="true" />}
-                  {notif.type === 'like' && <Heart className="w-5 h-5 text-primary" aria-hidden="true" />}
-                  {notif.type === 'share' && <Share2 className="w-5 h-5 text-primary" aria-hidden="true" />}
-                </span>
-                <div className="flex-1">
-                  <div className="text-sm">{notif.message}</div>
-                  <div className="text-xs text-muted-foreground mt-1">{formatTimeAgo(notif.createdAt || notif.timestamp)}</div>
-                </div>
-                {!notif.read && <span className="ml-2 w-2 h-2 rounded-full bg-primary" aria-label="Unread notification"></span>}
-              </li>
-            ))}
+            {notifications.map((notif) => {
+              // Determine icon
+              let icon = null;
+              if (notif.type === 'friend_request') icon = <User className="w-5 h-5 text-primary" aria-hidden="true" />;
+              else if (notif.type === 'comment') icon = <MessageCircle className="w-5 h-5 text-primary" aria-hidden="true" />;
+              else if (notif.type === 'like') icon = <Heart className="w-5 h-5 text-primary" aria-hidden="true" />;
+              else if (notif.type === 'share') icon = <Share2 className="w-5 h-5 text-primary" aria-hidden="true" />;
+              else if (notif.type === 'trending' || notif.title?.toLowerCase().includes('trending')) icon = <Badge className="w-5 h-5 bg-pink-100 text-pink-700">🔥</Badge>;
+              else if (notif.type === 'friend') icon = <Users className="w-5 h-5 text-green-600" aria-hidden="true" />;
+              // Determine link
+              let link = null;
+              if (notif.sourceModule === 'CivicSocial' && notif.sourceId) link = `/civicsocial/feed#post-${notif.sourceId}`;
+              // Render notification
+              return (
+                <li
+                  key={notif.id}
+                  className={`p-3 flex items-start gap-2 cursor-pointer hover:bg-accent focus:bg-accent outline-none ${notif.read ? '' : 'bg-blue-50'}`}
+                  tabIndex={0}
+                  role="option"
+                  aria-selected={!notif.read}
+                  onClick={() => { handleNotificationClick(notif); if (link) navigate(link); }}
+                  onKeyDown={e => handleNotificationKeyDown(e, notif)}
+                >
+                  <span className="flex-shrink-0 mt-1">{icon}</span>
+                  <div className="flex-1">
+                    <div className="text-sm font-semibold">{notif.title}</div>
+                    <div className="text-xs text-muted-foreground mt-1">{notif.message}</div>
+                    <div className="text-xs text-muted-foreground mt-1">{formatTimeAgo(notif.createdAt || notif.timestamp)}</div>
+                  </div>
+                  {!notif.read && <span className="ml-2 w-2 h-2 rounded-full bg-primary" aria-label="Unread notification"></span>}
+                </li>
+              );
+            })}
           </ul>
         </div>
       )}

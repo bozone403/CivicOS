@@ -1,8 +1,9 @@
 import fetch from 'node-fetch';
 export async function callOllamaMistral(prompt) {
     try {
-        // Try local Ollama first
-        const response = await fetch('http://localhost:11434/api/generate', {
+        // Replace hardcoded localhost URL with environment variable or production config
+        const AI_API_URL = process.env.AI_API_URL || 'https://your-production-ai-endpoint.com/api/generate';
+        const response = await fetch(AI_API_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ model: 'mistral', prompt, stream: false })

@@ -69,28 +69,30 @@ export default function Ledger() {
     enabled: isAuthenticated,
   });
 
-  const fallbackLedgerData = [
-    {
-      id: 1,
-      activityType: 'vote',
-      entityId: 1,
-      entityType: 'bill',
-      pointsEarned: 10,
-      details: 'Supported the Climate Action Act.',
-      createdAt: '2024-07-01',
-    },
-    {
-      id: 2,
-      activityType: 'petition',
-      entityId: 2,
-      entityType: 'petition',
-      pointsEarned: 5,
-      details: 'Environmental impact petition.',
-      createdAt: '2024-06-15',
-    }
-  ];
+  // Remove the fallbackLedgerData array and replace with API data only
+  // const fallbackLedgerData = [
+  //   {
+  //     id: 1,
+  //     activityType: 'vote',
+  //     entityId: 1,
+  //     entityType: 'bill',
+  //     pointsEarned: 10,
+  //     details: 'Supported the Climate Action Act.',
+  //     createdAt: '2024-07-01',
+  //   },
+  //   {
+  //     id: 2,
+  //     activityType: 'petition',
+  //     entityId: 2,
+  //     entityType: 'petition',
+  //     pointsEarned: 5,
+  //     details: 'Environmental impact petition.',
+  //     createdAt: '2024-06-15',
+  //   }
+  // ];
 
-  const ledgerData = data && data.activities && data.activities.length > 0 ? data.activities : fallbackLedgerData;
+  // Use API data only. If no data, show fallback UI.
+  const ledgerData = data && data.activities && data.activities.length > 0 ? data.activities : [];
 
   const getActivityIcon = (activityType: string) => {
     switch (activityType) {
@@ -126,6 +128,19 @@ export default function Ledger() {
   }
 
   if (!isAuthenticated) return null;
+
+  // If ledgerData is empty, show a fallback UI
+  if (!ledgerData || ledgerData.length === 0) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="text-5xl mb-4">📉</div>
+          <h2 className="text-xl font-bold mb-2">No ledger data available</h2>
+          <p className="text-gray-600">No civic engagement activities found. Participate in the platform to see your history here.</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 p-4 lg:p-8">

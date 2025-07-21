@@ -1,4 +1,4 @@
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { CheckCircle, Share2, Twitter, Linkedin, Mail } from "lucide-react";
@@ -38,6 +38,7 @@ export default function DonationSuccess({ isOpen, onClose, amount }: DonationSuc
             <CheckCircle className="w-8 h-8 text-green-600 mr-3" />
             Thank You!
           </DialogTitle>
+          <DialogDescription>Your donation supports government transparency and platform operations.</DialogDescription>
         </DialogHeader>
 
         <div className="space-y-6 text-center">

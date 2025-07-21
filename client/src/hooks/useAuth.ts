@@ -3,6 +3,8 @@ import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { getToken } from "@/lib/queryClient";
 import { config } from "@/lib/config";
+import { useLocation } from "wouter";
+import { useState } from "react";
 
 // Add User type
 export interface User {
@@ -18,6 +20,8 @@ export interface User {
 export function useAuth() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const [, navigate] = useLocation();
+  const [authError, setAuthError] = useState<string | null>(null);
 
   // Temporarily disable user query to avoid loading issues
   const { data: user, isLoading, error } = useQuery<User | null>({
@@ -28,25 +32,31 @@ export function useAuth() {
       try {
         const token = getToken();
         if (!token) return null;
-        
-        const response = await fetch(`${config.apiUrl}/api/auth/user`, {
+        const url = `${config.apiUrl.replace(/\/$/, "")}/api/auth/user`;
+        console.debug("[useAuth] Fetching /api/auth/user", url, "Token:", token);
+        const response = await fetch(url, {
           headers: {
             'Authorization': `Bearer ${token}`,
           },
         });
-        
+        console.debug("[useAuth] Response status:", response.status, response.statusText);
         if (response.status === 401) {
           localStorage.removeItem('civicos-jwt');
+          setAuthError("Session expired or invalid. Please log in again.");
           return null;
         }
-        
         if (!response.ok) {
-          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+          const text = await response.text();
+          setAuthError(`API error: HTTP ${response.status}: ${response.statusText}. Response: ${text}`);
+          console.error("[useAuth] /api/auth/user raw response:", text);
+          throw new Error(`HTTP ${response.status}: ${response.statusText}. Response: ${text}`);
         }
-        
-        return await response.json();
+        const data = await response.json();
+        setAuthError(null);
+        return data;
       } catch (error) {
-        // Only keep error logs for actual error handling
+        setAuthError("Network or server error. Please check your connection or try again later.");
+        console.error("[useAuth] /api/auth/user error", error, JSON.stringify(error));
         return null;
       }
     },
@@ -67,7 +77,7 @@ export function useAuth() {
         title: "Logged out",
         description: "You have been successfully logged out.",
       });
-      window.location.href = "/auth";
+      navigate("/auth");
     },
     onError: (error: any) => {
       toast({
@@ -90,7 +100,7 @@ export function useAuth() {
         title: "Login successful",
         description: "Welcome to CivicOS!",
       });
-      window.location.href = "/dashboard";
+      navigate("/dashboard");
     },
     onError: (error: any) => {
       toast({
@@ -103,9 +113,10 @@ export function useAuth() {
 
   return {
     user: user || null,
-    isLoading: isLoading && !hasNetworkError, // Don't show loading if there's a network error
+    isLoading: isLoading && !authError, // Don't show loading if there's a network error
     isAuthenticated: !!user, // Use actual user data
     logout,
     login,
+    authError,
   };
 }

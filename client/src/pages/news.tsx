@@ -8,7 +8,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 import { InteractiveContent } from "@/components/InteractiveContent";
-import { ComprehensiveNewsOutlets } from "@/components/widgets/ComprehensiveNewsOutlets";
 import { AlertTriangle, CheckCircle, AlertCircle, DollarSign, Users, Globe, TrendingUp, Eye, Shield, FileText } from "lucide-react";
 import { useState } from "react";
 import { apiRequest } from "@/lib/queryClient";
@@ -77,44 +76,45 @@ export default function News() {
   const [analysisSource, setAnalysisSource] = useState("");
   const queryClient = useQueryClient();
 
-  const fallbackArticles = [
-    {
-      id: 1,
-      title: 'Parliament Passes Climate Action Bill',
-      source: 'CBC News',
-      publishedAt: '2024-07-01',
-      summary: 'The House of Commons passed a major climate bill with cross-party support.',
-      credibilityScore: 92,
-      bias: 'center',
-      category: 'Politics'
-    },
-    {
-      id: 2,
-      title: 'Supreme Court Rules on Indigenous Rights',
-      source: 'Globe and Mail',
-      publishedAt: '2024-06-15',
-      summary: 'A landmark decision expands Indigenous land rights in Canada.',
-      credibilityScore: 88,
-      bias: 'center-left',
-      category: 'Law'
-    }
-  ];
-  const fallbackOutlets = [
-    {
-      id: 'cbc',
-      name: 'CBC News',
-      website: 'https://www.cbc.ca',
-      credibilityScore: 90,
-      biasRating: 'center',
-      factualReporting: 'High',
-      transparencyScore: 85,
-      ownership: { type: 'public', owners: ['Government of Canada'], publiclyTraded: false },
-      funding: { revenue: ['ads', 'subscriptions'], advertisements: ['banner', 'video'], subscriptions: true, donations: [], government_funding: ['federal'], corporate_sponsors: [] },
-      editorial: { editorialBoard: ['Editor-in-Chief'], editorInChief: 'Brodie Fenlon', politicalEndorsements: [] },
-      factCheckRecord: { totalChecked: 100, accurate: 95, misleading: 3, false: 2, lastUpdated: new Date() },
-      retractions: []
-    }
-  ];
+  // Remove the fallbackArticles and fallbackOutlets arrays and replace with API data only
+  // const fallbackArticles = [
+  //   {
+  //     id: 1,
+  //     title: 'Parliament Passes Climate Action Bill',
+  //     source: 'CBC News',
+  //     publishedAt: '2024-07-01',
+  //     summary: 'The House of Commons passed a major climate bill with cross-party support.',
+  //     credibilityScore: 92,
+  //     bias: 'center',
+  //     category: 'Politics'
+  //   },
+  //   {
+  //     id: 2,
+  //     title: 'Supreme Court Rules on Indigenous Rights',
+  //     source: 'Globe and Mail',
+  //     publishedAt: '2024-06-15',
+  //     summary: 'A landmark decision expands Indigenous land rights in Canada.',
+  //     credibilityScore: 88,
+  //     bias: 'center-left',
+  //     category: 'Law'
+  //   }
+  // ];
+  // const fallbackOutlets = [
+  //   {
+  //     id: 'cbc',
+  //     name: 'CBC News',
+  //     website: 'https://www.cbc.ca',
+  //     credibilityScore: 90,
+  //     biasRating: 'center',
+  //     factualReporting: 'High',
+  //     transparencyScore: 85,
+  //     ownership: { type: 'public', owners: ['Government of Canada'], publiclyTraded: false },
+  //     funding: { revenue: ['ads', 'subscriptions'], advertisements: ['banner', 'video'], subscriptions: true, donations: [], government_funding: ['federal'], corporate_sponsors: [] },
+  //     editorial: { editorialBoard: ['Editor-in-Chief'], editorInChief: 'Brodie Fenlon', politicalEndorsements: [] },
+  //     factCheckRecord: { totalChecked: 100, accurate: 95, misleading: 3, false: 2, lastUpdated: new Date() },
+  //     retractions: []
+  //   }
+  // ];
 
   const { data: mediaOutlets = [], isLoading: outletsLoading } = useQuery<MediaOutlet[]>({
     queryKey: ["/api/news/outlets"],
@@ -122,8 +122,9 @@ export default function News() {
   const { data: articles = [], isLoading: articlesLoading } = useQuery<Article[]>({
     queryKey: ["/api/news/articles"],
   });
-  const outletsToShow = (mediaOutlets.length === 0) ? fallbackOutlets : mediaOutlets;
-  const articlesToShow = (articles && articles.length === 0) ? fallbackArticles : articles;
+  // Use API data only. If no data, show fallback UI.
+  const outletsToShow = (mediaOutlets.length === 0) ? [] : mediaOutlets;
+  const articlesToShow = (articles && articles.length === 0) ? [] : articles;
 
   const credibilityMutation = useMutation({
     mutationFn: async (data: { articleText: string; sourceName: string }) => {
@@ -192,16 +193,15 @@ export default function News() {
           </p>
         </div>
 
-        <Tabs defaultValue="outlets" className="space-y-6">
+        <Tabs defaultValue="comprehensive" className="space-y-6">
           <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="outlets">Media Outlets</TabsTrigger>
             <TabsTrigger value="comprehensive">All Sources</TabsTrigger>
             <TabsTrigger value="analyze">Analyze Article</TabsTrigger>
             <TabsTrigger value="comparison">Outlet Comparison</TabsTrigger>
           </TabsList>
 
-          {/* Media Outlets Tab */}
-          <TabsContent value="outlets" className="space-y-6">
+          {/* Comprehensive News Sources Tab */}
+          <TabsContent value="comprehensive" className="space-y-6">
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
               {outletsToShow.map((outlet) => (
                 <Card key={outlet.id} className="cursor-pointer hover:shadow-lg transition-shadow"
@@ -476,11 +476,6 @@ export default function News() {
                 </CardContent>
               </Card>
             )}
-          </TabsContent>
-
-          {/* Comprehensive News Sources Tab */}
-          <TabsContent value="comprehensive" className="space-y-6">
-            <ComprehensiveNewsOutlets />
           </TabsContent>
 
           {/* Analyze Article Tab */}

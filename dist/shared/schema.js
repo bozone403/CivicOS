@@ -61,6 +61,10 @@ export const users = pgTable("users", {
     yearlyGoal: integer("yearly_goal").default(1200),
     createdAt: timestamp("created_at").defaultNow(),
     updatedAt: timestamp("updated_at").defaultNow(),
+    bio: text("bio"),
+    location: varchar("location"),
+    website: varchar("website"),
+    social: jsonb("social"), // { twitter, facebook, linkedin, instagram }
 });
 // Gamification badges and achievements
 export const badges = pgTable("badges", {
@@ -1058,6 +1062,7 @@ export const socialLikes = pgTable("social_likes", {
     userId: varchar("user_id").notNull().references(() => users.id),
     postId: integer("post_id").references(() => socialPosts.id),
     commentId: integer("comment_id"), // nullable, for liking comments
+    reaction: varchar("reaction", { length: 16 }).default("👍"),
     createdAt: timestamp("created_at").defaultNow(),
 }, (table) => ({
     uniqueLike: unique().on(table.userId, table.postId, table.commentId),

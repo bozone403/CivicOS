@@ -45,22 +45,22 @@ export default function Login() {
       if (res.token) {
         localStorage.setItem('civicos-jwt', res.token);
         toast({ title: "Token Stored", description: res.token, variant: "default" });
-        // Elite: Call debug-token endpoint to verify JWT
-        fetch(`${import.meta.env.VITE_API_BASE_URL || "https://civicos.onrender.com"}/api/auth/debug-token`, {
-          method: 'GET',
-          headers: { 'Authorization': `Bearer ${res.token}` },
-        })
-          .then(async (r) => {
-            const data = await r.json();
-            if (r.ok) {
-              toast({ title: "JWT Decoded Claims", description: JSON.stringify(data.decoded), variant: "default" });
-            } else {
-              toast({ title: "JWT Debug Error", description: JSON.stringify(data), variant: "destructive" });
-            }
-          })
-          .catch((err) => {
-            toast({ title: "JWT Debug Network Error", description: String(err), variant: "destructive" });
-          });
+        // Remove debug-token endpoint call for production
+        // fetch(`${import.meta.env.VITE_API_BASE_URL || "https://civicos.onrender.com"}/api/auth/debug-token`, {
+        //   method: 'GET',
+        //   headers: { 'Authorization': `Bearer ${res.token}` },
+        // })
+        //   .then(async (r) => {
+        //     const data = await r.json();
+        //     if (r.ok) {
+        //       toast({ title: "JWT Decoded Claims", description: JSON.stringify(data.decoded), variant: "default" });
+        //     } else {
+        //       toast({ title: "JWT Debug Error", description: JSON.stringify(data), variant: "destructive" });
+        //     }
+        //   })
+        //   .catch((err) => {
+        //     toast({ title: "JWT Debug Network Error", description: String(err), variant: "destructive" });
+        //   });
         await queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
         setTimeout(() => {
           const storedToken = localStorage.getItem('civicos-jwt');
@@ -198,36 +198,17 @@ export default function Login() {
               </Button>
             </form>
             <Separator />
-            {/* Demo Access */}
-            <div className="space-y-4">
-              <div className="text-center">
-                <p className="text-sm text-gray-600 font-medium">
-                  For demonstration purposes / À des fins de démonstration
-                </p>
+            {/* Security Notice */}
+            <div className="mt-8 text-center">
+              <div className="inline-flex items-center px-4 py-2 bg-gray-100 rounded-lg">
+                <Shield className="w-4 h-4 text-gray-500 mr-2" />
+                <span className="text-xs text-gray-600 font-medium">
+                  Secured with Government-Grade Encryption
+                </span>
               </div>
-              <Button
-                onClick={() => {
-                  setCredentials({ username: "demo_user", password: "demo_password" });
-                  handleLogin(new Event("submit") as any); // Simulate login for demo
-                }}
-                variant="outline"
-                className="w-full h-12 border-2 border-red-600 text-red-600 hover:bg-red-50 font-semibold"
-              >
-                <CheckCircle className="w-4 h-4 mr-2" />
-                Use Demo Account / Utiliser le Compte de Démonstration
-              </Button>
             </div>
           </CardContent>
         </Card>
-        {/* Security Notice */}
-        <div className="mt-8 text-center">
-          <div className="inline-flex items-center px-4 py-2 bg-gray-100 rounded-lg">
-            <Shield className="w-4 h-4 text-gray-500 mr-2" />
-            <span className="text-xs text-gray-600 font-medium">
-              Secured with Government-Grade Encryption
-            </span>
-          </div>
-        </div>
       </main>
       {/* Footer */}
       <footer className="bg-gray-100 border-t-2 border-red-600 py-8">

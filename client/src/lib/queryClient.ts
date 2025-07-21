@@ -20,23 +20,21 @@ export async function apiRequest(
   method: string = 'GET',
   data?: unknown | undefined,
 ): Promise<any> {
-  const fullUrl = url.startsWith("http")
-    ? url
-    : API_BASE_URL
-      ? API_BASE_URL.replace(/\/$/, "") + url
-      : url;
-
+  // Paranoid: robust URL join, never double slashes
+  const base = API_BASE_URL ? API_BASE_URL.replace(/\/$/, "") : "";
+  const path = url.startsWith("/") ? url : "/" + url;
+  const fullUrl = url.startsWith("http") ? url : base + path;
   const token = getToken();
   const headers: Record<string, string> = data ? { "Content-Type": "application/json" } : {};
   if (token) headers["Authorization"] = `Bearer ${token}`;
-
+  // Paranoid debug logging
+  console.debug("[apiRequest] fullUrl:", fullUrl, "method:", method, "token:", token);
   const res = await fetch(fullUrl, {
     method,
     headers,
     body: data ? JSON.stringify(data) : undefined,
     credentials: "include",
   });
-
   await throwIfResNotOk(res);
   return await res.json();
 }

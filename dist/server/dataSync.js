@@ -1,6 +1,8 @@
 import { storage } from "./storage.js";
 import * as cheerio from "cheerio";
 import fetch from "node-fetch";
+import pino from "pino";
+const logger = pino();
 // Comprehensive Canadian government data sources
 const DATA_SOURCES = {
     federal: {
@@ -34,24 +36,28 @@ const DATA_SOURCES = {
  * Automatically sync all Canadian government data
  */
 export async function syncAllGovernmentData() {
+    logger.info({ msg: 'Starting full government data sync' });
     // Sync federal data
     await syncFederalData();
     // Sync provincial data
     await syncProvincialData();
     // Sync major municipal data
     await syncMunicipalData();
+    logger.info({ msg: 'Completed full government data sync' });
 }
 /**
  * Sync federal government data
  */
 async function syncFederalData() {
-    // Sync MPs
+    logger.info({ msg: 'Syncing federal MPs' });
     const mps = await scrapeFederalMPs();
-    // Sync Senators
+    logger.info({ msg: 'Scraped federal MPs', count: mps.length });
+    logger.info({ msg: 'Syncing senators' });
     const senators = await scrapeSenators();
-    // Sync federal bills
+    logger.info({ msg: 'Scraped senators', count: senators.length });
+    logger.info({ msg: 'Syncing federal bills' });
     const bills = await scrapeFederalBills();
-    // Store in database
+    logger.info({ msg: 'Scraped federal bills', count: bills.length });
     for (const official of [...mps, ...senators]) {
         await storeOfficial(official);
     }
@@ -63,9 +69,11 @@ async function syncFederalData() {
  * Sync provincial government data
  */
 async function syncProvincialData() {
+    logger.info({ msg: 'Syncing provincial officials' });
     const provinces = Object.keys(DATA_SOURCES.provincial);
     for (const province of provinces) {
         const officials = await scrapeProvincialOfficials(province);
+        logger.info({ msg: 'Scraped provincial officials', province, count: officials.length });
         for (const official of officials) {
             await storeOfficial(official);
         }
@@ -75,9 +83,11 @@ async function syncProvincialData() {
  * Sync municipal government data
  */
 async function syncMunicipalData() {
+    logger.info({ msg: 'Syncing municipal officials' });
     const cities = Object.keys(DATA_SOURCES.municipal);
     for (const city of cities) {
         const officials = await scrapeMunicipalOfficials(city);
+        logger.info({ msg: 'Scraped municipal officials', city, count: officials.length });
         for (const official of officials) {
             await storeOfficial(official);
         }
@@ -257,12 +267,15 @@ async function storeOfficial(official) {
             trustScore: calculateInitialTrustScore(official)
         };
         await storage.createPolitician(politicianData);
+        logger.info({ msg: 'Stored politician', name: official.name, position: official.position, jurisdiction: official.jurisdiction });
     }
     catch (error) {
         const err = error;
-        // Ignore duplicates but log other errors
         if (!err.message?.includes('duplicate') && !err.message?.includes('unique constraint')) {
-            console.error('Error storing official:', err);
+            logger.error({ msg: 'Error storing official', name: official.name, error: err });
+        }
+        else {
+            logger.info({ msg: 'Duplicate politician not stored', name: official.name });
         }
     }
 }

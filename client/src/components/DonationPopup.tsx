@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -132,6 +132,10 @@ export default function DonationPopup({ isOpen, onClose, onSuccess }: DonationPo
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="w-[95vw] max-w-md max-h-[90vh] overflow-hidden p-0 mx-auto bg-white text-gray-900">
+        <DialogHeader>
+          <DialogTitle>Support CivicOS</DialogTitle>
+          <DialogDescription>Your donation helps keep the platform running and transparent.</DialogDescription>
+        </DialogHeader>
         <div className="max-h-[90vh] overflow-y-auto bg-white text-gray-900">
           <DialogHeader className="flex flex-row items-center justify-between p-3 sm:p-4 pb-2 sticky top-0 bg-white z-10 border-b">
             <DialogTitle className="text-base sm:text-lg font-bold text-gray-900 flex items-center">

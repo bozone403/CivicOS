@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
@@ -427,6 +427,7 @@ export function CommentSystem({ targetType, targetId }: CommentSystemProps) {
         <DialogContent className="max-w-2xl max-h-96 overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Comment Edit History</DialogTitle>
+            <DialogDescription>View all edits made to this comment for transparency.</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             {editHistory.map((edit, index) => (

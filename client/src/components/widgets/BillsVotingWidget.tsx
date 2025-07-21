@@ -5,6 +5,11 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Vote, Clock, TrendingUp, Calendar, Users, CheckCircle } from "lucide-react";
 import { Link } from "wouter";
+import { useAuth } from "@/hooks/useAuth";
+import { useCivicSocialPost } from "@/hooks/useCivicSocial";
+import { useToast } from "@/hooks/use-toast";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
+import { useState } from "react";
 
 interface Bill {
   id: number;
@@ -190,6 +195,12 @@ export default function BillsVotingWidget({ liveData = true }: { liveData?: bool
     return new Date(deadline) > new Date();
   };
 
+  const { user } = useAuth();
+  const civicSocialPost = useCivicSocialPost();
+  const { toast } = useToast();
+  const [shareDialog, setShareDialog] = useState<{ open: boolean; bill?: Bill }>({ open: false });
+  const [shareComment, setShareComment] = useState("");
+
   if (billsLoading && votesLoading) {
     return (
       <Card className="h-96">
@@ -305,6 +316,62 @@ export default function BillsVotingWidget({ liveData = true }: { liveData?: bool
                           <span>{new Date(bill.votingDeadline).toLocaleDateString()}</span>
                         </div>
                       )}
+                    </div>
+
+                    {/* Share to CivicSocial button */}
+                    <div className="flex justify-end mt-2">
+                      <Dialog open={shareDialog.open && shareDialog.bill?.id === bill.id} onOpenChange={open => setShareDialog({ open, bill: open ? bill : undefined })}>
+                        <DialogTrigger asChild>
+                          <Button size="sm" variant="outline" className="text-xs" onClick={() => setShareDialog({ open: true, bill })}>
+                            Share to CivicSocial
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent className="max-w-md">
+                          <DialogHeader>
+                            <DialogTitle>Share Bill to CivicSocial</DialogTitle>
+                            <DialogDescription>Let your friends and followers know about this bill. You can add a comment below.</DialogDescription>
+                          </DialogHeader>
+                          <form
+                            className="flex flex-col gap-3"
+                            onSubmit={e => {
+                              e.preventDefault();
+                              if (!user) return;
+                              civicSocialPost.mutate({
+                                type: "share",
+                                originalItemId: bill.id,
+                                originalItemType: "bill",
+                                comment: shareComment,
+                                userId: user.id,
+                                displayName: user.firstName || user.email || "Anonymous",
+                                content: `Shared bill: ${bill.title}\n${bill.summary}`,
+                              }, {
+                                onSuccess: () => {
+                                  setShareDialog({ open: false });
+                                  setShareComment("");
+                                  toast({ title: "Bill shared!", description: "Your share was added to the CivicSocial feed." });
+                                },
+                              });
+                            }}
+                          >
+                            <textarea
+                              className="border rounded px-3 py-2"
+                              placeholder="Add a comment (optional)"
+                              value={shareComment}
+                              onChange={e => setShareComment(e.target.value)}
+                              rows={3}
+                              aria-label="Share comment"
+                            />
+                            <div className="flex gap-2 justify-end">
+                              <Button type="button" variant="outline" onClick={() => setShareDialog({ open: false })} aria-label="Cancel share">
+                                Cancel
+                              </Button>
+                              <Button type="submit" disabled={civicSocialPost.isPending} aria-label="Submit share">
+                                {civicSocialPost.isPending ? "Sharing..." : "Share"}
+                              </Button>
+                            </div>
+                          </form>
+                        </DialogContent>
+                      </Dialog>
                     </div>
                   </div>
                 );

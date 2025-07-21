@@ -11,69 +11,69 @@ export default function MemoryPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterTimeframe, setFilterTimeframe] = useState("all");
 
-  // Political memory tracking - promises vs actions
-  const politicalMemoryData = [
-    {
-      id: 1,
-      politician: "Justin Trudeau",
-      party: "Liberal",
-      promise: "Electoral Reform - Implement proportional representation",
-      datePromised: "2015-08-02",
-      context: "Federal Election Campaign",
-      status: "Broken",
-      actualOutcome: "Abandoned after consultations in 2017",
-      reasoning: "Lack of consensus on preferred system",
-      impactScore: 8.5,
-      publicReaction: "Significant backlash from reform advocates",
-      mediaAttention: "High",
-      followUpActions: "None - topic avoided in subsequent campaigns"
-    },
-    {
-      id: 2,
-      politician: "Pierre Poilievre", 
-      party: "Conservative",
-      promise: "Fire the Bank of Canada Governor",
-      datePromised: "2022-05-10",
-      context: "Conservative Leadership Campaign",
-      status: "Pending",
-      actualOutcome: "Position softened after becoming leader",
-      reasoning: "Constitutional and practical limitations acknowledged",
-      impactScore: 6.2,
-      publicReaction: "Mixed - supporters approve, economists concerned",
-      mediaAttention: "High",
-      followUpActions: "Shifted to criticizing monetary policy instead"
-    },
-    {
-      id: 3,
-      politician: "Jagmeet Singh",
-      party: "NDP",
-      promise: "Universal Pharmacare by 2020",
-      datePromised: "2019-09-11",
-      context: "Federal Election Campaign",
-      status: "Partially Kept",
-      actualOutcome: "Limited dental and pharmacare programs launched",
-      reasoning: "Negotiated through supply and confidence agreement",
-      impactScore: 7.1,
-      publicReaction: "Positive but incomplete",
-      mediaAttention: "Moderate",
-      followUpActions: "Continues to push for full implementation"
-    },
-    {
-      id: 4,
-      politician: "Doug Ford",
-      party: "Progressive Conservative",
-      promise: "Buck-a-beer pricing",
-      datePromised: "2018-06-29",
-      context: "Ontario Provincial Election",
-      status: "Failed",
-      actualOutcome: "Few breweries participated, minimal impact",
-      reasoning: "Market forces and production costs",
-      impactScore: 3.2,
-      publicReaction: "Mostly ridiculed as gimmick",
-      mediaAttention: "High initially, then mocked",
-      followUpActions: "Quietly dropped from messaging"
-    }
-  ];
+  // Remove the politicalMemoryData array and replace with API data only
+  // const politicalMemoryData = [
+  //   {
+  //     id: 1,
+  //     politician: "Justin Trudeau",
+  //     party: "Liberal",
+  //     promise: "Electoral Reform - Implement proportional representation",
+  //     datePromised: "2015-08-02",
+  //     context: "Federal Election Campaign",
+  //     status: "Broken",
+  //     actualOutcome: "Abandoned after consultations in 2017",
+  //     reasoning: "Lack of consensus on preferred system",
+  //     impactScore: 8.5,
+  //     publicReaction: "Significant backlash from reform advocates",
+  //     mediaAttention: "High",
+  //     followUpActions: "None - topic avoided in subsequent campaigns"
+  //   },
+  //   {
+  //     id: 2,
+  //     politician: "Pierre Poilievre", 
+  //     party: "Conservative",
+  //     promise: "Fire the Bank of Canada Governor",
+  //     datePromised: "2022-05-10",
+  //     context: "Conservative Leadership Campaign",
+  //     status: "Pending",
+  //     actualOutcome: "Position softened after becoming leader",
+  //     reasoning: "Constitutional and practical limitations acknowledged",
+  //     impactScore: 6.2,
+  //     publicReaction: "Mixed - supporters approve, economists concerned",
+  //     mediaAttention: "High",
+  //     followUpActions: "Shifted to criticizing monetary policy instead"
+  //   },
+  //   {
+  //     id: 3,
+  //     politician: "Jagmeet Singh",
+  //     party: "NDP",
+  //     promise: "Universal Pharmacare by 2020",
+  //     datePromised: "2019-09-11",
+  //     context: "Federal Election Campaign",
+  //     status: "Partially Kept",
+  //     actualOutcome: "Limited dental and pharmacare programs launched",
+  //     reasoning: "Negotiated through supply and confidence agreement",
+  //     impactScore: 7.1,
+  //     publicReaction: "Positive but incomplete",
+  //     mediaAttention: "Moderate",
+  //     followUpActions: "Continues to push for full implementation"
+  //   },
+  //   {
+  //     id: 4,
+  //     politician: "Doug Ford",
+  //     party: "Progressive Conservative",
+  //     promise: "Buck-a-beer pricing",
+  //     datePromised: "2018-06-29",
+  //     context: "Ontario Provincial Election",
+  //     status: "Failed",
+  //     actualOutcome: "Few breweries participated, minimal impact",
+  //     reasoning: "Market forces and production costs",
+  //     impactScore: 3.2,
+  //     publicReaction: "Mostly ridiculed as gimmick",
+  //     mediaAttention: "High initially, then mocked",
+  //     followUpActions: "Quietly dropped from messaging"
+  //   }
+  // ];
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -166,86 +166,13 @@ export default function MemoryPage() {
           </div>
 
           <div className="grid gap-6">
-            {politicalMemoryData.map((item) => (
-              <Card key={item.id} className="hover:shadow-lg transition-shadow">
-                <CardHeader>
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <CardTitle className="text-xl">{item.promise}</CardTitle>
-                      <CardDescription className="mt-1">
-                        {item.politician} ({item.party}) • {item.context}
-                      </CardDescription>
-                      <div className="flex items-center space-x-2 mt-3">
-                        <Badge className={getStatusColor(item.status)}>
-                          {item.status}
-                        </Badge>
-                        <Badge variant="outline">
-                          <Calendar className="w-3 h-3 mr-1" />
-                          {timeSincePromise(item.datePromised)}
-                        </Badge>
-                        <Badge variant="outline">
-                          Impact: {item.impactScore}/10
-                        </Badge>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <div className={`text-2xl font-bold ${getImpactColor(item.impactScore)}`}>
-                        {item.impactScore}
-                      </div>
-                      <div className="text-sm text-muted-foreground">Impact Score</div>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <div className="text-sm font-medium text-muted-foreground mb-1">Date Promised</div>
-                        <div className="text-sm">{formatDate(item.datePromised)}</div>
-                      </div>
-                      <div>
-                        <div className="text-sm font-medium text-muted-foreground mb-1">Media Attention</div>
-                        <div className="text-sm">{item.mediaAttention}</div>
-                      </div>
-                    </div>
-
-                    <div>
-                      <div className="text-sm font-medium text-muted-foreground mb-2">What Actually Happened</div>
-                      <div className="text-sm bg-muted/50 p-3 rounded">
-                        <p className="mb-2"><strong>Outcome:</strong> {item.actualOutcome}</p>
-                        <p className="mb-2"><strong>Reasoning:</strong> {item.reasoning}</p>
-                        <p><strong>Public Reaction:</strong> {item.publicReaction}</p>
-                      </div>
-                    </div>
-
-                    {item.followUpActions && (
-                      <div>
-                        <div className="text-sm font-medium text-muted-foreground mb-2">Follow-up Actions</div>
-                        <div className="text-sm">{item.followUpActions}</div>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="flex items-center justify-between pt-4 border-t mt-4">
-                    <div className="flex items-center space-x-2">
-                      <Clock className="w-4 h-4 text-muted-foreground" />
-                      <span className="text-sm text-muted-foreground">
-                        Promised {timeSincePromise(item.datePromised)}
-                      </span>
-                    </div>
-                    <div className="flex space-x-2">
-                      <Button variant="outline" size="sm">
-                        View Timeline
-                      </Button>
-                      <Button variant="outline" size="sm">
-                        <Archive className="w-3 h-3 mr-2" />
-                        Archive Sources
-                      </Button>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+            {/* Use API data only. If no data, show fallback UI. */}
+            {/* For now, we'll show a placeholder message */}
+            <div className="text-center py-12 text-muted-foreground">
+              <Brain className="w-12 h-12 mx-auto mb-4 opacity-50" />
+              <p>No memory data available for this timeframe.</p>
+              <p className="text-sm">Please try a different timeframe or check back later.</p>
+            </div>
           </div>
         </TabsContent>
 

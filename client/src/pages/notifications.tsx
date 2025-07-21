@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { 
@@ -38,67 +38,6 @@ interface UserNotificationPreferences {
 export default function Notifications() {
   const [filter, setFilter] = useState<'all' | 'unread' | 'petition' | 'bill' | 'foi' | 'system'>('all');
   const [preferencesOpen, setPreferencesOpen] = useState(false);
-  const defaultNotifications: Notification[] = [
-    {
-      id: 1,
-      type: 'bill',
-      title: 'Bill C-11 Update',
-      message: 'Online Streaming Act has passed second reading in Parliament',
-      timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-      read: false,
-      priority: 'high'
-    },
-    {
-      id: 2,
-      type: 'petition',
-      title: 'Petition Milestone',
-      message: 'Climate Action petition has reached 10,000 signatures',
-      timestamp: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString(),
-      read: false,
-      priority: 'medium'
-    },
-    {
-      id: 3,
-      type: 'politician',
-      title: 'New MP Statement',
-      message: 'Chrystia Freeland released statement on economic policy',
-      timestamp: new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString(),
-      read: true,
-      priority: 'medium'
-    },
-    {
-      id: 4,
-      type: 'election',
-      title: 'Electoral Boundary Update',
-      message: 'New federal electoral boundaries finalized for 2025',
-      timestamp: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
-      read: true,
-      priority: 'low'
-    },
-    {
-      id: 5,
-      type: 'system',
-      title: 'Data Update Complete',
-      message: 'Weekly sync of government data completed - 342 MPs updated',
-      timestamp: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-      read: false,
-      priority: 'low'
-    }
-  ];
-
-  // Load notifications from localStorage or use defaults
-  const [localNotifications, setLocalNotifications] = useState<Notification[]>(() => {
-    const saved = localStorage.getItem('civicos-notifications');
-    if (saved) {
-      try {
-        return JSON.parse(saved);
-      } catch (error) {
-        // Failed to parse saved notifications, using defaults
-        setLocalNotifications(defaultNotifications);
-      }
-    }
-    return defaultNotifications;
-  });
   const { user, isAuthenticated } = useAuth();
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -123,17 +62,17 @@ export default function Notifications() {
         await apiRequest(`/api/notifications/${id}`, 'DELETE');
       } catch (error) {
         // API delete failed, using local state
-        setLocalNotifications(prev => prev.filter(n => n.id !== id));
+        // setLocalNotifications(prev => prev.filter(n => n.id !== id)); // This line was removed
       }
       return id;
     },
-    onSuccess: (id: number) => {
+    onSuccess: () => {
       // Remove from local state
-      setLocalNotifications(prev => {
-        const updated = prev.filter(n => n.id !== id);
-        localStorage.setItem('civicos-notifications', JSON.stringify(updated));
-        return updated;
-      });
+      // setLocalNotifications(prev => { // This line was removed
+      //   const updated = prev.filter(n => n.id !== id);
+      //   localStorage.setItem('civicos-notifications', JSON.stringify(updated));
+      //   return updated;
+      // });
       queryClient.invalidateQueries({ queryKey: ["/api/notifications"] });
       toast({
         title: "Notification deleted",
@@ -157,14 +96,14 @@ export default function Notifications() {
         await apiRequest('/api/notifications', 'DELETE');
       } catch (error) {
         // API clear all failed, using local state
-        setLocalNotifications([]);
+        // setLocalNotifications([]); // This line was removed
       }
       return true;
     },
     onSuccess: () => {
       // Clear local state
-      setLocalNotifications([]);
-      localStorage.setItem('civicos-notifications', JSON.stringify([]));
+      // setLocalNotifications([]); // This line was removed
+      // localStorage.setItem('civicos-notifications', JSON.stringify([])); // This line was removed
       toast({
         title: "All notifications cleared",
         description: "All notifications have been removed.",
@@ -186,16 +125,16 @@ export default function Notifications() {
         await apiRequest(`/api/notifications/${id}/read`, 'POST');
       } catch (error) {
         // API mark as read failed, using local state
-        setLocalNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
+        // setLocalNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n)); // This line was removed
       }
       return id;
     },
-    onSuccess: (id: number) => {
-      setLocalNotifications(prev => {
-        const updated = prev.map(n => n.id === id ? { ...n, read: true } : n);
-        localStorage.setItem('civicos-notifications', JSON.stringify(updated));
-        return updated;
-      });
+    onSuccess: () => {
+      // setLocalNotifications(prev => { // This line was removed
+      //   const updated = prev.map(n => n.id === id ? { ...n, read: true } : n);
+      //   localStorage.setItem('civicos-notifications', JSON.stringify(updated));
+      //   return updated;
+      // });
       queryClient.invalidateQueries({ queryKey: ["/api/notifications"] });
     }
   });
@@ -221,7 +160,7 @@ export default function Notifications() {
   });
 
   // Use local notifications for display
-  const displayNotifications: Notification[] = localNotifications;
+  const displayNotifications: Notification[] = notifications;
 
   const filteredNotifications = displayNotifications.filter(notification => {
     if (filter === 'bill') return notification.type === 'bill';
@@ -280,7 +219,7 @@ export default function Notifications() {
             variant="outline" 
             size="sm"
             onClick={() => clearAllMutation.mutate()}
-            disabled={clearAllMutation.isPending || localNotifications.length === 0}
+            disabled={clearAllMutation.isPending || notifications.length === 0}
           >
             <X className="w-4 h-4 mr-2" />
             Clear All
@@ -295,6 +234,7 @@ export default function Notifications() {
             <DialogContent className="max-w-md">
               <DialogHeader>
                 <DialogTitle>Notification Preferences</DialogTitle>
+                <DialogDescription>Manage which notifications you receive from CivicOS.</DialogDescription>
               </DialogHeader>
               <div className="space-y-4">
                 <div className="space-y-3">
@@ -367,10 +307,10 @@ export default function Notifications() {
         <CardContent className="p-6">
           <div className="flex space-x-2">
             {[
-              { key: 'all', label: 'All', count: displayNotifications.length },
+              { key: 'all', label: 'All', count: notifications.length },
               { key: 'unread', label: 'Unread', count: unreadCount },
-              { key: 'bills', label: 'Bills', count: displayNotifications.filter(n => n.type === 'bill').length },
-              { key: 'petitions', label: 'Petitions', count: displayNotifications.filter(n => n.type === 'petition').length }
+              { key: 'bills', label: 'Bills', count: notifications.filter(n => n.type === 'bill').length },
+              { key: 'petitions', label: 'Petitions', count: notifications.filter(n => n.type === 'petition').length }
             ].map(tab => (
               <Button
                 key={tab.key}

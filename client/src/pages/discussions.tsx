@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 import { useToast } from "@/hooks/use-toast";
@@ -470,6 +470,7 @@ export default function Discussions() {
           <DialogContent className="max-w-2xl bg-white dark:bg-gray-900">
             <DialogHeader>
               <DialogTitle>Start a New Discussion</DialogTitle>
+              <DialogDescription>Share your thoughts and start a new civic discussion.</DialogDescription>
             </DialogHeader>
             <div className="space-y-4">
               <div>
@@ -690,6 +691,7 @@ export default function Discussions() {
           <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="text-xl">{selectedPost.title}</DialogTitle>
+              <DialogDescription>View the full post, replies, and participate in the discussion.</DialogDescription>
             </DialogHeader>
 
             <div className="space-y-6">

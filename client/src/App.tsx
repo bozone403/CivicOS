@@ -4,7 +4,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ChatButton } from "@/components/ChatButton";
 import { FloatingChatButton } from "@/components/FloatingChatButton";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 
 import { LuxuryNavigation } from "@/components/layout/LuxuryNavigation";
@@ -55,8 +55,10 @@ import CivicSocialLayout from "./pages/civicsocial";
 import CivicSocialFeed from "./pages/civicsocial-feed";
 import CivicSocialProfile from "./pages/civicsocial-profile";
 import CivicSocialFriends from "./pages/civicsocial-friends";
+import CivicSocialLanding from "./pages/civicsocial-landing";
 import { Button } from "./components/ui/button";
 import NotificationBell from "./components/NotificationBell";
+import { config } from "@/lib/config";
 
 // Add a simple error boundary
 class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { hasError: boolean; error: any }> {
@@ -88,15 +90,27 @@ class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { has
   }
 }
 
-function Router() {
+// ProtectedRoute component
+function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading } = useAuth();
   const [, navigate] = useLocation();
   const [hasAgreedToManifesto, setHasAgreedToManifesto] = useState(() => {
-    // Temporarily bypass manifesto requirement for debugging
-    return true; // localStorage.getItem('civicos-manifesto-agreed') === 'true';
+    return localStorage.getItem('civicos-manifesto-agreed') === 'true';
   });
 
-  if (isLoading) {
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated) {
+      navigate("/auth");
+    }
+  }, [isAuthenticated, isLoading, navigate]);
+
+  useEffect(() => {
+    if (isAuthenticated && !hasAgreedToManifesto) {
+      navigate("/manifesto");
+    }
+  }, [isAuthenticated, hasAgreedToManifesto, navigate]);
+
+  if (isLoading || isAuthenticated === undefined) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
@@ -107,194 +121,147 @@ function Router() {
     );
   }
 
-  // Fallback for any other state
-  if (isAuthenticated === undefined) {
+  if (!isAuthenticated) {
+    return null; // Redirect handled by useEffect
+  }
+
+  if (!hasAgreedToManifesto) {
+    return null; // Redirect handled by useEffect
+  }
+
+  return <>{children}</>;
+}
+
+function Router() {
+  const { isAuthenticated, isLoading, authError } = useAuth();
+
+  // Fix Manifesto route for wouter (must be a function with props)
+  const ManifestoRoute = () => {
+    const [, navigate] = useLocation();
+    const handleAgree = () => {
+      localStorage.setItem('civicos-manifesto-agreed', 'true');
+      navigate('/dashboard');
+    };
+    return <Manifesto onAgree={handleAgree} />;
+  };
+
+  React.useEffect(() => {
+    console.debug("[Router] isAuthenticated", isAuthenticated, "isLoading", isLoading, "config.apiUrl", config.apiUrl);
+  }, [isAuthenticated, isLoading]);
+
+  if (authError) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-red-600 mx-auto"></div>
-          <p className="mt-4 text-slate-600">Initializing CivicOS...</p>
+      <div className="min-h-screen flex items-center justify-center bg-red-50">
+        <div className="max-w-md w-full bg-white shadow-lg rounded-lg p-8 text-center">
+          <h1 className="text-2xl font-bold text-red-600 mb-2">Authentication Error</h1>
+          <p className="text-gray-700 mb-4">{authError}</p>
+          <button className="bg-red-600 text-white px-4 py-2 rounded" onClick={() => window.location.href = "/auth"}>Go to Login</button>
         </div>
       </div>
     );
   }
 
-  // Fix Manifesto route for wouter (must be a function with props)
-  const ManifestoRoute = () => <Manifesto onAgree={() => setHasAgreedToManifesto(true)} />;
+  if (isLoading || isAuthenticated === undefined) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-red-600 mx-auto"></div>
+          <p className="mt-4 text-slate-600">Loading CivicOS...</p>
+        </div>
+      </div>
+    );
+  }
 
+  // Public routes only
+  if (!isAuthenticated) {
+    return (
+      <main>
+        <Switch>
+          <Route path="/" component={Landing} />
+          <Route path="/about" component={About} />
+          <Route path="/privacy" component={Privacy} />
+          <Route path="/terms" component={Terms} />
+          <Route path="/contact" component={Contact} />
+          <Route path="/accessibility" component={Accessibility} />
+          <Route path="/auth" component={Auth} />
+          <Route path="/login" component={Auth} />
+          <Route path="/register" component={Auth} />
+          <Route path="/manifesto" component={ManifestoRoute} />
+          <Route path="*">{() => <NotFound />}</Route>
+        </Switch>
+      </main>
+    );
+  }
+
+  // Authenticated: show nav and protected routes
   return (
     <div className="min-h-screen bg-background">
-      {isAuthenticated && hasAgreedToManifesto ? (
-        <div className="flex">
-          <LuxuryNavigation />
-          <main className="flex-1 bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen overflow-x-auto">
-            {/* Mobile Navigation */}
-            <div className="lg:hidden bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700 p-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-slate-800 via-slate-700 to-slate-900 flex items-center justify-center shadow-lg border border-slate-600 overflow-hidden">
-                    <img 
-                      src={canadianCrest} 
-                      alt="CivicOS" 
-                      className="w-6 h-6 object-contain rounded-full"
-                    />
-                  </div>
-                  <h1 className="text-lg font-bold font-serif text-slate-900 dark:text-slate-100">CivicOS</h1>
+      <div className="flex">
+        <LuxuryNavigation />
+        <main className="flex-1 bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen overflow-x-auto">
+          {/* Mobile Navigation */}
+          <div className="lg:hidden bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700 p-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-slate-800 via-slate-700 to-slate-900 flex items-center justify-center shadow-lg border border-slate-600 overflow-hidden">
+                  <img 
+                    src={canadianCrest} 
+                    alt="CivicOS" 
+                    className="w-6 h-6 object-contain rounded-full"
+                  />
                 </div>
-                <div className="flex items-center space-x-2">
-                  <ChatButton />
-                  <MobileNavigation />
-                </div>
+                <h1 className="text-lg font-bold font-serif text-slate-900 dark:text-slate-100">CivicOS</h1>
+              </div>
+              <div className="flex items-center space-x-2">
+                <ChatButton />
+                <MobileNavigation />
               </div>
             </div>
-            <div className="p-2 sm:p-4 lg:p-6">
-              <Switch>
-                <Route path="/" component={Dashboard} />
-                <Route path="/dashboard" component={Dashboard} />
-                <Route path="/voting" component={Voting} />
-                <Route path="/ledger" component={Ledger} />
-                <Route path="/politicians" component={Politicians} />
-                <Route path="/petitions" component={Petitions} />
-                <Route path="/discussions" component={Discussions} />
-                <Route path="/legal" component={Legal} />
-                <Route path="/legal-search" component={LegalSearch} />
-                <Route path="/rights" component={Rights} />
-
-                <Route path="/elections" component={Elections} />
-                <Route path="/news" component={News} />
-                <Route path="/contacts" component={Contacts} />
-                <Route path="/profile" component={Profile} />
-                <Route path="/settings" component={Settings} />
-                <Route path="/finance" component={Finance} />
-                <Route path="/lobbyists" component={Lobbyists} />
-                <Route path="/procurement" component={Procurement} />
-                <Route path="/memory" component={Memory} />
-                <Route path="/cases" component={Cases} />
-                <Route path="/foi" component={FOI} />
-                <Route path="/leaks" component={Leaks} />
-                <Route path="/whistleblower" component={Whistleblower} />
-                <Route path="/corruption" component={Corruption} />
-                <Route path="/pulse" component={Pulse} />
-                <Route path="/trust" component={Trust} />
-                <Route path="/maps" component={Maps} />
-                <Route path="/manifesto" component={ManifestoRoute} />
-                <Route path="/identity-verification" component={IdentityVerification} />
-                <Route path="/admin/identity-review" component={IdentityReview} />
-                <Route path="/notifications" component={Notifications} />
-                <Route path="/users/:userId" component={UserProfile} />
-                <Route path="/dashboard-demo" component={DashboardDemo} />
-                {/* CivicSocial routes (flat, Wouter style) */}
-                <Route path="/civicsocial/feed" component={() => (
-                  <CivicSocialLayout>
-                    <CivicSocialFeed />
-                  </CivicSocialLayout>
-                )} />
-                <Route path="/civicsocial/profile" component={() => (
-                  <CivicSocialLayout>
-                    <CivicSocialProfile />
-                  </CivicSocialLayout>
-                )} />
-                <Route path="/civicsocial/friends" component={() => (
-                  <CivicSocialLayout>
-                    <CivicSocialFriends />
-                  </CivicSocialLayout>
-                )} />
-                {/* Optionally, redirect /civicsocial to /civicsocial/feed */}
-                <Route path="/civicsocial" component={() => {
-                  window.location.replace("/civicsocial/feed");
-                  return null;
-                }} />
-                <Route path="*">
-                  {() => <NotFound />}
-                </Route>
-              </Switch>
-            </div>
-          </main>
-        </div>
-      ) : isAuthenticated && !hasAgreedToManifesto ? (
-        <main>
-          <ManifestoRoute />
+          </div>
+          <div className="p-2 sm:p-4 lg:p-6">
+            <Switch>
+              <Route path="/dashboard" component={() => <ProtectedRoute><Dashboard /></ProtectedRoute>} />
+              <Route path="/voting" component={() => <ProtectedRoute><Voting /></ProtectedRoute>} />
+              <Route path="/ledger" component={() => <ProtectedRoute><Ledger /></ProtectedRoute>} />
+              <Route path="/politicians" component={() => <ProtectedRoute><Politicians /></ProtectedRoute>} />
+              <Route path="/petitions" component={() => <ProtectedRoute><Petitions /></ProtectedRoute>} />
+              <Route path="/discussions" component={() => <ProtectedRoute><Discussions /></ProtectedRoute>} />
+              <Route path="/legal" component={() => <ProtectedRoute><Legal /></ProtectedRoute>} />
+              <Route path="/legal-search" component={() => <ProtectedRoute><LegalSearch /></ProtectedRoute>} />
+              <Route path="/rights" component={() => <ProtectedRoute><Rights /></ProtectedRoute>} />
+              <Route path="/elections" component={() => <ProtectedRoute><Elections /></ProtectedRoute>} />
+              <Route path="/news" component={() => <ProtectedRoute><News /></ProtectedRoute>} />
+              <Route path="/contacts" component={() => <ProtectedRoute><Contacts /></ProtectedRoute>} />
+              <Route path="/profile" component={() => <ProtectedRoute><Profile /></ProtectedRoute>} />
+              <Route path="/settings" component={() => <ProtectedRoute><Settings /></ProtectedRoute>} />
+              <Route path="/finance" component={() => <ProtectedRoute><Finance /></ProtectedRoute>} />
+              <Route path="/lobbyists" component={() => <ProtectedRoute><Lobbyists /></ProtectedRoute>} />
+              <Route path="/procurement" component={() => <ProtectedRoute><Procurement /></ProtectedRoute>} />
+              <Route path="/memory" component={() => <ProtectedRoute><Memory /></ProtectedRoute>} />
+              <Route path="/cases" component={() => <ProtectedRoute><Cases /></ProtectedRoute>} />
+              <Route path="/foi" component={() => <ProtectedRoute><FOI /></ProtectedRoute>} />
+              <Route path="/leaks" component={() => <ProtectedRoute><Leaks /></ProtectedRoute>} />
+              <Route path="/whistleblower" component={() => <ProtectedRoute><Whistleblower /></ProtectedRoute>} />
+              <Route path="/corruption" component={() => <ProtectedRoute><Corruption /></ProtectedRoute>} />
+              <Route path="/pulse" component={() => <ProtectedRoute><Pulse /></ProtectedRoute>} />
+              <Route path="/trust" component={() => <ProtectedRoute><Trust /></ProtectedRoute>} />
+              <Route path="/maps" component={() => <ProtectedRoute><Maps /></ProtectedRoute>} />
+              <Route path="/manifesto" component={ManifestoRoute} />
+              <Route path="/identity-verification" component={() => <ProtectedRoute><IdentityVerification /></ProtectedRoute>} />
+              <Route path="/admin/identity-review" component={() => <ProtectedRoute><IdentityReview /></ProtectedRoute>} />
+              <Route path="/notifications" component={() => <ProtectedRoute><Notifications /></ProtectedRoute>} />
+              <Route path="/users/:userId" component={() => <ProtectedRoute><UserProfile /></ProtectedRoute>} />
+              <Route path="/dashboard-demo" component={() => <ProtectedRoute><DashboardDemo /></ProtectedRoute>} />
+              {/* CivicSocial routes (protected) */}
+              <Route path="/civicsocial" component={() => <ProtectedRoute><CivicSocialLanding /></ProtectedRoute>} />
+              <Route path="/civicsocial/feed" component={() => <ProtectedRoute><CivicSocialLayout><CivicSocialFeed /></CivicSocialLayout></ProtectedRoute>} />
+              <Route path="/civicsocial/profile" component={() => <ProtectedRoute><CivicSocialLayout><CivicSocialProfile /></CivicSocialLayout></ProtectedRoute>} />
+              <Route path="/civicsocial/friends" component={() => <ProtectedRoute><CivicSocialLayout><CivicSocialFriends /></CivicSocialLayout></ProtectedRoute>} />
+              <Route path="*">{() => <NotFound />}</Route>
+            </Switch>
+          </div>
         </main>
-      ) : (
-        <main>
-          <Switch>
-            <Route path="/" component={Landing} />
-            <Route path="/about" component={About} />
-            <Route path="/privacy" component={Privacy} />
-            <Route path="/terms" component={Terms} />
-            <Route path="/contact" component={Contact} />
-            <Route path="/accessibility" component={Accessibility} />
-            <Route path="/auth" component={Auth} />
-            <Route path="/login" component={Auth} />
-            <Route path="/register" component={Auth} />
-            <Route path="/manifesto" component={ManifestoRoute} />
-            <Route path="/dashboard">
-              {() => {
-                // Redirect to auth for unauthenticated users
-                setTimeout(() => {
-                  navigate("/auth");
-                }, 0);
-                return (
-                  <div className="min-h-screen flex items-center justify-center">
-                    <div className="text-center">
-                      <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-red-600 mx-auto"></div>
-                      <p className="mt-4 text-slate-600">Redirecting to login...</p>
-                    </div>
-                  </div>
-                );
-              }}
-            </Route>
-            <Route path="/voting">
-              {() => {
-                setTimeout(() => {
-                  navigate("/auth");
-                }, 0);
-                return (
-                  <div className="min-h-screen flex items-center justify-center">
-                    <div className="text-center">
-                      <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-red-600 mx-auto"></div>
-                      <p className="mt-4 text-slate-600">Redirecting to login...</p>
-                    </div>
-                  </div>
-                );
-              }}
-            </Route>
-            <Route path="/ledger">
-              {() => {
-                setTimeout(() => {
-                  navigate("/auth");
-                }, 0);
-                return (
-                  <div className="min-h-screen flex items-center justify-center">
-                    <div className="text-center">
-                      <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-red-600 mx-auto"></div>
-                      <p className="mt-4 text-slate-600">Redirecting to login...</p>
-                    </div>
-                  </div>
-                );
-              }}
-            </Route>
-            <Route path="/politicians">
-              {() => {
-                setTimeout(() => {
-                  navigate("/auth");
-                }, 0);
-                return (
-                  <div className="min-h-screen flex items-center justify-center">
-                    <div className="text-center">
-                      <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-red-600 mx-auto"></div>
-                      <p className="mt-4 text-slate-600">Redirecting to login...</p>
-                    </div>
-                  </div>
-                );
-              }}
-            </Route>
-            <Route path="*">
-              {() => <NotFound />}
-            </Route>
-          </Switch>
-        </main>
-      )}
+      </div>
     </div>
   );
 }
