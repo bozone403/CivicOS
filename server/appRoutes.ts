@@ -133,6 +133,18 @@ export async function registerRoutes(app: Express): Promise<void> {
   // Auth user endpoint (JWT)
   app.get('/api/auth/user', jwtAuth, async (req: Request, res: Response) => {
     try {
+      // Paranoid: log the full Authorization header
+      console.log("[/api/auth/user] Authorization header:", req.headers.authorization);
+      // Paranoid: try to decode the JWT and log it
+      try {
+        const token = req.headers.authorization?.split(' ')[1];
+        if (token) {
+          const decoded = require('jsonwebtoken').decode(token);
+          console.log("[/api/auth/user] Decoded JWT:", decoded);
+        }
+      } catch (jwtDecodeError) {
+        console.error("[/api/auth/user] JWT decode error:", jwtDecodeError);
+      }
       const userId = (req.user as JwtPayload)?.id;
       if (!userId) {
         console.error("[/api/auth/user] No userId in JWT");
