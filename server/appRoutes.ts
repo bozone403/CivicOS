@@ -3313,4 +3313,19 @@ export async function registerRoutes(app: Express): Promise<void> {
       res.status(500).json({ isVerified: false, verificationLevel: 'none', error: (error instanceof Error ? error.message : String(error)) });
     }
   });
+
+  // Debug endpoint to echo JWT claims
+  app.get('/api/auth/debug-token', (req, res) => {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(400).json({ error: 'Missing Authorization header' });
+    }
+    const token = authHeader.split(' ')[1];
+    try {
+      const decoded = jwt.verify(token, JWT_SECRET);
+      res.json({ decoded });
+    } catch (err) {
+      res.status(401).json({ error: 'Invalid or expired token', details: (err as Error).message });
+    }
+  });
 }
