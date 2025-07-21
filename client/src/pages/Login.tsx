@@ -13,6 +13,7 @@ import canadianCrest from "@/assets/ChatGPT Image Jun 20, 2025, 05_42_18 PM_1750
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { useQueryClient } from "@tanstack/react-query";
+import { useAuth } from "@/hooks/useAuth";
 
 // Add this at the top of the file or in a global.d.ts file if not present:
 // declare module "*.png" {
@@ -28,6 +29,7 @@ export default function Login() {
   const { toast } = useToast();
   const [, navigate] = useLocation();
   const queryClient = useQueryClient();
+  const { user, isLoading: userLoading } = useAuth();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -39,31 +41,27 @@ export default function Login() {
         email: credentials.username,
         password: credentials.password,
       });
+      toast({ title: "Login API Response", description: JSON.stringify(res), variant: "default" });
       if (res.token) {
         localStorage.setItem('civicos-jwt', res.token);
+        toast({ title: "Token Stored", description: res.token, variant: "default" });
         await queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
-        // Wait for user to be available
         setTimeout(() => {
-          if (localStorage.getItem('civicos-jwt')) {
-            toast({
-              title: "Login successful",
-              description: "Welcome to CivicOS!",
-            });
-            navigate("/dashboard");
+          const storedToken = localStorage.getItem('civicos-jwt');
+          if (storedToken) {
+            toast({ title: "Token in localStorage", description: storedToken, variant: "default" });
+            if (user && user.email) {
+              toast({ title: "User after login", description: JSON.stringify(user), variant: "default" });
+              navigate("/dashboard");
+            } else {
+              toast({ title: "User not loaded after login", description: "User is null or missing email", variant: "destructive" });
+            }
           } else {
-            toast({
-              title: "Login failed",
-              description: "Token not set. Please try again.",
-              variant: "destructive",
-            });
+            toast({ title: "Token missing after storage", description: "localStorage empty", variant: "destructive" });
           }
-        }, 300);
+        }, 500);
       } else {
-        toast({
-          title: "Login failed",
-          description: "No token returned from server.",
-          variant: "destructive",
-        });
+        toast({ title: "Login failed", description: "No token returned from server.", variant: "destructive" });
       }
     } catch (err: any) {
       setError(err.message || "Login failed. Please check your credentials.");
