@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useLocation } from "wouter";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -24,6 +25,7 @@ export default function Login() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const { toast } = useToast();
+  const [, navigate] = useLocation();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -39,7 +41,7 @@ export default function Login() {
         title: "Login successful",
         description: "Welcome to CivicOS!",
       });
-      window.location.href = "/dashboard";
+      navigate("/dashboard");
     } catch (err: any) {
       setError(err.message || "Login failed. Please check your credentials.");
       toast({
@@ -50,10 +52,6 @@ export default function Login() {
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const handleDemoLogin = () => {
-    setCredentials({ username: "demo_user", password: "demo_password" });
   };
 
   return (
@@ -171,18 +169,16 @@ export default function Login() {
                 </p>
               </div>
               <Button
-                onClick={handleDemoLogin}
+                onClick={() => {
+                  setCredentials({ username: "demo_user", password: "demo_password" });
+                  handleLogin(new Event("submit") as any); // Simulate login for demo
+                }}
                 variant="outline"
                 className="w-full h-12 border-2 border-red-600 text-red-600 hover:bg-red-50 font-semibold"
               >
                 <CheckCircle className="w-4 h-4 mr-2" />
                 Use Demo Account / Utiliser le Compte de Démonstration
               </Button>
-              <div className="bg-blue-50 border-l-4 border-blue-400 p-3">
-                <p className="text-xs text-blue-700">
-                  <strong>Demo Credentials:</strong> Username: demo_user | Password: demo_password
-                </p>
-              </div>
             </div>
           </CardContent>
         </Card>

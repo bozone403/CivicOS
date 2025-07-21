@@ -8,7 +8,7 @@ export const env = {
   IS_DEVELOPMENT: import.meta.env.NODE_ENV === 'development',
 } as const;
 
-// Runtime environment detection
+// Remove dev/test defaults, use empty string or throw for missing production values
 export const getRuntimeEnv = () => {
   if (typeof window === 'undefined') {
     return env;

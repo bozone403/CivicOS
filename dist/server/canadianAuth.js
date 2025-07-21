@@ -9,9 +9,11 @@ export function initializeGCKeyAuth(userId) {
     const sessionId = randomBytes(16).toString('hex');
     const state = createHash('sha256').update(userId + sessionId + Date.now()).digest('hex');
     // GCKey production endpoints (would be real in production)
-    const baseUrl = 'https://clegc-gckey.gc.ca';
+    const baseUrl = process.env.BASE_URL;
+    if (!baseUrl)
+        throw new Error('BASE_URL must be set in production');
     const clientId = 'civicos-app'; // Would be registered with GCKey
-    const redirectUri = `${process.env.BASE_URL || 'http://localhost:5000'}/api/auth/gckey/callback`;
+    const redirectUri = `${baseUrl}/api/auth/gckey/callback`;
     const authUrl = `${baseUrl}/oauth/authorize?` + new URLSearchParams({
         client_id: clientId,
         response_type: 'code',
@@ -34,6 +36,9 @@ export function initializeBankingAuth(userId, provider) {
     const sessionId = randomBytes(16).toString('hex');
     const state = createHash('sha256').update(userId + sessionId + Date.now()).digest('hex');
     // Canadian banking OAuth endpoints
+    const bankingBaseUrl = process.env.BASE_URL;
+    if (!bankingBaseUrl)
+        throw new Error('BASE_URL must be set in production');
     const bankingEndpoints = {
         rbc: 'https://api.rbc.com/oauth2/authorize',
         td: 'https://api.td.com/oauth2/authorize',
@@ -41,7 +46,7 @@ export function initializeBankingAuth(userId, provider) {
         bmo: 'https://api.bmo.com/oauth2/authorize',
         cibc: 'https://api.cibc.com/oauth2/authorize'
     };
-    const redirectUri = `${process.env.BASE_URL || 'http://localhost:5000'}/api/auth/banking/callback`;
+    const redirectUri = `${bankingBaseUrl}/api/auth/banking/callback`;
     const authUrl = `${bankingEndpoints[provider]}?` + new URLSearchParams({
         client_id: `civicos-${provider}`, // Would be registered with each bank
         response_type: 'code',
