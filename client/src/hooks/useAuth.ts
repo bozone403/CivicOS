@@ -46,7 +46,7 @@ export function useAuth() {
         
         return await response.json();
       } catch (error) {
-        console.error('Auth query error:', error);
+        // Only keep error logs for actual error handling
         return null;
       }
     },

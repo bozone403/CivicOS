@@ -309,7 +309,6 @@ function AppWithBot() {
 }
 
 function App() {
-  console.log("[App.tsx] App component rendering");
   const { isAuthenticated, isLoading } = useAuth();
   const [, navigate] = useLocation();
   return (

@@ -170,9 +170,9 @@ process.on('uncaughtException', (err) => {
   console.log("Static file path:", distPath);
   console.log("Static file exists:", existsSync(distPath));
   app.use(express.static(distPath));
-  app.get("*", (req, res) => {
-    console.log("Catch-all route hit for:", req.path);
-    res.sendFile(path.join(distPath, "index.html"));
+  // Ensure SPA fallback for all non-API routes
+  app.get(/^\/(?!api\/).*/, (req, res) => {
+    res.sendFile(path.join(__dirname, '../public/index.html'));
   });
 
   // ALWAYS serve the app on the correct port for Render
