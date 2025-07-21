@@ -172,15 +172,6 @@ export default function Landing() {
                   Learn More / En Savoir Plus
                   <FileText className="w-5 h-5 ml-3" />
                 </Button>
-                <Button 
-                  size="lg"
-                  variant="secondary"
-                  onClick={handleDemoLogin}
-                  className="bg-gray-100 text-gray-700 hover:bg-gray-200 px-10 py-4 font-semibold text-lg rounded-lg border border-gray-300"
-                >
-                  Demo Login
-                  <Shield className="w-5 h-5 ml-3" />
-                </Button>
               </div>
 
               {/* Canadian Government Statistics */}
