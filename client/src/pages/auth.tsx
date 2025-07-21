@@ -12,6 +12,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import canadianCrest from "../../../attached_assets/ChatGPT Image Jun 20, 2025, 06_03_54 PM_1750464244456.png";
 import { useLocation } from "wouter";
+import { useAuth } from "@/hooks/useAuth";
 
 export default function Auth() {
   const [, navigate] = useLocation();
@@ -25,11 +26,14 @@ export default function Auth() {
   });
   const [errors, setErrors] = useState({ login: "", register: "" });
   const { toast } = useToast();
+  const { isAuthenticated } = useAuth();
+  const [pendingRedirect, setPendingRedirect] = useState<"dashboard" | "profile" | null>(null);
 
+  // After successful login or registration, set pendingRedirect
   const loginMutation = useMutation({
     mutationFn: async (credentials: { email: string; password: string }) => {
       const result = await apiRequest("/api/auth/login", "POST", credentials);
-      if (result.token) localStorage.setItem('civicos-jwt', result.token); // Ensure token is stored
+      if (result.token) localStorage.setItem('civicos-jwt', result.token);
       return result;
     },
     onSuccess: () => {
@@ -38,7 +42,7 @@ export default function Auth() {
         title: "Welcome to CivicOS",
         description: "You have successfully logged in",
       });
-      navigate("/dashboard");
+      setPendingRedirect("dashboard");
     },
     onError: (error: any) => {
       setErrors(prev => ({ ...prev, login: error.message || "Invalid email or password" }));
@@ -60,7 +64,7 @@ export default function Auth() {
         title: "Welcome to CivicOS",
         description: "Your account has been created successfully",
       });
-      navigate("/profile");
+      setPendingRedirect("profile");
     },
     onError: (error: any) => {
       let message = error.message || "Registration failed";
@@ -70,6 +74,15 @@ export default function Auth() {
       setErrors(prev => ({ ...prev, register: message }));
     },
   });
+
+  // Effect to handle redirect after auth state updates
+  React.useEffect(() => {
+    if (isAuthenticated && pendingRedirect) {
+      if (pendingRedirect === "dashboard") navigate("/dashboard");
+      if (pendingRedirect === "profile") navigate("/profile");
+      setPendingRedirect(null);
+    }
+  }, [isAuthenticated, pendingRedirect, navigate]);
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
