@@ -1,5 +1,5 @@
 import { ReactNode } from 'react'
-import { useAuth } from '@/contexts/AuthContext'
+import { useAuth } from '@/hooks/useAuth';
 
 interface LayoutProps {
   children: ReactNode
@@ -22,13 +22,10 @@ export function Layout({ children }: LayoutProps) {
             <div className="flex items-center space-x-4">
               <div className="text-sm">
                 <span className="text-muted-foreground">Welcome, </span>
-                <span className="font-medium">{user.displayName}</span>
-                <span className="text-muted-foreground ml-2">
-                  (Trust: {user.trustScore} | Level: {user.civicLevel})
-                </span>
+                <span className="font-medium">{user.firstName || user.email}</span>
               </div>
               <button
-                onClick={() => logout()}
+                onClick={() => logout.mutate()}
                 className="px-3 py-1 text-sm border border-border rounded-md hover:bg-muted transition-colors"
               >
                 Logout
