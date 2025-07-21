@@ -19,12 +19,11 @@ export function useDataMode() {
   // Check if we should use live data based on environment
   useEffect(() => {
     const isProduction = import.meta.env.MODE === 'production';
-    const forceDemo = import.meta.env.VITE_FORCE_DEMO_DATA === 'true';
     
     setConfig(prev => ({
       ...prev,
-      useLiveData: isProduction && !forceDemo,
-      dataSource: isProduction ? "Parliament of Canada APIs" : "Demo Data Sources"
+      useLiveData: isProduction,
+      dataSource: isProduction ? "Parliament of Canada APIs" : "Government APIs"
     }));
   }, []);
 
@@ -39,12 +38,5 @@ export function useDataMode() {
   return {
     ...config,
     toggleDataMode,
-    isDemo: !config.useLiveData
   };
-}
-
-// Utility function to get data with fallback
-export function getDataWithFallback<T>(liveData: T | null, demoData: T, useLiveData: boolean): T {
-  if (!useLiveData) return demoData;
-  return liveData || demoData;
 }

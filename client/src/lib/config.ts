@@ -1,7 +1,7 @@
 // Configuration for different environments
 interface Config {
   apiUrl: string;
-  environment: 'development' | 'production';
+  environment: 'production';
 }
 
 const getConfig = (): Config => {
@@ -10,7 +10,7 @@ const getConfig = (): Config => {
   if (envApiUrl) {
     return {
       apiUrl: envApiUrl,
-      environment: envApiUrl.includes('localhost') ? 'development' : 'production',
+      environment: 'production'
     };
   }
   // Check if we're in production (Civicos deployment)
@@ -24,7 +24,7 @@ const getConfig = (): Config => {
   // Development
   return {
     apiUrl: 'http://localhost:5001', // Updated to match backend port
-    environment: 'development'
+    environment: 'production'
   };
 };
 

@@ -1,4 +1,3 @@
-import 'dotenv/config';
 import { scrapeCurrentMPs, scrapeFederalBills } from '../dist/server/scrapers.js';
 
 async function testScrapers() {

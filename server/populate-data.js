@@ -1,4 +1,3 @@
-import 'dotenv/config';
 import { storage } from '../dist/server/storage.js';
 import { scrapeCurrentMPs, scrapeFederalBills } from '../dist/server/scrapers.js';
 

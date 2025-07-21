@@ -11,7 +11,6 @@ import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 import jwt from "jsonwebtoken";
 import pino from "pino";
-import 'dotenv/config';
 import { existsSync } from 'fs';
 const logger = pino();
 const JWT_SECRET = process.env.SESSION_SECRET || "changeme";
@@ -46,8 +45,6 @@ interface JwtPayload {
 // In production, only trusted origins are allowed. In dev, any origin is allowed.
 app.use((req, res, next) => {
   const allowedOrigins = [
-    "http://localhost:5173", // Vite dev server
-    "http://localhost:3000", // Alternative dev port
     "https://civicos.ca",
     "https://www.civicos.ca",
     "http://civicos.ca",
@@ -68,7 +65,7 @@ app.use((req, res, next) => {
       res.header("Access-Control-Allow-Origin", "https://civicos.ca");
     }
   } else {
-    res.header("Access-Control-Allow-Origin", typeof origin === 'string' ? origin : '*');
+    res.header("Access-Control-Allow-Origin", "https://civicos.ca");
   }
 
   res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");

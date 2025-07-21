@@ -11,7 +11,6 @@ import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 import jwt from "jsonwebtoken";
 import pino from "pino";
-import 'dotenv/config';
 const logger = pino();
 const JWT_SECRET = process.env.SESSION_SECRET || "changeme";
 const __filename = fileURLToPath(import.meta.url);
@@ -38,8 +37,6 @@ app.set('trust proxy', 1); // Trust first proxy (Render, Heroku, etc.)
 // In production, only trusted origins are allowed. In dev, any origin is allowed.
 app.use((req, res, next) => {
     const allowedOrigins = [
-        "http://localhost:5173", // Vite dev server
-        "http://localhost:3000", // Alternative dev port
         "https://civicos.ca",
         "https://www.civicos.ca",
         "http://civicos.ca",
@@ -60,7 +57,7 @@ app.use((req, res, next) => {
         }
     }
     else {
-        res.header("Access-Control-Allow-Origin", typeof origin === 'string' ? origin : '*');
+        res.header("Access-Control-Allow-Origin", "https://civicos.ca");
     }
     res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
     res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Authorization");

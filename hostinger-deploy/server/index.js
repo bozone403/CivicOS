@@ -11,7 +11,6 @@ import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 import jwt from "jsonwebtoken";
 import pino from "pino";
-import 'dotenv/config';
 const logger = pino();
 const JWT_SECRET = process.env.SESSION_SECRET || "changeme";
 const __filename = fileURLToPath(import.meta.url);
