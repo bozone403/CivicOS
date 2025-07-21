@@ -42,7 +42,7 @@ export default function Auth() {
         title: "Welcome to CivicOS",
         description: "You have successfully logged in",
       });
-      setPendingRedirect("dashboard");
+      window.location.href = "/dashboard";
     },
     onError: (error: any) => {
       setErrors(prev => ({ ...prev, login: error.message || "Invalid email or password" }));
@@ -64,7 +64,7 @@ export default function Auth() {
         title: "Welcome to CivicOS",
         description: "Your account has been created successfully",
       });
-      setPendingRedirect("profile");
+      window.location.href = "/profile";
     },
     onError: (error: any) => {
       let message = error.message || "Registration failed";
@@ -76,13 +76,13 @@ export default function Auth() {
   });
 
   // Effect to handle redirect after auth state updates
-  React.useEffect(() => {
-    if (isAuthenticated && pendingRedirect) {
-      if (pendingRedirect === "dashboard") navigate("/dashboard");
-      if (pendingRedirect === "profile") navigate("/profile");
-      setPendingRedirect(null);
-    }
-  }, [isAuthenticated, pendingRedirect, navigate]);
+  // React.useEffect(() => {
+  //   if (isAuthenticated && pendingRedirect) {
+  //     if (pendingRedirect === "dashboard") navigate("/dashboard");
+  //     if (pendingRedirect === "profile") navigate("/profile");
+  //     setPendingRedirect(null);
+  //   }
+  // }, [isAuthenticated, pendingRedirect, navigate]);
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
