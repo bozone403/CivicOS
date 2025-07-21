@@ -134,20 +134,25 @@ export async function registerRoutes(app: Express): Promise<void> {
   app.get('/api/auth/user', jwtAuth, async (req: Request, res: Response) => {
     try {
       const userId = (req.user as JwtPayload)?.id;
-      if (!userId) return res.status(401).json({ message: "Unauthorized" });
+      if (!userId) {
+        console.error("[/api/auth/user] No userId in JWT");
+        return res.status(401).json({ message: "Unauthorized" });
+      }
       try {
         const user = await storage.getUser(userId);
         if (user) {
+          console.log("[/api/auth/user] Found user", userId);
           return res.json(user);
         } else {
+          console.error("[/api/auth/user] User not found", userId);
           return res.status(404).json({ message: "User not found" });
         }
       } catch (dbError) {
-        logger.error({ msg: 'Database error fetching user', error: dbError });
+        console.error("[/api/auth/user] Database error", dbError);
         return res.status(500).json({ message: "Internal server error" });
       }
     } catch (error) {
-      logger.error({ msg: 'Error fetching user', error });
+      console.error("[/api/auth/user] Handler error", error);
       res.status(500).json({ message: "Internal server error" });
     }
   });

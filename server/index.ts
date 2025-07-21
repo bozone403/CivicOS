@@ -161,7 +161,13 @@ process.on('uncaughtException', (err) => {
   process.exit(1);
 });
 
-// DB health check endpoint (move this up before registerRoutes)
+// Paranoid: Log every /api/* request
+app.use('/api', (req, res, next) => {
+  console.log('[API ROUTE]', req.method, req.originalUrl);
+  next();
+});
+
+// DB health check endpoint
 app.get('/api/monitoring/db', async (req, res) => {
   try {
     const { pool } = await import('./db.js');
@@ -172,16 +178,37 @@ app.get('/api/monitoring/db', async (req, res) => {
   }
 });
 
+// Monitoring/health endpoint
+app.get('/api/monitoring/health', (req, res) => {
+  res.json({ status: 'ok', uptime: process.uptime(), timestamp: new Date().toISOString() });
+});
+
+// Health check endpoint for Render monitoring
+app.get("/health", (_req, res) => {
+  res.status(200).json({ status: "ok" });
+});
+
+// Register all API routes before static serving and SPA fallback
 (async () => {
   await registerRoutes(app);
   const { createServer } = await import("http");
   const httpServer = createServer(app);
 
-  app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
+  // Global error handler (must be before static serving and SPA fallback)
+  app.use((err: any, req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
     const message = err.message || "Internal Server Error";
-    logger.error({ msg: 'Express error handler', err });
-    res.status(status).json({ message });
+    console.error("[GLOBAL ERROR]", err);
+    if (req.path && req.path.startsWith("/api/")) {
+      res.status(status).json({ message });
+    } else {
+      res.status(status).send(message);
+    }
+  });
+
+  // Add a catch-all 404 handler for /api/* routes (must be after all API routes)
+  app.all('/api/*', (req, res) => {
+    res.status(404).json({ message: 'API route not found', path: req.originalUrl });
   });
 
   // Patch static file serving to use ESM-compatible __dirname
@@ -274,16 +301,6 @@ app.get('/api/monitoring/db', async (req, res) => {
   //   forumPopulator.populateInitialDiscussions().catch(console.error);
   // }, 8000);
 })();
-
-// Monitoring/health endpoint
-app.get('/api/monitoring/health', (req, res) => {
-  res.json({ status: 'ok', uptime: process.uptime(), timestamp: new Date().toISOString() });
-});
-
-// Health check endpoint for Render monitoring
-app.get("/health", (_req, res) => {
-  res.status(200).json({ status: "ok" });
-});
 
 // Admin session cleanup endpoint (admin only)
 app.post('/api/admin/session/cleanup', jwtAuth, async (req, res) => {
