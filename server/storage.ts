@@ -31,6 +31,7 @@ import {
 } from "../shared/schema.js";
 import { db } from "./db.js";
 import { eq, desc, and, sql, count } from "drizzle-orm";
+import { pool } from "./db.js";
 
 export interface IStorage {
   // User operations - mandatory for Replit Auth
@@ -217,6 +218,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createBill(bill: InsertBill): Promise<Bill> {
+    console.log('[DB][storage] Attempting to create bill. Pool type:', typeof pool, 'DATABASE_URL:', process.env.DATABASE_URL, 'NODE_TLS_REJECT_UNAUTHORIZED:', process.env.NODE_TLS_REJECT_UNAUTHORIZED);
     const [newBill] = await db.insert(bills).values(bill).returning();
     return newBill;
   }
@@ -284,6 +286,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createPolitician(politician: InsertPolitician): Promise<Politician> {
+    console.log('[DB][storage] Attempting to create politician. Pool type:', typeof pool, 'DATABASE_URL:', process.env.DATABASE_URL, 'NODE_TLS_REJECT_UNAUTHORIZED:', process.env.NODE_TLS_REJECT_UNAUTHORIZED);
     const [newPolitician] = await db.insert(politicians).values(politician).returning();
     return newPolitician;
   }

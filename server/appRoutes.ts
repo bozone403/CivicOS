@@ -135,33 +135,20 @@ export async function registerRoutes(app: Express): Promise<void> {
     try {
       const userId = (req.user as JwtPayload)?.id;
       if (!userId) return res.status(401).json({ message: "Unauthorized" });
-      
-      // Try to get user from database first
       try {
         const user = await storage.getUser(userId);
         if (user) {
           return res.json(user);
+        } else {
+          return res.status(404).json({ message: "User not found" });
         }
       } catch (dbError) {
         logger.error({ msg: 'Database error fetching user', error: dbError });
+        return res.status(500).json({ message: "Internal server error" });
       }
-      
-      // Fallback: return user info from JWT token
-      const userInfo = {
-        id: userId,
-        email: (req.user as JwtPayload)?.email,
-        firstName: "Demo",
-        lastName: "User",
-        isVerified: true,
-        civicLevel: "Verified",
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      };
-      
-      res.json(userInfo);
     } catch (error) {
       logger.error({ msg: 'Error fetching user', error });
-      res.status(500).json({ message: "Failed to fetch user" });
+      res.status(500).json({ message: "Internal server error" });
     }
   });
 
@@ -196,92 +183,13 @@ export async function registerRoutes(app: Express): Promise<void> {
   app.get('/api/users/:userId/profile', async (req, res) => {
     try {
       const { userId } = req.params;
-      
-      // Return the user profile data for the authenticated user
-      const profileData = {
-        user: {
-          id: userId,
-          first_name: "Jordan",
-          last_name: "",
-          email: "jordan@iron-oak.ca",
-          profile_image_url: null,
-          civic_level: "Community Member",
-          civic_points: 1247,
-          current_level: 3,
-          achievement_tier: "silver",
-          engagement_level: "active",
-          trust_score: "78.5",
-          created_at: "2025-05-28.basil",
-          updated_at: new Date().toISOString()
-        },
-        interactions: [
-          {
-            interaction_type: "vote",
-            target_type: "politician",
-            target_id: 12345,
-            content: "upvote",
-            created_at: new Date().toISOString()
-          },
-          {
-            interaction_type: "post",
-            target_type: "forum",
-            target_id: 67890,
-            content: "Created discussion about municipal transparency",
-            created_at: new Date(Date.now() - 86400000).toISOString()
-          },
-          {
-            interaction_type: "comment",
-            target_type: "bill",
-            target_id: 15432,
-            content: "Commented on Bill C-123",
-            created_at: new Date(Date.now() - 172800000).toISOString()
-          }
-        ],
-        posts: [
-          {
-            id: 1,
-            title: "Thoughts on Recent Municipal Elections",
-            content: "I've been following the recent municipal elections and wanted to share some observations about voter turnout and engagement across different demographics...",
-            created_at: new Date(Date.now() - 172800000).toISOString(),
-            category_name: "Municipal Politics"
-          },
-          {
-            id: 2,
-            title: "Federal Budget Analysis 2024",
-            content: "The recent federal budget announcement includes several key items that will impact civic engagement and democratic participation...",
-            created_at: new Date(Date.now() - 432000000).toISOString(),
-            category_name: "Federal Politics"
-          }
-        ],
-        votes: [
-          {
-            id: 1,
-            vote_choice: "yes",
-            bill_title: "Municipal Transparency Act",
-            bill_number: "C-123",
-            created_at: new Date(Date.now() - 259200000).toISOString()
-          },
-          {
-            id: 2,
-            vote_choice: "no",
-            bill_title: "Digital Privacy Enhancement Bill",
-            bill_number: "C-456",
-            created_at: new Date(Date.now() - 345600000).toISOString()
-          },
-          {
-            id: 3,
-            vote_choice: "yes",
-            bill_title: "Climate Action Framework",
-            bill_number: "C-789",
-            created_at: new Date(Date.now() - 518400000).toISOString()
-          }
-        ]
-      };
-      
-      res.json(profileData);
+      const user = await storage.getUser(userId);
+      if (!user) return res.status(404).json({ message: "User not found" });
+      // Optionally, fetch posts, votes, etc. from DB here
+      res.json({ user });
     } catch (error) {
       logger.error({ msg: 'Error fetching user profile', error });
-      res.status(500).json({ message: "Failed to fetch user profile" });
+      res.status(500).json({ message: "Internal server error" });
     }
   });
 
@@ -3326,6 +3234,39 @@ export async function registerRoutes(app: Express): Promise<void> {
       res.json({ decoded });
     } catch (err) {
       res.status(401).json({ error: 'Invalid or expired token', details: (err as Error).message });
+    }
+  });
+
+  // GCKey OAuth callback endpoint
+  app.get('/api/auth/gckey/callback', async (req, res) => {
+    try {
+      // In production, validate the code and state with GCKey
+      const { code, state } = req.query;
+      // TODO: Exchange code for user info with GCKey
+      // For now, simulate verification for the logged-in user (JWT in cookie or header)
+      let userId = null;
+      // Try to get userId from JWT in Authorization header
+      const authHeader = req.headers.authorization;
+      if (authHeader && authHeader.startsWith('Bearer ')) {
+        const token = authHeader.split(' ')[1];
+        try {
+          const decoded = jwt.verify(token, JWT_SECRET);
+          if (typeof decoded === 'object' && decoded && 'id' in decoded) {
+            userId = (decoded as any).id;
+          }
+        } catch (err) {
+          return res.status(401).json({ error: 'Invalid or expired token' });
+        }
+      }
+      // Optionally, support session/cookie-based auth here
+      if (!userId) {
+        return res.status(401).json({ error: 'User not authenticated' });
+      }
+      await storage.updateUserVerification(userId, true);
+      // Redirect to frontend with success (customize as needed)
+      return res.redirect('/identity-verification?verified=1');
+    } catch (error) {
+      res.status(500).json({ error: (error instanceof Error ? error.message : String(error)) });
     }
   });
 }

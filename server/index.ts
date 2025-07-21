@@ -13,7 +13,11 @@ import jwt from "jsonwebtoken";
 import pino from "pino";
 import { existsSync } from 'fs';
 const logger = pino();
-const JWT_SECRET = process.env.SESSION_SECRET || "changeme";
+// Enforce SESSION_SECRET is set before anything else
+if (!process.env.SESSION_SECRET) {
+  throw new Error("SESSION_SECRET must be set as an environment variable. Refusing to start.");
+}
+const JWT_SECRET = process.env.SESSION_SECRET;
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 function jwtAuth(req: any, res: any, next: any) {
@@ -141,6 +145,13 @@ app.use(rateLimit({
   }
 })();
 
+// Force Node.js to ignore SSL errors (paranoid fix for Supabase self-signed certs)
+process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
+
+// Paranoid logging for Node.js version and SSL config
+console.log('[Startup] Node.js version:', process.version);
+console.log('[Startup] NODE_TLS_REJECT_UNAUTHORIZED:', process.env.NODE_TLS_REJECT_UNAUTHORIZED);
+
 // Global error handler for unhandled promise rejections
 process.on('unhandledRejection', (reason, promise) => {
   console.error('Unhandled Rejection at:', promise, 'reason:', reason);
@@ -148,6 +159,17 @@ process.on('unhandledRejection', (reason, promise) => {
 process.on('uncaughtException', (err) => {
   logger.error({ msg: 'Uncaught Exception thrown', err });
   process.exit(1);
+});
+
+// DB health check endpoint (move this up before registerRoutes)
+app.get('/api/monitoring/db', async (req, res) => {
+  try {
+    const { pool } = await import('./db.js');
+    const result = await pool.query('SELECT NOW() as now');
+    res.json({ status: 'ok', time: result.rows[0].now });
+  } catch (error) {
+    res.status(500).json({ status: 'error', error: error instanceof Error ? error.message : String(error) });
+  }
 });
 
 (async () => {
