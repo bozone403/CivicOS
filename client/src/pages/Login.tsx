@@ -12,6 +12,7 @@ import civicOSLogo from "@/assets/ChatGPT Image Jun 20, 2025, 06_03_54 PM_175046
 import canadianCrest from "@/assets/ChatGPT Image Jun 20, 2025, 05_42_18 PM_1750462997583.png";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import { useQueryClient } from "@tanstack/react-query";
 
 // Add this at the top of the file or in a global.d.ts file if not present:
 // declare module "*.png" {
@@ -26,6 +27,7 @@ export default function Login() {
   const [error, setError] = useState("");
   const { toast } = useToast();
   const [, navigate] = useLocation();
+  const queryClient = useQueryClient();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -37,11 +39,32 @@ export default function Login() {
         email: credentials.username,
         password: credentials.password,
       });
-      toast({
-        title: "Login successful",
-        description: "Welcome to CivicOS!",
-      });
-      navigate("/dashboard");
+      if (res.token) {
+        localStorage.setItem('civicos-jwt', res.token);
+        await queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+        // Wait for user to be available
+        setTimeout(() => {
+          if (localStorage.getItem('civicos-jwt')) {
+            toast({
+              title: "Login successful",
+              description: "Welcome to CivicOS!",
+            });
+            navigate("/dashboard");
+          } else {
+            toast({
+              title: "Login failed",
+              description: "Token not set. Please try again.",
+              variant: "destructive",
+            });
+          }
+        }, 300);
+      } else {
+        toast({
+          title: "Login failed",
+          description: "No token returned from server.",
+          variant: "destructive",
+        });
+      }
     } catch (err: any) {
       setError(err.message || "Login failed. Please check your credentials.");
       toast({
