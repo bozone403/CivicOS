@@ -18,6 +18,7 @@ import {
   TrendingUp, AlertCircle, ExternalLink, Info, Link, Database, 
   Lock, Users, Calendar, DollarSign, Vote, Eye
 } from "lucide-react";
+import { useLocation } from "wouter";
 
 interface DataSource {
   name: string;
@@ -101,6 +102,7 @@ const fallbackPoliticians: PoliticianData[] = [
 export default function Politicians() {
   const { user, isAuthenticated, isLoading: authLoading } = useAuth();
   const { toast } = useToast();
+  const [, navigate] = useLocation();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedLevel, setSelectedLevel] = useState<string>("all");
   const [selectedParty, setSelectedParty] = useState<string>("all");
@@ -116,10 +118,10 @@ export default function Politicians() {
         variant: "destructive",
       });
       setTimeout(() => {
-        window.location.href = "/api/login";
+        navigate("/auth");
       }, 1000);
     }
-  }, [isAuthenticated, authLoading, toast]);
+  }, [isAuthenticated, authLoading, toast, navigate]);
 
   const { data: politicians = [], isLoading, error, refetch } = useQuery<PoliticianData[]>({
     queryKey: ['/api/politicians', { search: searchTerm, level: selectedLevel, party: selectedParty, province: selectedProvince }],
@@ -157,7 +159,7 @@ export default function Politicians() {
             <p className="text-gray-600 mb-4">
               You need to be logged in to access politician data and platform features.
             </p>
-            <Button onClick={() => window.location.href = "/api/login"} className="w-full">
+            <Button onClick={() => navigate("/auth")} className="w-full">
               Login to Continue
             </Button>
           </CardContent>

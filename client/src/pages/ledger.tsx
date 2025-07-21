@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Shield, Download, AlertCircle, Vote, FileText, Calendar, TrendingUp } from "lucide-react";
 import { useEffect, useMemo } from "react";
+import { useLocation } from "wouter";
 
 interface CivicLedgerData {
   summary: {
@@ -55,12 +56,13 @@ const formatDate = (dateString: string) => {
 
 export default function Ledger() {
   const { isAuthenticated, isLoading: authLoading } = useAuth();
+  const [, navigate] = useLocation();
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
-      window.location.href = '/auth';
+      navigate('/auth');
     }
-  }, [isAuthenticated, authLoading]);
+  }, [isAuthenticated, authLoading, navigate]);
 
   const { data, isLoading } = useQuery<CivicLedgerData>({
     queryKey: ["/api/civic-ledger"],

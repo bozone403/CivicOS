@@ -3,8 +3,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import canadianCrest from "../assets/ChatGPT Image Jun 20, 2025, 06_03_54 PM_1750464244456.png";
 import { Shield, Lock, Eye, Database, ArrowRight, Calendar, Mail } from "lucide-react";
+import { useLocation } from "wouter";
 
 export default function Privacy() {
+  const [, navigate] = useLocation();
   return (
     <div className="min-h-screen bg-white">
       {/* Header */}
@@ -24,14 +26,14 @@ export default function Privacy() {
             </div>
             <div className="flex items-center space-x-4">
               <Button 
-                onClick={() => window.location.href = '/about'}
+                onClick={() => navigate('/about')}
                 variant="outline"
                 className="border-red-600 text-red-600 hover:bg-red-50"
               >
                 Back to About
               </Button>
               <Button 
-                onClick={() => window.location.href = '/'}
+                onClick={() => navigate('/')}
                 className="bg-red-600 text-white hover:bg-red-700 font-semibold px-6 py-3 rounded-lg"
               >
                 Home
@@ -430,21 +432,21 @@ export default function Privacy() {
         {/* Footer Navigation */}
         <div className="flex justify-center space-x-4 pt-8 border-t border-gray-200">
           <Button 
-            onClick={() => window.location.href = '/terms'}
+            onClick={() => navigate('/terms')}
             variant="outline"
             className="border-red-600 text-red-600 hover:bg-red-50"
           >
             Terms of Service
           </Button>
           <Button 
-            onClick={() => window.location.href = '/contact'}
+            onClick={() => navigate('/contact')}
             variant="outline"
             className="border-red-600 text-red-600 hover:bg-red-50"
           >
             Contact Us
           </Button>
           <Button 
-            onClick={() => window.location.href = '/accessibility'}
+            onClick={() => navigate('/accessibility')}
             variant="outline"
             className="border-red-600 text-red-600 hover:bg-red-50"
           >

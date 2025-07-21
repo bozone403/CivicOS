@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { CanadianCoatOfArms, CanadianMapleLeaf } from "@/components/CanadianCoatOfArms";
 import civicOSLogo from "@assets/ChatGPT Image Jun 20, 2025, 05_42_18 PM_1750462997583.png";
-import canadianCrest from "../assets/ChatGPT Image Jun 20, 2025, 06_03_54 PM_1750464244456.png";
+import canadianCrest from "@/assets/ChatGPT Image Jun 20, 2025, 06_03_54 PM_1750464244456.png";
 import { 
   Shield, 
   Vote, 
@@ -21,6 +21,7 @@ import {
   Heart
 } from "lucide-react";
 import React, { useState, useEffect } from "react";
+import { useLocation } from "wouter";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import DonationPopup from "@/components/DonationPopup";
 import { useToast } from "@/hooks/use-toast";
@@ -31,6 +32,7 @@ export default function Landing() {
   const { toast } = useToast();
   const [showNotice, setShowNotice] = useState(false);
   const [showDonation, setShowDonation] = useState(false);
+  const [, navigate] = useLocation();
 
   useEffect(() => {
     if (!sessionStorage.getItem('civicos-platform-notice-shown')) {
@@ -54,7 +56,7 @@ export default function Landing() {
         title: "Demo Login Successful",
         description: "You are now viewing the demo dashboard.",
       });
-      window.location.href = "/dashboard";
+      navigate("/dashboard");
     } catch (err: any) {
       toast({
         title: "Demo Login Failed",
@@ -93,13 +95,13 @@ export default function Landing() {
                 </div>
                 <div className="flex flex-row gap-2 mt-2 sm:mt-0">
                   <Button 
-                    onClick={() => window.location.href = '/auth'}
+                    onClick={() => navigate('/auth')}
                     className="bg-red-600 text-white hover:bg-red-700 font-semibold px-4 sm:px-6 py-2 rounded-lg text-base sm:text-lg"
                   >
                     Login
                   </Button>
                   <Button 
-                    onClick={() => window.location.href = '/auth'}
+                    onClick={() => navigate('/auth')}
                     variant="outline"
                     className="border-2 border-red-600 text-red-600 hover:bg-red-50 font-semibold px-4 sm:px-6 py-2 rounded-lg text-base sm:text-lg"
                   >
@@ -155,7 +157,7 @@ export default function Landing() {
               <div className="flex flex-col sm:flex-row gap-6 justify-center mb-16">
                 <Button 
                   size="lg"
-                  onClick={() => window.location.href = '/auth'}
+                  onClick={() => navigate('/auth')}
                   className="bg-red-600 hover:bg-red-700 text-white px-10 py-4 font-bold text-lg rounded-lg shadow-lg hover:shadow-xl transition-all"
                 >
                   Login / Sign Up
@@ -164,7 +166,7 @@ export default function Landing() {
                 <Button 
                   size="lg" 
                   variant="outline"
-                  onClick={() => window.location.href = '/about'}
+                  onClick={() => navigate('/about')}
                   className="border-2 border-red-600 text-red-600 hover:bg-red-50 px-10 py-4 font-semibold text-lg rounded-lg"
                 >
                   Learn More / En Savoir Plus
@@ -366,7 +368,7 @@ export default function Landing() {
             </div>
             <Button 
               size="lg"
-              onClick={() => window.location.href = '/login'}
+              onClick={() => navigate('/auth')}
               className="bg-white text-red-600 hover:bg-red-50 px-8 py-3 text-lg font-semibold"
             >
               Access Platform / Accéder à la Plateforme

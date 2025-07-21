@@ -13,13 +13,12 @@ import { useToast } from "../hooks/use-toast";
 
 export default function CivicSocialProfile() {
   const { user, isLoading: authLoading, isAuthenticated } = useAuth();
-  const token = localStorage.getItem("token") || "";
-  const { data: feed, isLoading, error } = useCivicSocialFeed(token);
-  const { data: friendsData } = useCivicSocialFriends(token);
+  const { data: feed, isLoading, error } = useCivicSocialFeed();
+  const { data: friendsData } = useCivicSocialFriends();
   const [, navigate] = useLocation();
-  const postMutation = useCivicSocialPost(token);
-  const likeMutation = useCivicSocialLike(token);
-  const commentMutation = useCivicSocialComment(token);
+  const postMutation = useCivicSocialPost();
+  const likeMutation = useCivicSocialLike();
+  const commentMutation = useCivicSocialComment();
   const [content, setContent] = useState("");
   const [openComment, setOpenComment] = useState<{ [postId: number]: boolean }>({});
   const [commentText, setCommentText] = useState<{ [postId: number]: string }>({});

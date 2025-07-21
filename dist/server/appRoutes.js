@@ -1,4 +1,3 @@
-import { createServer } from "http";
 import { storage } from "./storage.js";
 import simpleNotificationsRouter from "./simpleNotifications.js";
 import civicSocialRouter from "./civicSocial.js";
@@ -3114,8 +3113,6 @@ export async function registerRoutes(app) {
             return 'General Legislation';
         }
     }
-    const httpServer = createServer(app);
-    httpServer.listen(3000);
     // Add after other auth routes:
     app.post('/api/verify-temporary', jwtAuth, async (req, res) => {
         try {

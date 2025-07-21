@@ -11,8 +11,10 @@ import { Lock, Mail, Shield, User, Crown } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import canadianCrest from "../../../attached_assets/ChatGPT Image Jun 20, 2025, 06_03_54 PM_1750464244456.png";
+import { useLocation } from "wouter";
 
 export default function Auth() {
+  const [, navigate] = useLocation();
   const [loginData, setLoginData] = useState({ email: "", password: "" });
   const [registerData, setRegisterData] = useState({ 
     email: "", 
@@ -36,7 +38,7 @@ export default function Auth() {
         title: "Welcome to CivicOS",
         description: "You have successfully logged in",
       });
-      window.location.href = "/dashboard";
+      navigate("/dashboard");
     },
     onError: (error: any) => {
       setErrors(prev => ({ ...prev, login: error.message || "Invalid email or password" }));
@@ -58,7 +60,7 @@ export default function Auth() {
         title: "Welcome to CivicOS",
         description: "Your account has been created successfully",
       });
-      window.location.href = "/profile";
+      navigate("/profile");
     },
     onError: (error: any) => {
       let message = error.message || "Registration failed";

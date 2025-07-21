@@ -7,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Calendar, MapPin, ExternalLink, Info, Clock, Users, Vote } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
+import { useLocation } from "wouter";
 
 interface Election {
   id: string;
@@ -31,6 +32,7 @@ interface ElectionData {
 export default function Elections() {
   const { isAuthenticated, isLoading: authLoading } = useAuth();
   const [selectedTab, setSelectedTab] = useState('upcoming');
+  const [, navigate] = useLocation();
 
   // Fetch authentic election data
   const { data: electionData, isLoading, error } = useQuery<ElectionData>({
@@ -79,9 +81,9 @@ export default function Elections() {
   // Redirect to login if not authenticated
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
-      window.location.href = '/auth';
+      navigate('/auth');
     }
-  }, [isAuthenticated, authLoading]);
+  }, [isAuthenticated, authLoading, navigate]);
 
   if (authLoading) {
     return (

@@ -12,6 +12,7 @@ import rateLimit from "express-rate-limit";
 import jwt from "jsonwebtoken";
 import pino from "pino";
 import 'dotenv/config';
+import { existsSync } from 'fs';
 const logger = pino();
 const JWT_SECRET = process.env.SESSION_SECRET || "changeme";
 const __filename = fileURLToPath(import.meta.url);
@@ -41,6 +42,8 @@ interface JwtPayload {
 }
 
 // CORS configuration
+// This logic allows all civicos.ca subdomains and any origin in allowedOrigins, including process.env.CORS_ORIGIN if set.
+// In production, only trusted origins are allowed. In dev, any origin is allowed.
 app.use((req, res, next) => {
   const allowedOrigins = [
     "http://localhost:5173", // Vite dev server
@@ -163,16 +166,21 @@ process.on('uncaughtException', (err) => {
   });
 
   // Patch static file serving to use ESM-compatible __dirname
-  const distPath = path.resolve(__dirname, "../dist/public");
+  const distPath = path.resolve(__dirname, "../public");
+  console.log("Static file path:", distPath);
+  console.log("Static file exists:", existsSync(distPath));
   app.use(express.static(distPath));
   app.get("*", (req, res) => {
+    console.log("Catch-all route hit for:", req.path);
     res.sendFile(path.join(distPath, "index.html"));
   });
 
-  // ALWAYS serve the app on port 5000
-  // this serves both the API and the client.
-  // It is the only port that is not firewalled.
-  httpServer.listen(5001);
+  // ALWAYS serve the app on the correct port for Render
+  // Render uses PORT environment variable
+  const PORT = process.env.PORT || 5001;
+  httpServer.listen(PORT, () => {
+    logger.info({ msg: `Server running on port ${PORT}`, environment: process.env.NODE_ENV });
+  });
   
   // Initialize automatic government data sync
   initializeDataSync();

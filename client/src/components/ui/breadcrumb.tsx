@@ -44,10 +44,14 @@ const BreadcrumbLink = React.forwardRef<
 >(({ asChild, className, children, style, title, ...props }, ref) => {
   const Comp = asChild ? Slot : "a"
   if (asChild) {
-    // Only pass allowed props to Slot
-    // @ts-ignore Slot props type mismatch is safe here
     return (
-      <Comp ref={ref} className={cn("transition-colors hover:text-foreground", className)} style={style} title={title}>
+      <Comp 
+        ref={ref} 
+        className={cn("transition-colors hover:text-foreground", className)} 
+        style={style} 
+        title={title}
+        {...(props as any)}
+      >
         {children}
       </Comp>
     );
@@ -58,7 +62,7 @@ const BreadcrumbLink = React.forwardRef<
       className={cn("transition-colors hover:text-foreground", className)}
       style={style}
       title={title}
-      {...(props as React.ComponentPropsWithoutRef<'a'>)}
+      {...(props as any)}
     >
       {children}
     </Comp>

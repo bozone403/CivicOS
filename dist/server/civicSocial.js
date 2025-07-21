@@ -6,7 +6,6 @@ const router = Router();
 // GET /api/social/feed - Get the user's CivicSocial feed
 router.get("/feed", async (req, res) => {
     try {
-        // TODO: Replace with real user auth
         // Try id, then sub (JWT), then query param
         const userId = (req.user?.id || req.user?.sub || req.query.userId);
         if (!userId)
@@ -21,6 +20,7 @@ router.get("/feed", async (req, res) => {
         res.json({ feed: posts });
     }
     catch (err) {
+        console.error("Feed error:", err);
         res.status(500).json({ error: "Failed to fetch feed", details: err });
     }
 });
@@ -53,6 +53,7 @@ router.post("/posts", async (req, res) => {
         res.status(201).json({ post: inserted });
     }
     catch (err) {
+        console.error("Create post error:", err);
         res.status(500).json({ error: "Failed to create post", details: err });
     }
 });
@@ -80,6 +81,7 @@ router.post("/posts/:id/comment", async (req, res) => {
         res.status(201).json({ comment: inserted });
     }
     catch (err) {
+        console.error("Create comment error:", err);
         res.status(500).json({ error: "Failed to add comment", details: err });
     }
 });
@@ -112,6 +114,7 @@ router.post("/posts/:id/like", async (req, res) => {
         }
     }
     catch (err) {
+        console.error("Like error:", err);
         res.status(500).json({ error: "Failed to like/unlike post", details: err });
     }
 });
@@ -154,6 +157,7 @@ router.post("/friends", async (req, res) => {
         }
     }
     catch (err) {
+        console.error("Friend request error:", err);
         res.status(500).json({ error: "Failed to process friend request", details: err });
     }
 });
@@ -181,6 +185,7 @@ router.get("/friends", async (req, res) => {
         res.json({ friends, sent, received });
     }
     catch (err) {
+        console.error("Friends error:", err);
         res.status(500).json({ error: "Failed to fetch friends", details: err });
     }
 });

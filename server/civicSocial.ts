@@ -8,7 +8,6 @@ const router = Router();
 // GET /api/social/feed - Get the user's CivicSocial feed
 router.get("/feed", async (req: Request, res: Response) => {
   try {
-    // TODO: Replace with real user auth
     // Try id, then sub (JWT), then query param
     const userId = ((req.user as any)?.id || (req.user as any)?.sub || req.query.userId) as string | undefined;
     if (!userId) return res.status(401).json({ error: "Not authenticated" });
@@ -23,6 +22,7 @@ router.get("/feed", async (req: Request, res: Response) => {
     // TODO: Join with user info, likes, comments, etc.
     res.json({ feed: posts });
   } catch (err) {
+    console.error("Feed error:", err);
     res.status(500).json({ error: "Failed to fetch feed", details: err });
   }
 });
@@ -57,6 +57,7 @@ router.post("/posts", async (req: Request, res: Response) => {
 
     res.status(201).json({ post: inserted });
   } catch (err) {
+    console.error("Create post error:", err);
     res.status(500).json({ error: "Failed to create post", details: err });
   }
 });
@@ -85,6 +86,7 @@ router.post("/posts/:id/comment", async (req: Request, res: Response) => {
 
     res.status(201).json({ comment: inserted });
   } catch (err) {
+    console.error("Create comment error:", err);
     res.status(500).json({ error: "Failed to add comment", details: err });
   }
 });
@@ -121,6 +123,7 @@ router.post("/posts/:id/like", async (req: Request, res: Response) => {
       return res.json({ liked: true, like: inserted });
     }
   } catch (err) {
+    console.error("Like error:", err);
     res.status(500).json({ error: "Failed to like/unlike post", details: err });
   }
 });
@@ -165,6 +168,7 @@ router.post("/friends", async (req: Request, res: Response) => {
       return res.status(400).json({ error: "Invalid action. Use send, accept, or remove." });
     }
   } catch (err) {
+    console.error("Friend request error:", err);
     res.status(500).json({ error: "Failed to process friend request", details: err });
   }
 });
@@ -201,6 +205,7 @@ router.get("/friends", async (req: Request, res: Response) => {
 
     res.json({ friends, sent, received });
   } catch (err) {
+    console.error("Friends error:", err);
     res.status(500).json({ error: "Failed to fetch friends", details: err });
   }
 });

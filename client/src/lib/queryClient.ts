@@ -1,4 +1,5 @@
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
+import { config } from "./config";
 
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
@@ -7,8 +8,8 @@ async function throwIfResNotOk(res: Response) {
   }
 }
 
-// Use VITE_API_BASE_URL for production API calls
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "https://civicos.ca/api"; // e.g. https://civic-os.vercel.app
+// Use config for API base URL
+const API_BASE_URL = config.apiUrl;
 
 export function getToken() {
   return localStorage.getItem('civicos-jwt') || '';

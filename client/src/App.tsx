@@ -1,4 +1,4 @@
-import { Switch, Route, Link } from "wouter";
+import { Switch, Route, Link, useLocation } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -91,12 +91,11 @@ class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { has
 
 function Router() {
   const { isAuthenticated, isLoading } = useAuth();
+  const [, navigate] = useLocation();
   const [hasAgreedToManifesto, setHasAgreedToManifesto] = useState(() => {
     // Temporarily bypass manifesto requirement for debugging
     return true; // localStorage.getItem('civicos-manifesto-agreed') === 'true';
   });
-
-
 
   if (isLoading) {
     return (
@@ -104,6 +103,18 @@ function Router() {
         <div className="text-center">
           <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-red-600 mx-auto"></div>
           <p className="mt-4 text-slate-600">Loading CivicOS...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Fallback for any other state
+  if (isAuthenticated === undefined) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-red-600 mx-auto"></div>
+          <p className="mt-4 text-slate-600">Initializing CivicOS...</p>
         </div>
       </div>
     );
@@ -117,7 +128,7 @@ function Router() {
       {isAuthenticated && hasAgreedToManifesto ? (
         <div className="flex">
           <LuxuryNavigation />
-          <main className="flex-1 bg-gradient-civic-ambient min-h-screen overflow-x-auto">
+          <main className="flex-1 bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen overflow-x-auto">
             {/* Mobile Navigation */}
             <div className="lg:hidden bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700 p-3">
               <div className="flex items-center justify-between">
@@ -222,7 +233,7 @@ function Router() {
               {() => {
                 // Redirect to auth for unauthenticated users
                 setTimeout(() => {
-                  window.location.href = "/auth";
+                  navigate("/auth");
                 }, 0);
                 return (
                   <div className="min-h-screen flex items-center justify-center">
@@ -237,7 +248,7 @@ function Router() {
             <Route path="/voting">
               {() => {
                 setTimeout(() => {
-                  window.location.href = "/auth";
+                  navigate("/auth");
                 }, 0);
                 return (
                   <div className="min-h-screen flex items-center justify-center">
@@ -252,7 +263,7 @@ function Router() {
             <Route path="/ledger">
               {() => {
                 setTimeout(() => {
-                  window.location.href = "/auth";
+                  navigate("/auth");
                 }, 0);
                 return (
                   <div className="min-h-screen flex items-center justify-center">
@@ -267,7 +278,7 @@ function Router() {
             <Route path="/politicians">
               {() => {
                 setTimeout(() => {
-                  window.location.href = "/auth";
+                  navigate("/auth");
                 }, 0);
                 return (
                   <div className="min-h-screen flex items-center justify-center">
@@ -299,6 +310,8 @@ function AppWithBot() {
 }
 
 function App() {
+  const { isAuthenticated, isLoading } = useAuth();
+  const [, navigate] = useLocation();
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>

@@ -6,15 +6,14 @@ import { useAuth } from "../hooks/useAuth";
 
 export default function CivicSocialFriends() {
   const { user } = useAuth();
-  const token = localStorage.getItem("token") || "";
-  const { data, isLoading, error } = useCivicSocialFriends(token);
+  const { data, isLoading, error } = useCivicSocialFriends();
   const friends = data?.friends || [];
   const pendingReceived = data?.received || [];
   const pendingSent = data?.sent || [];
-  const addFriendMutation = useCivicSocialAddFriend(token);
-  const acceptFriendMutation = useCivicSocialAcceptFriend(token);
-  const removeFriendMutation = useCivicSocialRemoveFriend(token);
-  const notifyMutation = useCivicSocialNotify(token);
+  const addFriendMutation = useCivicSocialAddFriend();
+  const acceptFriendMutation = useCivicSocialAcceptFriend();
+  const removeFriendMutation = useCivicSocialRemoveFriend();
+  const notifyMutation = useCivicSocialNotify();
   const [friendId, setFriendId] = useState("");
 
   const handleAddFriend = (e: React.FormEvent) => {

@@ -7,12 +7,11 @@ import { useToast } from "../hooks/use-toast";
 
 export default function CivicSocialFeed() {
   const { user, isLoading: authLoading, isAuthenticated } = useAuth();
-  const token = localStorage.getItem("token") || "";
-  const { data: feed, isLoading, error } = useCivicSocialFeed(token);
-  const postMutation = useCivicSocialPost(token);
-  const likeMutation = useCivicSocialLike(token);
-  const commentMutation = useCivicSocialComment(token);
-  const notifyMutation = useCivicSocialNotify(token);
+  const { data: feed, isLoading, error } = useCivicSocialFeed();
+  const postMutation = useCivicSocialPost();
+  const likeMutation = useCivicSocialLike();
+  const commentMutation = useCivicSocialComment();
+  const notifyMutation = useCivicSocialNotify();
   const [content, setContent] = useState("");
   const [openComment, setOpenComment] = useState<{ [postId: number]: boolean }>({});
   const [commentText, setCommentText] = useState<{ [postId: number]: string }>({});

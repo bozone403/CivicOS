@@ -93,8 +93,8 @@ export default function Notifications() {
       try {
         return JSON.parse(saved);
       } catch (error) {
-        console.log('Failed to parse saved notifications, using defaults');
-        return defaultNotifications;
+        // Failed to parse saved notifications, using defaults
+        setLocalNotifications(defaultNotifications);
       }
     }
     return defaultNotifications;
@@ -122,7 +122,8 @@ export default function Notifications() {
       try {
         await apiRequest(`/api/notifications/${id}`, 'DELETE');
       } catch (error) {
-        console.log('API delete failed, using local state');
+        // API delete failed, using local state
+        setLocalNotifications(prev => prev.filter(n => n.id !== id));
       }
       return id;
     },
@@ -155,7 +156,8 @@ export default function Notifications() {
       try {
         await apiRequest('/api/notifications', 'DELETE');
       } catch (error) {
-        console.log('API clear all failed, using local state');
+        // API clear all failed, using local state
+        setLocalNotifications([]);
       }
       return true;
     },
@@ -183,7 +185,8 @@ export default function Notifications() {
       try {
         await apiRequest(`/api/notifications/${id}/read`, 'POST');
       } catch (error) {
-        console.log('API mark as read failed, using local state');
+        // API mark as read failed, using local state
+        setLocalNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
       }
       return id;
     },

@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { getToken } from "@/lib/queryClient";
+import { config } from "@/lib/config";
 
 // Add User type
 export interface User {
@@ -22,14 +23,37 @@ export function useAuth() {
   const { data: user, isLoading, error } = useQuery<User | null>({
     queryKey: ["/api/auth/user"],
     retry: false,
-    enabled: false, // Disabled to avoid loading issues
+    enabled: !!getToken(), // Only run query if there's a token
+    queryFn: async () => {
+      try {
+        const token = getToken();
+        if (!token) return null;
+        
+        const response = await fetch(`${config.apiUrl}/api/auth/user`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+        });
+        
+        if (response.status === 401) {
+          localStorage.removeItem('civicos-jwt');
+          return null;
+        }
+        
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        return await response.json();
+      } catch (error) {
+        console.error('Auth query error:', error);
+        return null;
+      }
+    },
   });
 
-  // Handle 401 errors by clearing token and redirecting to login
-  if (error && error.message && error.message.includes("401")) {
-    localStorage.removeItem('civicos-jwt');
-    window.location.href = "/auth";
-  }
+  // Handle network errors gracefully
+  const hasNetworkError = error && (error.message?.includes("fetch") || error.message?.includes("network"));
 
   const logout = useMutation({
     mutationFn: async () => {
@@ -79,8 +103,8 @@ export function useAuth() {
 
   return {
     user: user || null,
-    isLoading,
-    isAuthenticated: !!getToken(), // Simplified: just check if token exists
+    isLoading: isLoading && !hasNetworkError, // Don't show loading if there's a network error
+    isAuthenticated: !!user, // Use actual user data
     logout,
     login,
   };

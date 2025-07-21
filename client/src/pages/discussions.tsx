@@ -272,7 +272,32 @@ export default function Discussions() {
       try {
         await apiRequest("/api/forum/posts", "POST", postData);
       } catch (error) {
-        console.log('API create post failed, using local state');
+        // API create post failed, using local state
+        const fallbackPost: ForumPost = {
+          id: Date.now(),
+          title: postData.title,
+          content: postData.content,
+          authorId: "user",
+          categoryId: parseInt(postData.categoryId),
+          billId: postData.billId ? parseInt(postData.billId) : undefined,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          viewCount: 0,
+          isSticky: false,
+          isLocked: false,
+          replyCount: 0,
+          likeCount: 0,
+          author: {
+            firstName: "You",
+            email: "user@example.com"
+          },
+          category: displayCategories.find(c => c.id === parseInt(postData.categoryId)) || {
+            name: "General",
+            color: "#3B82F6",
+            icon: "message-circle"
+          }
+        };
+        setLocalPosts(prev => [fallbackPost, ...prev]);
       }
       return postData;
     },

@@ -1,6 +1,11 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { config } from "@/lib/config";
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:5001";
+function getToken() {
+  return localStorage.getItem('civicos-jwt') || '';
+}
+
+const API_BASE = config.apiUrl;
 
 // Post shape:
 // {
@@ -12,10 +17,11 @@ const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:5001";
 //   commentsCount: number,
 //   comments: Array<{ id: number, userId: number, content: string, createdAt: string }>
 // }
-export function useCivicSocialFeed(token: string) {
+export function useCivicSocialFeed() {
   return useQuery({
     queryKey: ["civicSocialFeed"],
     queryFn: async () => {
+      const token = getToken();
       const res = await fetch(`${API_BASE}/api/social/feed`, {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -28,10 +34,11 @@ export function useCivicSocialFeed(token: string) {
 }
 
 // Stub: create post
-export function useCivicSocialPost(token: string) {
+export function useCivicSocialPost() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (post: any) => {
+      const token = getToken();
       const res = await fetch(`${API_BASE}/api/social/posts`, {
         method: "POST",
         headers: {
@@ -48,9 +55,10 @@ export function useCivicSocialPost(token: string) {
 }
 
 // Stub: add comment
-export function useCivicSocialComment(token: string) {
+export function useCivicSocialComment() {
   return useMutation({
     mutationFn: async ({ postId, ...comment }: any) => {
+      const token = getToken();
       const res = await fetch(`${API_BASE}/api/social/posts/${postId}/comment`, {
         method: "POST",
         headers: {
@@ -66,10 +74,11 @@ export function useCivicSocialComment(token: string) {
 }
 
 // Stub: like/unlike post
-export function useCivicSocialLike(token: string) {
+export function useCivicSocialLike() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (postId: number) => {
+      const token = getToken();
       const res = await fetch(`${API_BASE}/api/social/posts/${postId}/like`, {
         method: "POST",
         headers: { Authorization: `Bearer ${token}` },
@@ -82,10 +91,11 @@ export function useCivicSocialLike(token: string) {
 }
 
 // Stub: friends
-export function useCivicSocialFriends(token: string) {
+export function useCivicSocialFriends() {
   return useQuery({
     queryKey: ["civicSocialFriends"],
     queryFn: async () => {
+      const token = getToken();
       const res = await fetch(`${API_BASE}/api/social/friends`, {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -97,10 +107,11 @@ export function useCivicSocialFriends(token: string) {
 
 // Add friend mutation
 // Usage: const addFriend = useCivicSocialAddFriend(token); addFriend.mutate({ friendId: 2 })
-export function useCivicSocialAddFriend(token: string) {
+export function useCivicSocialAddFriend() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({ friendId }: { friendId: number }) => {
+      const token = getToken();
       const res = await fetch(`${API_BASE}/api/social/friends`, {
         method: "POST",
         headers: {
@@ -117,10 +128,11 @@ export function useCivicSocialAddFriend(token: string) {
 }
 
 // Accept friend request
-export function useCivicSocialAcceptFriend(token: string) {
+export function useCivicSocialAcceptFriend() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({ friendId }: { friendId: number }) => {
+      const token = getToken();
       const res = await fetch(`${API_BASE}/api/social/friends`, {
         method: "POST",
         headers: {
@@ -137,10 +149,11 @@ export function useCivicSocialAcceptFriend(token: string) {
 }
 
 // Remove/unfriend
-export function useCivicSocialRemoveFriend(token: string) {
+export function useCivicSocialRemoveFriend() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({ friendId }: { friendId: number }) => {
+      const token = getToken();
       const res = await fetch(`${API_BASE}/api/social/friends`, {
         method: "POST",
         headers: {
@@ -157,10 +170,11 @@ export function useCivicSocialRemoveFriend(token: string) {
 }
 
 // Create notification
-export function useCivicSocialNotify(token: string) {
+export function useCivicSocialNotify() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (notification: { userId: string | number; type: string; title: string; message: string; link?: string }) => {
+      const token = getToken();
       const res = await fetch(`${API_BASE}/api/notifications`, {
         method: "POST",
         headers: {

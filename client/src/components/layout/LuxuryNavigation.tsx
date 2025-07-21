@@ -132,6 +132,7 @@ interface Notification {
 
 export function LuxuryNavigation() {
   const [location] = useLocation();
+  const [, navigate] = useLocation();
   const { user: rawUser, logout } = useAuth();
   const user = rawUser as any;
   const [expandedSections, setExpandedSections] = useState<string[]>(["Political Intelligence Hub"]);
@@ -152,7 +153,7 @@ export function LuxuryNavigation() {
         title: "Logged out successfully",
         description: "You have been securely logged out of CivicOS",
       });
-      window.location.href = "/";
+      navigate("/");
     },
     onError: () => {
       toast({

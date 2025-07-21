@@ -3280,9 +3280,6 @@ export async function registerRoutes(app: Express): Promise<void> {
     }
   }
 
-  const httpServer = createServer(app);
-  httpServer.listen(3000);
-
   // Add after other auth routes:
   app.post('/api/verify-temporary', jwtAuth, async (req: any, res) => {
     try {
