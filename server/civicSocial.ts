@@ -84,9 +84,16 @@ router.get("/feed", async (req: Request, res: Response) => {
 // POST /api/social/posts - Create a new post/share
 router.post("/posts", async (req: Request, res: Response) => {
   try {
+    // Debug: log auth header and body
+    console.log("[POST /api/social/posts] Authorization:", req.headers.authorization);
+    console.log("[POST /api/social/posts] req.user:", req.user);
+    console.log("[POST /api/social/posts] req.body:", req.body);
     // Try id, then sub (JWT), then query param
     const userId = ((req.user as any)?.id || (req.user as any)?.sub || req.body.userId) as string | undefined;
-    if (!userId) return res.status(401).json({ error: "Not authenticated" });
+    if (!userId) {
+      console.error("[POST /api/social/posts] Not authenticated. req.user:", req.user);
+      return res.status(401).json({ error: "Not authenticated" });
+    }
 
     const { content, imageUrl, type, originalItemId, originalItemType, comment } = req.body;
     if (!content && type !== "share") {
