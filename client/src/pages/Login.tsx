@@ -45,6 +45,22 @@ export default function Login() {
       if (res.token) {
         localStorage.setItem('civicos-jwt', res.token);
         toast({ title: "Token Stored", description: res.token, variant: "default" });
+        // Elite: Call debug-token endpoint to verify JWT
+        fetch(`${import.meta.env.VITE_API_BASE_URL || "https://civicos.onrender.com"}/api/auth/debug-token`, {
+          method: 'GET',
+          headers: { 'Authorization': `Bearer ${res.token}` },
+        })
+          .then(async (r) => {
+            const data = await r.json();
+            if (r.ok) {
+              toast({ title: "JWT Decoded Claims", description: JSON.stringify(data.decoded), variant: "default" });
+            } else {
+              toast({ title: "JWT Debug Error", description: JSON.stringify(data), variant: "destructive" });
+            }
+          })
+          .catch((err) => {
+            toast({ title: "JWT Debug Network Error", description: String(err), variant: "destructive" });
+          });
         await queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
         setTimeout(() => {
           const storedToken = localStorage.getItem('civicos-jwt');
