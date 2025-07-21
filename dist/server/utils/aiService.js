@@ -13,7 +13,7 @@ export async function callOllamaMistral(prompt) {
         }
     }
     catch (error) {
-        console.log('Local Ollama not available, using fallback');
+        // Remove all console.log statements
     }
     // Fallback to local analysis
     return generateLocalResponse(prompt);

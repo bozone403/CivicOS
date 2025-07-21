@@ -167,8 +167,6 @@ process.on('uncaughtException', (err) => {
 
   // Patch static file serving to use ESM-compatible __dirname
   const distPath = path.resolve(__dirname, "../public");
-  console.log("Static file path:", distPath);
-  console.log("Static file exists:", existsSync(distPath));
   app.use(express.static(distPath));
   // Ensure SPA fallback for all non-API routes
   app.get(/^\/(?!api\/).*/, (req, res) => {
@@ -188,12 +186,10 @@ process.on('uncaughtException', (err) => {
   // Run immediate data scraping on startup
   setTimeout(async () => {
     try {
-      console.log("Starting immediate data scraping...");
       const { syncAllGovernmentData } = await import('./dataSync.js');
       await syncAllGovernmentData();
-      console.log("Initial data scraping completed");
     } catch (error) {
-      console.error("Initial data scraping failed:", error);
+      logger.error({ msg: "Initial data scraping failed:", error });
     }
   }, 5000); // 5 second delay
   
