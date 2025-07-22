@@ -448,7 +448,7 @@ export default function Discussions() {
   );
 
   return (
-    <div>
+    <div className="min-h-screen bg-gradient-to-br from-blue-100 via-white to-purple-100 p-6">
       <div className="container mx-auto px-4 py-8 max-w-6xl">
         <div className="flex justify-between items-center mb-8">
           <div>
@@ -462,7 +462,7 @@ export default function Discussions() {
 
           <Dialog open={showCreatePost} onOpenChange={setShowCreatePost}>
             <DialogTrigger asChild>
-              <Button className="bg-blue-600 hover:bg-blue-700">
+              <Button className="rounded-lg focus:ring-2 focus:ring-blue-400 px-4 py-2" aria-label="Create new discussion">
                 <Plus className="h-4 w-4 mr-2" />
                 New Discussion
               </Button>
@@ -530,7 +530,7 @@ export default function Discussions() {
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
         {/* Categories Sidebar */}
         <div className="lg:col-span-1">
-          <Card>
+          <Card className="bg-white/70 backdrop-blur-md shadow-2xl border border-blue-100 rounded-2xl hover:shadow-xl transition-shadow">
             <CardHeader>
               <CardTitle className="text-lg">Categories</CardTitle>
             </CardHeader>
@@ -592,7 +592,7 @@ export default function Discussions() {
                 <p className="mt-2 text-gray-600 dark:text-gray-300">Loading discussions...</p>
               </div>
             ) : filteredPosts.length === 0 ? (
-              <Card>
+              <Card className="bg-white/70 backdrop-blur-md shadow-2xl border border-blue-100 rounded-2xl hover:shadow-xl transition-shadow">
                 <CardContent className="py-12 text-center">
                   <MessageCircle className="h-12 w-12 mx-auto text-gray-400 mb-4" />
                   <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">

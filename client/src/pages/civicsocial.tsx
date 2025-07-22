@@ -5,6 +5,8 @@ import { Button } from "../components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "../components/ui/sheet";
 import { Menu } from "lucide-react";
 import { useIsMobile } from "../hooks/use-mobile";
+import { CivicSocialSidebar } from "../components/CivicSocialSidebar";
+import { CivicSocialTopBar } from "../components/CivicSocialTopBar";
 
 const navItems = [
   { label: "Feed", path: "/civicsocial/feed" },
@@ -42,32 +44,14 @@ export default function CivicSocialLayout({ children }: { children: React.ReactN
   );
 
   return (
-    <div className="flex min-h-screen bg-background">
-      {/* Sidebar for md+ screens */}
-      <aside className="hidden md:block w-64 p-6 border-r bg-white dark:bg-gray-900">
-        <h2 className="text-2xl font-serif mb-8">CivicSocial</h2>
-        {navLinks}
-      </aside>
-      {/* Mobile hamburger menu */}
-      {isMobile && (
-        <div className="fixed top-0 left-0 w-full z-40 bg-white border-b flex items-center p-3 md:hidden">
-          <Sheet open={open} onOpenChange={setOpen}>
-            <SheetTrigger asChild>
-              <Button variant="ghost" size="icon" aria-label="Open CivicSocial menu">
-                <Menu className="w-6 h-6" />
-              </Button>
-            </SheetTrigger>
-            <span className="ml-3 text-xl font-bold">CivicSocial</span>
-            <SheetContent side="left" className="w-64 p-6 bg-white dark:bg-gray-900">
-              <h2 className="text-2xl font-serif mb-8">CivicSocial</h2>
-              {navLinks}
-            </SheetContent>
-          </Sheet>
-        </div>
-      )}
-      <main className="flex-1 p-8 pt-20 md:pt-8">{/* pt-20 for mobile header */}
-        {children}
-      </main>
+    <div className="flex min-h-screen bg-gray-100">
+      <CivicSocialSidebar />
+      <div className="flex-1 flex flex-col min-h-screen">
+        <CivicSocialTopBar />
+        <main className="flex-1 flex flex-col items-center px-2 sm:px-4 md:px-8 pt-20 md:pt-8 w-full max-w-3xl mx-auto">
+          {children}
+        </main>
+      </div>
     </div>
   );
 } 

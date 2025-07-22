@@ -12,6 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { VotingButtons } from "@/components/VotingButtons";
 import { InteractiveContent } from "@/components/InteractiveContent";
+import { ShareToCivicSocialDialog } from "@/components/ui/ShareToCivicSocialDialog";
 
 interface Petition {
   id: number;
@@ -265,10 +266,18 @@ function Petitions() {
                         <Eye className="h-4 w-4 mr-1" />
                         View Details
                       </Button>
-                      <Button variant="outline" size="sm">
-                        <Share2 className="h-4 w-4 mr-1" />
-                        Share
-                      </Button>
+                      <ShareToCivicSocialDialog
+                        trigger={
+                          <Button variant="outline" size="sm">
+                            <Share2 className="h-4 w-4 mr-1" />
+                            Share
+                          </Button>
+                        }
+                        itemType="petition"
+                        itemId={petition.id}
+                        title={petition.title}
+                        summary={petition.description}
+                      />
                       {petition.status === "active" && !isSuccessful && (
                         <Button 
                           onClick={() => handleSignPetition(petition.id)}

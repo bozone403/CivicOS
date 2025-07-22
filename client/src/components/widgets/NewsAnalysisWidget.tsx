@@ -21,8 +21,10 @@ import {
   Clock,
   ExternalLink,
   Zap,
-  Brain
+  Brain,
+  Share2
 } from "lucide-react";
+import { ShareToCivicSocialDialog } from "@/components/ui/ShareToCivicSocialDialog";
 
 interface NewsArticle {
   id: number;

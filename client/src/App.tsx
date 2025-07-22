@@ -56,9 +56,11 @@ import CivicSocialFeed from "./pages/civicsocial-feed";
 import CivicSocialProfile from "./pages/civicsocial-profile";
 import CivicSocialFriends from "./pages/civicsocial-friends";
 import CivicSocialLanding from "./pages/civicsocial-landing";
+import CivicSocialDiscussions from "./pages/civicsocial-discussions";
 import { Button } from "./components/ui/button";
 import NotificationBell from "./components/NotificationBell";
 import { config } from "@/lib/config";
+import FooterNav from "@/components/FooterNav";
 
 // Add a simple error boundary
 class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { hasError: boolean; error: any }> {
@@ -146,7 +148,7 @@ function Router() {
   };
 
   React.useEffect(() => {
-    console.debug("[Router] isAuthenticated", isAuthenticated, "isLoading", isLoading, "config.apiUrl", config.apiUrl);
+    // console.debug("[Router] isAuthenticated", isAuthenticated, "isLoading", isLoading, "config.apiUrl", config.apiUrl);
   }, [isAuthenticated, isLoading]);
 
   if (authError) {
@@ -214,7 +216,6 @@ function Router() {
               </div>
               <div className="flex items-center space-x-2">
                 <ChatButton />
-                <MobileNavigation />
               </div>
             </div>
           </div>
@@ -254,9 +255,10 @@ function Router() {
               <Route path="/dashboard-demo" component={() => <ProtectedRoute><DashboardDemo /></ProtectedRoute>} />
               {/* CivicSocial routes (protected) */}
               <Route path="/civicsocial" component={() => <ProtectedRoute><CivicSocialLanding /></ProtectedRoute>} />
-              <Route path="/civicsocial/feed" component={() => <ProtectedRoute><CivicSocialLayout><CivicSocialFeed /></CivicSocialLayout></ProtectedRoute>} />
-              <Route path="/civicsocial/profile" component={() => <ProtectedRoute><CivicSocialLayout><CivicSocialProfile /></CivicSocialLayout></ProtectedRoute>} />
-              <Route path="/civicsocial/friends" component={() => <ProtectedRoute><CivicSocialLayout><CivicSocialFriends /></CivicSocialLayout></ProtectedRoute>} />
+              <Route path="/civicsocial/feed" component={() => <ProtectedRoute><CivicSocialFeed /></ProtectedRoute>} />
+              <Route path="/civicsocial/profile" component={() => <ProtectedRoute><CivicSocialProfile /></ProtectedRoute>} />
+              <Route path="/civicsocial/discussions" component={() => <ProtectedRoute><CivicSocialDiscussions /></ProtectedRoute>} />
+              <Route path="/civicsocial/friends" component={() => <ProtectedRoute><CivicSocialFriends /></ProtectedRoute>} />
               <Route path="*">{() => <NotFound />}</Route>
             </Switch>
           </div>
@@ -284,6 +286,7 @@ function App() {
         <Toaster />
         <Router />
         <FloatingChatButton />
+        <FooterNav /> {/* Mobile footer nav, md:hidden */}
       </ErrorBoundary>
     </TooltipProvider>
   );

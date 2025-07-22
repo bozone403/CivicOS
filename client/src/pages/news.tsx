@@ -8,9 +8,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 import { InteractiveContent } from "@/components/InteractiveContent";
-import { AlertTriangle, CheckCircle, AlertCircle, DollarSign, Users, Globe, TrendingUp, Eye, Shield, FileText } from "lucide-react";
+import { AlertTriangle, CheckCircle, AlertCircle, DollarSign, Users, Globe, TrendingUp, Eye, Shield, FileText, Share2 } from "lucide-react";
 import { useState } from "react";
 import { apiRequest } from "@/lib/queryClient";
+import { ShareToCivicSocialDialog } from "@/components/ui/ShareToCivicSocialDialog";
 
 interface MediaOutlet {
   id: string;
@@ -76,55 +77,142 @@ export default function News() {
   const [analysisSource, setAnalysisSource] = useState("");
   const queryClient = useQueryClient();
 
-  // Remove the fallbackArticles and fallbackOutlets arrays and replace with API data only
-  // const fallbackArticles = [
-  //   {
-  //     id: 1,
-  //     title: 'Parliament Passes Climate Action Bill',
-  //     source: 'CBC News',
-  //     publishedAt: '2024-07-01',
-  //     summary: 'The House of Commons passed a major climate bill with cross-party support.',
-  //     credibilityScore: 92,
-  //     bias: 'center',
-  //     category: 'Politics'
-  //   },
-  //   {
-  //     id: 2,
-  //     title: 'Supreme Court Rules on Indigenous Rights',
-  //     source: 'Globe and Mail',
-  //     publishedAt: '2024-06-15',
-  //     summary: 'A landmark decision expands Indigenous land rights in Canada.',
-  //     credibilityScore: 88,
-  //     bias: 'center-left',
-  //     category: 'Law'
-  //   }
-  // ];
-  // const fallbackOutlets = [
-  //   {
-  //     id: 'cbc',
-  //     name: 'CBC News',
-  //     website: 'https://www.cbc.ca',
-  //     credibilityScore: 90,
-  //     biasRating: 'center',
-  //     factualReporting: 'High',
-  //     transparencyScore: 85,
-  //     ownership: { type: 'public', owners: ['Government of Canada'], publiclyTraded: false },
-  //     funding: { revenue: ['ads', 'subscriptions'], advertisements: ['banner', 'video'], subscriptions: true, donations: [], government_funding: ['federal'], corporate_sponsors: [] },
-  //     editorial: { editorialBoard: ['Editor-in-Chief'], editorInChief: 'Brodie Fenlon', politicalEndorsements: [] },
-  //     factCheckRecord: { totalChecked: 100, accurate: 95, misleading: 3, false: 2, lastUpdated: new Date() },
-  //     retractions: []
-  //   }
-  // ];
+  // Fallback demo data for outlets and articles
+  const fallbackOutlets: MediaOutlet[] = [
+    {
+      id: 'cbc',
+      name: 'CBC News',
+      website: 'https://www.cbc.ca',
+      credibilityScore: 90,
+      biasRating: 'center',
+      factualReporting: 'High',
+      transparencyScore: 85,
+      ownership: { type: 'public', owners: ['Government of Canada'], publiclyTraded: false },
+      funding: { revenue: ['ads', 'subscriptions'], advertisements: ['banner', 'video'], subscriptions: true, donations: [], government_funding: ['federal'], corporate_sponsors: [] },
+      editorial: { editorialBoard: ['Editor-in-Chief'], editorInChief: 'Brodie Fenlon', politicalEndorsements: [] },
+      factCheckRecord: { totalChecked: 100, accurate: 95, misleading: 3, false: 2, lastUpdated: new Date() },
+      retractions: []
+    },
+    {
+      id: 'globe',
+      name: 'The Globe and Mail',
+      website: 'https://www.theglobeandmail.com',
+      credibilityScore: 88,
+      biasRating: 'center-left',
+      factualReporting: 'High',
+      transparencyScore: 82,
+      ownership: { type: 'private', owners: ['Woodbridge Company'], publiclyTraded: false },
+      funding: { revenue: ['ads', 'subscriptions'], advertisements: ['banner', 'print'], subscriptions: true, donations: [], government_funding: [], corporate_sponsors: [] },
+      editorial: { editorialBoard: ['Editor-in-Chief'], editorInChief: 'David Walmsley', politicalEndorsements: [] },
+      factCheckRecord: { totalChecked: 85, accurate: 80, misleading: 3, false: 2, lastUpdated: new Date() },
+      retractions: []
+    },
+    {
+      id: 'national-post',
+      name: 'National Post',
+      website: 'https://www.nationalpost.com',
+      credibilityScore: 85,
+      biasRating: 'center-right',
+      factualReporting: 'High',
+      transparencyScore: 78,
+      ownership: { type: 'private', owners: ['Postmedia Network'], publiclyTraded: true, stockSymbol: 'PNC.A' },
+      funding: { revenue: ['ads', 'subscriptions'], advertisements: ['banner', 'print'], subscriptions: true, donations: [], government_funding: [], corporate_sponsors: [] },
+      editorial: { editorialBoard: ['Editor-in-Chief'], editorInChief: 'Rob Roberts', politicalEndorsements: [] },
+      factCheckRecord: { totalChecked: 75, accurate: 68, misleading: 5, false: 2, lastUpdated: new Date() },
+      retractions: []
+    },
+    {
+      id: 'toronto-star',
+      name: 'Toronto Star',
+      website: 'https://www.thestar.com',
+      credibilityScore: 87,
+      biasRating: 'center-left',
+      factualReporting: 'High',
+      transparencyScore: 80,
+      ownership: { type: 'private', owners: ['Torstar Corporation'], publiclyTraded: false },
+      funding: { revenue: ['ads', 'subscriptions'], advertisements: ['banner', 'print'], subscriptions: true, donations: [], government_funding: [], corporate_sponsors: [] },
+      editorial: { editorialBoard: ['Editor-in-Chief'], editorInChief: 'Wendy Metcalfe', politicalEndorsements: [] },
+      factCheckRecord: { totalChecked: 90, accurate: 82, misleading: 6, false: 2, lastUpdated: new Date() },
+      retractions: []
+    },
+    {
+      id: 'ctv',
+      name: 'CTV News',
+      website: 'https://www.ctvnews.ca',
+      credibilityScore: 86,
+      biasRating: 'center',
+      factualReporting: 'High',
+      transparencyScore: 79,
+      ownership: { type: 'private', owners: ['Bell Media'], publiclyTraded: true, stockSymbol: 'BCE' },
+      funding: { revenue: ['ads', 'subscriptions'], advertisements: ['banner', 'video'], subscriptions: true, donations: [], government_funding: [], corporate_sponsors: [] },
+      editorial: { editorialBoard: ['Editor-in-Chief'], editorInChief: 'Rosa Hwang', politicalEndorsements: [] },
+      factCheckRecord: { totalChecked: 80, accurate: 72, misleading: 6, false: 2, lastUpdated: new Date() },
+      retractions: []
+    }
+  ];
+  const fallbackArticles: Article[] = [
+    {
+      id: 1,
+      title: 'Parliament Passes Climate Action Bill',
+      source: 'CBC News',
+      publishedAt: '2024-07-01',
+      summary: 'The House of Commons passed a major climate bill with cross-party support.',
+      credibilityScore: 92,
+      bias: 'center',
+      category: 'Politics'
+    },
+    {
+      id: 2,
+      title: 'Supreme Court Rules on Indigenous Rights',
+      source: 'Globe and Mail',
+      publishedAt: '2024-06-15',
+      summary: 'A landmark decision expands Indigenous land rights in Canada.',
+      credibilityScore: 88,
+      bias: 'center-left',
+      category: 'Law'
+    },
+    {
+      id: 3,
+      title: 'Federal Budget Focuses on Healthcare',
+      source: 'National Post',
+      publishedAt: '2024-06-20',
+      summary: 'New budget allocates billions for healthcare infrastructure and mental health services.',
+      credibilityScore: 85,
+      bias: 'center-right',
+      category: 'Politics'
+    },
+    {
+      id: 4,
+      title: 'Tech Companies Face New Privacy Regulations',
+      source: 'Toronto Star',
+      publishedAt: '2024-06-25',
+      summary: 'Federal government introduces stricter data protection laws for tech companies.',
+      credibilityScore: 87,
+      bias: 'center-left',
+      category: 'Technology'
+    },
+    {
+      id: 5,
+      title: 'Housing Market Shows Signs of Cooling',
+      source: 'CTV News',
+      publishedAt: '2024-06-30',
+      summary: 'Recent data indicates a slowdown in housing prices across major Canadian cities.',
+      credibilityScore: 86,
+      bias: 'center',
+      category: 'Economy'
+    }
+  ];
 
-  const { data: mediaOutlets = [], isLoading: outletsLoading } = useQuery<MediaOutlet[]>({
+  const { data: mediaOutlets = [], isLoading: outletsLoading, isError: outletsError } = useQuery<MediaOutlet[]>({
     queryKey: ["/api/news/outlets"],
   });
-  const { data: articles = [], isLoading: articlesLoading } = useQuery<Article[]>({
+  const { data: articles = [], isLoading: articlesLoading, isError: articlesError } = useQuery<Article[]>({
     queryKey: ["/api/news/articles"],
   });
-  // Use API data only. If no data, show fallback UI.
-  const outletsToShow = (mediaOutlets.length === 0) ? [] : mediaOutlets;
-  const articlesToShow = (articles && articles.length === 0) ? [] : articles;
+
+  // Use API data if available, otherwise fallback
+  const outletsToShow = (mediaOutlets.length === 0 || outletsError) ? fallbackOutlets : mediaOutlets;
+  const articlesToShow = (articles.length === 0 || articlesError) ? fallbackArticles : articles;
 
   const credibilityMutation = useMutation({
     mutationFn: async (data: { articleText: string; sourceName: string }) => {
@@ -168,6 +256,18 @@ export default function News() {
       });
     }
   };
+
+  if ((outletsToShow.length === 0 && !outletsLoading) || (articlesToShow.length === 0 && !articlesLoading)) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <AlertTriangle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+          <h2 className="text-xl font-bold mb-2">No news data available</h2>
+          <p className="text-gray-600">We couldn't load news outlets or articles. Please try again later.</p>
+        </div>
+      </div>
+    );
+  }
 
   if (outletsLoading) {
     return (

@@ -1,5 +1,6 @@
 
 import { useAuth } from "@/hooks/useAuth";
+import { useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,6 +18,7 @@ import * as React from "react";
 
 export default function Settings() {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const { toast } = useToast();
   
   const [notifications, setNotifications] = useState({
@@ -48,6 +50,8 @@ export default function Settings() {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  if (!user) return <div className="min-h-screen flex items-center justify-center text-gray-500">Please log in to view your settings.</div>;
+
   const changePasswordMutation = useMutation({
     mutationFn: async (data: { currentPassword: string; newPassword: string }) => {
       const res = await apiRequest("/api/auth/change-password", "POST", data);
@@ -66,6 +70,14 @@ export default function Settings() {
     onError: (error: any) => {
       setPasswordError(error.message || "Failed to change password");
       setPasswordSuccess(false);
+    },
+  });
+
+  const updateProfileMutation = useMutation({
+    mutationFn: async (fields: any) => user ? apiRequest(`/api/users/${user.id}/profile`, "PATCH", fields) : Promise.reject("No user"),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+      toast({ title: "Profile updated!", description: "Your changes have been saved." });
     },
   });
 

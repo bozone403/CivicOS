@@ -3,6 +3,7 @@ import { Card } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { useCivicSocialFriends, useCivicSocialAddFriend, useCivicSocialAcceptFriend, useCivicSocialRemoveFriend, useCivicSocialNotify } from "../hooks/useCivicSocial";
 import { useAuth } from "../hooks/useAuth";
+import { UserPlus, Users, User, Check, X, Loader2 } from "lucide-react";
 
 export default function CivicSocialFriends() {
   const { user } = useAuth();
@@ -35,9 +36,7 @@ export default function CivicSocialFriends() {
           setSearchLoading(false);
         }
       })
-      .catch(() => {
-        // Handle error if needed, but 'err' is unused
-      });
+      .catch(() => {});
     return () => { cancelled = true; };
   }, [friendId]);
 
@@ -82,11 +81,15 @@ export default function CivicSocialFriends() {
 
   return (
     <div className="max-w-2xl mx-auto flex flex-col gap-6">
-      <Card className="p-4 mb-4 flex flex-col items-center">
-        <div className="font-bold text-lg mb-1">Your Friends</div>
-        <form className="flex gap-2 mt-2 w-full max-w-xs relative" onSubmit={handleAddFriend} aria-label="Add friend form">
+      {/* Add Friend Card */}
+      <Card className="p-6 mb-4 bg-white/90 dark:bg-slate-900/90 shadow-lg rounded-xl border border-gray-200 dark:border-slate-700 fade-in-up flex flex-col items-center">
+        <div className="flex items-center gap-3 mb-4">
+          <UserPlus className="w-8 h-8 text-civic-blue" />
+          <div className="font-bold text-2xl text-civic-blue">Add Friends</div>
+        </div>
+        <form className="flex gap-2 w-full max-w-xs relative" onSubmit={handleAddFriend} aria-label="Add friend form">
           <input
-            className="border rounded px-2 py-1 flex-1"
+            className="border rounded-lg px-3 py-2 flex-1 bg-background focus:ring-2 focus:ring-civic-blue"
             placeholder="Search users by name or email"
             value={friendId}
             onChange={e => setFriendId(e.target.value)}
@@ -94,8 +97,8 @@ export default function CivicSocialFriends() {
             aria-label="Friend user ID or search"
             autoComplete="off"
           />
-          <Button type="submit" size="sm" disabled={!friendId.trim() || addFriendMutation.isPending} aria-label="Send friend request">
-            {addFriendMutation.isPending ? "Sending..." : "Add Friend"}
+          <Button type="submit" size="sm" disabled={!friendId.trim() || addFriendMutation.isPending} aria-label="Send friend request" className="bg-civic-blue text-white font-bold hover:bg-civic-gold transition-colors px-4 py-2 rounded-lg">
+            {addFriendMutation.isPending ? <Loader2 className="animate-spin w-4 h-4" /> : "Add Friend"}
           </Button>
           {/* Autocomplete dropdown */}
           {searchResults.length > 0 && (
@@ -103,7 +106,7 @@ export default function CivicSocialFriends() {
               {searchResults.map((u) => (
                 <div
                   key={u.id}
-                  className="flex items-center gap-2 px-2 py-1 hover:bg-gray-100 cursor-pointer"
+                  className="flex items-center gap-2 px-2 py-1 hover:bg-civic-blue/10 cursor-pointer"
                   onClick={() => { setFriendId(u.id); setSearchResults([]); }}
                   tabIndex={0}
                   onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { setFriendId(u.id); setSearchResults([]); } }}
@@ -111,9 +114,9 @@ export default function CivicSocialFriends() {
                   aria-selected={friendId === u.id}
                 >
                   {u.profileImageUrl ? (
-                    <img src={u.profileImageUrl} alt="Avatar" className="w-6 h-6 rounded-full object-cover" />
+                    <img src={u.profileImageUrl} alt="Avatar" className="w-8 h-8 rounded-full object-cover border-2 border-civic-blue" />
                   ) : (
-                    <div className="w-6 h-6 rounded-full bg-muted flex items-center justify-center text-xs font-bold">{(u.firstName || u.email || "?")[0]}</div>
+                    <div className="w-8 h-8 rounded-full bg-civic-blue text-white flex items-center justify-center text-lg font-bold">{(u.firstName || u.email || "?")[0]}</div>
                   )}
                   <span className="font-medium">{u.firstName || u.email || u.id}</span>
                   <span className="text-xs text-muted-foreground">{u.email}</span>
@@ -128,17 +131,18 @@ export default function CivicSocialFriends() {
           <div className="text-xs text-red-500 mt-2" role="alert">Error sending request.</div>
         )}
       </Card>
-      <Card className="p-4 mb-4">
-        <div className="font-bold mb-2">Pending Friend Requests</div>
-        <div className="flex flex-col gap-2">
+      {/* Pending Requests */}
+      <Card className="p-6 mb-4 bg-gradient-to-br from-yellow-50 to-white/80 dark:from-yellow-900 dark:to-slate-900/80 shadow-lg rounded-xl border border-yellow-200 dark:border-yellow-700 fade-in-up">
+        <div className="font-bold text-lg mb-2 text-yellow-800 dark:text-yellow-200 flex items-center gap-2"><Users className="w-5 h-5" /> Pending Friend Requests</div>
+        <div className="flex flex-col gap-3">
           {pendingReceived.length === 0 && <div className="text-muted-foreground">No pending requests.</div>}
           {pendingReceived.map((req: any) => (
-            <div key={req.id} className="flex items-center justify-between mb-2 flex-wrap gap-2 rounded-lg border border-gray-200 bg-gray-50 hover:bg-gray-100 focus-within:bg-gray-100 p-2 transition">
+            <div key={req.id} className="flex items-center justify-between gap-3 rounded-lg border border-gray-200 bg-white/80 hover:bg-yellow-50 focus-within:bg-yellow-100 p-3 transition shadow-sm">
               <div className="flex items-center gap-3">
                 {req.profileImageUrl ? (
-                  <img src={req.profileImageUrl} alt="Avatar" className="w-8 h-8 rounded-full object-cover border" />
+                  <img src={req.profileImageUrl} alt="Avatar" className="w-10 h-10 rounded-full object-cover border-2 border-yellow-400" />
                 ) : (
-                  <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center text-base font-bold">{(req.firstName || req.email || "?")[0]}</div>
+                  <div className="w-10 h-10 rounded-full bg-yellow-400 text-white flex items-center justify-center text-lg font-bold">{(req.firstName || req.email || "?")[0]}</div>
                 )}
                 <div>
                   <div className="font-semibold">{req.firstName || req.email || `User ${req.userId}`}</div>
@@ -146,52 +150,55 @@ export default function CivicSocialFriends() {
                 </div>
               </div>
               <div className="flex gap-2">
-                <Button size="sm" onClick={() => handleAccept(req.userId)} disabled={acceptFriendMutation.isPending} aria-label="Accept friend request">
-                  {acceptFriendMutation.isPending ? "Accepting..." : "Accept"}
+                <Button size="sm" onClick={() => handleAccept(req.userId)} disabled={acceptFriendMutation.isPending} aria-label="Accept friend request" className="bg-civic-blue text-white font-bold hover:bg-civic-gold transition-colors rounded-lg">
+                  {acceptFriendMutation.isPending ? <Loader2 className="animate-spin w-4 h-4" /> : <><Check className="w-4 h-4 mr-1" />Accept</>}
                 </Button>
-                <Button size="sm" variant="outline" onClick={() => handleRemove(req.userId)} disabled={removeFriendMutation.isPending} aria-label="Decline friend request">
-                  {removeFriendMutation.isPending ? "Declining..." : "Decline"}
+                <Button size="sm" variant="outline" onClick={() => handleRemove(req.userId)} disabled={removeFriendMutation.isPending} aria-label="Decline friend request" className="rounded-lg">
+                  {removeFriendMutation.isPending ? <Loader2 className="animate-spin w-4 h-4" /> : <><X className="w-4 h-4 mr-1" />Decline</>}
                 </Button>
               </div>
             </div>
           ))}
         </div>
       </Card>
-      {isLoading && <div>Loading friends...</div>}
-      {error && <div className="text-red-500">Error loading friends.</div>}
-      <div className="flex flex-col gap-4">
-        {friends.length === 0 && <div className="text-muted-foreground">You have no friends yet.</div>}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      {/* Friends List */}
+      <Card className="p-6 mb-4 bg-white/90 dark:bg-slate-900/90 shadow-lg rounded-xl border border-gray-200 dark:border-slate-700 fade-in-up">
+        <div className="font-bold text-lg mb-2 text-civic-blue flex items-center gap-2"><Users className="w-5 h-5" /> Your Friends</div>
+        {isLoading && <div>Loading friends...</div>}
+        {error && <div className="text-red-500">Error loading friends.</div>}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {friends.length === 0 && <div className="text-muted-foreground col-span-2">You have no friends yet.</div>}
           {friends.map((friend: any) => (
-            <Card key={friend.id} className="p-4 flex items-center justify-between flex-wrap gap-2 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 focus-within:bg-gray-100 transition">
+            <Card key={friend.id} className="p-4 flex items-center justify-between gap-3 rounded-xl border border-gray-200 bg-gradient-to-br from-blue-50 to-white/80 hover:bg-civic-blue/10 focus-within:bg-civic-blue/20 transition shadow-sm">
               <div className="flex items-center gap-3">
                 {friend.profileImageUrl ? (
-                  <img src={friend.profileImageUrl} alt="Avatar" className="w-8 h-8 rounded-full object-cover border" />
+                  <img src={friend.profileImageUrl} alt="Avatar" className="w-10 h-10 rounded-full object-cover border-2 border-civic-blue" />
                 ) : (
-                  <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center text-base font-bold">{(friend.firstName || friend.email || "?")[0]}</div>
+                  <div className="w-10 h-10 rounded-full bg-civic-blue text-white flex items-center justify-center text-lg font-bold">{(friend.firstName || friend.email || "?")[0]}</div>
                 )}
                 <div>
                   <div className="font-semibold">{friend.firstName || friend.email || `User ${friend.friendId}`}</div>
                   <div className="text-xs text-muted-foreground">{friend.email}</div>
                 </div>
               </div>
-              <Button size="sm" variant="outline" onClick={() => handleRemove(friend.friendId)} disabled={removeFriendMutation.isPending} aria-label="Unfriend">
-                {removeFriendMutation.isPending ? "Removing..." : "Unfriend"}
+              <Button size="sm" variant="outline" onClick={() => handleRemove(friend.friendId)} disabled={removeFriendMutation.isPending} aria-label="Unfriend" className="rounded-lg">
+                {removeFriendMutation.isPending ? <Loader2 className="animate-spin w-4 h-4" /> : "Unfriend"}
               </Button>
             </Card>
           ))}
         </div>
-      </div>
+      </Card>
+      {/* Sent Requests */}
       {pendingSent.length > 0 && (
-        <Card className="p-4 mb-4">
-          <div className="font-bold mb-2">Sent Friend Requests</div>
-          <div className="flex flex-col gap-2">
+        <Card className="p-6 mb-4 bg-gradient-to-br from-blue-50 to-white/80 dark:from-blue-900 dark:to-slate-900/80 shadow-lg rounded-xl border border-blue-200 dark:border-blue-700 fade-in-up">
+          <div className="font-bold text-lg mb-2 text-blue-800 dark:text-blue-200 flex items-center gap-2"><User className="w-5 h-5" /> Sent Friend Requests</div>
+          <div className="flex flex-col gap-3">
             {pendingSent.map((req: any) => (
-              <div key={req.id} className="flex items-center gap-3 rounded-lg border border-gray-200 bg-gray-50 hover:bg-gray-100 focus-within:bg-gray-100 p-2 transition">
+              <div key={req.id} className="flex items-center gap-3 rounded-lg border border-gray-200 bg-white/80 hover:bg-blue-50 focus-within:bg-blue-100 p-3 transition shadow-sm">
                 {req.profileImageUrl ? (
-                  <img src={req.profileImageUrl} alt="Avatar" className="w-8 h-8 rounded-full object-cover border" />
+                  <img src={req.profileImageUrl} alt="Avatar" className="w-10 h-10 rounded-full object-cover border-2 border-blue-400" />
                 ) : (
-                  <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center text-base font-bold">{(req.firstName || req.email || "?")[0]}</div>
+                  <div className="w-10 h-10 rounded-full bg-blue-400 text-white flex items-center justify-center text-lg font-bold">{(req.firstName || req.email || "?")[0]}</div>
                 )}
                 <div>
                   <div className="font-semibold">{req.firstName || req.email || `User ${req.friendId}`}</div>

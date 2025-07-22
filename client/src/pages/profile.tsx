@@ -1,6 +1,6 @@
 
 import { useAuth } from "@/hooks/useAuth";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
@@ -8,6 +8,12 @@ import { Trophy, Zap, Vote, MessageSquare, FileText, Users } from "lucide-react"
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
 
 // Add UserStats interface
 interface UserStats {
@@ -25,6 +31,21 @@ export default function Profile() {
   const { user: rawUser, isAuthenticated } = useAuth();
   const user = rawUser as any;
   const [showWelcome, setShowWelcome] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
+  const [editFirstName, setEditFirstName] = useState(user?.firstName || "");
+  const [editLastName, setEditLastName] = useState(user?.lastName || "");
+  const [editBio, setEditBio] = useState((user as any)?.bio || "");
+  const [editAvatar, setEditAvatar] = useState((user as any)?.profileImageUrl || "");
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const queryClient = useQueryClient();
+  const updateProfile = useMutation({
+    mutationFn: async (fields: any) => user ? apiRequest(`/api/users/${user.id}/profile`, "PATCH", fields) : Promise.reject("No user"),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+      setEditOpen(false);
+      toast({ title: "Profile updated!", description: "Your changes have been saved." });
+    },
+  });
 
   useEffect(() => {
     // Show welcome notice only for new users (e.g., just registered)
@@ -82,6 +103,87 @@ export default function Profile() {
       
       <div className="max-w-4xl mx-auto py-8 px-4">
         <div className="grid gap-6 md:grid-cols-3">
+          {/* Profile Header */}
+          <div className="relative rounded-3xl shadow-2xl mb-8 overflow-hidden">
+            <div className="h-40 w-full bg-gradient-to-br from-blue-500 to-purple-600" />
+            <div className="absolute left-1/2 -bottom-16 transform -translate-x-1/2 flex flex-col items-center w-full">
+              <Avatar className="w-32 h-32 border-4 border-white shadow-xl bg-white">
+                <AvatarImage src={editAvatar || (user as any)?.profileImageUrl} />
+                <AvatarFallback className="text-5xl font-bold">{user?.firstName?.[0] || user?.email?.[0] || "U"}</AvatarFallback>
+              </Avatar>
+              <button
+                className="absolute bottom-2 right-2 bg-white border border-gray-300 rounded-full p-1 shadow hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                onClick={() => fileInputRef.current?.click()}
+                aria-label="Change avatar"
+                type="button"
+                tabIndex={0}
+                style={{ left: 'calc(50% + 48px)' }}
+              >
+                <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536M9 13h3l8-8a2.828 2.828 0 10-4-4l-8 8v3h3z" /></svg>
+              </button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={e => {
+                  const file = e.target.files?.[0];
+                  if (file) {
+                    const reader = new FileReader();
+                    reader.onload = (ev) => {
+                      setEditAvatar(ev.target?.result as string);
+                      toast({ title: "Avatar updated!", description: "Your profile picture has been changed." });
+                    };
+                    reader.readAsDataURL(file);
+                  }
+                }}
+                aria-label="Upload avatar"
+              />
+              <div className="mt-20 flex flex-col items-center">
+                <h1 className="text-4xl font-bold text-gray-900 mb-1">{user?.firstName} {user?.lastName}</h1>
+                <p className="text-lg text-gray-500">{user?.email}</p>
+                <p className="text-base text-gray-700 mt-1">{(user as any)?.bio || "No bio available."}</p>
+                <Dialog open={editOpen} onOpenChange={setEditOpen}>
+                  <DialogTrigger asChild>
+                    <Button size="sm" variant="outline" className="mt-4">Edit Profile</Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-md">
+                    <DialogHeader>
+                      <DialogTitle>Edit Profile</DialogTitle>
+                      <DialogDescription>Update your name, bio, and avatar.</DialogDescription>
+                    </DialogHeader>
+                    <form className="flex flex-col gap-4" onSubmit={e => {
+                      e.preventDefault();
+                      updateProfile.mutate({
+                        firstName: editFirstName,
+                        lastName: editLastName,
+                        bio: editBio,
+                        profileImageUrl: editAvatar,
+                      });
+                    }}>
+                      <div>
+                        <label className="block text-sm font-medium mb-1" htmlFor="edit-firstname">First Name</label>
+                        <Input id="edit-firstname" value={editFirstName} onChange={e => setEditFirstName(e.target.value)} />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium mb-1" htmlFor="edit-lastname">Last Name</label>
+                        <Input id="edit-lastname" value={editLastName} onChange={e => setEditLastName(e.target.value)} />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium mb-1" htmlFor="edit-bio">Bio</label>
+                        <Textarea id="edit-bio" value={editBio} onChange={e => setEditBio(e.target.value)} rows={3} />
+                      </div>
+                      <div className="flex gap-2 justify-end">
+                        <Button type="button" variant="outline" onClick={() => setEditOpen(false)}>Cancel</Button>
+                        <Button type="submit" disabled={updateProfile.isPending}>{updateProfile.isPending ? "Saving..." : "Save"}</Button>
+                      </div>
+                    </form>
+                  </DialogContent>
+                </Dialog>
+              </div>
+            </div>
+          </div>
+
           {/* Profile Information */}
           <Card className="md:col-span-1">
             <CardHeader className="text-center">

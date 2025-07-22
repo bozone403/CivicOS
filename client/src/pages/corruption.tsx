@@ -187,57 +187,55 @@ export default function CorruptionPage() {
     }).format(amount);
   };
 
-  // Use API data only. If no data, show fallback UI.
-  // For now, we'll just show a placeholder message.
-  // In a real application, you'd fetch data from an API here.
+  // Demo patterns for development
   const corruptionPatterns = [
     {
       id: 1,
-      patternName: "Placeholder Pattern 1",
-      category: "Placeholder Category",
-      frequency: "Placeholder Frequency",
-      riskLevel: "Placeholder Risk",
-      description: "This is a placeholder for a corruption pattern. No data is currently available.",
-      commonIndicators: ["No data available"],
-      recentCases: [{ name: "No data available", amount: 0, year: 2023, status: "No data" }],
-      preventionMeasures: ["No data available"],
-      estimatedLoss: 0
+      patternName: "Contract Steering",
+      category: "Procurement",
+      frequency: "Medium",
+      riskLevel: "High",
+      description: "Awarding contracts to preferred vendors without proper competitive bidding processes.",
+      commonIndicators: ["Limited bidding periods", "Sole-source contracts", "Vendor relationships"],
+      recentCases: [{ name: "Infrastructure Project A", amount: 2500000, year: 2023, status: "Under Investigation" }],
+      preventionMeasures: ["Open bidding processes", "Conflict of interest disclosure", "Independent oversight"],
+      estimatedLoss: 2500000
     },
     {
       id: 2,
-      patternName: "Placeholder Pattern 2",
-      category: "Placeholder Category",
-      frequency: "Placeholder Frequency",
-      riskLevel: "Placeholder Risk",
-      description: "This is a placeholder for a corruption pattern. No data is currently available.",
-      commonIndicators: ["No data available"],
-      recentCases: [{ name: "No data available", amount: 0, year: 2023, status: "No data" }],
-      preventionMeasures: ["No data available"],
+      patternName: "Revolving Door",
+      category: "Regulatory Capture",
+      frequency: "High",
+      riskLevel: "Medium",
+      description: "Officials moving between government and private sector positions, creating conflicts of interest.",
+      commonIndicators: ["Quick transitions", "Policy influence", "Industry connections"],
+      recentCases: [{ name: "Regulatory Agency Case", amount: 0, year: 2023, status: "Policy Impact" }],
+      preventionMeasures: ["Cooling-off periods", "Lobbying restrictions", "Disclosure requirements"],
       estimatedLoss: 0
     },
     {
       id: 3,
-      patternName: "Placeholder Pattern 3",
-      category: "Placeholder Category",
-      frequency: "Placeholder Frequency",
-      riskLevel: "Placeholder Risk",
-      description: "This is a placeholder for a corruption pattern. No data is currently available.",
-      commonIndicators: ["No data available"],
-      recentCases: [{ name: "No data available", amount: 0, year: 2023, status: "No data" }],
-      preventionMeasures: ["No data available"],
-      estimatedLoss: 0
+      patternName: "Lobbying Influence",
+      category: "Policy Making",
+      frequency: "High",
+      riskLevel: "Medium",
+      description: "Excessive influence of lobbyists on policy decisions and legislation.",
+      commonIndicators: ["High lobbying spending", "Policy alignment", "Access to officials"],
+      recentCases: [{ name: "Industry Lobbying Campaign", amount: 500000, year: 2023, status: "Active" }],
+      preventionMeasures: ["Lobbying transparency", "Public consultation", "Conflict disclosure"],
+      estimatedLoss: 500000
     },
     {
       id: 4,
-      patternName: "Placeholder Pattern 4",
-      category: "Placeholder Category",
-      frequency: "Placeholder Frequency",
-      riskLevel: "Placeholder Risk",
-      description: "This is a placeholder for a corruption pattern. No data is currently available.",
-      commonIndicators: ["No data available"],
-      recentCases: [{ name: "No data available", amount: 0, year: 2023, status: "No data" }],
-      preventionMeasures: ["No data available"],
-      estimatedLoss: 0
+      patternName: "Campaign Finance",
+      category: "Elections",
+      frequency: "Medium",
+      riskLevel: "High",
+      description: "Improper campaign contributions and spending practices.",
+      commonIndicators: ["Large donations", "Donor influence", "Spending violations"],
+      recentCases: [{ name: "Election Campaign B", amount: 750000, year: 2023, status: "Under Review" }],
+      preventionMeasures: ["Contribution limits", "Public financing", "Independent oversight"],
+      estimatedLoss: 750000
     }
   ];
 

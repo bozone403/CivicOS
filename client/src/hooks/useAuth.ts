@@ -33,13 +33,13 @@ export function useAuth() {
         const token = getToken();
         if (!token) return null;
         const url = `${config.apiUrl.replace(/\/$/, "")}/api/auth/user`;
-        console.debug("[useAuth] Fetching /api/auth/user", url, "Token:", token);
+        // console.debug("[useAuth] Fetching /api/auth/user", url, "Token:", token);
         const response = await fetch(url, {
           headers: {
             'Authorization': `Bearer ${token}`,
           },
         });
-        console.debug("[useAuth] Response status:", response.status, response.statusText);
+        // console.debug("[useAuth] Response status:", response.status, response.statusText);
         if (response.status === 401) {
           localStorage.removeItem('civicos-jwt');
           setAuthError("Session expired or invalid. Please log in again.");

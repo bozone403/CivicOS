@@ -166,12 +166,51 @@ export default function MemoryPage() {
           </div>
 
           <div className="grid gap-6">
-            {/* Use API data only. If no data, show fallback UI. */}
-            {/* For now, we'll show a placeholder message */}
-            <div className="text-center py-12 text-muted-foreground">
-              <Brain className="w-12 h-12 mx-auto mb-4 opacity-50" />
-              <p>No memory data available for this timeframe.</p>
-              <p className="text-sm">Please try a different timeframe or check back later.</p>
+            {/* Demo data for development */}
+            <div className="space-y-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Brain className="w-5 h-5 text-blue-600" />
+                    <span>Climate Action Promise</span>
+                    <Badge variant="outline" className="ml-auto">2021</Badge>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-gray-600 mb-3">
+                    "We will reduce emissions by 40-45% below 2005 levels by 2030"
+                  </p>
+                  <div className="flex items-center gap-4 text-sm">
+                    <span className="text-green-600 font-semibold">Status: In Progress</span>
+                    <span className="text-gray-500">Last updated: 2024-06-15</span>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Brain className="w-5 h-5 text-green-600" />
+                    <span>Healthcare Funding</span>
+                    <Badge variant="outline" className="ml-auto">2022</Badge>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-gray-600 mb-3">
+                    "Increase healthcare transfers by $46.2 billion over 10 years"
+                  </p>
+                  <div className="flex items-center gap-4 text-sm">
+                    <span className="text-green-600 font-semibold">Status: Completed</span>
+                    <span className="text-gray-500">Completed: 2023-12-01</span>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <div className="text-center py-4">
+                <p className="text-sm text-muted-foreground">
+                  More promise tracking features coming soon.
+                </p>
+              </div>
             </div>
           </div>
         </TabsContent>

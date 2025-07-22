@@ -29,4 +29,7 @@ const getConfig = (): Config => {
   throw new Error('API base URL is not set. Please set VITE_API_BASE_URL for this environment.');
 };
 
-export const config = getConfig(); 
+export const config = {
+  // Ensure no trailing slash to avoid double slashes in API calls
+  apiUrl: "https://civicos.onrender.com"
+}; 

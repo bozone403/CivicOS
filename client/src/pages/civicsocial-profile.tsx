@@ -1,313 +1,378 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { Card } from "../components/ui/card";
 import { Button } from "../components/ui/button";
-import { useCivicSocialFeed, useCivicSocialPost, useCivicSocialLike, useCivicSocialComment, useCivicSocialFriends } from "../hooks/useCivicSocial";
+import { useCivicSocialFeed, useCivicSocialPost, useCivicSocialLike, useCivicSocialComment, useCivicSocialNotify, useCivicSocialFriends } from "../hooks/useCivicSocial";
 import { useAuth } from "../hooks/useAuth";
-import { useLocation } from "wouter";
+import { useToast } from "../hooks/use-toast";
+import { useQueryClient } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "../components/ui/dialog";
 import { Input } from "../components/ui/input";
 import { Textarea } from "../components/ui/textarea";
 import { Badge } from "../components/ui/badge";
-import { useRef } from "react";
-import { useToast } from "../hooks/use-toast";
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import { ThumbsUp, MessageCircle, Share2, Image as ImageIcon, Edit2, Trash2 } from "lucide-react";
+import { useMutation } from "@tanstack/react-query";
+import { apiRequest } from "../lib/queryClient";
+import { CivicSocialPostCard } from "./civicsocial-feed";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "../components/ui/tabs";
+import { Skeleton } from "../components/ui/skeleton";
 
 export default function CivicSocialProfile() {
   const { user, isLoading: authLoading, isAuthenticated } = useAuth();
   const { data: feed, isLoading, error } = useCivicSocialFeed();
   const { data: friendsData } = useCivicSocialFriends();
-  const [, navigate] = useLocation();
   const postMutation = useCivicSocialPost();
   const likeMutation = useCivicSocialLike();
   const commentMutation = useCivicSocialComment();
+  const notifyMutation = useCivicSocialNotify();
   const [content, setContent] = useState("");
   const [openComment, setOpenComment] = useState<{ [postId: number]: boolean }>({});
   const [commentText, setCommentText] = useState<{ [postId: number]: string }>({});
+  const [image, setImage] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [editOpen, setEditOpen] = useState(false);
-  const displayName = user ? (user.firstName || "") + (user.lastName ? " " + user.lastName : "") || user.email || "Anonymous" : "Anonymous";
-  const [editName, setEditName] = useState(displayName);
-  const [editBio, setEditBio] = useState("");
-  const [bio, setBio] = useState("");
-  const [avatar, setAvatar] = useState<string | null>(null);
+  const [editFirstName, setEditFirstName] = useState(user?.firstName || "");
+  const [editLastName, setEditLastName] = useState(user?.lastName || "");
+  const [editBio, setEditBio] = useState((user as any)?.bio || "");
+  const [editAvatar, setEditAvatar] = useState((user as any)?.profileImageUrl || "");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const friends = friendsData?.friends || [];
+  const [activeTab, setActiveTab] = useState("posts");
 
-  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const updateProfile = useMutation({
+    mutationFn: async (fields: any) => apiRequest(`/api/users/${user?.id}/profile`, "PATCH", fields),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+      setEditOpen(false);
+      toast({ title: "Profile updated!", description: "Your changes have been saved." });
+    },
+  });
+
+  // Only show posts by this user (type-safe string comparison)
+  const userPosts = feed ? feed.filter((post: any) => String(post.userId) === String(user?.id)) : [];
+
+  const displayName = user ? (user.firstName || "") + (user.lastName ? " " + user.lastName : "") || user.email || "Anonymous" : "Anonymous";
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onload = (ev) => {
-        setAvatar(ev.target?.result as string);
-        toast({ title: "Avatar updated!", description: "Your profile picture has been changed." });
-      };
-      reader.readAsDataURL(file);
+      setImage(file);
+      setImagePreview(URL.createObjectURL(file));
     }
   };
 
-  if (authLoading) return <div>Loading...</div>;
-  if (!user) return <div className="text-center text-muted-foreground">Login to view your profile.</div>;
-
-  const userPosts = feed ? feed.filter((post: any) => post.userId === user.id) : [];
-  const userComments = feed
-    ? feed.flatMap((post: any) =>
-        (post.comments || []).filter((c: any) => c.userId === user.id).map((c: any) => ({ ...c, post }))
-      )
-    : [];
-  const userShares = feed ? feed.filter((post: any) => post.userId === user.id && post.type === "share") : [];
-  const friends = friendsData?.friends || [];
-
-  // Helper: get friend status for a userId
-  function getFriendStatus(userId: string) {
-    if (!user || user.id === userId) return null;
-    if (friends.some((f: any) => f.friendId === userId || f.userId === userId)) return "Friend";
-    if (friendsData?.sent?.some((req: any) => req.friendId === userId)) return "Pending";
-    if (friendsData?.received?.some((req: any) => req.userId === userId)) return "Requested";
-    return null;
-  }
-
-  const handlePost = (e: React.FormEvent) => {
+  const handlePost = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!content.trim()) return;
-    postMutation.mutate({ content, userId: user.id, displayName });
+    if (!content.trim() && !image) return;
+    let imageUrl = null;
+    if (image) {
+      imageUrl = imagePreview;
+    }
+    postMutation.mutate({ content, userId: user?.id, displayName, imageUrl }, {
+      onSuccess: () => {
+        toast({ title: "Post created!", description: "Your post was added to your wall." });
+        queryClient.invalidateQueries({ queryKey: ['civicSocialFeed'] });
+      },
+      onError: (error) => {
+        toast({ title: "Error posting", description: error.message || "Failed to post.", variant: "destructive" });
+      },
+    });
     setContent("");
-  };
-
-  const handleLike = (postId: number) => {
-    likeMutation.mutate({ postId, reaction: "👍" });
+    setImage(null);
+    setImagePreview(null);
   };
 
   const handleComment = (postId: number) => {
     if (!commentText[postId]?.trim()) return;
-    commentMutation.mutate({ postId, content: commentText[postId], userId: user.id, displayName });
-    setCommentText({ ...commentText, [postId]: "" });
-    setOpenComment({ ...openComment, [postId]: false });
+    commentMutation.mutate(
+      { postId, content: commentText[postId], userId: user?.id, displayName },
+      {
+        onSuccess: () => {
+          setCommentText({ ...commentText, [postId]: "" });
+          setOpenComment({ ...openComment, [postId]: false });
+          queryClient.invalidateQueries({ queryKey: ['civicSocialFeed'] });
+        },
+        onError: (error) => {
+          toast({ title: "Error commenting", description: error.message || "Failed to comment.", variant: "destructive" });
+        },
+      }
+    );
   };
 
+  // Helper: get user's reaction for a post
+  function getUserReaction(post: any) {
+    if (!post.reactions) return null;
+    for (const emoji in post.reactions) {
+      if (post.reactions[emoji].includes(user?.id)) return emoji;
+    }
+    return null;
+  }
+
+  // Handle react (add/change/remove)
+  const handleReact = (post: any, emoji: string) => {
+    const current = getUserReaction(post);
+    if (current === emoji) {
+      likeMutation.mutate({ postId: post.id, reaction: emoji });
+    } else {
+      likeMutation.mutate({ postId: post.id, reaction: emoji });
+    }
+  };
+
+  const deletePost = async (postId: number) => {
+    if (!window.confirm("Are you sure you want to delete this post?")) return;
+    try {
+      await fetch(`/api/social/posts/${postId}`, {
+        method: "DELETE",
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('civicos-jwt')}`,
+        },
+      });
+      toast({ title: "Post deleted", description: "Your post was removed." });
+      queryClient.invalidateQueries({ queryKey: ['civicSocialFeed'] });
+    } catch (err) {
+      toast({ title: "Error deleting post", description: "Failed to delete post.", variant: "destructive" });
+    }
+  };
+
+  function handleKeyDown(fn: () => void) {
+    return (e: React.KeyboardEvent) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        fn();
+      }
+    };
+  }
+
+  if (authLoading || isLoading) {
+    // Facebook-style loading skeletons
+    return (
+      <div className="w-full max-w-3xl mx-auto flex flex-col gap-6">
+        {/* Cover Skeleton */}
+        <div className="relative w-full h-56 md:h-64 bg-gradient-to-r from-blue-600 to-purple-700 rounded-b-3xl shadow-lg overflow-hidden mb-8">
+          <Skeleton className="absolute inset-0 w-full h-full" />
+          <div className="absolute left-1/2 bottom-0 transform -translate-x-1/2 translate-y-1/2 flex flex-col items-center">
+            <Skeleton className="w-32 h-32 rounded-full border-4 border-white shadow-xl bg-white" />
+            <div className="mt-4 flex flex-col items-center">
+              <Skeleton className="h-8 w-48 rounded mb-2" />
+              <Skeleton className="h-5 w-32 rounded mb-1" />
+              <Skeleton className="h-5 w-64 rounded mb-2" />
+              <Skeleton className="h-8 w-32 rounded" />
+            </div>
+          </div>
+        </div>
+        {/* Tabs Skeleton */}
+        <div className="flex w-full justify-center gap-2 bg-white rounded-xl shadow mb-6">
+          <Skeleton className="h-10 w-24 rounded-full" />
+          <Skeleton className="h-10 w-24 rounded-full" />
+          <Skeleton className="h-10 w-24 rounded-full" />
+          <Skeleton className="h-10 w-24 rounded-full" />
+        </div>
+        {/* Post Composer Skeleton */}
+        <Card className="p-4 mb-4 flex items-start gap-3 bg-white shadow-lg rounded-xl border border-gray-200 fade-in-up">
+          <Skeleton className="w-12 h-12 rounded-full" />
+          <div className="flex-1 flex flex-col gap-2">
+            <Skeleton className="h-10 w-full rounded-lg mb-2" />
+            <div className="flex gap-2">
+              <Skeleton className="h-8 w-20 rounded-full" />
+              <Skeleton className="h-8 w-20 rounded-full" />
+            </div>
+          </div>
+        </Card>
+        {/* Posts Skeleton */}
+        {[1,2,3].map((i) => (
+          <Card key={i} className="p-4 flex items-start gap-3 bg-white shadow-lg rounded-xl border border-gray-200 fade-in-up">
+            <Skeleton className="w-12 h-12 rounded-full" />
+            <div className="flex-1 flex flex-col gap-2">
+              <Skeleton className="h-6 w-1/2 rounded" />
+              <Skeleton className="h-4 w-1/3 rounded" />
+              <Skeleton className="h-10 w-full rounded-lg mt-2" />
+              <div className="flex gap-2 mt-2">
+                <Skeleton className="h-8 w-16 rounded-full" />
+                <Skeleton className="h-8 w-16 rounded-full" />
+                <Skeleton className="h-8 w-16 rounded-full" />
+              </div>
+            </div>
+          </Card>
+        ))}
+      </div>
+    );
+  }
+  if (!user) return <div className="text-center text-muted-foreground">Login to view your profile.</div>;
+
   return (
-    <div className="max-w-2xl mx-auto flex flex-col gap-6">
-      {/* Profile Header */}
-      <Card className="p-4 mb-4 flex flex-col items-center md:flex-row md:items-center md:gap-6">
-        <div className="relative w-20 h-20 mb-2 md:mb-0 md:mr-6 shrink-0">
-          {avatar ? (
-            <img
-              src={avatar}
-              alt="Avatar"
-              className="w-20 h-20 rounded-full object-cover border-2 border-gray-300"
-            />
-          ) : (
-            <div className="w-20 h-20 rounded-full bg-muted flex items-center justify-center text-3xl font-bold">
-              {editName ? editName[0] : "?"}
-            </div>
-          )}
-          <button
-            className="absolute bottom-0 right-0 bg-white border border-gray-300 rounded-full p-1 shadow hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            onClick={() => fileInputRef.current?.click()}
-            aria-label="Change avatar"
-            type="button"
-            tabIndex={0}
-            onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') fileInputRef.current?.click(); }}
-          >
-            <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536M9 13l6-6m2 2a2.828 2.828 0 11-4-4 2.828 2.828 0 014 4z" />
-            </svg>
-          </button>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            className="hidden"
-            onChange={handleAvatarChange}
-            aria-label="Upload avatar"
-          />
-        </div>
-        <div className="flex-1 flex flex-col items-center md:items-start">
-          <div className="font-bold text-lg mb-1 flex items-center gap-2">{editName}
-            {(() => {
-              const status = getFriendStatus(String(user.id)); // Ensure string
-              if (!status) return null;
-              if (status === "Friend") return <span className="px-2 py-0.5 rounded-full bg-green-100 text-green-700 text-xs font-medium">Friend</span>;
-              if (status === "Pending") return <span className="px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-700 text-xs font-medium">Pending</span>;
-              if (status === "Requested") return <span className="px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 text-xs font-medium">Requested</span>;
-              return null;
-            })()}
+    <div className="w-full max-w-3xl mx-auto flex flex-col gap-6">
+      {/* Facebook-style Cover and Profile Header */}
+      <div className="relative w-full h-56 md:h-64 bg-gradient-to-r from-blue-600 to-purple-700 rounded-b-3xl shadow-lg overflow-hidden mb-8">
+        {/* Cover photo (placeholder gradient) */}
+        <div className="absolute inset-0 bg-gradient-to-br from-blue-500 via-blue-700 to-purple-700 opacity-90" />
+        {/* Large Avatar */}
+        <div className="absolute left-1/2 bottom-0 transform -translate-x-1/2 translate-y-1/2 flex flex-col items-center">
+          <div className="w-32 h-32 rounded-full border-4 border-white shadow-xl bg-white overflow-hidden">
+            {(user as any)?.profileImageUrl ? (
+              <img src={(user as any)?.profileImageUrl} alt="Avatar" className="w-full h-full object-cover" />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center text-5xl font-bold bg-blue-600 text-white">
+                {displayName[0]}
+              </div>
+            )}
           </div>
-          <div className="text-muted-foreground mb-2">@{user.email?.split("@")[0]}</div>
-          {bio && <div className="text-sm text-gray-700 mb-2 text-center md:text-left max-w-xs">{bio}</div>}
-          <div className="flex gap-2 flex-wrap">
-            <Button size="sm" variant="outline" onClick={() => navigate("/civicsocial/friends")}>View Friends</Button>
-            <Dialog open={editOpen} onOpenChange={setEditOpen}>
-              <DialogTrigger asChild>
-                <Button size="sm" variant="ghost">Edit Profile</Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-md">
-                <DialogHeader>
-                  <DialogTitle>Edit Profile</DialogTitle>
-                  <DialogDescription>Update your display name and bio for CivicSocial.</DialogDescription>
-                </DialogHeader>
-                <form
-                  className="flex flex-col gap-4"
-                  onSubmit={e => {
-                    e.preventDefault();
-                    // Simulate backend update
-                    setEditOpen(false);
-                    setBio(editBio);
-                    toast({ title: "Profile updated!", description: "Your changes have been saved." });
-                  }}
-                >
-                  <div>
-                    <label className="block text-sm font-medium mb-1" htmlFor="edit-name">Display Name</label>
-                    <Input id="edit-name" value={editName} onChange={e => setEditName(e.target.value)} />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1" htmlFor="edit-bio">Bio</label>
-                    <Textarea id="edit-bio" value={editBio} onChange={e => setEditBio(e.target.value)} rows={3} />
-                  </div>
-                  <div className="flex gap-2 justify-end">
-                    <Button type="button" variant="outline" onClick={() => setEditOpen(false)}>Cancel</Button>
-                    <Button type="submit">Save</Button>
-                  </div>
-                </form>
-              </DialogContent>
-            </Dialog>
+          <div className="mt-4 flex flex-col items-center">
+            <h1 className="text-3xl md:text-4xl font-bold text-gray-900">{displayName}</h1>
+            <p className="text-base md:text-lg text-gray-600">@{user?.email?.split("@")[0]}</p>
+            <p className="text-base text-gray-700 mt-1">{(user as any)?.bio || "No bio available."}</p>
+            <Button size="sm" variant="outline" className="mt-2 focus:ring-2 focus:ring-blue-400" onClick={() => setEditOpen(true)} onKeyDown={handleKeyDown(() => setEditOpen(true))} aria-label="Edit Profile" tabIndex={0}>Edit Profile</Button>
           </div>
         </div>
-      </Card>
-      {/* Friends Section */}
-      <Card className="p-4 mb-4">
-        <div className="font-semibold mb-2">Your Friends</div>
-        <div className="flex flex-wrap gap-3">
-          {friends.length === 0 && <div className="text-muted-foreground">No friends yet.</div>}
-          {friends.slice(0, 8).map((friend: any) => (
-            <div key={friend.id} className="flex flex-col items-center w-16">
-              <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center font-bold text-lg mb-1">
-                {(friend.displayName || friend.firstName || friend.email || "?")[0]}
-              </div>
-              <div className="text-xs text-center truncate max-w-[56px]">
-                {friend.displayName || friend.firstName || friend.email || `User ${friend.friendId}`}
-              </div>
+      </div>
+      {/* Tabs for Wall, About, Friends, Photos */}
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="flex w-full justify-center gap-2 bg-white rounded-xl shadow mb-6">
+          <TabsTrigger value="posts" className="px-6 py-2 font-semibold focus:ring-2 focus:ring-blue-400" tabIndex={0} aria-label="Posts" onKeyDown={handleKeyDown(() => setActiveTab("posts"))}>Posts</TabsTrigger>
+          <TabsTrigger value="about" className="px-6 py-2 font-semibold focus:ring-2 focus:ring-blue-400" tabIndex={0} aria-label="About" onKeyDown={handleKeyDown(() => setActiveTab("about"))}>About</TabsTrigger>
+          <TabsTrigger value="friends" className="px-6 py-2 font-semibold focus:ring-2 focus:ring-blue-400" tabIndex={0} aria-label="Friends" onKeyDown={handleKeyDown(() => setActiveTab("friends"))}>Friends</TabsTrigger>
+          <TabsTrigger value="photos" className="px-6 py-2 font-semibold focus:ring-2 focus:ring-blue-400" tabIndex={0} aria-label="Photos" onKeyDown={handleKeyDown(() => setActiveTab("photos"))}>Photos</TabsTrigger>
+        </TabsList>
+        <TabsContent value="posts">
+          {/* Post Composer and Wall */}
+          <Card className="p-4 mb-4 flex items-start gap-3 bg-white shadow-lg rounded-xl border border-gray-200 fade-in-up">
+            <div className="w-12 h-12 rounded-full bg-blue-600 flex items-center justify-center font-bold text-2xl text-white shadow-md">
+              {displayName[0]}
             </div>
-          ))}
-        </div>
-        {friends.length > 8 && (
-          <Button size="sm" variant="link" onClick={() => navigate("/civicsocial/friends")}>See all friends</Button>
-        )}
-      </Card>
-      {/* Post Composer */}
-      <Card className="p-4 mb-4">
-        <form className="flex gap-2 items-center" onSubmit={handlePost}>
-          <input
-            className="flex-1 border rounded px-3 py-2 mr-2 bg-background"
-            placeholder={isAuthenticated ? "What's on your mind?" : "Login to post"}
-            value={content}
-            onChange={e => setContent(e.target.value)}
-            disabled={postMutation.isPending || !isAuthenticated}
-          />
-          <Button type="submit" disabled={!content.trim() || postMutation.isPending || !isAuthenticated}>
-            {postMutation.isPending ? "Posting..." : "Post"}
-          </Button>
-        </form>
-        {postMutation.error && (
-          <div className="text-xs text-red-500 mt-2">Error posting. Try again.</div>
-        )}
-      </Card>
-      {/* Recent Activity Section */}
-      <Card className="p-4 mb-4">
-        <div className="font-semibold mb-2">Your Recent Activity</div>
-        <div className="flex flex-col gap-4">
-          {userPosts.length === 0 && userComments.length === 0 && userShares.length === 0 && (
-            <div className="text-muted-foreground">You haven't posted, commented, or shared anything yet.</div>
-          )}
-          {/* Posts */}
-          {userPosts.map((post: any) => (
-            <Card key={"post-" + post.id} className="p-4">
-              <div className="flex items-center gap-2">
-                {avatar ? (
-                  <img src={avatar} alt="Avatar" className="w-8 h-8 rounded-full object-cover border" />
-                ) : (
-                  <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center font-bold text-lg">
-                    {post.displayName ? post.displayName[0] : "?"}
-                  </div>
-                )}
-                <div className="font-semibold">{post.displayName || `User ${post.userId}`}</div>
-                <Badge variant="secondary" className="ml-2">Post</Badge>
-              </div>
-              <div className="text-sm mt-1">{post.content || <span className="italic text-muted-foreground">(no content)</span>}</div>
-              <div className="flex gap-4 mt-3 items-center">
-                <Button size="sm" variant="ghost" onClick={() => handleLike(post.id)} disabled={likeMutation.isPending}>
-                  👍 {post.likesCount || 0}
-                </Button>
-                <Button size="sm" variant="ghost" onClick={() => setOpenComment({ ...openComment, [post.id]: !openComment[post.id] })}>
-                  💬 {post.commentsCount || 0}
-                </Button>
-              </div>
-              {openComment[post.id] && (
-                <div className="mt-2 flex gap-2 items-center">
+            <form className="flex-1 flex flex-col gap-2" onSubmit={handlePost} aria-label="Post composer">
+              <textarea
+                className="flex-1 border rounded-lg px-3 py-2 bg-gray-50 resize-none text-base focus:ring-2 focus:ring-blue-500"
+                placeholder={isAuthenticated ? "What's on your mind?" : "Login to post"}
+                value={content}
+                onChange={e => setContent(e.target.value)}
+                disabled={postMutation.isPending || !isAuthenticated}
+                aria-label="Post content"
+                rows={2}
+                maxLength={500}
+                style={{ minHeight: 48 }}
+              />
+              <div className="flex items-center gap-2 mt-1">
+                <label className="cursor-pointer flex items-center gap-1 text-blue-600 hover:text-blue-800 transition-colors">
+                  <ImageIcon className="w-5 h-5" />
                   <input
-                    className="flex-1 border rounded px-2 py-1"
-                    placeholder="Write a comment..."
-                    value={commentText[post.id] || ""}
-                    onChange={e => setCommentText({ ...commentText, [post.id]: e.target.value })}
-                    disabled={commentMutation.isPending}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageChange}
+                    disabled={postMutation.isPending || !isAuthenticated}
+                    aria-label="Upload image"
+                    className="hidden"
                   />
-                  <Button size="sm" onClick={() => handleComment(post.id)} disabled={!commentText[post.id]?.trim() || commentMutation.isPending}>
-                    {commentMutation.isPending ? "Posting..." : "Comment"}
-                  </Button>
-                </div>
-              )}
-              {post.comments && post.comments.length > 0 && (
-                <div className="mt-3 border-t pt-2">
-                  {post.comments.map((c: any) => (
-                    <div key={c.id} className="text-xs mb-1 flex items-center gap-2">
-                      <div className="w-6 h-6 rounded-full bg-muted flex items-center justify-center font-bold text-sm">
-                        {c.displayName ? c.displayName[0] : "?"}
-                      </div>
-                      <span className="font-semibold">{c.displayName || `User ${c.userId}`}:</span> {c.content}
-                    </div>
-                  ))}
-                </div>
-              )}
-              <div className="text-xs text-muted-foreground mt-2">{new Date(post.createdAt).toLocaleString()}</div>
-            </Card>
-          ))}
-          {/* Comments */}
-          {userComments.map((c: any) => (
-            <Card key={"comment-" + c.id} className="p-4 bg-blue-50">
-              <div className="flex items-center gap-2">
-                {avatar ? (
-                  <img src={avatar} alt="Avatar" className="w-8 h-8 rounded-full object-cover border" />
-                ) : (
-                  <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center font-bold text-lg">
-                    {editName[0]}
+                  <span className="text-xs">Image</span>
+                </label>
+                {imagePreview && (
+                  <div className="flex items-center gap-2">
+                    <img src={imagePreview} alt="Preview" className="w-16 h-16 object-cover rounded border" />
+                    <Button type="button" size="sm" variant="outline" onClick={() => { setImage(null); setImagePreview(null); }}>Remove</Button>
                   </div>
                 )}
-                <div className="font-semibold">{editName}</div>
-                <Badge variant="outline" className="ml-2">Comment</Badge>
+                <Button type="submit" disabled={(!content.trim() && !image) || postMutation.isPending || !isAuthenticated} aria-label="Submit post" className="ml-auto px-6 py-2 rounded-lg bg-blue-600 text-white font-bold hover:bg-blue-700 transition-colors">
+                  {postMutation.isPending ? "Posting..." : "Post"}
+                </Button>
               </div>
-              <div className="text-xs text-muted-foreground mb-1">On post: <span className="font-semibold">{c.post.content?.slice(0, 40) || "(no content)"}</span></div>
-              <div className="text-sm mt-1">{c.content}</div>
-              <div className="text-xs text-muted-foreground mt-2">{new Date(c.createdAt).toLocaleString()}</div>
-            </Card>
-          ))}
-          {/* Shares */}
-          {userShares.map((post: any) => (
-            <Card key={"share-" + post.id} className="p-4 bg-green-50">
-              <div className="flex items-center gap-2">
-                {avatar ? (
-                  <img src={avatar} alt="Avatar" className="w-8 h-8 rounded-full object-cover border" />
-                ) : (
-                  <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center font-bold text-lg">
-                    {editName[0]}
+              {postMutation.error && (
+                <div className="text-xs text-red-500 mt-2" role="alert">Error posting. Try again.</div>
+              )}
+            </form>
+          </Card>
+          <div className="flex flex-col gap-4">
+            {userPosts && userPosts.length === 0 && <div className="text-muted-foreground">No posts yet.</div>}
+            {userPosts && userPosts.map((post: any) => (
+              <CivicSocialPostCard
+                key={post.id}
+                post={post}
+                user={user as any}
+                onReact={handleReact}
+                onComment={handleComment}
+                onDelete={deletePost}
+                openComment={openComment}
+                setOpenComment={setOpenComment}
+                commentText={commentText}
+                setCommentText={setCommentText}
+                commentMutation={commentMutation}
+                toast={toast}
+                showWallLink={false}
+              />
+            ))}
+          </div>
+        </TabsContent>
+        <TabsContent value="about">
+          <Card className="p-6 bg-white shadow rounded-xl border border-gray-200">
+            <h2 className="text-xl font-bold mb-2">About</h2>
+            <p className="text-gray-700">{(user as any)?.bio || "No bio available."}</p>
+            <div className="mt-4">
+              <span className="block text-sm text-gray-500">Email:</span>
+              <span className="block text-base font-medium text-gray-800">{user?.email}</span>
+            </div>
+          </Card>
+        </TabsContent>
+        <TabsContent value="friends">
+          <Card className="p-6 bg-white shadow rounded-xl border border-gray-200">
+            <h2 className="text-xl font-bold mb-2">Friends</h2>
+            <div className="flex flex-wrap gap-4 mt-2">
+              {friends.length === 0 && <span className="text-gray-500">No friends yet.</span>}
+              {friends.map((f: any) => (
+                <div key={f.id} className="flex items-center gap-2 bg-gray-50 rounded-lg px-3 py-2 border border-gray-200 shadow-sm">
+                  <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold">
+                    {f.firstName?.[0] || f.email?.[0] || "U"}
                   </div>
-                )}
-                <div className="font-semibold">{editName}</div>
-                <Badge variant="outline" className="ml-2">Share</Badge>
-              </div>
-              <div className="text-xs text-muted-foreground mb-1">Shared post #{post.originalItemId}</div>
-              <div className="text-sm mt-1">{post.comment || <span className="italic text-muted-foreground">(no comment)</span>}</div>
-              <div className="text-xs text-muted-foreground mt-2">{new Date(post.createdAt).toLocaleString()}</div>
-            </Card>
-          ))}
-        </div>
-      </Card>
+                  <span className="font-medium text-sm">{f.firstName || f.email}</span>
+                </div>
+              ))}
+            </div>
+          </Card>
+        </TabsContent>
+        <TabsContent value="photos">
+          <Card className="p-6 bg-white shadow rounded-xl border border-gray-200">
+            <h2 className="text-xl font-bold mb-2">Photos</h2>
+            <span className="text-gray-500">No photos yet.</span>
+          </Card>
+        </TabsContent>
+      </Tabs>
+      {/* Edit Profile Dialog */}
+      <Dialog open={editOpen} onOpenChange={setEditOpen}>
+        <DialogTrigger asChild>
+          <Button size="sm" variant="outline" className="text-blue-700 bg-white/80 hover:bg-white">Edit Profile</Button>
+        </DialogTrigger>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Edit Profile</DialogTitle>
+            <DialogDescription>Update your display name and bio for CivicSocial.</DialogDescription>
+          </DialogHeader>
+          <form className="flex flex-col gap-4" onSubmit={e => {
+            e.preventDefault();
+            updateProfile.mutate({
+              firstName: editFirstName,
+              lastName: editLastName,
+              bio: editBio,
+              profileImageUrl: editAvatar,
+            });
+          }}>
+            <div>
+              <label className="block text-sm font-medium mb-1" htmlFor="edit-name">First Name</label>
+              <Input id="edit-name" value={editFirstName} onChange={e => setEditFirstName(e.target.value)} />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1" htmlFor="edit-lastname">Last Name</label>
+              <Input id="edit-lastname" value={editLastName} onChange={e => setEditLastName(e.target.value)} />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1" htmlFor="edit-bio">Bio</label>
+              <Textarea id="edit-bio" value={editBio} onChange={e => setEditBio(e.target.value)} rows={3} />
+            </div>
+            <div className="flex gap-2 justify-end">
+              <Button type="button" variant="outline" onClick={() => setEditOpen(false)}>Cancel</Button>
+              <Button type="submit" disabled={updateProfile.isPending}>{updateProfile.isPending ? "Saving..." : "Save"}</Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 } 

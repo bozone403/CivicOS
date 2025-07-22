@@ -76,10 +76,16 @@ router.get("/feed", async (req, res) => {
 // POST /api/social/posts - Create a new post/share
 router.post("/posts", async (req, res) => {
     try {
+        // Debug: log auth header and body
+        console.log("[POST /api/social/posts] Authorization:", req.headers.authorization);
+        console.log("[POST /api/social/posts] req.user:", req.user);
+        console.log("[POST /api/social/posts] req.body:", req.body);
         // Try id, then sub (JWT), then query param
         const userId = (req.user?.id || req.user?.sub || req.body.userId);
-        if (!userId)
+        if (!userId) {
+            console.error("[POST /api/social/posts] Not authenticated. req.user:", req.user);
             return res.status(401).json({ error: "Not authenticated" });
+        }
         const { content, imageUrl, type, originalItemId, originalItemType, comment } = req.body;
         if (!content && type !== "share") {
             return res.status(400).json({ error: "Content is required for a post." });
@@ -177,6 +183,28 @@ router.post("/posts/:id/like", async (req, res) => {
     catch (err) {
         console.error("Reaction error:", err);
         res.status(500).json({ error: "Failed to react to post", details: err });
+    }
+});
+// DELETE /api/social/posts/:id - Delete a post (owner only)
+router.delete("/posts/:id", async (req, res) => {
+    try {
+        const userId = (req.user?.id || req.user?.sub);
+        if (!userId)
+            return res.status(401).json({ error: "Not authenticated" });
+        const postId = parseInt(req.params.id, 10);
+        if (isNaN(postId))
+            return res.status(400).json({ error: "Invalid post ID." });
+        const [post] = await db.select().from(socialPosts).where(eq(socialPosts.id, postId));
+        if (!post)
+            return res.status(404).json({ error: "Post not found." });
+        if (post.userId !== userId)
+            return res.status(403).json({ error: "You can only delete your own posts." });
+        await db.delete(socialPosts).where(eq(socialPosts.id, postId));
+        res.json({ success: true });
+    }
+    catch (err) {
+        console.error("Delete post error:", err);
+        res.status(500).json({ error: "Failed to delete post", details: err });
     }
 });
 // POST /api/social/friends - Send, accept, or remove a friend request

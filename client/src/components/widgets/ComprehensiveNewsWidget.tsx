@@ -4,13 +4,14 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { VotingButtons } from "@/components/VotingButtons";
-import { AlertTriangle, TrendingUp, Eye, ExternalLink, Shield, BarChart3 } from "lucide-react";
+import { AlertTriangle, TrendingUp, Eye, ExternalLink, Shield, BarChart3, Share2 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/hooks/useAuth";
 import { useCivicSocialPost } from "@/hooks/useCivicSocial";
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
 import { useState } from "react";
+import { ShareToCivicSocialDialog } from "@/components/ui/ShareToCivicSocialDialog";
 
 interface NewsArticle {
   id: number;
@@ -247,6 +248,23 @@ export default function ComprehensiveNewsWidget({ liveData = true }: { liveData?
     );
   }
 
+  // Add error handling for all data sources
+  if ((displayArticles.length === 0 && !articlesLoading) || (displayComparisons.length === 0 && !comparisonsLoading) || (displayBiasAnalysis.length === 0 && !biasLoading)) {
+    return (
+      <Card className="w-full">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <AlertTriangle className="h-5 w-5 text-red-500" />
+            News data unavailable
+          </CardTitle>
+          <CardDescription>
+            We couldn't load news analysis data. Please try again later.
+          </CardDescription>
+        </CardHeader>
+      </Card>
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* Cross-Source Topic Comparisons */}
@@ -440,66 +458,18 @@ export default function ComprehensiveNewsWidget({ liveData = true }: { liveData?
                       </Badge>
                     ))}
                   </div>
-                  <Button variant="ghost" size="sm" asChild>
-                    <a href={article.url} target="_blank" rel="noopener noreferrer">
-                      <ExternalLink className="h-4 w-4" />
-                    </a>
-                  </Button>
-                </div>
-                {/* Share to CivicSocial button */}
-                <div className="flex justify-end mt-2">
-                  <Dialog open={shareDialog.open && shareDialog.article?.id === article.id} onOpenChange={open => setShareDialog({ open, article: open ? article : undefined })}>
-                    <DialogTrigger asChild>
-                      <Button size="sm" variant="outline" className="text-xs" onClick={() => setShareDialog({ open: true, article })}>
+                  <ShareToCivicSocialDialog
+                    trigger={
+                      <Button variant="outline" size="sm" className="mt-2">
+                        <Share2 className="h-4 w-4 mr-1" />
                         Share to CivicSocial
                       </Button>
-                    </DialogTrigger>
-                    <DialogContent className="max-w-md">
-                      <DialogHeader>
-                        <DialogTitle>Share News Article to CivicSocial</DialogTitle>
-                        <DialogDescription>Let your friends and followers know about this article. You can add a comment below.</DialogDescription>
-                      </DialogHeader>
-                      <form
-                        className="flex flex-col gap-3"
-                        onSubmit={e => {
-                          e.preventDefault();
-                          if (!user) return;
-                          civicSocialPost.mutate({
-                            type: "share",
-                            originalItemId: article.id,
-                            originalItemType: "news",
-                            comment: shareComment,
-                            userId: user.id,
-                            displayName: user.firstName || user.email || "Anonymous",
-                            content: `Shared news: ${article.title}\n${article.source} • ${new Date(article.publishedAt).toLocaleDateString()}\n${article.url}`,
-                          }, {
-                            onSuccess: () => {
-                              setShareDialog({ open: false });
-                              setShareComment("");
-                              toast({ title: "Article shared!", description: "Your share was added to the CivicSocial feed." });
-                            },
-                          });
-                        }}
-                      >
-                        <textarea
-                          className="border rounded px-3 py-2"
-                          placeholder="Add a comment (optional)"
-                          value={shareComment}
-                          onChange={e => setShareComment(e.target.value)}
-                          rows={3}
-                          aria-label="Share comment"
-                        />
-                        <div className="flex gap-2 justify-end">
-                          <Button type="button" variant="outline" onClick={() => setShareDialog({ open: false })} aria-label="Cancel share">
-                            Cancel
-                          </Button>
-                          <Button type="submit" disabled={civicSocialPost.isPending} aria-label="Submit share">
-                            {civicSocialPost.isPending ? "Sharing..." : "Share"}
-                          </Button>
-                        </div>
-                      </form>
-                    </DialogContent>
-                  </Dialog>
+                    }
+                    itemType="news"
+                    itemId={article.id}
+                    title={article.title}
+                    summary={`${article.title} - ${article.source} • ${new Date(article.publishedAt).toLocaleDateString()}`}
+                  />
                 </div>
               </div>
             ))}

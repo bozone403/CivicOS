@@ -27,8 +27,8 @@ export async function apiRequest(
   const token = getToken();
   const headers: Record<string, string> = data ? { "Content-Type": "application/json" } : {};
   if (token) headers["Authorization"] = `Bearer ${token}`;
-  // Paranoid debug logging
-  console.debug("[apiRequest] fullUrl:", fullUrl, "method:", method, "token:", token);
+  // Production logging (commented out for performance)
+  // console.debug("[apiRequest] fullUrl:", fullUrl, "method:", method, "token:", token);
   const res = await fetch(fullUrl, {
     method,
     headers,

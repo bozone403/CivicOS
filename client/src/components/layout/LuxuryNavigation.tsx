@@ -55,65 +55,42 @@ interface NavItem {
   subItems?: NavItem[];
 }
 
-const navigationSections = [
+const moreSection = {
+  title: "More",
+  items: [
+    { title: "Politicians", href: "/politicians", icon: Users },
+    { title: "Bills & Voting", href: "/voting", icon: FileText },
+    { title: "Elections", href: "/elections", icon: Crown },
+    { title: "Ledger", href: "/ledger", icon: BookOpen },
+    { title: "Contact Officials", href: "/contacts", icon: Users },
+    { title: "Campaign Finance", href: "/finance", icon: DollarSign },
+    { title: "Lobbyist Mapping", href: "/lobbyists", icon: Eye },
+    { title: "Procurement Tracker", href: "/procurement", icon: Building },
+    { title: "Political Memory", href: "/memory", icon: Brain },
+    { title: "Legal System", href: "/legal", icon: Gavel },
+    { title: "Your Rights", href: "/rights", icon: Shield },
+    { title: "Constitutional Cases", href: "/cases", icon: Scale },
+    { title: "Legal Search", href: "/legal-search", icon: Search },
+    { title: "Document Leaks", href: "/leaks", icon: Archive },
+    { title: "FOI", href: "/foi", icon: Eye },
+    { title: "Whistleblower Portal", href: "/whistleblower", icon: AlertTriangle },
+    { title: "Corruption Patterns", href: "/corruption", icon: Activity },
+    { title: "Pulse", href: "/pulse", icon: Activity },
+    { title: "Trust Metrics", href: "/trust", icon: BarChart3 },
+    { title: "Engagement Maps", href: "/maps", icon: TrendingUp },
+    { title: "Manifesto", href: "/manifesto", icon: BookOpen },
+  ]
+};
+
+const mainSections = [
   {
-    title: "Political Intelligence Hub",
+    title: "Main",
     items: [
       { title: "Dashboard", href: "/dashboard", icon: Home },
-      { title: "Politicians", href: "/politicians", icon: Users, badge: "2,847" },
-      { title: "Bills & Voting", href: "/voting", icon: FileText, badge: "Active" },
-      { title: "Elections", href: "/elections", icon: Crown },
-      { title: "News Analysis", href: "/news", icon: TrendingUp, badge: "Live" }
-    ]
-  },
-  {
-    title: "Civic Engagement Suite",
-    items: [
-      { title: "Civic Ledger", href: "/ledger", icon: BookOpen, badge: "Personal" },
-      { title: "Discussions", href: "/discussions", icon: MessageSquare, badge: "24" },
+      { title: "CivicSocial", href: "/civicsocial/feed", icon: Users },
+      { title: "Discussions", href: "/civicsocial/discussions", icon: MessageSquare },
+      { title: "News", href: "/news", icon: TrendingUp },
       { title: "Petitions", href: "/petitions", icon: FileText },
-      { title: "Contact Officials", href: "/contacts", icon: Users }
-    ]
-  },
-  {
-    title: "Government Integrity Tools",
-    items: [
-      { title: "Campaign Finance", href: "/finance", icon: DollarSign, badge: "New" },
-      { title: "Lobbyist Mapping", href: "/lobbyists", icon: Eye },
-      { title: "Procurement Tracker", href: "/procurement", icon: Building },
-      { title: "Political Memory", href: "/memory", icon: Brain }
-    ]
-  },
-  {
-    title: "Legal Oversight Grid",
-    items: [
-      { title: "Legal System", href: "/legal", icon: Gavel },
-      { title: "Your Rights", href: "/rights", icon: Shield, badge: "Charter" },
-      { title: "Constitutional Cases", href: "/cases", icon: Scale },
-      { title: "Legal Search", href: "/legal-search", icon: Search }
-    ]
-  },
-  {
-    title: "Transparency Arsenal",
-    items: [
-      { title: "Document Leaks", href: "/leaks", icon: Archive, badge: "Secure" },
-      { title: "Freedom of Information", href: "/foi", icon: Eye },
-      { title: "Whistleblower Portal", href: "/whistleblower", icon: AlertTriangle },
-      { title: "Corruption Patterns", href: "/corruption", icon: Activity }
-    ]
-  },
-  {
-    title: "Civic Analytics",
-    items: [
-      { title: "Civic Pulse", href: "/pulse", icon: Activity, badge: "Live" },
-      { title: "Trust Metrics", href: "/trust", icon: BarChart3 },
-      { title: "Engagement Maps", href: "/maps", icon: TrendingUp }
-    ]
-  },
-  {
-    title: "Platform Hub",
-    items: [
-      { title: "Manifesto", href: "/manifesto", icon: BookOpen, badge: "Core" }
     ]
   }
 ];
@@ -254,7 +231,7 @@ export function LuxuryNavigation() {
         {isCollapsed ? (
           // Collapsed view - show only icons
           (<div className="space-y-2">
-            {navigationSections.flatMap(section => section.items).map((item) => (
+            {mainSections.flatMap(section => section.items).map((item) => (
               <Link key={item.href} href={item.href}>
                 <Button
                   variant="ghost"
@@ -273,7 +250,7 @@ export function LuxuryNavigation() {
         ) : (
           // Expanded view - show full navigation
           (<div className="space-y-6">
-            {navigationSections.map((section) => (
+            {mainSections.map((section) => (
               <div key={section.title}>
                 <Button
                   variant="ghost"
@@ -303,19 +280,51 @@ export function LuxuryNavigation() {
                           isActive(item.href) && "bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 border-l-3 border-blue-500"
                         )}
                       >
-                        <item.icon className="w-4 h-4" />
-                        <span className="flex-1 text-left text-sm">{item.title}</span>
-                        {item.badge && (
-                          <Badge variant="outline" className="text-xs bg-blue-100 text-blue-700 border-blue-200">
-                            {item.badge}
-                          </Badge>
-                        )}
+                                              <item.icon className="w-4 h-4" />
+                      <span className="flex-1 text-left text-sm">{item.title}</span>
                       </Button>
                     </Link>
                   ))}
                 </div>
               </div>
             ))}
+            <div className="mt-6">
+              <Button
+                variant="ghost"
+                className="w-full justify-between p-3 h-auto font-medium text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
+                aria-label="More menu"
+                onClick={() => toggleSection("More")}
+              >
+                <span className="font-serif text-gray-800 dark:text-gray-200">More</span>
+                {expandedSections.includes("More") ? (
+                  <ChevronDown className="w-4 h-4 text-gray-500" />
+                ) : (
+                  <ChevronRight className="w-4 h-4 text-gray-500" />
+                )}
+              </Button>
+              <div className={cn(
+                "ml-3 mt-2 space-y-1 transition-all duration-200 ease-in-out",
+                expandedSections.includes("More") 
+                  ? "block opacity-100" 
+                  : "hidden opacity-0"
+              )}>
+                {moreSection.items.map((item) => (
+                  <Link key={item.href} href={item.href}>
+                    <Button
+                      variant="ghost"
+                      className={cn(
+                        "w-full justify-start space-x-3 h-10 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800",
+                        isActive(item.href) && "bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 border-l-3 border-blue-500"
+                      )}
+                      aria-label={item.title}
+                    >
+                      <item.icon className="w-4 h-4" />
+                      <span className="flex-1 text-left text-sm">{item.title}</span>
+                    </Button>
+                  </Link>
+                ))}
+              </div>
+            </div>
           </div>)
         )}
       </div>

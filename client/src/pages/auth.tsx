@@ -32,7 +32,7 @@ export default function Auth() {
 
   // Redirect authenticated users away from /auth
   React.useEffect(() => {
-    console.debug("[Auth] config.apiUrl", config.apiUrl);
+    // console.debug("[Auth] config.apiUrl", config.apiUrl);
     if (isAuthenticated) {
       if (location === "/auth" || location === "/login") {
         navigate("/dashboard");

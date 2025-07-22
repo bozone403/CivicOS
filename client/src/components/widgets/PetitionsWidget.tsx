@@ -3,13 +3,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { FileText, Users, Target, Clock, TrendingUp, AlertCircle } from "lucide-react";
+import { FileText, Users, Target, Clock, TrendingUp, AlertCircle, Share2 } from "lucide-react";
 import { Link } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
 import { useCivicSocialPost } from "@/hooks/useCivicSocial";
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
 import { useState } from "react";
+import { ShareToCivicSocialDialog } from "@/components/ui/ShareToCivicSocialDialog";
 
 interface Petition {
   id: number;
@@ -329,60 +330,18 @@ export default function PetitionsWidget({ liveData = true }: { liveData?: boolea
                     </div>
 
                     {/* Share to CivicSocial button */}
-                    <div className="flex justify-end mt-2">
-                      <Dialog open={shareDialog.open && shareDialog.petition?.id === petition.id} onOpenChange={open => setShareDialog({ open, petition: open ? petition : undefined })}>
-                        <DialogTrigger asChild>
-                          <Button size="sm" variant="outline" className="text-xs" onClick={() => setShareDialog({ open: true, petition })}>
-                            Share to CivicSocial
-                          </Button>
-                        </DialogTrigger>
-                        <DialogContent className="max-w-md">
-                          <DialogHeader>
-                            <DialogTitle>Share Petition to CivicSocial</DialogTitle>
-                            <DialogDescription>Let your friends and followers know about this petition. You can add a comment below.</DialogDescription>
-                          </DialogHeader>
-                          <form
-                            className="flex flex-col gap-3"
-                            onSubmit={e => {
-                              e.preventDefault();
-                              if (!user) return;
-                              civicSocialPost.mutate({
-                                type: "share",
-                                originalItemId: petition.id,
-                                originalItemType: "petition",
-                                comment: shareComment,
-                                userId: user.id,
-                                displayName: user.firstName || user.email || "Anonymous",
-                                content: `Shared petition: ${petition.title}\n${petition.description}`,
-                              }, {
-                                onSuccess: () => {
-                                  setShareDialog({ open: false });
-                                  setShareComment("");
-                                  toast({ title: "Petition shared!", description: "Your share was added to the CivicSocial feed." });
-                                },
-                              });
-                            }}
-                          >
-                            <textarea
-                              className="border rounded px-3 py-2"
-                              placeholder="Add a comment (optional)"
-                              value={shareComment}
-                              onChange={e => setShareComment(e.target.value)}
-                              rows={3}
-                              aria-label="Share comment"
-                            />
-                            <div className="flex gap-2 justify-end">
-                              <Button type="button" variant="outline" onClick={() => setShareDialog({ open: false })} aria-label="Cancel share">
-                                Cancel
-                              </Button>
-                              <Button type="submit" disabled={civicSocialPost.isPending} aria-label="Submit share">
-                                {civicSocialPost.isPending ? "Sharing..." : "Share"}
-                              </Button>
-                            </div>
-                          </form>
-                        </DialogContent>
-                      </Dialog>
-                    </div>
+                    <ShareToCivicSocialDialog
+                      trigger={
+                        <Button variant="outline" size="sm" className="mt-2">
+                          <Share2 className="h-4 w-4 mr-1" />
+                          Share to CivicSocial
+                        </Button>
+                      }
+                      itemType="petition"
+                      itemId={petition.id}
+                      title={petition.title}
+                      summary={petition.description}
+                    />
                   </div>
                 );
               })}
