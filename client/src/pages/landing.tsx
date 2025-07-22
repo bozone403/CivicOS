@@ -2,8 +2,10 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { CanadianCoatOfArms } from "@/components/CanadianCoatOfArms";
 import canadianCrest from "@/assets/ChatGPT Image Jun 20, 2025, 06_03_54 PM_1750464244456.png";
+import { useState, useEffect } from "react";
 import {
   Shield,
   Vote,
@@ -20,8 +22,99 @@ import {
 } from "lucide-react";
 
 export default function Landing() {
+  const [showManifesto, setShowManifesto] = useState(false);
+
+  useEffect(() => {
+    // Check if user has already agreed to manifesto
+    const hasAgreed = localStorage.getItem('civicos-manifesto-agreed');
+    if (!hasAgreed) {
+      // Show manifesto after a short delay
+      const timer = setTimeout(() => {
+        setShowManifesto(true);
+      }, 2000);
+      return () => clearTimeout(timer);
+    }
+  }, []);
+
+  const handleAgreeToManifesto = () => {
+    localStorage.setItem('civicos-manifesto-agreed', 'true');
+    setShowManifesto(false);
+  };
+
   return (
     <div className="min-h-screen bg-white">
+      {/* Manifesto Dialog */}
+      <Dialog open={showManifesto} onOpenChange={setShowManifesto}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-bold text-center">CivicOS Manifesto</DialogTitle>
+            <DialogDescription className="text-center">
+              Our commitment to digital democracy and civic engagement
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-6 text-gray-700">
+            <div>
+              <h3 className="font-semibold text-lg mb-2">Our Mission</h3>
+              <p className="text-sm leading-relaxed">
+                CivicOS is dedicated to empowering Canadian citizens through transparent, accessible, and authentic government accountability. We believe in the power of informed civic engagement to strengthen our democracy.
+              </p>
+            </div>
+            
+            <div>
+              <h3 className="font-semibold text-lg mb-2">Core Principles</h3>
+              <ul className="text-sm space-y-2">
+                <li className="flex items-start">
+                  <CheckCircle className="h-4 w-4 text-green-600 mt-0.5 mr-2 flex-shrink-0" />
+                  <span><strong>Transparency:</strong> All government data and processes should be accessible to citizens</span>
+                </li>
+                <li className="flex items-start">
+                  <CheckCircle className="h-4 w-4 text-green-600 mt-0.5 mr-2 flex-shrink-0" />
+                  <span><strong>Accountability:</strong> Elected officials must be held responsible for their actions</span>
+                </li>
+                <li className="flex items-start">
+                  <CheckCircle className="h-4 w-4 text-green-600 mt-0.5 mr-2 flex-shrink-0" />
+                  <span><strong>Authenticity:</strong> Information must be verified and sourced from official channels</span>
+                </li>
+                <li className="flex items-start">
+                  <CheckCircle className="h-4 w-4 text-green-600 mt-0.5 mr-2 flex-shrink-0" />
+                  <span><strong>Engagement:</strong> Citizens have the right and responsibility to participate in democracy</span>
+                </li>
+              </ul>
+            </div>
+
+            <div>
+              <h3 className="font-semibold text-lg mb-2">Your Rights & Responsibilities</h3>
+              <p className="text-sm leading-relaxed">
+                As a user of CivicOS, you have the right to access government information, participate in civic discussions, and hold elected officials accountable. You also have the responsibility to engage respectfully and factually.
+              </p>
+            </div>
+
+            <div className="bg-blue-50 p-4 rounded-lg">
+              <h3 className="font-semibold text-lg mb-2 text-blue-900">Privacy & Security</h3>
+              <p className="text-sm text-blue-800 leading-relaxed">
+                Your personal information is protected. We use government-grade security measures and never share your data with third parties. Your identity verification is used solely for platform integrity.
+              </p>
+            </div>
+          </div>
+          
+          <div className="flex justify-center space-x-4 pt-4">
+            <Button 
+              variant="outline" 
+              onClick={() => setShowManifesto(false)}
+              className="px-8"
+            >
+              Maybe Later
+            </Button>
+            <Button 
+              onClick={handleAgreeToManifesto}
+              className="px-8 bg-blue-600 hover:bg-blue-700"
+            >
+              I Agree
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* Professional Platform Header */}
       <header className="bg-white shadow-sm border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

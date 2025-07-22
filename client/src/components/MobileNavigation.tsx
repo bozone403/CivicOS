@@ -284,13 +284,12 @@ export function MobileNavigation() {
               </Link>
               
               <Button
-                onClick={() => logout.mutate()}
-                disabled={logout.isPending}
-                variant="ghost"
-                className="w-full justify-start space-x-3 text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950 text-sm h-9"
+                onClick={() => logout()}
+                disabled={false}
+                className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 rounded-md transition-colors"
               >
-                <LogOut className="w-4 h-4" />
-                <span>{logout.isPending ? "Logging out..." : "Logout"}</span>
+                <LogOut className="h-4 w-4 mr-2" />
+                <span>Logout</span>
               </Button>
             </div>
             

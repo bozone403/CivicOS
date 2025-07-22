@@ -98,115 +98,127 @@ export default function Profile() {
   });
 
   return (
-    <div className="min-h-screen bg-gray-50">
-
-      
-      <div className="max-w-4xl mx-auto py-8 px-4">
-        <div className="grid gap-6 md:grid-cols-3">
-          {/* Profile Header */}
-          <div className="relative rounded-3xl shadow-2xl mb-8 overflow-hidden">
-            <div className="h-40 w-full bg-gradient-to-br from-blue-500 to-purple-600" />
-            <div className="absolute left-1/2 -bottom-16 transform -translate-x-1/2 flex flex-col items-center w-full">
-              <Avatar className="w-32 h-32 border-4 border-white shadow-xl bg-white">
-                <AvatarImage src={editAvatar || (user as any)?.profileImageUrl} />
-                <AvatarFallback className="text-5xl font-bold">{user?.firstName?.[0] || user?.email?.[0] || "U"}</AvatarFallback>
-              </Avatar>
-              <button
-                className="absolute bottom-2 right-2 bg-white border border-gray-300 rounded-full p-1 shadow hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                onClick={() => fileInputRef.current?.click()}
-                aria-label="Change avatar"
-                type="button"
-                tabIndex={0}
-                style={{ left: 'calc(50% + 48px)' }}
-              >
-                <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536M9 13h3l8-8a2.828 2.828 0 10-4-4l-8 8v3h3z" /></svg>
-              </button>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={e => {
-                  const file = e.target.files?.[0];
-                  if (file) {
-                    const reader = new FileReader();
-                    reader.onload = (ev) => {
-                      setEditAvatar(ev.target?.result as string);
-                      toast({ title: "Avatar updated!", description: "Your profile picture has been changed." });
-                    };
-                    reader.readAsDataURL(file);
-                  }
-                }}
-                aria-label="Upload avatar"
-              />
-              <div className="mt-20 flex flex-col items-center">
-                <h1 className="text-4xl font-bold text-gray-900 mb-1">{user?.firstName} {user?.lastName}</h1>
-                <p className="text-lg text-gray-500">{user?.email}</p>
-                <p className="text-base text-gray-700 mt-1">{(user as any)?.bio || "No bio available."}</p>
-                <Dialog open={editOpen} onOpenChange={setEditOpen}>
-                  <DialogTrigger asChild>
-                    <Button size="sm" variant="outline" className="mt-4">Edit Profile</Button>
-                  </DialogTrigger>
-                  <DialogContent className="max-w-md">
-                    <DialogHeader>
-                      <DialogTitle>Edit Profile</DialogTitle>
-                      <DialogDescription>Update your name, bio, and avatar.</DialogDescription>
-                    </DialogHeader>
-                    <form className="flex flex-col gap-4" onSubmit={e => {
-                      e.preventDefault();
-                      updateProfile.mutate({
-                        firstName: editFirstName,
-                        lastName: editLastName,
-                        bio: editBio,
-                        profileImageUrl: editAvatar,
-                      });
-                    }}>
-                      <div>
-                        <label className="block text-sm font-medium mb-1" htmlFor="edit-firstname">First Name</label>
-                        <Input id="edit-firstname" value={editFirstName} onChange={e => setEditFirstName(e.target.value)} />
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
+      <div className="container mx-auto px-4 py-8 max-w-6xl">
+        {/* Profile Header */}
+        <div className="bg-white rounded-2xl shadow-lg overflow-hidden mb-8">
+          {/* Cover Photo */}
+          <div className="h-48 bg-gradient-to-r from-blue-600 via-purple-600 to-blue-800 relative">
+            <div className="absolute inset-0 bg-black bg-opacity-20"></div>
+          </div>
+          
+          {/* Profile Info */}
+          <div className="relative px-6 pb-6">
+            <div className="flex flex-col sm:flex-row items-start sm:items-end space-y-4 sm:space-y-0 sm:space-x-6">
+              {/* Avatar */}
+              <div className="relative -mt-16">
+                <div className="w-32 h-32 rounded-full bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center text-white text-4xl font-bold border-4 border-white shadow-lg">
+                  {user?.profileImageUrl ? (
+                    <img 
+                      src={user.profileImageUrl} 
+                      alt="Profile" 
+                      className="w-full h-full rounded-full object-cover"
+                    />
+                  ) : (
+                    user?.firstName?.[0] || user?.email?.[0] || "U"
+                  )}
+                </div>
+              </div>
+              
+              {/* Name and Bio */}
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center space-x-4 mb-2">
+                  <h1 className="text-3xl font-bold text-gray-900">
+                    {user?.firstName && user?.lastName 
+                      ? `${user.firstName} ${user.lastName}`
+                      : user?.email?.split('@')[0] || 'User'
+                    }
+                  </h1>
+                  <Dialog open={editOpen} onOpenChange={setEditOpen}>
+                    <DialogTrigger asChild>
+                      <Button variant="outline" size="sm">
+                        Edit Profile
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="max-w-md">
+                      <DialogHeader>
+                        <DialogTitle>Edit Profile</DialogTitle>
+                        <DialogDescription>Update your profile information</DialogDescription>
+                      </DialogHeader>
+                      <div className="space-y-4">
+                        <div>
+                          <label className="block text-sm font-medium mb-2">First Name</label>
+                          <Input
+                            value={editFirstName}
+                            onChange={(e) => setEditFirstName(e.target.value)}
+                            placeholder="First name"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium mb-2">Last Name</label>
+                          <Input
+                            value={editLastName}
+                            onChange={(e) => setEditLastName(e.target.value)}
+                            placeholder="Last name"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium mb-2">Bio</label>
+                          <Textarea
+                            value={editBio}
+                            onChange={(e) => setEditBio(e.target.value)}
+                            placeholder="Tell us about yourself..."
+                            rows={3}
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium mb-2">Profile Picture URL</label>
+                          <Input
+                            value={editAvatar}
+                            onChange={(e) => setEditAvatar(e.target.value)}
+                            placeholder="https://example.com/image.jpg"
+                          />
+                        </div>
                       </div>
-                      <div>
-                        <label className="block text-sm font-medium mb-1" htmlFor="edit-lastname">Last Name</label>
-                        <Input id="edit-lastname" value={editLastName} onChange={e => setEditLastName(e.target.value)} />
+                      <div className="flex justify-end space-x-2 mt-6">
+                        <Button variant="outline" onClick={() => setEditOpen(false)}>
+                          Cancel
+                        </Button>
+                        <Button 
+                          onClick={() => {
+                            updateProfile.mutate({
+                              firstName: editFirstName,
+                              lastName: editLastName,
+                              bio: editBio,
+                              profileImageUrl: editAvatar
+                            });
+                          }}
+                          disabled={updateProfile.isPending}
+                        >
+                          {updateProfile.isPending ? "Saving..." : "Save Changes"}
+                        </Button>
                       </div>
-                      <div>
-                        <label className="block text-sm font-medium mb-1" htmlFor="edit-bio">Bio</label>
-                        <Textarea id="edit-bio" value={editBio} onChange={e => setEditBio(e.target.value)} rows={3} />
-                      </div>
-                      <div className="flex gap-2 justify-end">
-                        <Button type="button" variant="outline" onClick={() => setEditOpen(false)}>Cancel</Button>
-                        <Button type="submit" disabled={updateProfile.isPending}>{updateProfile.isPending ? "Saving..." : "Save"}</Button>
-                      </div>
-                    </form>
-                  </DialogContent>
-                </Dialog>
+                    </DialogContent>
+                  </Dialog>
+                </div>
+                <p className="text-gray-600 mb-2">{user?.email}</p>
+                <p className="text-gray-700">
+                  {(user as any)?.bio || "No bio yet. Click 'Edit Profile' to add one!"}
+                </p>
               </div>
             </div>
           </div>
+        </div>
 
-          {/* Profile Information */}
-          <Card className="md:col-span-1">
-            <CardHeader className="text-center">
-              <div className="mx-auto mb-4">
-                {user?.profileImageUrl ? (
-                  <img 
-                    src={user.profileImageUrl} 
-                    alt="Profile" 
-                    className="h-24 w-24 rounded-full object-cover border-4 border-civic-blue"
-                  />
-                ) : (
-                  <div className="h-24 w-24 rounded-full bg-civic-blue text-white flex items-center justify-center text-2xl font-bold">
-                    {(user?.firstName?.[0] || user?.email?.[0] || 'U').toUpperCase()}
-                  </div>
-                )}
-              </div>
-              <CardTitle className="text-xl">
-                {user?.firstName && user?.lastName 
-                  ? `${user.firstName} ${user.lastName}`
-                  : user?.email?.split('@')[0] || 'User'
-                }
+        {/* Stats Grid */}
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {/* Profile Stats */}
+          <Card className="bg-white shadow-sm">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg flex items-center space-x-2">
+                <Users className="h-5 w-5 text-blue-600" />
+                <span>Profile Stats</span>
               </CardTitle>
-              <CardDescription>{user?.email}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-center justify-between">

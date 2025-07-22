@@ -1265,3 +1265,35 @@ export const userFriends = pgTable("user_friends", {
 }, (table) => ({
   uniqueFriendship: unique().on(table.userId, table.friendId),
 }));
+
+// --- General Comments System ---
+export const comments = pgTable("comments", {
+  id: serial("id").primaryKey(),
+  authorId: varchar("author_id").notNull().references(() => users.id),
+  targetType: varchar("target_type").notNull(), // bill, petition, news, politician, etc
+  targetId: integer("target_id").notNull(),
+  content: text("content").notNull(),
+  parentCommentId: integer("parent_comment_id"), // for threading
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+  isEdited: boolean("is_edited").default(false),
+  editCount: integer("edit_count").default(0),
+  lastEditedAt: timestamp("last_edited_at"),
+  likeCount: integer("like_count").default(0),
+  canDelete: boolean("can_delete").default(true),
+});
+
+export const commentLikes = pgTable("comment_likes", {
+  id: serial("id").primaryKey(),
+  commentId: integer("comment_id").notNull().references(() => comments.id),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => ({
+  uniqueCommentLike: unique().on(table.commentId, table.userId),
+}));
+
+// --- Type exports for comments ---
+export type Comment = typeof comments.$inferSelect;
+export type InsertComment = typeof comments.$inferInsert;
+export type CommentLike = typeof commentLikes.$inferSelect;
+export type InsertCommentLike = typeof commentLikes.$inferInsert;

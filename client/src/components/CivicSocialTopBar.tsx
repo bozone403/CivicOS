@@ -31,7 +31,7 @@ export function CivicSocialTopBar() {
           <input
             type="text"
             placeholder="Search CivicSocial..."
-            className="w-full rounded-full border border-gray-300 bg-gray-100 px-4 py-2 pl-10 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full rounded-full border border-gray-300 bg-gray-100 px-4 py-2 pl-10 text-sm focus:outline-none focus:ring-2 focus:ring-gray-500"
             aria-label="Search CivicSocial"
           />
           <Search className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" />
@@ -40,11 +40,11 @@ export function CivicSocialTopBar() {
       {/* Notifications */}
       <div className="relative">
         <button
-          className="ml-4 p-2 rounded-full hover:bg-blue-50 relative"
+          className="ml-4 p-2 rounded-full hover:bg-gray-50 relative"
           aria-label="Notifications"
           onClick={() => setNotifOpen((o) => !o)}
         >
-          <Bell className="w-6 h-6 text-blue-600" />
+          <Bell className="w-6 h-6 text-gray-600" />
           <span className="absolute top-1 right-1 bg-red-500 text-white text-xs rounded-full px-1.5 py-0.5 font-bold">3</span>
         </button>
         {notifOpen && (
@@ -62,16 +62,16 @@ export function CivicSocialTopBar() {
         onClick={() => setUserMenuOpen((o) => !o)}
         ref={userMenuRef}
       >
-        <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold text-lg">
+        <div className="w-8 h-8 rounded-full bg-gray-600 flex items-center justify-center text-white font-bold text-lg">
           {user?.firstName?.[0] || user?.email?.[0] || "U"}
         </div>
         <span className="hidden sm:block font-medium text-gray-800 text-sm">{displayName}</span>
         <ChevronDown className="w-4 h-4 text-gray-400" />
         {userMenuOpen && (
           <div className="absolute right-0 mt-10 w-48 bg-white shadow-lg rounded-xl p-4 z-50">
-            <button className="w-full text-left py-2 hover:bg-blue-50 rounded" onClick={() => window.location.href = '/profile'}>Profile</button>
-            <button className="w-full text-left py-2 hover:bg-blue-50 rounded" onClick={() => window.location.href = '/settings'}>Settings</button>
-            <button className="w-full text-left py-2 hover:bg-blue-50 rounded" onClick={() => { localStorage.removeItem('civicos-jwt'); window.location.href = '/auth'; }}>Logout</button>
+            <button className="w-full text-left py-2 hover:bg-gray-50 rounded" onClick={() => window.location.href = '/profile'}>Profile</button>
+            <button className="w-full text-left py-2 hover:bg-gray-50 rounded" onClick={() => window.location.href = '/settings'}>Settings</button>
+            <button className="w-full text-left py-2 hover:bg-gray-50 rounded" onClick={() => { localStorage.removeItem('civicos-jwt'); window.location.href = '/auth'; }}>Logout</button>
           </div>
         )}
       </div>

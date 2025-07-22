@@ -55,33 +55,6 @@ interface NavItem {
   subItems?: NavItem[];
 }
 
-const moreSection = {
-  title: "More",
-  items: [
-    { title: "Politicians", href: "/politicians", icon: Users },
-    { title: "Bills & Voting", href: "/voting", icon: FileText },
-    { title: "Elections", href: "/elections", icon: Crown },
-    { title: "Ledger", href: "/ledger", icon: BookOpen },
-    { title: "Contact Officials", href: "/contacts", icon: Users },
-    { title: "Campaign Finance", href: "/finance", icon: DollarSign },
-    { title: "Lobbyist Mapping", href: "/lobbyists", icon: Eye },
-    { title: "Procurement Tracker", href: "/procurement", icon: Building },
-    { title: "Political Memory", href: "/memory", icon: Brain },
-    { title: "Legal System", href: "/legal", icon: Gavel },
-    { title: "Your Rights", href: "/rights", icon: Shield },
-    { title: "Constitutional Cases", href: "/cases", icon: Scale },
-    { title: "Legal Search", href: "/legal-search", icon: Search },
-    { title: "Document Leaks", href: "/leaks", icon: Archive },
-    { title: "FOI", href: "/foi", icon: Eye },
-    { title: "Whistleblower Portal", href: "/whistleblower", icon: AlertTriangle },
-    { title: "Corruption Patterns", href: "/corruption", icon: Activity },
-    { title: "Pulse", href: "/pulse", icon: Activity },
-    { title: "Trust Metrics", href: "/trust", icon: BarChart3 },
-    { title: "Engagement Maps", href: "/maps", icon: TrendingUp },
-    { title: "Manifesto", href: "/manifesto", icon: BookOpen },
-  ]
-};
-
 const mainSections = [
   {
     title: "Main",
@@ -94,6 +67,40 @@ const mainSections = [
     ]
   }
 ];
+
+const moreSection = {
+  title: "More",
+  items: [
+    // Core Democracy
+    { title: "Bills & Voting", href: "/voting", icon: FileText },
+    { title: "Elections", href: "/elections", icon: Crown },
+    { title: "Politicians", href: "/politicians", icon: Users },
+    { title: "Contact Officials", href: "/contacts", icon: Users },
+    
+    // Legal & Rights
+    { title: "Legal System", href: "/legal", icon: Gavel },
+    { title: "Your Rights", href: "/rights", icon: Shield },
+    { title: "Constitutional Cases", href: "/cases", icon: Scale },
+    { title: "Legal Search", href: "/legal-search", icon: Search },
+    
+    // Transparency & Accountability
+    { title: "Campaign Finance", href: "/finance", icon: DollarSign },
+    { title: "Lobbyist Mapping", href: "/lobbyists", icon: Eye },
+    { title: "Procurement Tracker", href: "/procurement", icon: Building },
+    { title: "Document Leaks", href: "/leaks", icon: Archive },
+    { title: "FOI", href: "/foi", icon: Eye },
+    { title: "Whistleblower Portal", href: "/whistleblower", icon: AlertTriangle },
+    { title: "Corruption Patterns", href: "/corruption", icon: Activity },
+    
+    // Analysis & Data
+    { title: "Political Memory", href: "/memory", icon: Brain },
+    { title: "Pulse", href: "/pulse", icon: Activity },
+    { title: "Trust Metrics", href: "/trust", icon: BarChart3 },
+    { title: "Engagement Maps", href: "/maps", icon: TrendingUp },
+    { title: "Ledger", href: "/ledger", icon: BookOpen },
+    { title: "Manifesto", href: "/manifesto", icon: BookOpen },
+  ]
+};
 
 // Add Notification type for clarity
 interface Notification {
@@ -363,13 +370,12 @@ export function LuxuryNavigation() {
           </Link>
           
           <Button
-            onClick={() => logout.mutate()}
-            disabled={logout.isPending}
-            variant="ghost"
-            className="w-full justify-start space-x-2 lg:space-x-3 text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950 text-xs lg:text-sm h-8 lg:h-9 px-2 lg:px-3"
+            onClick={() => logout()}
+            disabled={false}
+            className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 rounded-md transition-colors"
           >
-            <LogOut className="w-3 h-3 lg:w-4 lg:h-4" />
-            <span>{logout.isPending ? "Logging out..." : "Logout"}</span>
+            <LogOut className="h-4 w-4 mr-2" />
+            <span>Logout</span>
           </Button>
         </div>
         

@@ -25,7 +25,7 @@ export function Layout({ children }: LayoutProps) {
                 <span className="font-medium">{user.firstName || user.email}</span>
               </div>
               <button
-                onClick={() => logout.mutate()}
+                onClick={() => logout()}
                 className="px-3 py-1 text-sm border border-border rounded-md hover:bg-muted transition-colors"
               >
                 Logout

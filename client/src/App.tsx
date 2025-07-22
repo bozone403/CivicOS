@@ -1,4 +1,5 @@
 import { Switch, Route, Link, useLocation } from "wouter";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "./lib/queryClient";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -106,36 +107,72 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
     }
   }, [isAuthenticated, isLoading, navigate]);
 
-  useEffect(() => {
-    if (isAuthenticated && !hasAgreedToManifesto) {
-      navigate("/manifesto");
-    }
-  }, [isAuthenticated, hasAgreedToManifesto, navigate]);
-
-  if (isLoading || isAuthenticated === undefined) {
+  if (isLoading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-red-600 mx-auto"></div>
-          <p className="mt-4 text-slate-600">Loading CivicOS...</p>
+          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <h2 className="text-xl font-bold mb-2">Loading...</h2>
+          <p className="text-gray-600">Please wait while we verify your credentials.</p>
         </div>
       </div>
     );
   }
 
   if (!isAuthenticated) {
-    return null; // Redirect handled by useEffect
+    return null;
   }
 
   if (!hasAgreedToManifesto) {
-    return null; // Redirect handled by useEffect
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
+        <div className="max-w-2xl w-full bg-white rounded-2xl shadow-xl p-8">
+          <div className="text-center mb-8">
+            <img src={canadianCrest} alt="CivicOS" className="w-20 h-20 mx-auto mb-4" />
+            <h1 className="text-3xl font-bold text-gray-900 mb-4">Welcome to CivicOS</h1>
+            <p className="text-lg text-gray-600 mb-6">
+              Before you begin, please review and agree to our platform manifesto.
+            </p>
+          </div>
+          
+          <div className="bg-blue-50 rounded-lg p-6 mb-6">
+            <h2 className="text-xl font-semibold text-blue-900 mb-4">Our Commitment</h2>
+            <div className="space-y-3 text-blue-800">
+              <p>• We provide transparent, authentic government accountability</p>
+              <p>• Your privacy and security are our top priorities</p>
+              <p>• We promote respectful, fact-based civic engagement</p>
+              <p>• All information is verified from official sources</p>
+            </div>
+          </div>
+          
+          <div className="flex flex-col sm:flex-row gap-4">
+            <Button 
+              onClick={() => {
+                setHasAgreedToManifesto(true);
+                localStorage.setItem('civicos-manifesto-agreed', 'true');
+              }}
+              className="flex-1 bg-blue-600 hover:bg-blue-700"
+            >
+              I Agree & Continue
+            </Button>
+            <Button 
+              variant="outline" 
+              onClick={() => navigate("/auth")}
+              className="flex-1"
+            >
+              Maybe Later
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return <>{children}</>;
 }
 
 function Router() {
-  const { isAuthenticated, isLoading, authError } = useAuth();
+  const { isAuthenticated, isLoading } = useAuth();
 
   // Fix Manifesto route for wouter (must be a function with props)
   const ManifestoRoute = () => {
@@ -150,18 +187,6 @@ function Router() {
   React.useEffect(() => {
     // console.debug("[Router] isAuthenticated", isAuthenticated, "isLoading", isLoading, "config.apiUrl", config.apiUrl);
   }, [isAuthenticated, isLoading]);
-
-  if (authError) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-red-50">
-        <div className="max-w-md w-full bg-white shadow-lg rounded-lg p-8 text-center">
-          <h1 className="text-2xl font-bold text-red-600 mb-2">Authentication Error</h1>
-          <p className="text-gray-700 mb-4">{authError}</p>
-          <button className="bg-red-600 text-white px-4 py-2 rounded" onClick={() => window.location.href = "/auth"}>Go to Login</button>
-        </div>
-      </div>
-    );
-  }
 
   if (isLoading || isAuthenticated === undefined) {
     return (
@@ -278,8 +303,6 @@ function AppWithBot() {
 }
 
 function App() {
-  const { isAuthenticated, isLoading } = useAuth();
-  const [, navigate] = useLocation();
   return (
     <TooltipProvider>
       <ErrorBoundary>
