@@ -43,6 +43,7 @@ import CivicSocialFeed from "@/pages/civicsocial-feed";
 import CivicSocialProfile from "@/pages/civicsocial-profile";
 import CivicSocialFriends from "@/pages/civicsocial-friends";
 import CivicSocialDiscussions from "@/pages/civicsocial-discussions";
+import CivicSocialMessages from "@/pages/civicsocial-messages";
 
 // Other pages
 import About from "@/pages/about";
@@ -423,6 +424,14 @@ export default function App() {
               <ProtectedRoute>
                 <Layout>
                   <CivicSocialDiscussions />
+                </Layout>
+              </ProtectedRoute>
+            </Route>
+
+            <Route path="/civicsocial/messages">
+              <ProtectedRoute>
+                <Layout>
+                  <CivicSocialMessages />
                 </Layout>
               </ProtectedRoute>
             </Route>

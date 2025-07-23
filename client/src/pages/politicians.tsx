@@ -1,13 +1,34 @@
-import React, { useState } from "react";
+import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Search, Filter, MapPin, Building, Crown, Users, TrendingUp, Activity } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
-import { apiRequest } from "@/lib/queryClient";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { 
+  Search, 
+  Building, 
+  Users, 
+  Mail, 
+  Phone, 
+  MapPin, 
+  Calendar,
+  Vote,
+  TrendingUp,
+  MessageSquare,
+  ExternalLink,
+  Star,
+  Flag,
+  Share2,
+  BookOpen,
+  Activity
+} from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
+import { apiRequest } from "@/lib/queryClient";
 
 // Comprehensive Canadian politicians data - Current as of 2024
 const CANADIAN_POLITICIANS_DATA = [
@@ -400,6 +421,10 @@ export default function Politicians() {
   const [selectedParty, setSelectedParty] = useState("all");
   const [selectedLevel, setSelectedLevel] = useState("all");
   const [selectedJurisdiction, setSelectedJurisdiction] = useState("all");
+  const [selectedPolitician, setSelectedPolitician] = useState<any>(null);
+  const [showPoliticianDialog, setShowPoliticianDialog] = useState(false);
+  const { toast } = useToast();
+  const { user } = useAuth();
 
   // Use the data patch instead of API call
   const { data: politicians = CANADIAN_POLITICIANS_DATA, isLoading } = useQuery({
@@ -435,6 +460,80 @@ export default function Politicians() {
     acc[jurisdiction].push(politician);
     return acc;
   }, {} as Record<string, typeof politicians>);
+
+  // Interactive functions
+  const handlePoliticianClick = (politician: any) => {
+    setSelectedPolitician(politician);
+    setShowPoliticianDialog(true);
+  };
+
+  const handleContactPolitician = async (politician: any, method: 'email' | 'phone' | 'office') => {
+    if (!user) {
+      toast({
+        title: "Authentication required",
+        description: "Please log in to contact politicians.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      // Simulate contact action
+      toast({
+        title: "Contact initiated",
+        description: `Contacting ${politician.name} via ${method}`,
+      });
+    } catch (error) {
+      toast({
+        title: "Contact failed",
+        description: "Unable to contact politician at this time.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleFollowPolitician = async (politician: any) => {
+    if (!user) {
+      toast({
+        title: "Authentication required",
+        description: "Please log in to follow politicians.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      await apiRequest('/api/politicians/follow', 'POST', { politicianId: politician.id });
+      toast({
+        title: "Politician followed",
+        description: `You are now following ${politician.name}`,
+      });
+    } catch (error) {
+      toast({
+        title: "Follow failed",
+        description: "Unable to follow politician at this time.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleSharePolitician = (politician: any) => {
+    const shareData = {
+      title: `${politician.name} - ${politician.position}`,
+      text: `Check out ${politician.name}, ${politician.position} for ${politician.riding}`,
+      url: window.location.href
+    };
+
+    if (navigator.share) {
+      navigator.share(shareData);
+    } else {
+      navigator.clipboard.writeText(`${shareData.title}\n${shareData.text}\n${shareData.url}`);
+      toast({
+        title: "Link copied",
+        description: "Politician profile link copied to clipboard",
+      });
+    }
+  };
 
   if (isLoading) {
     return (
@@ -556,17 +655,21 @@ export default function Politicians() {
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {jurisdictionPoliticians.map((politician) => (
-                <Card key={politician.id} className="bg-white shadow-sm hover:shadow-md transition-shadow">
+                <Card 
+                  key={politician.id} 
+                  className="bg-white shadow-sm hover:shadow-md transition-shadow cursor-pointer group"
+                  onClick={() => handlePoliticianClick(politician)}
+                >
                   <CardHeader>
                     <div className="flex items-start space-x-4">
                       <Avatar className="h-16 w-16">
                         <AvatarImage src={politician.image} alt={politician.name} />
                         <AvatarFallback className="text-lg font-bold">
-                          {politician.name.split(' ').map(n => n[0]).join('')}
+                          {politician.name.split(' ').map((n: string) => n[0]).join('')}
                         </AvatarFallback>
                       </Avatar>
                       <div className="flex-1 min-w-0">
-                        <h3 className="font-semibold text-lg text-gray-900 truncate">
+                        <h3 className="font-semibold text-lg text-gray-900 truncate group-hover:text-blue-600 transition-colors">
                           {politician.name}
                         </h3>
                         <p className="text-sm text-gray-600 mb-1">{politician.position}</p>
@@ -630,6 +733,44 @@ export default function Politicians() {
                           <span className="text-gray-600">Abstain: {politician.votingRecord.abstain}</span>
                         </div>
                       </div>
+
+                      {/* Action Buttons */}
+                      <div className="pt-3 border-t border-gray-100 flex space-x-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleContactPolitician(politician, 'email');
+                          }}
+                          className="flex-1"
+                        >
+                          <Mail className="w-3 h-3 mr-1" />
+                          Contact
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleFollowPolitician(politician);
+                          }}
+                          className="flex-1"
+                        >
+                          <Star className="w-3 h-3 mr-1" />
+                          Follow
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleSharePolitician(politician);
+                          }}
+                        >
+                          <Share2 className="w-3 h-3" />
+                        </Button>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
@@ -646,6 +787,135 @@ export default function Politicians() {
             <p className="text-gray-600">Try adjusting your search criteria or filters.</p>
           </div>
         )}
+
+        {/* Politician Detail Dialog */}
+        <Dialog open={showPoliticianDialog} onOpenChange={setShowPoliticianDialog}>
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+            {selectedPolitician && (
+              <>
+                <DialogHeader>
+                  <DialogTitle className="flex items-center space-x-3">
+                    <Avatar className="h-12 w-12">
+                      <AvatarImage src={selectedPolitician.image} alt={selectedPolitician.name} />
+                      <AvatarFallback className="text-lg font-bold">
+                        {selectedPolitician.name.split(' ').map((n: string) => n[0]).join('')}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div>
+                      <h2 className="text-2xl font-bold">{selectedPolitician.name}</h2>
+                      <p className="text-gray-600">{selectedPolitician.position}</p>
+                    </div>
+                  </DialogTitle>
+                </DialogHeader>
+
+                <Tabs defaultValue="overview" className="w-full">
+                  <TabsList className="grid w-full grid-cols-4">
+                    <TabsTrigger value="overview">Overview</TabsTrigger>
+                    <TabsTrigger value="voting">Voting Record</TabsTrigger>
+                    <TabsTrigger value="policies">Policies</TabsTrigger>
+                    <TabsTrigger value="contact">Contact</TabsTrigger>
+                  </TabsList>
+
+                  <TabsContent value="overview" className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div>
+                        <h3 className="font-semibold mb-2">Basic Information</h3>
+                        <div className="space-y-2 text-sm">
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">Riding:</span>
+                            <span>{selectedPolitician.riding}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">Party:</span>
+                            <span>{selectedPolitician.party}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">Level:</span>
+                            <span>{selectedPolitician.level}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">Trust Score:</span>
+                            <span className="font-medium">{selectedPolitician.trustScore}%</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div>
+                        <h3 className="font-semibold mb-2">Recent Activity</h3>
+                        <p className="text-sm text-gray-700">{selectedPolitician.recentActivity}</p>
+                      </div>
+                    </div>
+                  </TabsContent>
+
+                  <TabsContent value="voting" className="space-y-4">
+                    <div>
+                      <h3 className="font-semibold mb-4">Voting Statistics</h3>
+                      <div className="grid grid-cols-3 gap-4">
+                        <div className="text-center p-4 bg-green-50 rounded-lg">
+                          <div className="text-2xl font-bold text-green-600">{selectedPolitician.votingRecord.yes}</div>
+                          <div className="text-sm text-gray-600">Yes Votes</div>
+                        </div>
+                        <div className="text-center p-4 bg-red-50 rounded-lg">
+                          <div className="text-2xl font-bold text-red-600">{selectedPolitician.votingRecord.no}</div>
+                          <div className="text-sm text-gray-600">No Votes</div>
+                        </div>
+                        <div className="text-center p-4 bg-gray-50 rounded-lg">
+                          <div className="text-2xl font-bold text-gray-600">{selectedPolitician.votingRecord.abstain}</div>
+                          <div className="text-sm text-gray-600">Abstentions</div>
+                        </div>
+                      </div>
+                    </div>
+                  </TabsContent>
+
+                  <TabsContent value="policies" className="space-y-4">
+                    <div>
+                      <h3 className="font-semibold mb-4">Policy Positions</h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        {selectedPolitician.policyPositions.map((position: string, index: number) => (
+                          <Badge key={index} variant="outline" className="text-sm p-2">
+                            {position}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  </TabsContent>
+
+                  <TabsContent value="contact" className="space-y-4">
+                    <div>
+                      <h3 className="font-semibold mb-4">Contact Information</h3>
+                      <div className="space-y-3">
+                        <Button 
+                          className="w-full justify-start" 
+                          variant="outline"
+                          onClick={() => handleContactPolitician(selectedPolitician, 'email')}
+                        >
+                          <Mail className="w-4 h-4 mr-2" />
+                          Send Email
+                        </Button>
+                        <Button 
+                          className="w-full justify-start" 
+                          variant="outline"
+                          onClick={() => handleContactPolitician(selectedPolitician, 'phone')}
+                        >
+                          <Phone className="w-4 h-4 mr-2" />
+                          Call Office
+                        </Button>
+                        <Button 
+                          className="w-full justify-start" 
+                          variant="outline"
+                          onClick={() => handleContactPolitician(selectedPolitician, 'office')}
+                        >
+                          <MapPin className="w-4 h-4 mr-2" />
+                          Visit Office
+                        </Button>
+                      </div>
+                    </div>
+                  </TabsContent>
+                </Tabs>
+              </>
+            )}
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );
