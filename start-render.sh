@@ -28,7 +28,7 @@ fi
 
 # Test Ollama connection
 echo "🧪 Testing Ollama connection..."
-if curl -s http://localhost:11434/api/tags > /dev/null; then
+if curl -s http://127.0.0.1:11434/api/tags > /dev/null; then
     echo "✅ Ollama is running and ready"
 else
     echo "❌ Ollama is not responding"

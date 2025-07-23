@@ -14,9 +14,9 @@ interface OllamaResponse {
 }
 
 export async function callOllamaMistral(prompt: string): Promise<string> {
-  // In production, Ollama runs on the same server, so use localhost
+  // In production, Ollama runs on the same server, so use the internal address
   const baseUrl = process.env.NODE_ENV === 'production' 
-    ? "http://localhost:11434" 
+    ? "http://127.0.0.1:11434" 
     : (process.env.OLLAMA_BASE_URL || "http://localhost:11434");
   const model = process.env.OLLAMA_MODEL || "mistral:latest";
   
@@ -170,7 +170,7 @@ Provide analysis in JSON format:
 export async function checkAIServiceHealth(): Promise<{ status: string; details: string }> {
   try {
     const ollamaUrl = process.env.NODE_ENV === 'production' 
-      ? 'http://localhost:11434' 
+      ? 'http://127.0.0.1:11434' 
       : (process.env.OLLAMA_URL || 'http://localhost:11434');
     const model = 'mistral:latest'; // Using Mixtral exclusively
     

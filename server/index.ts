@@ -242,7 +242,7 @@ app.get("/health", (_req, res) => {
     console.log('🤖 Initializing Ollama AI service for production...');
     try {
       // Test Ollama connection
-      const response = await fetch('http://localhost:11434/api/tags');
+      const response = await fetch('http://127.0.0.1:11434/api/tags');
       if (response.ok) {
         console.log('✅ Ollama is running and ready');
         // Check if Mistral is available
