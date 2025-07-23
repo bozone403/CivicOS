@@ -105,7 +105,7 @@ export async function registerRoutes(app: Express): Promise<void> {
 
   // SPA fallback: serve index.html for all non-API routes
   app.get('*', (req, res) => {
-    // Skip API routes
+    // Skip API routes - let them be handled by their respective routers
     if (req.path.startsWith('/api/')) {
       return res.status(404).json({ message: 'API endpoint not found' });
     }
