@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { FloatingChatButton } from "@/components/FloatingChatButton";
 import { Button } from "@/components/ui/button";
 import { Layout } from "@/components/Layout";
+import { FeatureTutorial } from "@/components/FeatureTutorial";
 import { useAuth } from "@/hooks/useAuth";
 import { CanadianCoatOfArms } from "@/components/CanadianCoatOfArms";
 import canadianCrest from "@/assets/ChatGPT Image Jun 20, 2025, 06_03_54 PM_1750464244456.png";
@@ -54,6 +55,7 @@ import Privacy from "@/pages/privacy";
 import Terms from "@/pages/terms";
 import Accessibility from "@/pages/accessibility";
 import Notifications from "@/pages/notifications";
+import Support from "@/pages/support";
 import NotFound from "@/pages/not-found";
 
 const queryClient = new QueryClient({
@@ -398,6 +400,14 @@ export default function App() {
               </ProtectedRoute>
             </Route>
 
+            <Route path="/support">
+              <ProtectedRoute>
+                <Layout>
+                  <Support />
+                </Layout>
+              </ProtectedRoute>
+            </Route>
+
             {/* CivicSocial Routes */}
             <Route path="/civicsocial/feed">
               <ProtectedRoute>
@@ -445,6 +455,7 @@ export default function App() {
         </div>
         <Toaster />
         <FloatingChatButton />
+        <FeatureTutorial />
       </Router>
     </QueryClientProvider>
   );

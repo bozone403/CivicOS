@@ -12,13 +12,21 @@ import {
   Settings, 
   LogOut,
   User,
-  Heart
+  Heart,
+  MoreHorizontal,
+  HelpCircle,
+  Shield,
+  BookOpen,
+  TrendingUp,
+  MapPin
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import { useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import DonationPopup from "@/components/DonationPopup";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 
 // Add Notification type for clarity
 interface Notification {
@@ -36,6 +44,7 @@ export function MobileNavigation() {
   const { user: rawUser, logout } = useAuth();
   const user = rawUser as any;
   const [showDonationPopup, setShowDonationPopup] = useState(false);
+  const [showMoreMenu, setShowMoreMenu] = useState(false);
 
   const isActive = (href: string) => {
     if (href === "/" && location === "/") return true;
@@ -55,7 +64,16 @@ export function MobileNavigation() {
     { title: "Vote", href: "/voting", icon: Vote },
     { title: "Politicians", href: "/politicians", icon: Users },
     { title: "News", href: "/news", icon: FileText },
-    { title: "Profile", href: "/profile", icon: User },
+  ];
+
+  // More menu items
+  const moreMenuItems = [
+    { title: "Support", href: "/support", icon: HelpCircle, description: "Get help and contact us" },
+    { title: "Legal", href: "/legal", icon: BookOpen, description: "Legal documents and cases" },
+    { title: "Elections", href: "/elections", icon: TrendingUp, description: "Election information" },
+    { title: "Maps", href: "/maps", icon: MapPin, description: "Interactive political maps" },
+    { title: "Settings", href: "/settings", icon: Settings, description: "Account settings" },
+    { title: "Profile", href: "/profile", icon: User, description: "Your profile" },
   ];
 
   return (
@@ -99,6 +117,56 @@ export function MobileNavigation() {
               </Button>
             </Link>
           </div>
+
+          {/* More Menu */}
+          <Sheet open={showMoreMenu} onOpenChange={setShowMoreMenu}>
+            <SheetTrigger asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="flex flex-col items-center space-y-1 h-16 w-16 p-2"
+              >
+                <MoreHorizontal className="w-5 h-5" />
+                <span className="text-xs font-medium">More</span>
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="bottom" className="h-[80vh]">
+              <SheetHeader>
+                <SheetTitle className="text-left">More Options</SheetTitle>
+              </SheetHeader>
+              <div className="grid grid-cols-2 gap-4 mt-6">
+                {moreMenuItems.map((item) => (
+                  <Link key={item.href} href={item.href} onClick={() => setShowMoreMenu(false)}>
+                    <Button
+                      variant="outline"
+                      className="h-20 w-full flex flex-col items-center justify-center space-y-2 p-4"
+                    >
+                      <item.icon className="w-6 h-6" />
+                      <div className="text-center">
+                        <div className="font-medium text-sm">{item.title}</div>
+                        <div className="text-xs text-gray-500">{item.description}</div>
+                      </div>
+                    </Button>
+                  </Link>
+                ))}
+              </div>
+              
+              {/* Logout button at bottom */}
+              <div className="mt-6 pt-4 border-t">
+                <Button
+                  variant="destructive"
+                  onClick={() => {
+                    logout();
+                    setShowMoreMenu(false);
+                  }}
+                  className="w-full"
+                >
+                  <LogOut className="w-4 h-4 mr-2" />
+                  Logout
+                </Button>
+              </div>
+            </SheetContent>
+          </Sheet>
         </div>
       </div>
 
