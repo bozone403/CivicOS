@@ -29,7 +29,7 @@ if [ "$NODE_ENV" = "production" ]; then
         OLLAMA_PID=$!
         
         # Wait a bit for Ollama to start
-        sleep 10
+        sleep 5
         
         # Check if Ollama is responding
         if curl -s --max-time 5 http://127.0.0.1:11434/api/tags > /dev/null 2>&1; then

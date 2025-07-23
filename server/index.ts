@@ -248,16 +248,16 @@ app.get("/health", (_req, res) => {
     }, 2000); // Run after 2 seconds
   }
   
-  // Initialize Ollama AI service for production
+  // Initialize Ollama AI service for production (optional)
   if (process.env.NODE_ENV === 'production') {
-    console.log('🤖 Initializing Ollama AI service for production...');
+    console.log('🤖 Ollama AI service initialization (optional)...');
     
     // Wait a bit for Ollama to be ready
     setTimeout(async () => {
       try {
         // Test Ollama connection with timeout
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+        const timeoutId = setTimeout(() => controller.abort(), 3000); // 3 second timeout
         
         const response = await fetch('http://127.0.0.1:11434/api/tags', {
           signal: controller.signal
@@ -271,7 +271,7 @@ app.get("/health", (_req, res) => {
           // Test Mistral model with timeout
           try {
             const mistralController = new AbortController();
-            const mistralTimeoutId = setTimeout(() => mistralController.abort(), 10000); // 10 second timeout
+            const mistralTimeoutId = setTimeout(() => mistralController.abort(), 5000); // 5 second timeout
             
             const mistralResponse = await fetch('http://127.0.0.1:11434/api/generate', {
               method: 'POST',
@@ -301,7 +301,7 @@ app.get("/health", (_req, res) => {
         console.error('❌ Failed to connect to Ollama AI service:', error);
         console.log('⚠️  AI functionality will use fallback responses');
       }
-    }, 30000); // Wait 30 seconds for Ollama to be ready
+    }, 10000); // Wait 10 seconds for Ollama to be ready
   } else {
     console.log('🤖 Ollama AI service disabled - using fallback responses');
   }
