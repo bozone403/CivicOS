@@ -13,7 +13,6 @@ import canadianCrest from "@/assets/ChatGPT Image Jun 20, 2025, 06_03_54 PM_1750
 // Lazy load pages for better performance
 const Landing = lazy(() => import("@/pages/landing"));
 const Auth = lazy(() => import("@/pages/auth"));
-const Login = lazy(() => import("@/pages/Login"));
 const Register = lazy(() => import("@/pages/Register"));
 const Dashboard = lazy(() => import("@/pages/dashboard"));
 const Profile = lazy(() => import("@/pages/profile"));
@@ -159,7 +158,6 @@ export default function App() {
                 {/* Public Routes */}
                 <Route path="/" component={Landing} />
                 <Route path="/auth" component={Auth} />
-                <Route path="/login" component={Login} />
                 <Route path="/register" component={Register} />
                 <Route path="/about" component={About} />
                 <Route path="/contact" component={Contact} />

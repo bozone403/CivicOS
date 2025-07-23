@@ -6,6 +6,7 @@ import { registerCasesRoutes } from "./cases.js";
 import { registerDashboardRoutes } from "./dashboard.js";
 import { registerVotingRoutes } from "./voting.js";
 import { registerPetitionsRoutes } from "./petitions.js";
+import { registerRightsRoutes } from "./rights.js";
 
 export function registerApiRoutes(app: Express) {
   registerLeaksRoutes(app);
@@ -15,4 +16,5 @@ export function registerApiRoutes(app: Express) {
   registerDashboardRoutes(app);
   registerVotingRoutes(app);
   registerPetitionsRoutes(app);
+  registerRightsRoutes(app);
 } 
