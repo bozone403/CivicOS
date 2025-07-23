@@ -14,7 +14,7 @@ function jwtAuth(req, res, next) {
     }
     const token = authHeader.substring(7);
     try {
-        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback-secret');
+        const decoded = jwt.verify(token, process.env.SESSION_SECRET || 'fallback-secret');
         req.user = decoded;
         next();
     }
