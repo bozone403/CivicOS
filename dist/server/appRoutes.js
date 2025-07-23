@@ -24,6 +24,9 @@ const logger = pino();
 const FRONTEND_BASE_URL = process.env.FRONTEND_BASE_URL || "https://civicos.ca";
 const JWT_SECRET = process.env.SESSION_SECRET || "changeme";
 function generateToken(user) {
+    console.log('Generating token for user:', user.id, user.email);
+    console.log('JWT_SECRET:', JWT_SECRET ? 'SET' : 'NOT SET');
+    console.log('jwt object:', typeof jwt, jwt);
     return jwt.sign({ id: user.id, email: user.email }, JWT_SECRET, { expiresIn: "7d" });
 }
 function jwtAuth(req, res, next) {

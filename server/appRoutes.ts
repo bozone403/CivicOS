@@ -40,6 +40,9 @@ interface JwtPayload {
 }
 
 function generateToken(user: any) {
+  console.log('Generating token for user:', user.id, user.email);
+  console.log('JWT_SECRET:', JWT_SECRET ? 'SET' : 'NOT SET');
+  console.log('jwt object:', typeof jwt, jwt);
   return jwt.sign({ id: user.id, email: user.email }, JWT_SECRET, { expiresIn: "7d" });
 }
 
