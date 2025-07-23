@@ -237,8 +237,8 @@ app.get("/health", (_req, res) => {
   // Initialize automatic government data sync
   initializeDataSync();
   
-  // Initialize Ollama AI service for production
-  if (process.env.NODE_ENV === 'production') {
+  // Initialize Ollama AI service for production (optional)
+  if (process.env.NODE_ENV === 'production' && process.env.ENABLE_OLLAMA === 'true') {
     console.log('🤖 Initializing Ollama AI service for production...');
     try {
       const { initializeOllama } = await import('./initOllama.js');
@@ -248,6 +248,8 @@ app.get("/health", (_req, res) => {
       console.error('❌ Failed to initialize Ollama AI service:', error);
       console.log('⚠️  AI functionality will use fallback responses');
     }
+  } else {
+    console.log('🤖 Ollama AI service disabled - using fallback responses');
   }
   
   // Run immediate data scraping on startup
