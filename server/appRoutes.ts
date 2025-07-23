@@ -57,6 +57,7 @@ export async function registerRoutes(app: Express): Promise<void> {
   console.log('  - process.cwd():', process.cwd());
   console.log('  - publicPath:', publicPath);
   console.log('  - __dirname:', __dirname);
+  console.log('  - process.env.PWD:', process.env.PWD);
   
   // Check if the directory exists
   const fs = require('fs');
@@ -71,25 +72,34 @@ export async function registerRoutes(app: Express): Promise<void> {
       path.join(__dirname, '../../dist/public'),
       path.join(process.cwd(), 'dist/public'),
       path.join(process.cwd(), '../dist/public'),
+      path.join(process.cwd(), 'src/dist/public'),
+      path.join(process.cwd(), '../src/dist/public'),
+      '/opt/render/project/src/dist/public',
+      '/opt/render/project/src/dist/dist/public',
     ];
     for (const altPath of altPaths) {
       if (fs.existsSync(altPath)) {
         console.log('  - ✅ Found alternative path:', altPath);
-        break;
+        // Use the first found path
+        const actualPath = altPath;
+        console.log('  - Using path:', actualPath);
+        app.use(express.static(actualPath));
+        
+        // SPA fallback: serve index.html for all non-API routes
+        app.get('*', (req, res) => {
+          // Skip API routes
+          if (req.path.startsWith('/api/')) {
+            return res.status(404).json({ message: 'API endpoint not found' });
+          }
+          
+          // Serve index.html for all other routes (SPA routing)
+          res.sendFile(path.join(actualPath, 'index.html'));
+        });
+        return;
       }
     }
+    console.log('  - ❌ No alternative paths found');
   }
   
   app.use(express.static(publicPath));
-
-  // SPA fallback: serve index.html for all non-API routes
-  app.get('*', (req, res) => {
-    // Skip API routes
-    if (req.path.startsWith('/api/')) {
-      return res.status(404).json({ message: 'API endpoint not found' });
-    }
-    
-    // Serve index.html for all other routes (SPA routing)
-    res.sendFile(path.join(publicPath, 'index.html'));
-  });
 }
