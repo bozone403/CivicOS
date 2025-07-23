@@ -1,7 +1,7 @@
 import { storage } from "../storage.js";
 import { db } from "../db.js";
-import { userActivity } from "../../shared/schema.js";
-import { eq, desc } from "drizzle-orm";
+import { bills, votes, politicians, userActivity, petitionSignatures } from "../../shared/schema.js";
+import { eq, desc, count } from "drizzle-orm";
 // JWT Auth middleware
 function jwtAuth(req, res, next) {
     const authHeader = req.headers.authorization;
@@ -28,30 +28,49 @@ export function registerDashboardRoutes(app) {
         try {
             const userId = req.user?.id || 'test-user-id';
             console.log('Dashboard stats requested for user:', userId);
-            // Return mock data for now to test if the endpoint works
+            // Get real data from database
+            const [totalVotesResult, activeBillsResult, politiciansTrackedResult, petitionsSignedResult, userResult] = await Promise.allSettled([
+                // Get user's total votes
+                db.select({ count: count() }).from(votes).where(eq(votes.userId, userId)),
+                // Get active bills count
+                db.select({ count: count() }).from(bills).where(eq(bills.status, 'active')),
+                // Get total politicians count (since there's no isTracked field)
+                db.select({ count: count() }).from(politicians),
+                // Get petitions signed by user
+                db.select({ count: count() }).from(petitionSignatures).where(eq(petitionSignatures.userId, userId)),
+                // Get user data
+                storage.getUser(userId)
+            ]);
+            // Extract counts from results
+            const totalVotes = totalVotesResult.status === 'fulfilled' ? totalVotesResult.value[0]?.count || 0 : 0;
+            const activeBills = activeBillsResult.status === 'fulfilled' ? activeBillsResult.value[0]?.count || 0 : 0;
+            const politiciansTracked = politiciansTrackedResult.status === 'fulfilled' ? politiciansTrackedResult.value[0]?.count || 0 : 0;
+            const petitionsSigned = petitionsSignedResult.status === 'fulfilled' ? petitionsSignedResult.value[0]?.count || 0 : 0;
+            // Get user data
+            const user = userResult.status === 'fulfilled' ? userResult.value : null;
+            const civicPoints = user?.civicPoints || 0;
+            const trustScore = user?.trustScore || 100;
+            // Get recent activity
+            const recentActivity = await db.select()
+                .from(userActivity)
+                .where(eq(userActivity.userId, userId))
+                .orderBy(desc(userActivity.createdAt))
+                .limit(5);
             const stats = {
-                totalVotes: 12,
-                activeBills: 62,
-                politiciansTracked: 123665,
-                petitionsSigned: 3,
-                civicPoints: 150,
-                trustScore: 100,
-                recentActivity: [
-                    {
-                        id: '1',
-                        type: 'vote',
-                        title: 'Voted on Bill C-123',
-                        timestamp: new Date().toISOString(),
-                        icon: 'vote'
-                    },
-                    {
-                        id: '2',
-                        type: 'petition_sign',
-                        title: 'Signed petition for climate action',
-                        timestamp: new Date(Date.now() - 86400000).toISOString(),
-                        icon: 'petition'
-                    }
-                ]
+                totalVotes,
+                activeBills,
+                politiciansTracked,
+                petitionsSigned,
+                civicPoints,
+                trustScore,
+                recentActivity: recentActivity.map(activity => ({
+                    id: activity.id.toString(),
+                    type: activity.activityType,
+                    title: `${activity.activityType} activity`,
+                    timestamp: activity.createdAt?.toISOString() || new Date().toISOString(),
+                    icon: activity.activityType === 'vote' ? 'vote' :
+                        activity.activityType === 'petition_sign' ? 'petition' : 'comment'
+                }))
             };
             console.log('Dashboard stats response:', stats);
             res.json(stats);
