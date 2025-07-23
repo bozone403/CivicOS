@@ -47,6 +47,67 @@ export function jwtAuth(req: any, res: any, next: any) {
 }
 
 export function registerAuthRoutes(app: Express) {
+  // Test endpoint to check database schema
+  app.get("/api/auth/test-schema", async (req: Request, res: Response) => {
+    try {
+      console.log('🔍 Testing database schema...');
+      
+      // Test if we can create a user with all fields
+      const testUserData = {
+        id: 'test-schema-check',
+        email: 'test@example.com',
+        password: 'test',
+        firstName: 'Test',
+        lastName: 'User',
+        phoneNumber: '123-456-7890',
+        dateOfBirth: new Date('1990-01-01'),
+        city: 'Test City',
+        province: 'Test Province',
+        postalCode: 'A1A 1A1',
+        federalRiding: 'Test Riding',
+        provincialRiding: 'Test Provincial Riding',
+        municipalWard: 'Test Ward',
+        citizenshipStatus: 'citizen',
+        voterRegistrationStatus: 'registered',
+        communicationStyle: 'auto',
+        country: 'Canada',
+        civicPoints: 0,
+        currentLevel: 1,
+        trustScore: "100.00",
+        verificationLevel: 'unverified',
+        engagementLevel: 'newcomer',
+        achievementTier: 'bronze',
+        profileCompleteness: 50,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      console.log('📝 Test user data:', testUserData);
+      
+      // Try to create the user (this will fail if fields don't exist)
+      const user = await storage.createUser(testUserData);
+      
+      console.log('✅ Schema test successful - all fields available');
+      
+      // Clean up the test user
+      await db.delete(users).where(eq(users.id, 'test-schema-check'));
+      
+      res.json({ 
+        status: 'success', 
+        message: 'Database schema is correct - all user fields available',
+        timestamp: new Date().toISOString()
+      });
+    } catch (err) {
+      console.error('❌ Schema test failed:', err);
+      res.status(500).json({ 
+        status: 'error',
+        message: 'Database schema test failed - missing fields',
+        error: (err as any)?.message || String(err),
+        timestamp: new Date().toISOString()
+      });
+    }
+  });
+
   // Registration endpoint
   app.post("/api/auth/register", async (req: Request, res: Response) => {
     try {
