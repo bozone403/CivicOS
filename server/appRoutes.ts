@@ -52,7 +52,7 @@ export async function registerRoutes(app: Express): Promise<void> {
   });
 
   // Serve static files from the frontend build
-  const publicPath = path.join(__dirname, '../dist/public');
+  const publicPath = path.join(process.cwd(), 'dist/public');
   app.use(express.static(publicPath));
 
   // SPA fallback: serve index.html for all non-API routes
