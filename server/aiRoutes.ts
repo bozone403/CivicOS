@@ -1,7 +1,7 @@
-import express from 'express';
+import { Router } from 'express';
 import FreeAiService from './freeAiService.js';
 
-const router = express.Router();
+const router = Router();
 const aiService = new FreeAiService();
 
 // Health check for AI service

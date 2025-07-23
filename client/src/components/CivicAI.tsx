@@ -99,7 +99,7 @@ export function CivicAI() {
         }, 500);
       }
     },
-    onError: (error) => {
+    onError: (_error) => {
       const errorMessage: Message = {
         id: `error-${Date.now()}`,
         role: "assistant",
