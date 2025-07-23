@@ -43,7 +43,7 @@ export default function CivicSocialProfile() {
   const [activeTab, setActiveTab] = useState("posts");
 
   const updateProfile = useMutation({
-    mutationFn: async (fields: any) => apiRequest(`/api/users/${user?.id}/profile`, "PATCH", fields),
+    mutationFn: async (fields: any) => apiRequest(`/api/users/profile`, "PUT", fields),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
       setEditOpen(false);

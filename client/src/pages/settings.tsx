@@ -74,7 +74,7 @@ export default function Settings() {
   });
 
   const updateProfileMutation = useMutation({
-    mutationFn: async (fields: any) => user ? apiRequest(`/api/users/${user.id}/profile`, "PATCH", fields) : Promise.reject("No user"),
+    mutationFn: async (fields: any) => user ? apiRequest(`/api/users/profile`, "PUT", fields) : Promise.reject("No user"),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
       toast({ title: "Profile updated!", description: "Your changes have been saved." });

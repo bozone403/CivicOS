@@ -100,7 +100,7 @@ export default function UserProfile() {
   const [editWebsite, setEditWebsite] = useState("");
   const [editSocial, setEditSocial] = useState({ twitter: "", facebook: "", linkedin: "", instagram: "" });
   const updateProfile = useMutation({
-    mutationFn: async (fields: any) => apiRequest(`/api/users/${userId}/profile`, "PATCH", fields),
+    mutationFn: async (fields: any) => apiRequest(`/api/users/profile`, "PUT", fields),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
       setEditOpen(false);

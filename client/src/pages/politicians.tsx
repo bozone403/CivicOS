@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   Search, 
@@ -806,6 +806,7 @@ export default function Politicians() {
                       <p className="text-gray-600">{selectedPolitician.position}</p>
                     </div>
                   </DialogTitle>
+                  <DialogDescription>View detailed information about this politician</DialogDescription>
                 </DialogHeader>
 
                 <Tabs defaultValue="overview" className="w-full">

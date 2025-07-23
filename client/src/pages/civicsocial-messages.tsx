@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/useAuth";
@@ -254,6 +254,7 @@ export default function CivicSocialMessages() {
               <DialogContent>
                 <DialogHeader>
                   <DialogTitle>New Conversation</DialogTitle>
+                  <DialogDescription>Start a new conversation with another user</DialogDescription>
                 </DialogHeader>
                 <div className="space-y-4">
                   <Input placeholder="Search users..." />
