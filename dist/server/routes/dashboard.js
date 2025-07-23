@@ -72,9 +72,10 @@ export function registerDashboardRoutes(app) {
                         activity.activityType === 'petition_sign' ? 'petition' : 'comment'
                 })),
                 debug: {
-                    message: "Real political data from database",
+                    message: "Real political data from database - DEPLOYMENT TEST",
                     timestamp: new Date().toISOString(),
-                    userId: userId
+                    userId: userId,
+                    deploymentId: "2025-07-23-23-05"
                 }
             };
             console.log('🔧 UPDATED DASHBOARD CODE - Dashboard stats response:', stats);
