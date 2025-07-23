@@ -37,12 +37,18 @@ logger.info('[DB] Connecting to:', {
   sslConfig: { rejectUnauthorized: false },
 });
 
+// SSL configuration for Supabase
+const sslConfig = process.env.NODE_ENV === 'production' ? {
+  rejectUnauthorized: false,
+  checkServerIdentity: () => undefined
+} : {
+  rejectUnauthorized: false,
+  checkServerIdentity: () => undefined
+};
+
 export const pool = new Pool({ 
   connectionString: process.env.DATABASE_URL,
-  ssl: { 
-    rejectUnauthorized: false,
-    checkServerIdentity: () => undefined
-  }
+  ssl: sslConfig
 });
 
 // Paranoid: Drizzle does not accept 'ssl' in config, so we rely on Pool's SSL config only
@@ -60,6 +66,9 @@ logger.info('[DB] Drizzle instantiated. Pool type:', typeof pool, 'NODE_TLS_REJE
     if (err && typeof err === 'object' && err !== null && 'code' in err && (err as any).code === 'SELF_SIGNED_CERT_IN_CHAIN') {
       logger.error('[DB] SSL self-signed certificate error. Check your DATABASE_URL and SSL config.');
     }
-    process.exit(1);
+    // Don't exit in production, just log the error
+    if (process.env.NODE_ENV !== 'production') {
+      process.exit(1);
+    }
   }
 })();
