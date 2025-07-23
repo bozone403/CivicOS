@@ -91,35 +91,130 @@ export default function PulsePage() {
       score: 78,
       activeUsers: 6847,
       change: +2.1,
-      topIssues: ["Healthcare", "Housing", "Education"]
+      topIssues: ["Healthcare", "Housing", "Education"],
+      population: "14.8M",
+      capital: "Toronto",
+      premier: "Doug Ford"
     },
     {
       province: "Quebec", 
       score: 71,
       activeUsers: 4023,
       change: +1.8,
-      topIssues: ["Language Rights", "Environment", "Economy"]
+      topIssues: ["Language Rights", "Environment", "Economy"],
+      population: "8.6M",
+      capital: "Quebec City",
+      premier: "François Legault"
     },
     {
       province: "British Columbia",
       score: 76,
       activeUsers: 3456,
       change: -0.5,
-      topIssues: ["Housing Crisis", "Environment", "Indigenous Rights"]
+      topIssues: ["Housing Crisis", "Environment", "Indigenous Rights"],
+      population: "5.2M",
+      capital: "Victoria",
+      premier: "David Eby"
     },
     {
       province: "Alberta",
       score: 69,
       activeUsers: 2134,
       change: +4.2,
-      topIssues: ["Energy Policy", "Healthcare", "Economy"]
+      topIssues: ["Energy Policy", "Healthcare", "Economy"],
+      population: "4.5M",
+      capital: "Edmonton",
+      premier: "Danielle Smith"
     },
     {
       province: "Saskatchewan",
       score: 64,
       activeUsers: 890,
       change: +1.2,
-      topIssues: ["Agriculture", "Healthcare", "Infrastructure"]
+      topIssues: ["Agriculture", "Healthcare", "Infrastructure"],
+      population: "1.2M",
+      capital: "Regina",
+      premier: "Scott Moe"
+    },
+    {
+      province: "Manitoba",
+      score: 62,
+      activeUsers: 756,
+      change: +0.8,
+      topIssues: ["Healthcare", "Indigenous Relations", "Economy"],
+      population: "1.4M",
+      capital: "Winnipeg",
+      premier: "Wab Kinew"
+    },
+    {
+      province: "Nova Scotia",
+      score: 68,
+      activeUsers: 634,
+      change: +1.5,
+      topIssues: ["Healthcare", "Climate Change", "Housing"],
+      population: "1.0M",
+      capital: "Halifax",
+      premier: "Tim Houston"
+    },
+    {
+      province: "New Brunswick",
+      score: 65,
+      activeUsers: 445,
+      change: +0.9,
+      topIssues: ["Bilingualism", "Healthcare", "Economy"],
+      population: "800K",
+      capital: "Fredericton",
+      premier: "Blaine Higgs"
+    },
+    {
+      province: "Newfoundland and Labrador",
+      score: 61,
+      activeUsers: 334,
+      change: +0.6,
+      topIssues: ["Fisheries", "Energy", "Healthcare"],
+      population: "520K",
+      capital: "St. John's",
+      premier: "Andrew Furey"
+    },
+    {
+      province: "Prince Edward Island",
+      score: 67,
+      activeUsers: 223,
+      change: +1.1,
+      topIssues: ["Agriculture", "Tourism", "Healthcare"],
+      population: "170K",
+      capital: "Charlottetown",
+      premier: "Dennis King"
+    },
+    {
+      province: "Northwest Territories",
+      score: 58,
+      activeUsers: 89,
+      change: +0.4,
+      topIssues: ["Indigenous Rights", "Climate Change", "Infrastructure"],
+      population: "45K",
+      capital: "Yellowknife",
+      premier: "R.J. Simpson"
+    },
+    {
+      province: "Nunavut",
+      score: 55,
+      activeUsers: 67,
+      change: +0.3,
+      topIssues: ["Indigenous Rights", "Healthcare", "Education"],
+      population: "40K",
+      capital: "Iqaluit",
+      premier: "P.J. Akeeagok"
+    },
+    {
+      province: "Yukon",
+      score: 63,
+      activeUsers: 123,
+      change: +0.7,
+      topIssues: ["Mining", "Indigenous Relations", "Tourism"],
+      population: "43K",
+      capital: "Whitehorse",
+      premier: "Ranj Pillai"
     }
   ];
 
@@ -361,6 +456,65 @@ export default function PulsePage() {
         </TabsContent>
 
         <TabsContent value="regional" className="space-y-6">
+          {/* Regional Summary */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg">Total Regions</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold text-blue-600 mb-1">
+                  {regionalActivity.length}
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  Provinces & Territories
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg">Total Active Users</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold text-green-600 mb-1">
+                  {regionalActivity.reduce((sum, region) => sum + region.activeUsers, 0).toLocaleString()}
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  Across all regions
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg">Avg Engagement</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold text-purple-600 mb-1">
+                  {Math.round(regionalActivity.reduce((sum, region) => sum + region.score, 0) / regionalActivity.length)}
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  Average score
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg">Top Region</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold text-orange-600 mb-1">
+                  {regionalActivity.reduce((max, region) => region.score > max.score ? region : max).province}
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  Highest engagement
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+
           <div className="grid gap-4">
             {regionalActivity.map((region) => (
               <Card key={region.province} className="hover:shadow-lg transition-shadow">
@@ -369,9 +523,11 @@ export default function PulsePage() {
                     <div className="flex items-center space-x-4">
                       <div>
                         <h3 className="font-semibold">{region.province}</h3>
-                        <p className="text-sm text-muted-foreground">
-                          {region.activeUsers.toLocaleString()} active users
-                        </p>
+                        <div className="text-sm text-muted-foreground space-y-1">
+                          <p>{region.activeUsers.toLocaleString()} active users</p>
+                          <p>Population: {region.population} • Capital: {region.capital}</p>
+                          <p>Premier: {region.premier}</p>
+                        </div>
                       </div>
                       <div className="flex flex-wrap gap-1">
                         {region.topIssues.map((issue, index) => (
