@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 
 // Add UserStats interface
 interface UserStats {
@@ -28,24 +29,26 @@ interface UserStats {
 }
 
 export default function Profile() {
-  const { user: rawUser, isAuthenticated } = useAuth();
+  const { user: rawUser, isAuthenticated, updateProfile } = useAuth();
   const user = rawUser as any;
   const [showWelcome, setShowWelcome] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
-  const [editFirstName, setEditFirstName] = useState(user?.firstName || "");
-  const [editLastName, setEditLastName] = useState(user?.lastName || "");
-  const [editBio, setEditBio] = useState((user as any)?.bio || "");
-  const [editAvatar, setEditAvatar] = useState((user as any)?.profileImageUrl || "");
+  const [editFirstName, setEditFirstName] = useState("");
+  const [editLastName, setEditLastName] = useState("");
+  const [editBio, setEditBio] = useState("");
+  const [editAvatar, setEditAvatar] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const queryClient = useQueryClient();
-  const updateProfile = useMutation({
-    mutationFn: async (fields: any) => user ? apiRequest(`/api/users/${user.id}/profile`, "PATCH", fields) : Promise.reject("No user"),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
-      setEditOpen(false);
-      toast({ title: "Profile updated!", description: "Your changes have been saved." });
-    },
-  });
+  const { toast } = useToast();
+
+  // Update form state when user data changes
+  useEffect(() => {
+    if (user) {
+      setEditFirstName(user.firstName || "");
+      setEditLastName(user.lastName || "");
+      setEditBio(user.bio || "");
+      setEditAvatar(user.profileImageUrl || "");
+    }
+  }, [user]);
 
   useEffect(() => {
     // Show welcome notice only for new users (e.g., just registered)
@@ -54,6 +57,20 @@ export default function Profile() {
       setShowWelcome(true);
     }
   }, []);
+
+  const handleSaveProfile = async () => {
+    try {
+      await updateProfile({
+        firstName: editFirstName,
+        lastName: editLastName,
+        bio: editBio,
+        profileImageUrl: editAvatar
+      });
+      setEditOpen(false);
+    } catch (error) {
+      // Error is handled by updateProfile function
+    }
+  };
 
   if (!isAuthenticated || !user) {
     return (
@@ -184,18 +201,8 @@ export default function Profile() {
                         <Button variant="outline" onClick={() => setEditOpen(false)}>
                           Cancel
                         </Button>
-                        <Button 
-                          onClick={() => {
-                            updateProfile.mutate({
-                              firstName: editFirstName,
-                              lastName: editLastName,
-                              bio: editBio,
-                              profileImageUrl: editAvatar
-                            });
-                          }}
-                          disabled={updateProfile.isPending}
-                        >
-                          {updateProfile.isPending ? "Saving..." : "Save Changes"}
+                        <Button onClick={handleSaveProfile}>
+                          Save Changes
                         </Button>
                       </div>
                     </DialogContent>
@@ -203,7 +210,7 @@ export default function Profile() {
                 </div>
                 <p className="text-gray-600 mb-2">{user?.email}</p>
                 <p className="text-gray-700">
-                  {(user as any)?.bio || "No bio yet. Click 'Edit Profile' to add one!"}
+                  {user?.bio || "No bio yet. Click 'Edit Profile' to add one!"}
                 </p>
               </div>
             </div>

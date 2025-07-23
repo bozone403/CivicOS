@@ -1,56 +1,55 @@
-import { ReactNode } from 'react'
-import { useAuth } from '@/hooks/useAuth';
+import React from "react";
+import { LuxuryNavigation } from "./layout/LuxuryNavigation";
+import { MobileNavigation } from "./MobileNavigation";
+import { useAuth } from "@/hooks/useAuth";
+import { useLocation } from "wouter";
 
 interface LayoutProps {
-  children: ReactNode
+  children: React.ReactNode;
 }
 
 export function Layout({ children }: LayoutProps) {
-  const { user, logout } = useAuth()
+  const { isAuthenticated } = useAuth();
+  const [location] = useLocation();
+
+  // Don't show navigation on auth pages or landing page
+  const hideNavigation = location === "/auth" || location === "/" || location === "/landing";
+
+  if (hideNavigation) {
+    return <>{children}</>;
+  }
+
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <h2 className="text-xl font-bold mb-2">Loading...</h2>
+          <p className="text-gray-600">Please wait while we verify your credentials.</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b">
-        <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-          <div className="flex items-center space-x-4">
-            <h1 className="text-2xl font-bold text-primary">CivicOS</h1>
-            <span className="text-sm text-muted-foreground">Canadian Political Intelligence</span>
-          </div>
-          
-          {user && (
-            <div className="flex items-center space-x-4">
-              <div className="text-sm">
-                <span className="text-muted-foreground">Welcome, </span>
-                <span className="font-medium">{user.firstName || user.email}</span>
-              </div>
-              <button
-                onClick={() => logout()}
-                className="px-3 py-1 text-sm border border-border rounded-md hover:bg-muted transition-colors"
-              >
-                Logout
-              </button>
-            </div>
-          )}
+    <div className="min-h-screen bg-gray-50">
+      {/* Desktop Navigation */}
+      <div className="hidden md:block">
+        <LuxuryNavigation />
+        <div className="md:ml-64 pt-16">
+          <main className="p-6">
+            {children}
+          </main>
         </div>
-      </header>
+      </div>
 
-      {/* Main content */}
-      <main className="container mx-auto px-4 py-8">
-        {children}
-      </main>
-
-      {/* Footer */}
-      <footer className="border-t mt-auto">
-        <div className="container mx-auto px-4 py-6">
-          <div className="text-center text-sm text-muted-foreground">
-            <p>© 2024 CivicOS - Canadian Political Intelligence Platform</p>
-            <p className="mt-1">
-              Empowering citizens with real-time political data and civic engagement tools
-            </p>
-          </div>
-        </div>
-      </footer>
+      {/* Mobile Navigation */}
+      <div className="md:hidden">
+        <MobileNavigation />
+        <main className="pt-16 pb-20">
+          {children}
+        </main>
+      </div>
     </div>
-  )
+  );
 } 

@@ -44,7 +44,15 @@ import {
   X,
   LogOut,
   BookOpen,
-  Heart
+  Heart,
+  Vote,
+  MapPin,
+  Megaphone,
+  Globe,
+  User,
+  Settings as SettingsIcon,
+  HelpCircle,
+  Info
 } from "lucide-react";
 
 interface NavItem {
@@ -55,57 +63,62 @@ interface NavItem {
   subItems?: NavItem[];
 }
 
-const mainSections = [
+// Facebook-style navigation sections
+const navigationSections = [
   {
     title: "Main",
     items: [
       { title: "Dashboard", href: "/dashboard", icon: Home },
       { title: "CivicSocial", href: "/civicsocial/feed", icon: Users },
-      { title: "Discussions", href: "/civicsocial/discussions", icon: MessageSquare },
       { title: "News", href: "/news", icon: TrendingUp },
       { title: "Petitions", href: "/petitions", icon: FileText },
+    ]
+  },
+  {
+    title: "Democracy",
+    items: [
+      { title: "Bills & Voting", href: "/voting", icon: Vote },
+      { title: "Elections", href: "/elections", icon: Crown },
+      { title: "Politicians", href: "/politicians", icon: Users },
+      { title: "Contact Officials", href: "/contacts", icon: MessageSquare },
+    ]
+  },
+  {
+    title: "Legal & Rights",
+    items: [
+      { title: "Legal System", href: "/legal", icon: Gavel },
+      { title: "Your Rights", href: "/rights", icon: Shield },
+      { title: "Constitutional Cases", href: "/cases", icon: Scale },
+      { title: "Legal Search", href: "/legal-search", icon: Search },
+    ]
+  },
+  {
+    title: "Transparency",
+    items: [
+      { title: "Campaign Finance", href: "/finance", icon: DollarSign },
+      { title: "Lobbyist Mapping", href: "/lobbyists", icon: Eye },
+      { title: "Procurement Tracker", href: "/procurement", icon: Building },
+      { title: "Document Leaks", href: "/leaks", icon: Archive },
+      { title: "FOI Requests", href: "/foi", icon: Eye },
+      { title: "Whistleblower Portal", href: "/whistleblower", icon: AlertTriangle },
+      { title: "Corruption Patterns", href: "/corruption", icon: Activity },
+    ]
+  },
+  {
+    title: "Analysis",
+    items: [
+      { title: "Political Memory", href: "/memory", icon: Brain },
+      { title: "Pulse", href: "/pulse", icon: Activity },
+      { title: "Trust Metrics", href: "/trust", icon: BarChart3 },
+      { title: "Engagement Maps", href: "/maps", icon: MapPin },
+      { title: "Ledger", href: "/ledger", icon: BookOpen },
     ]
   }
 ];
 
-const moreSection = {
-  title: "More",
-  items: [
-    // Core Democracy
-    { title: "Bills & Voting", href: "/voting", icon: FileText },
-    { title: "Elections", href: "/elections", icon: Crown },
-    { title: "Politicians", href: "/politicians", icon: Users },
-    { title: "Contact Officials", href: "/contacts", icon: Users },
-    
-    // Legal & Rights
-    { title: "Legal System", href: "/legal", icon: Gavel },
-    { title: "Your Rights", href: "/rights", icon: Shield },
-    { title: "Constitutional Cases", href: "/cases", icon: Scale },
-    { title: "Legal Search", href: "/legal-search", icon: Search },
-    
-    // Transparency & Accountability
-    { title: "Campaign Finance", href: "/finance", icon: DollarSign },
-    { title: "Lobbyist Mapping", href: "/lobbyists", icon: Eye },
-    { title: "Procurement Tracker", href: "/procurement", icon: Building },
-    { title: "Document Leaks", href: "/leaks", icon: Archive },
-    { title: "FOI", href: "/foi", icon: Eye },
-    { title: "Whistleblower Portal", href: "/whistleblower", icon: AlertTriangle },
-    { title: "Corruption Patterns", href: "/corruption", icon: Activity },
-    
-    // Analysis & Data
-    { title: "Political Memory", href: "/memory", icon: Brain },
-    { title: "Pulse", href: "/pulse", icon: Activity },
-    { title: "Trust Metrics", href: "/trust", icon: BarChart3 },
-    { title: "Engagement Maps", href: "/maps", icon: TrendingUp },
-    { title: "Ledger", href: "/ledger", icon: BookOpen },
-    { title: "Manifesto", href: "/manifesto", icon: BookOpen },
-  ]
-};
-
 // Add Notification type for clarity
 interface Notification {
   id: string | number;
-  type: string;
   title: string;
   message: string;
   timestamp: string;
@@ -114,303 +127,272 @@ interface Notification {
 }
 
 export function LuxuryNavigation() {
+  const { user, logout } = useAuth();
   const [location] = useLocation();
-  const [, navigate] = useLocation();
-  const { user: rawUser, logout } = useAuth();
-  const user = rawUser as any;
-  const [expandedSections, setExpandedSections] = useState<string[]>(["Political Intelligence Hub"]);
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
   const [showDonationPopup, setShowDonationPopup] = useState(false);
   const [showDonationSuccess, setShowDonationSuccess] = useState(false);
-  const [donatedAmount, setDonatedAmount] = useState(0);
+  const [isCollapsed, setIsCollapsed] = useState(false);
   const { toast } = useToast();
 
-  const logoutMutation = useMutation({
-    mutationFn: async () => {
-      await apiRequest("/api/logout", "POST", {});
-    },
-    onSuccess: () => {
-      queryClient.setQueryData(["/api/auth/user"], null);
-      queryClient.clear();
-      toast({
-        title: "Logged out successfully",
-        description: "You have been securely logged out of CivicOS",
-      });
-      navigate("/");
-    },
-    onError: () => {
-      toast({
-        title: "Logout failed",
-        description: "There was an error logging out. Please try again.",
-        variant: "destructive",
-      });
-    },
+  // Fetch notifications
+  const { data: notifications = [] } = useQuery<Notification[]>({
+    queryKey: ['/api/notifications'],
+    queryFn: () => apiRequest('/api/notifications', 'GET'),
+    refetchInterval: 30000, // Refetch every 30 seconds
   });
 
+  const unreadCount = notifications.filter(n => !n.read).length;
+
   const toggleSection = (sectionTitle: string) => {
-    setExpandedSections(prev => 
-      prev.includes(sectionTitle)
-        ? prev.filter(title => title !== sectionTitle)
-        : [...prev, sectionTitle]
-    );
+    const newCollapsed = new Set(collapsedSections);
+    if (newCollapsed.has(sectionTitle)) {
+      newCollapsed.delete(sectionTitle);
+    } else {
+      newCollapsed.add(sectionTitle);
+    }
+    setCollapsedSections(newCollapsed);
   };
 
   const isActive = (href: string) => {
-    if (href === "/" && location === "/") return true;
-    if (href !== "/" && location.startsWith(href)) return true;
-    return false;
+    return location === href || location.startsWith(href + '/');
   };
 
-  const { data: notifications = [] } = useQuery<Notification[]>({
-    queryKey: ["/api/notifications"],
-    enabled: true,
-  });
-  const unreadCount = notifications.filter((n) => !n.read).length;
+  const handleDonationSuccess = () => {
+    setShowDonationPopup(false);
+    setShowDonationSuccess(true);
+    setTimeout(() => setShowDonationSuccess(false), 3000);
+  };
 
   return (
-    <div className={cn(
-      "bg-white border-r-2 border-gray-200 h-screen flex flex-col transition-all duration-300 ease-in-out shadow-lg",
-      "hidden md:flex", // Hide on mobile, show on md and up
-      isCollapsed ? "w-16" : "w-64 lg:w-72"
-    )}>
-      {/* Clean Header */}
-      <div className="flex-shrink-0 bg-white border-b border-gray-200">
-        <div className="p-4">
-          <div className="flex items-center justify-between mb-4">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setIsCollapsed(!isCollapsed)}
-              className="text-gray-600 hover:bg-gray-100 hover:text-gray-800"
-            >
-              {isCollapsed ? <Menu className="w-5 h-5" /> : <X className="w-5 h-5" />}
-            </Button>
-          </div>
-          {/* Add top-level CivicSocial button */}
-          {!isCollapsed && (
-            <div className="space-y-4">
-              <div className="flex items-center justify-center space-x-2">
-                <img 
-                  src={canadianCrest} 
-                  alt="CivicOS Crest" 
-                  className="w-8 h-8 object-contain"
-                />
-                <h1 className="text-2xl font-bold text-gray-900 tracking-tight">CivicOS</h1>
-              </div>
-              <Link href="/civicsocial/feed">
-                <Button
-                  className={cn(
-                    "w-full justify-center bg-gradient-to-r from-blue-600 to-blue-800 text-white font-bold shadow-lg hover:from-blue-700 hover:to-blue-900 transition-all duration-200 text-lg h-12",
-                    isActive("/civicsocial") && "ring-2 ring-blue-400"
-                  )}
-                >
-                  CivicSocial
-                </Button>
-              </Link>
+    <>
+      {/* Facebook-style Top Bar */}
+      <div className="fixed top-0 left-0 right-0 z-50 bg-white border-b border-gray-200 shadow-sm">
+        <div className="flex items-center justify-between px-4 h-16">
+          {/* Left: Logo and Search */}
+          <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-2">
+              <img src={canadianCrest} alt="CivicOS" className="w-8 h-8" />
+              <span className="text-xl font-bold text-gray-900">CivicOS</span>
             </div>
-          )}
-        </div>
-        {/* User Profile Section */}
-        {user && !isCollapsed && (
-          <div className="bg-gray-50 border-t border-gray-200 px-3 lg:px-4 py-2 lg:py-3">
-            <Link href="/profile">
-              <div className="flex items-center space-x-2 lg:space-x-3 hover:bg-gray-100 rounded p-2 transition-colors cursor-pointer">
-                <div className="w-6 h-6 lg:w-8 lg:h-8 rounded-full bg-red-600 flex items-center justify-center flex-shrink-0">
-                  <span className="text-xs lg:text-sm font-bold text-white">
-                    {user?.firstName?.[0] || user?.email?.[0] || "U"}
-                  </span>
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs lg:text-sm font-medium text-gray-800 truncate">
-                    {user?.firstName || user?.email || "User"}
-                  </p>
-                  <Badge className="text-xs bg-green-100 text-green-700 font-semibold mt-1">
-                    Verified Citizen
-                  </Badge>
-                </div>
-              </div>
+            <div className="hidden md:flex relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Search CivicOS..."
+                className="w-64 pl-10 pr-4 py-2 bg-gray-100 border border-gray-300 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+          </div>
+
+          {/* Center: Main Navigation */}
+          <div className="hidden lg:flex items-center space-x-1">
+            <Link href="/dashboard">
+              <Button variant={isActive('/dashboard') ? 'default' : 'ghost'} size="sm" className="px-4">
+                <Home className="w-4 h-4 mr-2" />
+                Dashboard
+              </Button>
+            </Link>
+            <Link href="/civicsocial/feed">
+              <Button variant={isActive('/civicsocial') ? 'default' : 'ghost'} size="sm" className="px-4">
+                <Users className="w-4 h-4 mr-2" />
+                CivicSocial
+              </Button>
+            </Link>
+            <Link href="/news">
+              <Button variant={isActive('/news') ? 'default' : 'ghost'} size="sm" className="px-4">
+                <TrendingUp className="w-4 h-4 mr-2" />
+                News
+              </Button>
+            </Link>
+            <Link href="/petitions">
+              <Button variant={isActive('/petitions') ? 'default' : 'ghost'} size="sm" className="px-4">
+                <FileText className="w-4 h-4 mr-2" />
+                Petitions
+              </Button>
             </Link>
           </div>
-        )}
-      </div>
-      {/* Navigation Content */}
-      <div className="flex-1 overflow-y-auto overflow-x-hidden px-2 lg:px-3 py-3 lg:py-4 bg-white">
-        {isCollapsed ? (
-          // Collapsed view - show only icons
-          (<div className="space-y-2">
-            {mainSections.flatMap(section => section.items).map((item) => (
-              <Link key={item.href} href={item.href}>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className={cn(
-                    "w-8 h-8 lg:w-10 lg:h-10 text-gray-600 hover:bg-red-50 hover:text-red-600 border border-gray-200",
-                    isActive(item.href) && "bg-red-600 text-white hover:bg-red-700 hover:text-white"
-                  )}
-                  title={item.title}
-                >
-                  <item.icon className="w-4 h-4 lg:w-5 lg:h-5" />
-                </Button>
-              </Link>
-            ))}
-          </div>)
-        ) : (
-          // Expanded view - show full navigation
-          (<div className="space-y-6">
-            {mainSections.map((section) => (
-              <div key={section.title}>
-                <Button
-                  variant="ghost"
-                  className="w-full justify-between p-3 h-auto font-medium text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
-                  onClick={() => toggleSection(section.title)}
-                >
-                  <span className="font-serif text-gray-800 dark:text-gray-200">{section.title}</span>
-                  {expandedSections.includes(section.title) ? (
-                    <ChevronDown className="w-4 h-4 text-gray-500" />
-                  ) : (
-                    <ChevronRight className="w-4 h-4 text-gray-500" />
-                  )}
-                </Button>
-                
-                <div className={cn(
-                  "ml-3 mt-2 space-y-1 transition-all duration-200 ease-in-out",
-                  expandedSections.includes(section.title) 
-                    ? "block opacity-100" 
-                    : "hidden opacity-0"
-                )}>
-                  {section.items.map((item) => (
-                    <Link key={item.href} href={item.href}>
-                      <Button
-                        variant="ghost"
-                        className={cn(
-                          "w-full justify-start space-x-3 h-10 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800",
-                          isActive(item.href) && "bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 border-l-3 border-blue-500"
-                        )}
-                      >
-                                              <item.icon className="w-4 h-4" />
-                      <span className="flex-1 text-left text-sm">{item.title}</span>
-                      </Button>
-                    </Link>
-                  ))}
-                </div>
-              </div>
-            ))}
-            <div className="mt-6">
-              <Button
-                variant="ghost"
-                className="w-full justify-between p-3 h-auto font-medium text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
-                aria-label="More menu"
-                onClick={() => toggleSection("More")}
-              >
-                <span className="font-serif text-gray-800 dark:text-gray-200">More</span>
-                {expandedSections.includes("More") ? (
-                  <ChevronDown className="w-4 h-4 text-gray-500" />
-                ) : (
-                  <ChevronRight className="w-4 h-4 text-gray-500" />
-                )}
-              </Button>
-              <div className={cn(
-                "ml-3 mt-2 space-y-1 transition-all duration-200 ease-in-out",
-                expandedSections.includes("More") 
-                  ? "block opacity-100" 
-                  : "hidden opacity-0"
-              )}>
-                {moreSection.items.map((item) => (
-                  <Link key={item.href} href={item.href}>
-                    <Button
-                      variant="ghost"
-                      className={cn(
-                        "w-full justify-start space-x-3 h-10 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800",
-                        isActive(item.href) && "bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 border-l-3 border-blue-500"
-                      )}
-                      aria-label={item.title}
-                    >
-                      <item.icon className="w-4 h-4" />
-                      <span className="flex-1 text-left text-sm">{item.title}</span>
-                    </Button>
-                  </Link>
-                ))}
-              </div>
-            </div>
-          </div>)
-        )}
-      </div>
-      <div className="flex-shrink-0 p-3 lg:p-4 border-t border-gray-200 dark:border-gray-700">
-        <div className="space-y-2 lg:space-y-3">
-          {/* Donation Button - Make it prominent */}
-          <Button
-            onClick={() => setShowDonationPopup(true)}
-            className="w-full justify-start space-x-2 lg:space-x-3 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-200 group text-xs lg:text-sm h-10 lg:h-11 px-3 lg:px-4 mb-2"
-          >
-            <Heart className="w-4 h-4 lg:w-5 lg:h-5 group-hover:scale-105 transition-transform duration-150" />
-            <span className="font-semibold">Support Platform</span>
-          </Button>
-          
-          <Link href="/settings">
-            <Button
-              variant={isActive("/settings") ? "secondary" : "ghost"}
-              className="w-full justify-start space-x-2 lg:space-x-3 text-xs lg:text-sm h-8 lg:h-9 px-2 lg:px-3"
-            >
-              <Settings className="w-3 h-3 lg:w-4 lg:h-4" />
-              <span>Settings</span>
-            </Button>
-          </Link>
 
-          <Link href="/notifications">
-            <Button 
-              variant={isActive("/notifications") ? "secondary" : "ghost"} 
-              className="w-full justify-start space-x-2 lg:space-x-3 text-xs lg:text-sm h-8 lg:h-9 px-2 lg:px-3"
-            >
-              <Bell className="w-3 h-3 lg:w-4 lg:h-4" />
-              <span>Notifications</span>
+          {/* Right: User Menu */}
+          <div className="flex items-center space-x-2">
+            <Button variant="ghost" size="sm" className="relative">
+              <Bell className="w-5 h-5" />
               {unreadCount > 0 && (
-                <Badge variant="destructive" className="ml-auto text-xs">{unreadCount}</Badge>
+                <Badge className="absolute -top-1 -right-1 h-5 w-5 rounded-full p-0 text-xs">
+                  {unreadCount}
+                </Badge>
               )}
             </Button>
-          </Link>
-          
-          <Button
-            onClick={() => logout()}
-            disabled={false}
-            className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 rounded-md transition-colors"
-          >
-            <LogOut className="h-4 w-4 mr-2" />
-            <span>Logout</span>
-          </Button>
-        </div>
-        
-        {/* Attribution */}
-        <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-          <div className="text-center">
-            <p className="text-xs text-gray-500 dark:text-gray-400">
-              Built by Jordan Kenneth Boisclair
-            </p>
-            <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
-              © 2025 CivicOS™
-            </p>
-            <p className="text-xs text-gray-400 dark:text-gray-500">
-              Transparency is no longer optional
-            </p>
+            <div className="relative group">
+              <Button variant="ghost" size="sm" className="flex items-center space-x-2">
+                <div className="w-8 h-8 rounded-full bg-gray-600 flex items-center justify-center text-white text-sm font-bold">
+                  {user?.firstName?.[0] || user?.email?.[0] || "U"}
+                </div>
+                <span className="hidden md:block text-sm font-medium">
+                  {user?.firstName || user?.email?.split('@')[0] || 'User'}
+                </span>
+                <ChevronDown className="w-4 h-4" />
+              </Button>
+              <div className="absolute right-0 mt-2 w-48 bg-white shadow-lg rounded-lg border border-gray-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+                <div className="py-2">
+                  <Link href="/profile">
+                    <Button variant="ghost" className="w-full justify-start px-4 py-2">
+                      <User className="w-4 h-4 mr-2" />
+                      Profile
+                    </Button>
+                  </Link>
+                  <Link href="/settings">
+                    <Button variant="ghost" className="w-full justify-start px-4 py-2">
+                      <SettingsIcon className="w-4 h-4 mr-2" />
+                      Settings
+                    </Button>
+                  </Link>
+                  <Separator className="my-1" />
+                  <Button 
+                    variant="ghost" 
+                    className="w-full justify-start px-4 py-2 text-red-600 hover:text-red-700 hover:bg-red-50"
+                    onClick={() => logout()}
+                  >
+                    <LogOut className="w-4 h-4 mr-2" />
+                    Logout
+                  </Button>
+                </div>
+              </div>
+            </div>
           </div>
+        </div>
+      </div>
+
+      {/* Sidebar Navigation */}
+      <div className={cn(
+        "fixed left-0 top-16 h-[calc(100vh-4rem)] bg-white border-r border-gray-200 shadow-sm transition-all duration-300 z-40",
+        isCollapsed ? "w-16" : "w-64"
+      )}>
+        <ScrollArea className="h-full">
+          <div className="p-4 space-y-6">
+            {/* Collapse Button */}
+            <div className="flex justify-end">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setIsCollapsed(!isCollapsed)}
+                className="w-8 h-8 p-0"
+              >
+                {isCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+              </Button>
+            </div>
+
+            {/* Navigation Sections */}
+            {navigationSections.map((section) => (
+              <div key={section.title} className="space-y-2">
+                {!isCollapsed && (
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                      {section.title}
+                    </h3>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => toggleSection(section.title)}
+                      className="w-6 h-6 p-0"
+                    >
+                      {collapsedSections.has(section.title) ? (
+                        <ChevronRight className="w-3 h-3" />
+                      ) : (
+                        <ChevronDown className="w-3 h-3" />
+                      )}
+                    </Button>
+                  </div>
+                )}
+                
+                {(!isCollapsed && !collapsedSections.has(section.title)) && (
+                  <div className="space-y-1">
+                    {section.items.map((item) => (
+                      <Link key={item.href} href={item.href}>
+                        <Button
+                          variant={isActive(item.href) ? "default" : "ghost"}
+                          className={cn(
+                            "w-full justify-start text-sm h-9",
+                            isActive(item.href) && "bg-blue-50 text-blue-700 border-blue-200"
+                          )}
+                        >
+                          <item.icon className="w-4 h-4 mr-3" />
+                          {item.title}
+                        </Button>
+                      </Link>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ))}
+
+            {/* User Info Section */}
+            {!isCollapsed && (
+              <div className="pt-6 border-t border-gray-200">
+                <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
+                  <div className="w-10 h-10 rounded-full bg-gray-600 flex items-center justify-center text-white font-bold">
+                    {user?.firstName?.[0] || user?.email?.[0] || "U"}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-gray-900 truncate">
+                      {user?.firstName && user?.lastName 
+                        ? `${user.firstName} ${user.lastName}`
+                        : user?.email?.split('@')[0] || 'User'
+                      }
+                    </p>
+                    <p className="text-xs text-gray-500 truncate">{user?.email}</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Quick Actions */}
+            {!isCollapsed && (
+              <div className="space-y-2">
+                <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                  Quick Actions
+                </h3>
+                <div className="space-y-1">
+                  <Button variant="outline" size="sm" className="w-full justify-start text-sm h-9">
+                    <HelpCircle className="w-4 h-4 mr-3" />
+                    Help & Support
+                  </Button>
+                  <Button variant="outline" size="sm" className="w-full justify-start text-sm h-9">
+                    <Info className="w-4 h-4 mr-3" />
+                    About CivicOS
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
+        </ScrollArea>
+      </div>
+
+      {/* Main Content Area */}
+      <div className={cn(
+        "transition-all duration-300",
+        isCollapsed ? "ml-16" : "ml-64"
+      )}>
+        <div className="pt-16">
+          {/* Content will be rendered here */}
         </div>
       </div>
 
       {/* Donation Popups */}
-      <DonationPopup
-        isOpen={showDonationPopup}
-        onClose={() => setShowDonationPopup(false)}
-        onSuccess={() => {
-          setShowDonationPopup(false);
-          setDonatedAmount(25); // Default success amount
-          setShowDonationSuccess(true);
-        }}
-      />
-
-      <DonationSuccess
-        isOpen={showDonationSuccess}
-        onClose={() => setShowDonationSuccess(false)}
-        amount={donatedAmount}
-      />
-    </div>
+      {showDonationPopup && (
+        <DonationPopup
+          isOpen={showDonationPopup}
+          onClose={() => setShowDonationPopup(false)}
+          onSuccess={handleDonationSuccess}
+        />
+      )}
+      {showDonationSuccess && (
+        <DonationSuccess
+          isOpen={showDonationSuccess}
+          onClose={() => setShowDonationSuccess(false)}
+          amount={25}
+        />
+      )}
+    </>
   );
 }
