@@ -180,6 +180,27 @@ const CANADIAN_PETITIONS_DATA = [
       { name: "Canadian Chamber of Commerce", role: "Business Organization", location: "Ottawa, ON" },
       { name: "Canadian Restaurant and Foodservices Association", role: "Industry Association", location: "Toronto, ON" }
     ]
+  },
+  {
+    id: 9,
+    title: "Alberta Independence Referendum",
+    description: "Petition to hold a provincial referendum on Alberta's independence from Canada, allowing Albertans to vote on their constitutional future and potential sovereignty.",
+    creator: "Alberta Sovereignty Movement",
+    category: "Constitutional",
+    region: "Alberta",
+    targetSignatures: 25000,
+    currentSignatures: 18945,
+    daysLeft: 45,
+    status: "Active",
+    urgency: "High",
+    verified: true,
+    image: "https://images.unsplash.com/photo-1559757148-5c350d0d3c56?w=800&h=400&fit=crop",
+    tags: ["Alberta Independence", "Constitutional Reform", "Provincial Sovereignty"],
+    supporters: [
+      { name: "Alberta Sovereignty Movement", role: "Advocacy Organization", location: "Calgary, AB" },
+      { name: "Western Canada Foundation", role: "Think Tank", location: "Edmonton, AB" },
+      { name: "Alberta First Coalition", role: "Political Organization", location: "Red Deer, AB" }
+    ]
   }
 ];
 
