@@ -27,7 +27,7 @@ export function registerDashboardRoutes(app) {
     app.get('/api/dashboard/stats', /* jwtAuth, */ async (req, res) => {
         try {
             const userId = req.user?.id || 'test-user-id';
-            console.log('Dashboard stats requested for user:', userId);
+            console.log('🔧 UPDATED DASHBOARD CODE - Dashboard stats requested for user:', userId);
             // Get real data from database
             const [totalVotesResult, activeBillsResult, politiciansTrackedResult, petitionsSignedResult, userResult] = await Promise.allSettled([
                 // Get user's total votes

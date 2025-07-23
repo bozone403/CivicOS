@@ -29,7 +29,7 @@ export function registerDashboardRoutes(app: Express) {
   app.get('/api/dashboard/stats', /* jwtAuth, */ async (req: Request, res: Response) => {
     try {
       const userId = (req as any).user?.id || 'test-user-id';
-      console.log('Dashboard stats requested for user:', userId);
+      console.log('🔧 UPDATED DASHBOARD CODE - Dashboard stats requested for user:', userId);
 
       // Get real data from database
       const [
