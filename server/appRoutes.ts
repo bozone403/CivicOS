@@ -219,12 +219,14 @@ export async function registerRoutes(app: Express): Promise<void> {
         console.error("[/api/auth/user] JWT decode error:", jwtDecodeError);
       }
       const userId = (req.user as JwtPayload)?.id;
+      console.log("[/api/auth/user] User ID from JWT:", userId);
       if (!userId) {
         console.error("[/api/auth/user] No userId in JWT");
         return res.status(401).json({ message: "Unauthorized" });
       }
       try {
         const user = await storage.getUser(userId);
+        console.log("[/api/auth/user] User from database:", user ? { id: (user as any).id, email: (user as any).email } : null);
         if (user) {
           console.log("[/api/auth/user] Found user", userId);
           // Return the complete user object
