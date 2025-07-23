@@ -54,10 +54,13 @@ export function CivicAI() {
   const chatMutation = useMutation({
     mutationFn: async (query: string) => {
       return await apiRequest("/api/ai/chat", "POST", { 
-        query, 
-        region: userRegion,
-        conversationHistory: messages.slice(-5) // Last 5 messages for context
-      }) as AIResponse;
+        message: query,
+        context: {
+          userLocation: userRegion,
+          userInterests: [],
+          previousMessages: messages.slice(-5).map(m => m.content)
+        }
+      });
     },
     onSuccess: (data, query) => {
       const userMessage: Message = {
@@ -70,12 +73,12 @@ export function CivicAI() {
       const assistantMessage: Message = {
         id: `assistant-${Date.now()}`,
         role: "assistant",
-        content: data.response,
+        content: data.message,
         timestamp: new Date(),
-        analysisType: data.analysisType,
+        analysisType: "general",
         metadata: {
-          confidence: data.confidence,
-          sources: data.sources,
+          confidence: 0.8,
+          sources: [],
           region: userRegion || undefined,
         }
       };
@@ -83,7 +86,7 @@ export function CivicAI() {
       setMessages(prev => [...prev, userMessage, assistantMessage]);
       
       // Auto-ask for region if not set and response involves regional data
-      if (!userRegion && (data.analysisType === "politician" || data.response.includes("region"))) {
+      if (!userRegion && (data.message.includes("region") || data.message.includes("constituency"))) {
         setTimeout(() => {
           const regionMessage: Message = {
             id: `region-${Date.now()}`,
@@ -100,12 +103,12 @@ export function CivicAI() {
       const errorMessage: Message = {
         id: `error-${Date.now()}`,
         role: "assistant",
-        content: `Error analyzing your question: ${error.message}. Try rephrasing or asking about a specific bill number or politician name.`,
+        content: "I'm having trouble connecting to my AI service right now. This might be because the free AI service is starting up. Please try again in a moment, or check if Ollama is running on your system.",
         timestamp: new Date(),
         analysisType: "general",
       };
       setMessages(prev => [...prev, errorMessage]);
-    },
+    }
   });
 
   const handleSubmit = (e: React.FormEvent) => {

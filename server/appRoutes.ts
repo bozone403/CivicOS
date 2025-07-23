@@ -3,6 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage.js";
 import simpleNotificationsRouter from "./simpleNotifications.js";
 import civicSocialRouter from "./civicSocial.js";
+import aiRoutes from "./aiRoutes.js";
 
 import { authenticDataService } from "./authenticDataService.js";
 import { politicianDataEnhancer } from "./politicianDataEnhancer.js";
@@ -104,6 +105,9 @@ export async function registerRoutes(app: Express): Promise<void> {
 
   // CivicSocial routes (JWT protected)
   app.use("/api/social", jwtAuth, civicSocialRouter);
+
+  // AI routes (free AI service using Ollama)
+  app.use("/api/ai", aiRoutes);
 
   // JWT Registration
   app.post('/api/auth/register', async (req, res) => {
