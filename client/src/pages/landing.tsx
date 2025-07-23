@@ -187,6 +187,10 @@ export default function Landing() {
     setLocation('/login');
   };
 
+  const handleGetStartedClick = () => {
+    setLocation('/login');
+  };
+
   return (
     <div className="min-h-screen bg-white">
       {/* Header with Language Toggle */}
@@ -312,7 +316,7 @@ export default function Landing() {
 
             <div className="flex flex-col sm:flex-row justify-center items-center space-y-4 sm:space-y-0 sm:space-x-6">
               <Button
-                onClick={() => setLocation('/auth')}
+                onClick={handleGetStartedClick}
                 className="bg-red-600 hover:bg-red-700 text-white font-semibold px-8 py-4 text-lg rounded-lg shadow-lg transform hover:scale-105 transition-all duration-200"
               >
                 {t.hero.cta}
