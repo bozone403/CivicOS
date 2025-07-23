@@ -12,6 +12,12 @@ import rateLimit from "express-rate-limit";
 import jwt from "jsonwebtoken";
 import pino from "pino";
 import { existsSync } from 'fs';
+
+// Fix SSL certificate issues in production
+if (process.env.NODE_ENV === 'production') {
+  process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+}
+
 const logger = pino();
 // Enforce SESSION_SECRET is set before anything else
 if (!process.env.SESSION_SECRET) {
@@ -144,9 +150,6 @@ app.use(rateLimit({
     process.exit(1);
   }
 })();
-
-// Force Node.js to ignore SSL errors (paranoid fix for Supabase self-signed certs)
-process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
 
 // Paranoid logging for Node.js version and SSL config
 console.log('[Startup] Node.js version:', process.version);

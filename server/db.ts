@@ -36,7 +36,10 @@ console.log('[DB] Connecting to:', {
 
 export const pool = new Pool({ 
   connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false }
+  ssl: { 
+    rejectUnauthorized: false,
+    checkServerIdentity: () => undefined
+  }
 });
 
 // Paranoid: Drizzle does not accept 'ssl' in config, so we rely on Pool's SSL config only

@@ -151,7 +151,7 @@ export async function registerRoutes(app) {
             try {
                 const token = req.headers.authorization?.split(' ')[1];
                 if (token) {
-                    const decoded = require('jsonwebtoken').decode(token);
+                    const decoded = jwt.decode(token);
                     console.log("[/api/auth/user] Decoded JWT:", decoded);
                 }
             }
