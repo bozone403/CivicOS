@@ -31,15 +31,23 @@ import {
   Activity,
   Brain,
   BarChart3,
-  Crown
+  Crown,
+  Megaphone,
+  Globe,
+  Newspaper,
+  FileSignature,
+  Gift,
+  Sparkles
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import { useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import DonationPopup from "@/components/DonationPopup";
+import DonationSuccess from "@/components/DonationSuccess";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { useToast } from "@/hooks/use-toast";
 
 // Add Notification type for clarity
 interface Notification {
@@ -54,10 +62,23 @@ interface Notification {
 
 export function MobileNavigation() {
   const [location] = useLocation();
-  const { user: rawUser, logout } = useAuth();
-  const user = rawUser as any;
-  const [showDonationPopup, setShowDonationPopup] = useState(false);
+  const { user, logout } = useAuth();
+  const { toast } = useToast();
   const [showMoreMenu, setShowMoreMenu] = useState(false);
+  const [showDonationPopup, setShowDonationPopup] = useState(false);
+  const [showDonationSuccess, setShowDonationSuccess] = useState(false);
+  const [donationAmount, setDonationAmount] = useState(0);
+
+  const handleDonationSuccess = () => {
+    setDonationAmount(25); // Default amount for success message
+    setShowDonationPopup(false);
+    setShowDonationSuccess(true);
+    setTimeout(() => setShowDonationSuccess(false), 3000);
+  };
+
+  const handleDonationClose = () => {
+    setShowDonationPopup(false);
+  };
 
   const isActive = (href: string) => {
     if (href === "/" && location === "/") return true;
@@ -186,6 +207,24 @@ export function MobileNavigation() {
               <SheetHeader>
                 <SheetTitle className="text-left">CivicOS Features</SheetTitle>
               </SheetHeader>
+              
+              {/* Prominent Donation Button */}
+              <div className="mb-6 p-4 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg mx-4 mt-4">
+                <Button
+                  onClick={() => {
+                    setShowDonationPopup(true);
+                    setShowMoreMenu(false);
+                  }}
+                  className="w-full bg-white text-blue-600 hover:bg-gray-50 font-semibold py-3 rounded-lg shadow-lg border-2 border-white/20"
+                >
+                  <Gift className="w-5 h-5 mr-2" />
+                  <Sparkles className="w-4 h-4 mr-2" />
+                  Support CivicOS
+                </Button>
+                <p className="text-white/90 text-xs mt-2 text-center">
+                  Help us build a better democracy
+                </p>
+              </div>
               
               <div className="overflow-y-auto h-full pb-20">
                 {/* CivicSocial Section */}
@@ -337,8 +376,15 @@ export function MobileNavigation() {
       {/* Donation Popup */}
       <DonationPopup
         isOpen={showDonationPopup}
-        onClose={() => setShowDonationPopup(false)}
-        onSuccess={() => setShowDonationPopup(false)}
+        onClose={handleDonationClose}
+        onSuccess={handleDonationSuccess}
+      />
+
+      {/* Donation Success */}
+      <DonationSuccess
+        isOpen={showDonationSuccess}
+        onClose={() => setShowDonationSuccess(false)}
+        amount={donationAmount}
       />
     </>
   );
