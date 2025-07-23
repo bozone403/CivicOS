@@ -5,6 +5,7 @@ import civicSocialRouter from "./civicSocial.js";
 import aiRoutes from "./aiRoutes.js";
 import path from "path";
 import { fileURLToPath } from 'url';
+import fs from 'fs';
 // Import modular route registrations
 import { registerAuthRoutes, jwtAuth } from "./routes/auth.js";
 import { registerApiRoutes } from "./routes/api.js";
@@ -50,7 +51,6 @@ export async function registerRoutes(app) {
     console.log('  - __dirname:', __dirname);
     console.log('  - process.env.PWD:', process.env.PWD);
     // Check if the directory exists
-    const fs = require('fs');
     if (fs.existsSync(publicPath)) {
         console.log('  - ✅ Public path exists');
         console.log('  - Files in public path:', fs.readdirSync(publicPath));
@@ -90,4 +90,13 @@ export async function registerRoutes(app) {
         console.log('  - ❌ No alternative paths found');
     }
     app.use(express.static(publicPath));
+    // SPA fallback: serve index.html for all non-API routes
+    app.get('*', (req, res) => {
+        // Skip API routes
+        if (req.path.startsWith('/api/')) {
+            return res.status(404).json({ message: 'API endpoint not found' });
+        }
+        // Serve index.html for all other routes (SPA routing)
+        res.sendFile(path.join(publicPath, 'index.html'));
+    });
 }
