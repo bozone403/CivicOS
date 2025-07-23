@@ -7,6 +7,7 @@ import { CanadianCoatOfArms } from "@/components/CanadianCoatOfArms";
 import { LanguageToggle } from "@/components/LanguageToggle";
 import canadianCrest from "@/assets/ChatGPT Image Jun 20, 2025, 06_03_54 PM_1750464244456.png";
 import { useState, useEffect } from "react";
+import { useLocation } from "wouter";
 import {
   Shield,
   Vote,
@@ -161,6 +162,7 @@ const content = {
 export default function Landing() {
   const [showManifesto, setShowManifesto] = useState(false);
   const [language, setLanguage] = useState<"en" | "fr">("en");
+  const [location, setLocation] = useLocation();
 
   const t = content[language];
 
@@ -181,6 +183,10 @@ export default function Landing() {
     setShowManifesto(false);
   };
 
+  const handleLoginClick = () => {
+    setLocation('/login');
+  };
+
   return (
     <div className="min-h-screen bg-white">
       {/* Header with Language Toggle */}
@@ -197,7 +203,7 @@ export default function Landing() {
               </div>
             </div>
             <div className="flex items-center space-x-4">
-              <Button variant="outline" size="sm">
+              <Button variant="outline" size="sm" onClick={handleLoginClick}>
                 {t.hero.login}
               </Button>
               <LanguageToggle 
@@ -306,7 +312,7 @@ export default function Landing() {
 
             <div className="flex flex-col sm:flex-row justify-center items-center space-y-4 sm:space-y-0 sm:space-x-6">
               <Button
-                onClick={() => window.location.href = '/login'}
+                onClick={() => setLocation('/auth')}
                 className="bg-red-600 hover:bg-red-700 text-white font-semibold px-8 py-4 text-lg rounded-lg shadow-lg transform hover:scale-105 transition-all duration-200"
               >
                 {t.hero.cta}
