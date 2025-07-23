@@ -1,0 +1,55 @@
+services:
+  - type: web
+    name: civicos-backend
+    env: node
+    plan: starter
+    buildCommand: |
+      # Install Ollama
+      curl -fsSL https://ollama.ai/install.sh | sh
+      # Start Ollama service
+      ollama serve &
+      # Wait for Ollama to be ready
+      sleep 10
+      # Pull Mistral model
+      ollama pull mistral:latest
+      # Build the application
+      npm install
+      npm run build
+    startCommand: ./start-render.sh
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: ENABLE_OLLAMA
+        value: true
+      - key: OLLAMA_BASE_URL
+        value: http://localhost:11434
+      - key: OLLAMA_MODEL
+        value: mistral:latest
+      - key: DATABASE_URL
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_ANON_KEY
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: STRIPE_SECRET_KEY
+        sync: false
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false
+      - key: SENDGRID_API_KEY
+        sync: false
+      - key: FROM_EMAIL
+        sync: false
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: GITHUB_CLIENT_ID
+        sync: false
+      - key: GITHUB_CLIENT_SECRET
+        sync: false
+      - key: SESSION_SECRET
+        sync: false
+      - key: CORS_ORIGIN
+        value: https://civicos-frontend.onrender.com 

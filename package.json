@@ -11,7 +11,7 @@
     "build:full": "npm run build && npm run build:client",
     "start": "NODE_ENV=production RENDER=true node dist/server/index.js",
     "start:render": "NODE_ENV=production RENDER=true node dist/server/index.js",
-    "postinstall": "node server/initOllama.js",
+    "postinstall": "echo 'Ollama will be installed during build process'",
     "check": "tsc",
     "db:push": "drizzle-kit push",
     "deploy": "vercel --prod",

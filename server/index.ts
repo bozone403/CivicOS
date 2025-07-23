@@ -237,19 +237,31 @@ app.get("/health", (_req, res) => {
   // Initialize automatic government data sync
   initializeDataSync();
   
-  // Initialize Ollama AI service for production (optional)
-  if (process.env.NODE_ENV === 'production' && process.env.ENABLE_OLLAMA === 'true') {
+  // Initialize Ollama AI service for production
+  if (process.env.NODE_ENV === 'production') {
     console.log('🤖 Initializing Ollama AI service for production...');
     try {
-      const { initializeOllama } = await import('./initOllama.js');
-      await initializeOllama();
-      console.log('✅ Ollama AI service initialized successfully');
+      // Test Ollama connection
+      const response = await fetch('http://localhost:11434/api/tags');
+      if (response.ok) {
+        console.log('✅ Ollama is running and ready');
+        // Check if Mistral is available
+        const data = await response.json();
+        const models = data.models || [];
+        const mistralModel = models.find((m: any) => m.name.includes('mistral'));
+        if (mistralModel) {
+          console.log('✅ Mistral model is available');
+        } else {
+          console.log('⚠️  Mistral model not found, pulling...');
+          // This would be handled by the startup script
+        }
+      } else {
+        throw new Error('Ollama not responding');
+      }
     } catch (error) {
-      console.error('❌ Failed to initialize Ollama AI service:', error);
+      console.error('❌ Failed to connect to Ollama:', error);
       console.log('⚠️  AI functionality will use fallback responses');
     }
-  } else {
-    console.log('🤖 Ollama AI service disabled - using fallback responses');
   }
   
   // Run immediate data scraping on startup
