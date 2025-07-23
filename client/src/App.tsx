@@ -39,6 +39,7 @@ const Pulse = lazy(() => import("@/pages/pulse"));
 const Trust = lazy(() => import("@/pages/trust"));
 const Maps = lazy(() => import("@/pages/maps"));
 const Ledger = lazy(() => import("@/pages/ledger"));
+const Search = lazy(() => import("@/pages/search"));
 
 // CivicSocial Pages
 const CivicSocialFeed = lazy(() => import("@/pages/civicsocial-feed"));
@@ -363,6 +364,14 @@ export default function App() {
                   <ProtectedRoute>
                     <Layout>
                       <Ledger />
+                    </Layout>
+                  </ProtectedRoute>
+                </Route>
+                
+                <Route path="/search">
+                  <ProtectedRoute>
+                    <Layout>
+                      <Search />
                     </Layout>
                   </ProtectedRoute>
                 </Route>

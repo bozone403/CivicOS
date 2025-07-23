@@ -177,13 +177,28 @@ export function LuxuryNavigation() {
     sessionStorage.setItem('donationPopupShown', 'true');
   };
 
-  const handleSearch = (e: React.FormEvent) => {
+  const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Implement search functionality
-    toast({
-      title: "Search",
-      description: `Searching for: ${searchQuery}`,
-    });
+    
+    if (!searchQuery.trim()) {
+      toast({
+        title: "Search",
+        description: "Please enter a search term",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      // Navigate to search results page with query
+      window.location.href = `/search?q=${encodeURIComponent(searchQuery)}`;
+    } catch (error) {
+      toast({
+        title: "Search Error",
+        description: "Failed to perform search. Please try again.",
+        variant: "destructive"
+      });
+    }
   };
 
   return (

@@ -4,6 +4,7 @@ import { storage } from "./storage.js";
 import simpleNotificationsRouter from "./simpleNotifications.js";
 import civicSocialRouter from "./civicSocial.js";
 import aiRoutes from "./aiRoutes.js";
+import searchRouter from "./routes/search.js";
 import path from "path";
 import { fileURLToPath } from 'url';
 import fs from 'fs';
@@ -32,6 +33,9 @@ export async function registerRoutes(app: Express): Promise<void> {
 
   // Voting routes (JWT protected)
   app.use("/api/voting", jwtAuth, votingRouter);
+
+  // Search routes (no auth required for search)
+  app.use("/api/search", searchRouter);
 
   // Health check endpoint
   app.get('/api/health', async (req, res) => {
