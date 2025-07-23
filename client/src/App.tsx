@@ -376,6 +376,14 @@ export default function App() {
                   </ProtectedRoute>
                 </Route>
                 
+                <Route path="/civicsocial/feed">
+                  <ProtectedRoute>
+                    <Layout>
+                      <CivicSocialFeed />
+                    </Layout>
+                  </ProtectedRoute>
+                </Route>
+                
                 <Route path="/civicsocial/profile">
                   <ProtectedRoute>
                     <Layout>
