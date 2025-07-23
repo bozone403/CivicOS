@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -6,14 +6,51 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Archive, Shield, Calendar, Download, Lock, AlertTriangle, Eye } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
+
+interface Leak {
+  id: string;
+  title: string;
+  category: string;
+  severity: string;
+  verificationStatus: string;
+  datePublished: string;
+  summary: string;
+  keyFindings: string[];
+  publicImpact: string;
+  mediaAttention: string;
+  documentCount: number;
+  pagesReleased: number;
+  exemptionsUsed: string[];
+  totalCost: number;
+}
+
+interface LeaksResponse {
+  leaks: Leak[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    pages: number;
+  };
+}
 
 export default function LeaksPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterCategory, setFilterCategory] = useState("all");
+  const [currentPage, setCurrentPage] = useState(1);
 
-  // Remove all references to leakArchive and show fallback UI if no data is available
-  // Example:
-  // if (!leakData) return <div>No leaks available.</div>;
+  const { data: leaksData, isLoading, error } = useQuery<LeaksResponse>({
+    queryKey: ['/api/leaks', searchTerm, filterCategory, currentPage],
+    queryFn: () => apiRequest('/api/leaks', 'GET', {
+      search: searchTerm,
+      category: filterCategory,
+      page: currentPage.toString(),
+      limit: '20'
+    }),
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
 
   const getSeverityColor = (severity: string) => {
     switch (severity) {
@@ -42,6 +79,33 @@ export default function LeaksPage() {
     });
   };
 
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-center py-12">
+          <div className="text-center">
+            <Archive className="w-12 h-12 mx-auto mb-4 text-gray-400 animate-pulse" />
+            <p className="text-gray-600">Loading government leak archive...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-center py-12">
+          <div className="text-center">
+            <AlertTriangle className="w-12 h-12 mx-auto mb-4 text-red-400" />
+            <p className="text-red-600">Failed to load leak archive</p>
+            <p className="text-gray-600 text-sm mt-2">Please try again later</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -58,7 +122,7 @@ export default function LeaksPage() {
           </Badge>
           <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
             <Archive className="w-3 h-3 mr-1" />
-            No leaks available
+            {leaksData?.pagination.total || 0} documents
           </Badge>
         </div>
       </div>
@@ -96,176 +160,134 @@ export default function LeaksPage() {
           </div>
 
           <div className="grid gap-6">
-            {/* {leakArchive.map((leak) => ( */}
-            {/* <Card key={leak.id} className="hover:shadow-lg transition-shadow border-l-4 border-l-blue-500"> */}
-            {/* <CardHeader> */}
-            {/* <div className="flex items-start justify-between"> */}
-            {/* <div className="flex-1"> */}
-            {/* <CardTitle className="text-xl">{leak.title}</CardTitle> */}
-            {/* <CardDescription className="mt-1"> */}
-            {/* {leak.source} • {formatDate(leak.dateLeaked)} */}
-            {/* </CardDescription> */}
-            {/* <div className="flex items-center space-x-2 mt-3"> */}
-            {/* <Badge className={getSeverityColor(leak.severity)}> */}
-            {/* {leak.severity} Impact */}
-            {/* </Badge> */}
-            {/* <Badge className={getVerificationColor(leak.verification)}> */}
-            {/* <Shield className="w-3 h-3 mr-1" /> */}
-            {/* {leak.verification} */}
-            {/* </Badge> */}
-            {/* <Badge variant="outline"> */}
-            {/* {leak.category} */}
-            {/* </Badge> */}
-            {/* <Badge variant="outline"> */}
-            {/* <Calendar className="w-3 h-3 mr-1" /> */}
-            {/* {leak.documentsCount} docs */}
-            {/* </Badge> */}
-            {/* </div> */}
-            {/* </div> */}
-            {/* <div className="text-right"> */}
-            {/* <div className="text-2xl font-bold text-red-600"> */}
-            {/* {leak.publicImpact}/10 */}
-            {/* </div> */}
-            {/* <div className="text-sm text-muted-foreground">Impact Score</div> */}
-            {/* </div> */}
-            {/* </div> */}
-            {/* </CardHeader> */}
-            {/* <CardContent> */}
-            {/* <div className="space-y-4"> */}
-            {/* <div> */}
-            {/* <div className="text-sm font-medium text-muted-foreground mb-2">Summary</div> */}
-            {/* <p className="text-sm">{leak.description}</p> */}
-            {/* </div> */}
-
-            {/* <div> */}
-            {/* <div className="text-sm font-medium text-muted-foreground mb-2">Key Findings</div> */}
-            {/* <ul className="text-sm space-y-1"> */}
-            {/* {leak.keyFindings.map((finding, index) => ( */}
-            {/* <li key={index} className="text-muted-foreground flex items-start"> */}
-            {/* <AlertTriangle className="w-3 h-3 mr-2 mt-1 text-orange-500 flex-shrink-0" /> */}
-            {/* {finding} */}
-            {/* </li> */}
-            {/* ))} */}
-            {/* </ul> */}
-            {/* </div> */}
-
-            {/* <div className="grid grid-cols-1 md:grid-cols-2 gap-4"> */}
-            {/* <div> */}
-            {/* <div className="text-sm font-medium text-muted-foreground mb-1">Government Response</div> */}
-            {/* <div className="text-sm">{leak.governmentResponse}</div> */}
-            {/* </div> */}
-            {/* <div> */}
-            {/* <div className="text-sm font-medium text-muted-foreground mb-1">Legal Status</div> */}
-            {/* <div className="text-sm">{leak.legalStatus}</div> */}
-            {/* </div> */}
-            {/* </div> */}
-
-            {/* <div> */}
-            {/* <div className="text-sm font-medium text-muted-foreground mb-1">Media Coverage</div> */}
-            {/* <div className="text-sm">{leak.mediaAttention}</div> */}
-            {/* </div> */}
-            {/* </div> */}
-
-            {/* <div className="flex items-center justify-between pt-4 border-t mt-4"> */}
-            {/* <div className="flex items-center space-x-2"> */}
-            {/* <Lock className="w-4 h-4 text-muted-foreground" /> */}
-            {/* <span className="text-sm text-muted-foreground"> */}
-            {/* Secure • Verified • Protected Source */}
-            {/* </span> */}
-            {/* </div> */}
-            {/* <div className="flex space-x-2"> */}
-            {/* <Button variant="outline" size="sm"> */}
-            {/* <Eye className="w-3 h-3 mr-2" /> */}
-            {/* View Details */}
-            {/* </Button> */}
-            {/* <Button variant="outline" size="sm"> */}
-            {/* <Download className="w-3 h-3 mr-2" /> */}
-            {/* Download */}
-            {/* </Button> */}
-            {/* </div> */}
-            {/* </div> */}
-            {/* </CardContent> */}
-            {/* </Card> */}
-            {/* ))} */}
-            <div className="text-center py-12 text-muted-foreground">
-              <Shield className="w-12 h-12 mx-auto mb-4 opacity-50" />
-              <p className="text-lg font-medium mb-2">No leaks available</p>
-              <p className="text-sm mb-4">Please check back later for new government disclosures.</p>
-            </div>
+            {leaksData?.leaks.map((leak) => (
+              <Card key={leak.id} className="hover:shadow-lg transition-shadow border-l-4 border-l-blue-500">
+                <CardHeader>
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <CardTitle className="text-lg font-semibold">{leak.title}</CardTitle>
+                      <CardDescription className="mt-2">
+                        {leak.summary}
+                      </CardDescription>
+                    </div>
+                    <div className="flex flex-col items-end space-y-2 ml-4">
+                      <Badge className={getSeverityColor(leak.severity)}>
+                        {leak.severity}
+                      </Badge>
+                      <Badge className={getVerificationColor(leak.verificationStatus)}>
+                        {leak.verificationStatus}
+                      </Badge>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <h4 className="font-semibold text-sm mb-2">Key Findings</h4>
+                      <ul className="text-sm space-y-1">
+                        {leak.keyFindings.map((finding, index) => (
+                          <li key={index} className="flex items-start">
+                            <span className="text-blue-600 mr-2">•</span>
+                            {finding}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-muted-foreground">Published:</span>
+                        <span>{formatDate(leak.datePublished)}</span>
+                      </div>
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-muted-foreground">Documents:</span>
+                        <span>{leak.documentCount}</span>
+                      </div>
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-muted-foreground">Pages Released:</span>
+                        <span>{leak.pagesReleased}</span>
+                      </div>
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-muted-foreground">Total Cost:</span>
+                        <span>${leak.totalCost.toFixed(2)}</span>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="mt-4 pt-4 border-t">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h4 className="font-semibold text-sm mb-1">Public Impact</h4>
+                        <p className="text-sm text-muted-foreground">{leak.publicImpact}</p>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Button variant="outline" size="sm">
+                          <Eye className="w-4 h-4 mr-2" />
+                          View Details
+                        </Button>
+                        <Button variant="outline" size="sm">
+                          <Download className="w-4 h-4 mr-2" />
+                          Download
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
           </div>
+
+          {leaksData?.leaks.length === 0 && (
+            <div className="text-center py-12">
+              <Archive className="w-12 h-12 mx-auto mb-4 text-gray-400" />
+              <p className="text-gray-600">No leaks found matching your criteria</p>
+            </div>
+          )}
         </TabsContent>
 
         <TabsContent value="analysis" className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <Archive className="w-5 h-5 text-blue-600" />
-                  <span>Total Leaks</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold text-blue-600 mb-2">847</div>
-                <p className="text-sm text-muted-foreground">
-                  Documents in secure archive
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <AlertTriangle className="w-5 h-5 text-red-600" />
-                  <span>Critical Issues</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold text-red-600 mb-2">23</div>
-                <p className="text-sm text-muted-foreground">
-                  High-impact government failures
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <Shield className="w-5 h-5 text-green-600" />
-                  <span>Verified Sources</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold text-green-600 mb-2">156</div>
-                <p className="text-sm text-muted-foreground">
-                  Protected whistleblowers
-                </p>
-              </CardContent>
-            </Card>
-          </div>
+          <Card>
+            <CardHeader>
+              <CardTitle>Impact Analysis</CardTitle>
+              <CardDescription>
+                Analysis of leak impact on government transparency and public trust
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <p className="text-muted-foreground">
+                Impact analysis features will be available soon. This will include detailed analysis
+                of how leaks have affected government transparency, policy changes, and public trust.
+              </p>
+            </CardContent>
+          </Card>
         </TabsContent>
 
         <TabsContent value="submit" className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>Secure Document Submission</CardTitle>
+              <CardTitle>Submit a Leak</CardTitle>
               <CardDescription>
-                Submit government documents securely with full source protection
+                Secure submission portal for government documents and transparency disclosures
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="text-center py-12 text-muted-foreground">
-                <Shield className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                <p className="text-lg font-medium mb-2">Secure Submission Portal</p>
-                <p className="text-sm mb-4">End-to-end encrypted document submission with source protection</p>
-                <div className="space-y-2 text-sm">
-                  <p>• Anonymous TOR routing</p>
-                  <p>• Military-grade encryption</p>
-                  <p>• Legal protection guaranteed</p>
+              <div className="space-y-4">
+                <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                  <div className="flex items-start">
+                    <AlertTriangle className="w-5 h-5 text-yellow-600 mt-0.5 mr-3 flex-shrink-0" />
+                    <div>
+                      <h4 className="font-semibold text-yellow-800 mb-1">Important Notice</h4>
+                      <p className="text-yellow-700 text-sm">
+                        This submission portal is for legitimate government transparency disclosures only. 
+                        All submissions are verified and must comply with Canadian whistleblower protection laws.
+                      </p>
+                    </div>
+                  </div>
                 </div>
-                <Button className="mt-6" variant="default">
-                  <Lock className="w-4 h-4 mr-2" />
-                  Access Secure Portal
-                </Button>
+                
+                <p className="text-muted-foreground">
+                  Secure leak submission features will be available soon. This will include encrypted
+                  file upload, anonymous submission options, and legal protection information.
+                </p>
               </div>
             </CardContent>
           </Card>

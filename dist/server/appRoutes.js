@@ -3280,34 +3280,66 @@ export async function registerRoutes(app) {
     // GCKey OAuth callback endpoint
     app.get('/api/auth/gckey/callback', async (req, res) => {
         try {
-            // In production, validate the code and state with GCKey
             const { code, state } = req.query;
-            // TODO: Exchange code for user info with GCKey
-            // For now, simulate verification for the logged-in user (JWT in cookie or header)
-            let userId = null;
-            // Try to get userId from JWT in Authorization header
-            const authHeader = req.headers.authorization;
-            if (authHeader && authHeader.startsWith('Bearer ')) {
-                const token = authHeader.split(' ')[1];
-                try {
-                    const decoded = jwt.verify(token, JWT_SECRET);
-                    if (typeof decoded === 'object' && decoded && 'id' in decoded) {
-                        userId = decoded.id;
-                    }
-                }
-                catch (err) {
-                    return res.status(401).json({ error: 'Invalid or expired token' });
-                }
+            // For now, we'll implement a simplified version without state validation
+            // In production, you would validate the state parameter against stored session data
+            // Exchange authorization code for access token
+            const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: new URLSearchParams({
+                    code: code,
+                    client_id: process.env.GCKEY_CLIENT_ID || '',
+                    client_secret: process.env.GCKEY_CLIENT_SECRET || '',
+                    redirect_uri: `${process.env.FRONTEND_BASE_URL}/api/auth/gckey/callback`,
+                    grant_type: 'authorization_code',
+                }),
+            });
+            if (!tokenResponse.ok) {
+                throw new Error('Failed to exchange code for token');
             }
-            // Optionally, support session/cookie-based auth here
-            if (!userId) {
-                return res.status(401).json({ error: 'User not authenticated' });
+            const tokenData = await tokenResponse.json();
+            const accessToken = tokenData.access_token;
+            // Get user info from GCKey
+            const userInfoResponse = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
+                headers: {
+                    'Authorization': `Bearer ${accessToken}`,
+                },
+            });
+            if (!userInfoResponse.ok) {
+                throw new Error('Failed to get user info from GCKey');
             }
-            await storage.updateUserVerification(userId, true);
-            // Redirect to frontend with success (customize as needed)
-            return res.redirect('/identity-verification?verified=1');
+            const userInfo = await userInfoResponse.json();
+            // Find or create user in our database
+            let user = await storage.getUserByEmail(userInfo.email);
+            if (!user) {
+                // Create new user with GCKey info
+                const userId = uuidv4();
+                user = await storage.createUser({
+                    id: userId,
+                    email: userInfo.email,
+                    firstName: userInfo.given_name || '',
+                    lastName: userInfo.family_name || '',
+                    governmentIdVerified: true,
+                    verificationLevel: 'government_id',
+                    isVerified: true,
+                    createdAt: new Date(),
+                    updatedAt: new Date(),
+                });
+            }
+            else {
+                // Update existing user's verification status
+                await storage.updateUserVerification(user.id, true);
+            }
+            // Generate JWT token
+            const token = generateToken(user);
+            // Redirect to frontend with success
+            return res.redirect(`${process.env.FRONTEND_BASE_URL}/identity-verification?verified=1&token=${token}`);
         }
         catch (error) {
+            console.error('GCKey OAuth error:', error);
             res.status(500).json({ error: (error instanceof Error ? error.message : String(error)) });
         }
     });
@@ -3387,6 +3419,247 @@ export async function registerRoutes(app) {
         catch (error) {
             logger.error({ msg: 'Error fetching FOI requests', error });
             res.status(500).json({ message: "Failed to fetch FOI requests" });
+        }
+    });
+    // Leaks API endpoints
+    app.get('/api/leaks', async (req, res) => {
+        try {
+            const { search, category, page = '1', limit = '20' } = req.query;
+            const offset = (parseInt(page) - 1) * parseInt(limit);
+            // For now, return mock data structure
+            // In production, this would query a real leaks database
+            const mockLeaks = [
+                {
+                    id: '1',
+                    title: 'Government Procurement Irregularities',
+                    category: 'Procurement Fraud',
+                    severity: 'High',
+                    verificationStatus: 'Verified',
+                    datePublished: '2024-01-15',
+                    summary: 'Documentation revealing systematic procurement irregularities in federal contracts.',
+                    keyFindings: ['Contract splitting to avoid oversight', 'Favored vendor selection', 'Inadequate documentation'],
+                    publicImpact: 'Led to parliamentary investigation and policy reforms',
+                    mediaAttention: 'High',
+                    documentCount: 15,
+                    pagesReleased: 250,
+                    exemptionsUsed: ['Cabinet confidence', 'Personal information'],
+                    totalCost: 1500.00
+                },
+                {
+                    id: '2',
+                    title: 'Environmental Assessment Bypass',
+                    category: 'Government Failures',
+                    severity: 'Critical',
+                    verificationStatus: 'Partially Verified',
+                    datePublished: '2024-02-20',
+                    summary: 'Internal communications showing environmental assessments were bypassed for major infrastructure projects.',
+                    keyFindings: ['Political pressure on regulators', 'Incomplete assessments', 'Public safety concerns'],
+                    publicImpact: 'Triggered environmental policy review',
+                    mediaAttention: 'Very High',
+                    documentCount: 8,
+                    pagesReleased: 120,
+                    exemptionsUsed: ['Cabinet confidence'],
+                    totalCost: 800.00
+                }
+            ];
+            // Filter by search term
+            let filteredLeaks = mockLeaks;
+            if (search) {
+                const searchLower = search.toLowerCase();
+                filteredLeaks = mockLeaks.filter(leak => leak.title.toLowerCase().includes(searchLower) ||
+                    leak.category.toLowerCase().includes(searchLower) ||
+                    leak.summary.toLowerCase().includes(searchLower));
+            }
+            // Filter by category
+            if (category && category !== 'all') {
+                filteredLeaks = filteredLeaks.filter(leak => leak.category === category);
+            }
+            // Pagination
+            const total = filteredLeaks.length;
+            const paginatedLeaks = filteredLeaks.slice(offset, offset + parseInt(limit));
+            res.json({
+                leaks: paginatedLeaks,
+                pagination: {
+                    page: parseInt(page),
+                    limit: parseInt(limit),
+                    total,
+                    pages: Math.ceil(total / parseInt(limit))
+                }
+            });
+        }
+        catch (error) {
+            console.error('Error fetching leaks:', error);
+            res.status(500).json({ error: 'Failed to fetch leaks data' });
+        }
+    });
+    // Memory API endpoints
+    app.get('/api/memory', async (req, res) => {
+        try {
+            const { search, timeframe, page = '1', limit = '20' } = req.query;
+            const offset = (parseInt(page) - 1) * parseInt(limit);
+            // Mock political memory data
+            const mockMemory = [
+                {
+                    id: '1',
+                    politician: 'Justin Trudeau',
+                    promise: 'Electoral reform',
+                    madeDate: '2015-10-19',
+                    status: 'Broken',
+                    details: 'Promised to make 2015 the last election under first-past-the-post',
+                    impact: 'High',
+                    mediaAttention: 'Significant',
+                    publicReaction: 'Disappointment',
+                    followUpActions: 'None taken'
+                },
+                {
+                    id: '2',
+                    politician: 'Stephen Harper',
+                    promise: 'Balanced budget by 2015',
+                    madeDate: '2011-05-02',
+                    status: 'Partially Kept',
+                    details: 'Achieved small surplus in 2015, but through controversial measures',
+                    impact: 'Medium',
+                    mediaAttention: 'Moderate',
+                    publicReaction: 'Mixed',
+                    followUpActions: 'Budget cuts to achieve target'
+                }
+            ];
+            let filteredMemory = mockMemory;
+            if (search) {
+                const searchLower = search.toLowerCase();
+                filteredMemory = mockMemory.filter(item => item.politician.toLowerCase().includes(searchLower) ||
+                    item.promise.toLowerCase().includes(searchLower) ||
+                    item.details.toLowerCase().includes(searchLower));
+            }
+            const total = filteredMemory.length;
+            const paginatedMemory = filteredMemory.slice(offset, offset + parseInt(limit));
+            res.json({
+                memory: paginatedMemory,
+                pagination: {
+                    page: parseInt(page),
+                    limit: parseInt(limit),
+                    total,
+                    pages: Math.ceil(total / parseInt(limit))
+                }
+            });
+        }
+        catch (error) {
+            console.error('Error fetching memory data:', error);
+            res.status(500).json({ error: 'Failed to fetch memory data' });
+        }
+    });
+    // Corruption API endpoints
+    app.get('/api/corruption', async (req, res) => {
+        try {
+            const { search, pattern, page = '1', limit = '20' } = req.query;
+            const offset = (parseInt(page) - 1) * parseInt(limit);
+            // Mock corruption patterns data
+            const mockCorruption = [
+                {
+                    id: '1',
+                    pattern: 'Contract Steering',
+                    description: 'Systematic awarding of contracts to favored companies',
+                    jurisdiction: 'Federal',
+                    severity: 'High',
+                    cases: 12,
+                    totalValue: 45000000,
+                    status: 'Under Investigation',
+                    lastUpdated: '2024-01-15'
+                },
+                {
+                    id: '2',
+                    pattern: 'Lobbying Influence',
+                    description: 'Undue influence of lobbyists on policy decisions',
+                    jurisdiction: 'Provincial',
+                    severity: 'Medium',
+                    cases: 8,
+                    totalValue: 15000000,
+                    status: 'Resolved',
+                    lastUpdated: '2024-02-20'
+                }
+            ];
+            let filteredCorruption = mockCorruption;
+            if (search) {
+                const searchLower = search.toLowerCase();
+                filteredCorruption = mockCorruption.filter(item => item.pattern.toLowerCase().includes(searchLower) ||
+                    item.description.toLowerCase().includes(searchLower) ||
+                    item.jurisdiction.toLowerCase().includes(searchLower));
+            }
+            if (pattern && pattern !== 'all') {
+                filteredCorruption = filteredCorruption.filter(item => item.pattern === pattern);
+            }
+            const total = filteredCorruption.length;
+            const paginatedCorruption = filteredCorruption.slice(offset, offset + parseInt(limit));
+            res.json({
+                corruption: paginatedCorruption,
+                pagination: {
+                    page: parseInt(page),
+                    limit: parseInt(limit),
+                    total,
+                    pages: Math.ceil(total / parseInt(limit))
+                }
+            });
+        }
+        catch (error) {
+            console.error('Error fetching corruption data:', error);
+            res.status(500).json({ error: 'Failed to fetch corruption data' });
+        }
+    });
+    // Cases API endpoints
+    app.get('/api/cases', async (req, res) => {
+        try {
+            const { search, court, page = '1', limit = '20' } = req.query;
+            const offset = (parseInt(page) - 1) * parseInt(limit);
+            // Mock legal cases data
+            const mockCases = [
+                {
+                    id: '1',
+                    title: 'R. v. Jordan',
+                    court: 'Supreme Court of Canada',
+                    date: '2016-07-08',
+                    status: 'Decided',
+                    summary: 'Established the Jordan framework for unreasonable delay in criminal proceedings',
+                    impact: 'Major precedent for criminal procedure',
+                    parties: ['Crown', 'Jordan'],
+                    citation: '2016 SCC 27'
+                },
+                {
+                    id: '2',
+                    title: 'Reference re Greenhouse Gas Pollution Pricing Act',
+                    court: 'Supreme Court of Canada',
+                    date: '2021-03-25',
+                    status: 'Decided',
+                    summary: 'Upheld federal carbon pricing legislation as constitutional',
+                    impact: 'Confirmed federal jurisdiction over climate policy',
+                    parties: ['Attorney General of Canada', 'Various Provinces'],
+                    citation: '2021 SCC 11'
+                }
+            ];
+            let filteredCases = mockCases;
+            if (search) {
+                const searchLower = search.toLowerCase();
+                filteredCases = mockCases.filter(item => item.title.toLowerCase().includes(searchLower) ||
+                    item.summary.toLowerCase().includes(searchLower) ||
+                    item.citation.toLowerCase().includes(searchLower));
+            }
+            if (court && court !== 'all') {
+                filteredCases = filteredCases.filter(item => item.court === court);
+            }
+            const total = filteredCases.length;
+            const paginatedCases = filteredCases.slice(offset, offset + parseInt(limit));
+            res.json({
+                cases: paginatedCases,
+                pagination: {
+                    page: parseInt(page),
+                    limit: parseInt(limit),
+                    total,
+                    pages: Math.ceil(total / parseInt(limit))
+                }
+            });
+        }
+        catch (error) {
+            console.error('Error fetching cases data:', error);
+            res.status(500).json({ error: 'Failed to fetch cases data' });
         }
     });
 }

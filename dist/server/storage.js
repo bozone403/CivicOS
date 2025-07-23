@@ -16,6 +16,24 @@ export class DatabaseStorage {
         const [user] = await db.select().from(users).where(eq(users.id, id));
         return user;
     }
+    async getUserByEmail(email) {
+        const [user] = await db.select().from(users).where(eq(users.email, email));
+        return user;
+    }
+    async createUser(userData) {
+        const [user] = await db
+            .insert(users)
+            .values(userData)
+            .onConflictDoUpdate({
+            target: users.id,
+            set: {
+                ...userData,
+                updatedAt: new Date(),
+            },
+        })
+            .returning();
+        return user;
+    }
     async upsertUser(userData) {
         const [user] = await db
             .insert(users)

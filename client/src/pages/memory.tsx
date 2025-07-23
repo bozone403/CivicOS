@@ -5,131 +5,120 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Brain, Clock, AlertTriangle, Search, Calendar, Archive } from "lucide-react";
+import { Brain, Calendar, AlertTriangle, CheckCircle, Clock, TrendingUp, User } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
+
+interface MemoryItem {
+  id: string;
+  politician: string;
+  promise: string;
+  madeDate: string;
+  status: string;
+  details: string;
+  impact: string;
+  mediaAttention: string;
+  publicReaction: string;
+  followUpActions: string;
+}
+
+interface MemoryResponse {
+  memory: MemoryItem[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    pages: number;
+  };
+}
 
 export default function MemoryPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterTimeframe, setFilterTimeframe] = useState("all");
+  const [currentPage, setCurrentPage] = useState(1);
 
-  // Remove the politicalMemoryData array and replace with API data only
-  // const politicalMemoryData = [
-  //   {
-  //     id: 1,
-  //     politician: "Justin Trudeau",
-  //     party: "Liberal",
-  //     promise: "Electoral Reform - Implement proportional representation",
-  //     datePromised: "2015-08-02",
-  //     context: "Federal Election Campaign",
-  //     status: "Broken",
-  //     actualOutcome: "Abandoned after consultations in 2017",
-  //     reasoning: "Lack of consensus on preferred system",
-  //     impactScore: 8.5,
-  //     publicReaction: "Significant backlash from reform advocates",
-  //     mediaAttention: "High",
-  //     followUpActions: "None - topic avoided in subsequent campaigns"
-  //   },
-  //   {
-  //     id: 2,
-  //     politician: "Pierre Poilievre", 
-  //     party: "Conservative",
-  //     promise: "Fire the Bank of Canada Governor",
-  //     datePromised: "2022-05-10",
-  //     context: "Conservative Leadership Campaign",
-  //     status: "Pending",
-  //     actualOutcome: "Position softened after becoming leader",
-  //     reasoning: "Constitutional and practical limitations acknowledged",
-  //     impactScore: 6.2,
-  //     publicReaction: "Mixed - supporters approve, economists concerned",
-  //     mediaAttention: "High",
-  //     followUpActions: "Shifted to criticizing monetary policy instead"
-  //   },
-  //   {
-  //     id: 3,
-  //     politician: "Jagmeet Singh",
-  //     party: "NDP",
-  //     promise: "Universal Pharmacare by 2020",
-  //     datePromised: "2019-09-11",
-  //     context: "Federal Election Campaign",
-  //     status: "Partially Kept",
-  //     actualOutcome: "Limited dental and pharmacare programs launched",
-  //     reasoning: "Negotiated through supply and confidence agreement",
-  //     impactScore: 7.1,
-  //     publicReaction: "Positive but incomplete",
-  //     mediaAttention: "Moderate",
-  //     followUpActions: "Continues to push for full implementation"
-  //   },
-  //   {
-  //     id: 4,
-  //     politician: "Doug Ford",
-  //     party: "Progressive Conservative",
-  //     promise: "Buck-a-beer pricing",
-  //     datePromised: "2018-06-29",
-  //     context: "Ontario Provincial Election",
-  //     status: "Failed",
-  //     actualOutcome: "Few breweries participated, minimal impact",
-  //     reasoning: "Market forces and production costs",
-  //     impactScore: 3.2,
-  //     publicReaction: "Mostly ridiculed as gimmick",
-  //     mediaAttention: "High initially, then mocked",
-  //     followUpActions: "Quietly dropped from messaging"
-  //   }
-  // ];
+  const { data: memoryData, isLoading, error } = useQuery<MemoryResponse>({
+    queryKey: ['/api/memory', searchTerm, filterTimeframe, currentPage],
+    queryFn: () => apiRequest('/api/memory', 'GET', {
+      search: searchTerm,
+      timeframe: filterTimeframe,
+      page: currentPage.toString(),
+      limit: '20'
+    }),
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
 
   const getStatusColor = (status: string) => {
     switch (status) {
       case "Kept": return "text-green-600 bg-green-50 border-green-200";
-      case "Partially Kept": return "text-blue-600 bg-blue-50 border-blue-200";
+      case "Partially Kept": return "text-yellow-600 bg-yellow-50 border-yellow-200";
       case "Broken": return "text-red-600 bg-red-50 border-red-200";
-      case "Pending": return "text-yellow-600 bg-yellow-50 border-yellow-200";
-      case "Failed": return "text-red-600 bg-red-50 border-red-200";
+      case "In Progress": return "text-blue-600 bg-blue-50 border-blue-200";
       default: return "text-gray-600 bg-gray-50 border-gray-200";
     }
   };
 
-  const getImpactColor = (score: number) => {
-    if (score >= 8) return "text-red-600";
-    if (score >= 6) return "text-yellow-600";
-    if (score >= 4) return "text-blue-600";
-    return "text-green-600";
+  const getImpactColor = (impact: string) => {
+    switch (impact) {
+      case "High": return "text-red-600 bg-red-50 border-red-200";
+      case "Medium": return "text-yellow-600 bg-yellow-50 border-yellow-200";
+      case "Low": return "text-green-600 bg-green-50 border-green-200";
+      default: return "text-gray-600 bg-gray-50 border-gray-200";
+    }
   };
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-CA', {
       year: 'numeric',
-      month: 'long', 
+      month: 'long',
       day: 'numeric'
     });
   };
 
-  const timeSincePromise = (dateString: string) => {
-    const promiseDate = new Date(dateString);
-    const now = new Date();
-    const years = now.getFullYear() - promiseDate.getFullYear();
-    const months = now.getMonth() - promiseDate.getMonth();
-    
-    if (years > 0) {
-      return `${years} year${years > 1 ? 's' : ''} ago`;
-    } else if (months > 0) {
-      return `${months} month${months > 1 ? 's' : ''} ago`;
-    } else {
-      const days = Math.floor((now.getTime() - promiseDate.getTime()) / (1000 * 60 * 60 * 24));
-      return `${days} day${days > 1 ? 's' : ''} ago`;
-    }
-  };
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-center py-12">
+          <div className="text-center">
+            <Brain className="w-12 h-12 mx-auto mb-4 text-gray-400 animate-pulse" />
+            <p className="text-gray-600">Loading political memory database...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-center py-12">
+          <div className="text-center">
+            <AlertTriangle className="w-12 h-12 mx-auto mb-4 text-red-400" />
+            <p className="text-red-600">Failed to load political memory data</p>
+            <p className="text-gray-600 text-sm mt-2">Please try again later</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold font-serif text-foreground">Political Memory Bank</h1>
+          <h1 className="text-3xl font-bold font-serif text-foreground">Political Memory</h1>
           <p className="text-muted-foreground mt-2">
-            Track campaign promises, policy reversals, and political accountability over time
+            Track political promises, commitments, and their outcomes over time
           </p>
         </div>
         <div className="flex items-center space-x-2">
-          <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200">
+          <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
             <Brain className="w-3 h-3 mr-1" />
-            Memory Tracking
+            Memory Database
+          </Badge>
+          <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+            <TrendingUp className="w-3 h-3 mr-1" />
+            {memoryData?.pagination.total || 0} promises tracked
           </Badge>
         </div>
       </div>
@@ -137,14 +126,14 @@ export default function MemoryPage() {
       <Tabs defaultValue="promises" className="w-full">
         <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="promises">Promise Tracker</TabsTrigger>
-          <TabsTrigger value="reversals">Policy Reversals</TabsTrigger>
-          <TabsTrigger value="accountability">Accountability Score</TabsTrigger>
+          <TabsTrigger value="analysis">Impact Analysis</TabsTrigger>
+          <TabsTrigger value="patterns">Pattern Recognition</TabsTrigger>
         </TabsList>
 
         <TabsContent value="promises" className="space-y-6">
           <div className="flex items-center space-x-4">
             <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+              <Brain className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
               <Input
                 placeholder="Search promises, politicians, or policies..."
                 value={searchTerm}
@@ -153,133 +142,125 @@ export default function MemoryPage() {
               />
             </div>
             <Select value={filterTimeframe} onValueChange={setFilterTimeframe}>
-              <SelectTrigger className="w-48">
+              <SelectTrigger className="w-64">
                 <SelectValue placeholder="Filter by timeframe" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Time</SelectItem>
                 <SelectItem value="current">Current Term</SelectItem>
-                <SelectItem value="last-election">Last Election</SelectItem>
-                <SelectItem value="last-5-years">Last 5 Years</SelectItem>
+                <SelectItem value="recent">Last 5 Years</SelectItem>
+                <SelectItem value="historical">Historical</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
           <div className="grid gap-6">
-            {/* Demo data for development */}
-            <div className="space-y-4">
-              <Card>
+            {memoryData?.memory.map((item) => (
+              <Card key={item.id} className="hover:shadow-lg transition-shadow">
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Brain className="w-5 h-5 text-blue-600" />
-                    <span>Climate Action Promise</span>
-                    <Badge variant="outline" className="ml-auto">2021</Badge>
-                  </CardTitle>
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <CardTitle className="text-lg font-semibold">{item.promise}</CardTitle>
+                      <CardDescription className="mt-2">
+                        Made by {item.politician} on {formatDate(item.madeDate)}
+                      </CardDescription>
+                    </div>
+                    <div className="flex flex-col items-end space-y-2 ml-4">
+                      <Badge className={getStatusColor(item.status)}>
+                        {item.status}
+                      </Badge>
+                      <Badge className={getImpactColor(item.impact)}>
+                        {item.impact} Impact
+                      </Badge>
+                    </div>
+                  </div>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-sm text-gray-600 mb-3">
-                    "We will reduce emissions by 40-45% below 2005 levels by 2030"
-                  </p>
-                  <div className="flex items-center gap-4 text-sm">
-                    <span className="text-green-600 font-semibold">Status: In Progress</span>
-                    <span className="text-gray-500">Last updated: 2024-06-15</span>
+                  <div className="space-y-4">
+                    <div>
+                      <h4 className="font-semibold text-sm mb-2">Details</h4>
+                      <p className="text-sm text-muted-foreground">{item.details}</p>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div>
+                        <h4 className="font-semibold text-sm mb-1">Media Attention</h4>
+                        <p className="text-sm text-muted-foreground">{item.mediaAttention}</p>
+                      </div>
+                      <div>
+                        <h4 className="font-semibold text-sm mb-1">Public Reaction</h4>
+                        <p className="text-sm text-muted-foreground">{item.publicReaction}</p>
+                      </div>
+                      <div>
+                        <h4 className="font-semibold text-sm mb-1">Follow-up Actions</h4>
+                        <p className="text-sm text-muted-foreground">{item.followUpActions}</p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between pt-4 border-t">
+                      <div className="flex items-center space-x-2 text-sm text-muted-foreground">
+                        <User className="w-4 h-4" />
+                        <span>{item.politician}</span>
+                        <Calendar className="w-4 h-4 ml-2" />
+                        <span>{formatDate(item.madeDate)}</span>
+                      </div>
+                      <div className="flex space-x-2">
+                        <Button variant="outline" size="sm">
+                          <Clock className="w-4 h-4 mr-2" />
+                          Track Progress
+                        </Button>
+                        <Button variant="outline" size="sm">
+                          <TrendingUp className="w-4 h-4 mr-2" />
+                          View Impact
+                        </Button>
+                      </div>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Brain className="w-5 h-5 text-green-600" />
-                    <span>Healthcare Funding</span>
-                    <Badge variant="outline" className="ml-auto">2022</Badge>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-gray-600 mb-3">
-                    "Increase healthcare transfers by $46.2 billion over 10 years"
-                  </p>
-                  <div className="flex items-center gap-4 text-sm">
-                    <span className="text-green-600 font-semibold">Status: Completed</span>
-                    <span className="text-gray-500">Completed: 2023-12-01</span>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <div className="text-center py-4">
-                <p className="text-sm text-muted-foreground">
-                  More promise tracking features coming soon.
-                </p>
-              </div>
-            </div>
+            ))}
           </div>
+
+          {memoryData?.memory.length === 0 && (
+            <div className="text-center py-12">
+              <Brain className="w-12 h-12 mx-auto mb-4 text-gray-400" />
+              <p className="text-gray-600">No political promises found matching your criteria</p>
+            </div>
+          )}
         </TabsContent>
 
-        <TabsContent value="reversals" className="space-y-6">
+        <TabsContent value="analysis" className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>Policy Reversal Timeline</CardTitle>
+              <CardTitle>Promise Impact Analysis</CardTitle>
               <CardDescription>
-                Track when politicians change their positions on key issues
+                Analysis of how political promises affect public trust and policy outcomes
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="text-center py-12 text-muted-foreground">
-                <Brain className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                <p>Policy reversal tracking coming soon.</p>
-                <p className="text-sm">This will show position changes over time with evidence.</p>
-              </div>
+              <p className="text-muted-foreground">
+                Impact analysis features will be available soon. This will include detailed analysis
+                of how political promises affect public trust, policy outcomes, and electoral results.
+              </p>
             </CardContent>
           </Card>
         </TabsContent>
 
-        <TabsContent value="accountability" className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <Brain className="w-5 h-5 text-blue-600" />
-                  <span>Promises Tracked</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold text-blue-600 mb-2">2,847</div>
-                <p className="text-sm text-muted-foreground">
-                  Campaign promises since 2015
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <AlertTriangle className="w-5 h-5 text-red-600" />
-                  <span>Broken Promises</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold text-red-600 mb-2">387</div>
-                <p className="text-sm text-muted-foreground">
-                  Documented promise breaks
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <Clock className="w-5 h-5 text-green-600" />
-                  <span>Avg. Follow-through</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold text-green-600 mb-2">68%</div>
-                <p className="text-sm text-muted-foreground">
-                  Promises kept or partially kept
-                </p>
-              </CardContent>
-            </Card>
-          </div>
+        <TabsContent value="patterns" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Pattern Recognition</CardTitle>
+              <CardDescription>
+                Identify patterns in political promises and their outcomes
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <p className="text-muted-foreground">
+                Pattern recognition features will be available soon. This will include AI-powered
+                analysis to identify common patterns in political promises and their fulfillment rates.
+              </p>
+            </CardContent>
+          </Card>
         </TabsContent>
       </Tabs>
     </div>
