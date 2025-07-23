@@ -154,18 +154,15 @@ export function registerAuthRoutes(app: Express) {
         communicationStyle: communicationStyle ? 'provided' : 'missing'
       });
       
-      // Required fields validation
-      if (!email || !password || !firstName || !lastName || !city || !province || !postalCode) {
+      // Required fields validation (only essentials)
+      if (!email || !password || !firstName || !lastName) {
         console.log('❌ Missing required fields:', {
           email: !!email,
           password: !!password,
           firstName: !!firstName,
-          lastName: !!lastName,
-          city: !!city,
-          province: !!province,
-          postalCode: !!postalCode
+          lastName: !!lastName
         });
-        return res.status(400).json({ message: "All fields are required: email, password, firstName, lastName, city, province, postalCode" });
+        return res.status(400).json({ message: "Required fields: email, password, firstName, lastName" });
       }
 
       // Check if user already exists
@@ -189,15 +186,15 @@ export function registerAuthRoutes(app: Express) {
         lastName,
         phoneNumber: phoneNumber || null,
         dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : null,
-        city,
-        province,
-        postalCode,
+        city: city || null,
+        province: province || null,
+        postalCode: postalCode || null,
         federalRiding: federalRiding || null,
         provincialRiding: provincialRiding || null,
         municipalWard: municipalWard || null,
-        citizenshipStatus: citizenshipStatus || 'citizen',
-        voterRegistrationStatus: voterRegistrationStatus || 'unknown',
-        communicationStyle: communicationStyle || 'auto',
+        citizenshipStatus: citizenshipStatus || null,
+        voterRegistrationStatus: voterRegistrationStatus || null,
+        communicationStyle: communicationStyle || null,
         country: 'Canada',
         civicPoints: 0,
         currentLevel: 1,
