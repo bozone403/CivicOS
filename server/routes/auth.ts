@@ -50,15 +50,67 @@ export function registerAuthRoutes(app: Express) {
   // Registration endpoint
   app.post("/api/auth/register", async (req: Request, res: Response) => {
     try {
-      const { email, password, firstName, lastName, city, province, postalCode } = req.body;
+      console.log('🔍 Registration request received:', {
+        body: req.body,
+        headers: req.headers,
+        method: req.method,
+        url: req.url
+      });
+
+      const { 
+        email, 
+        password, 
+        firstName, 
+        lastName, 
+        phoneNumber,
+        dateOfBirth,
+        city, 
+        province, 
+        postalCode,
+        federalRiding,
+        provincialRiding,
+        municipalWard,
+        citizenshipStatus,
+        voterRegistrationStatus,
+        communicationStyle
+      } = req.body;
       
+      console.log('📝 Parsed registration data:', {
+        email: email ? 'provided' : 'missing',
+        password: password ? 'provided' : 'missing',
+        firstName: firstName ? 'provided' : 'missing',
+        lastName: lastName ? 'provided' : 'missing',
+        city: city ? 'provided' : 'missing',
+        province: province ? 'provided' : 'missing',
+        postalCode: postalCode ? 'provided' : 'missing',
+        phoneNumber: phoneNumber ? 'provided' : 'missing',
+        dateOfBirth: dateOfBirth ? 'provided' : 'missing',
+        federalRiding: federalRiding ? 'provided' : 'missing',
+        provincialRiding: provincialRiding ? 'provided' : 'missing',
+        municipalWard: municipalWard ? 'provided' : 'missing',
+        citizenshipStatus: citizenshipStatus ? 'provided' : 'missing',
+        voterRegistrationStatus: voterRegistrationStatus ? 'provided' : 'missing',
+        communicationStyle: communicationStyle ? 'provided' : 'missing'
+      });
+      
+      // Required fields validation
       if (!email || !password || !firstName || !lastName || !city || !province || !postalCode) {
+        console.log('❌ Missing required fields:', {
+          email: !!email,
+          password: !!password,
+          firstName: !!firstName,
+          lastName: !!lastName,
+          city: !!city,
+          province: !!province,
+          postalCode: !!postalCode
+        });
         return res.status(400).json({ message: "All fields are required: email, password, firstName, lastName, city, province, postalCode" });
       }
 
       // Check if user already exists
       const existingUser = await storage.getUserByEmail(email);
       if (existingUser) {
+        console.log('❌ User already exists:', email);
         return res.status(409).json({ message: "Email already registered" });
       }
 
@@ -68,27 +120,48 @@ export function registerAuthRoutes(app: Express) {
       // Create user with enhanced profile data
       const userId = uuidv4();
       const now = new Date();
-      const user = await storage.createUser({
+      const userData = {
         id: userId,
         email,
         password: hashedPassword,
         firstName,
         lastName,
+        phoneNumber: phoneNumber || null,
+        dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : null,
         city,
         province,
         postalCode,
+        federalRiding: federalRiding || null,
+        provincialRiding: provincialRiding || null,
+        municipalWard: municipalWard || null,
+        citizenshipStatus: citizenshipStatus || 'citizen',
+        voterRegistrationStatus: voterRegistrationStatus || 'unknown',
+        communicationStyle: communicationStyle || 'auto',
         country: 'Canada',
         civicPoints: 0,
         currentLevel: 1,
         trustScore: "100.00",
         verificationLevel: 'unverified',
-        communicationStyle: 'auto',
         engagementLevel: 'newcomer',
         achievementTier: 'bronze',
-        profileCompleteness: 50, // Enhanced profile with location data
+        profileCompleteness: 50,
         createdAt: now,
         updatedAt: now,
+      };
+
+      console.log('👤 Creating user with data:', {
+        id: userData.id,
+        email: userData.email,
+        firstName: userData.firstName,
+        lastName: userData.lastName,
+        city: userData.city,
+        province: userData.province,
+        postalCode: userData.postalCode
       });
+
+      const user = await storage.createUser(userData);
+
+      console.log('✅ User created successfully:', user.id);
 
       // Generate token
       const token = generateToken(user);
@@ -108,7 +181,7 @@ export function registerAuthRoutes(app: Express) {
         }
       });
     } catch (err) {
-      console.error('Registration error:', err);
+      console.error('❌ Registration error:', err);
       res.status(500).json({ message: (err as any)?.message || 'Registration failed' });
     }
   });
@@ -116,23 +189,44 @@ export function registerAuthRoutes(app: Express) {
   // Login endpoint
   app.post("/api/auth/login", async (req: Request, res: Response) => {
     try {
+      console.log('🔍 Login request received:', {
+        body: req.body,
+        headers: req.headers,
+        method: req.method,
+        url: req.url
+      });
+
       const { email, password } = req.body;
       
       if (!email || !password) {
+        console.log('❌ Missing login credentials:', {
+          email: !!email,
+          password: !!password
+        });
         return res.status(400).json({ message: "Email and password are required" });
       }
 
       // Find user by email
       const user = await storage.getUserByEmail(email);
       if (!user) {
+        console.log('❌ User not found for login:', email);
         return res.status(401).json({ message: "Invalid credentials" });
       }
+
+      console.log('👤 User found for login:', {
+        id: user.id,
+        email: user.email,
+        hasPassword: !!user.password
+      });
 
       // Verify password
       const isValidPassword = await bcrypt.compare(password, user.password || '');
       if (!isValidPassword) {
+        console.log('❌ Invalid password for user:', email);
         return res.status(401).json({ message: "Invalid credentials" });
       }
+
+      console.log('✅ Login successful for user:', email);
 
       // Generate token
       const token = generateToken(user);
@@ -148,7 +242,7 @@ export function registerAuthRoutes(app: Express) {
         }
       });
     } catch (err) {
-      console.error('Login error:', (err as any)?.stack || err);
+      console.error('❌ Login error:', (err as any)?.stack || err);
       res.status(500).json({ message: (err as any)?.message || 'Login failed' });
     }
   });
