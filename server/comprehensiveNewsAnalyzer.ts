@@ -3,7 +3,7 @@ import { newsArticles, newsComparisons } from "../shared/schema.js";
 // import { eq, desc, and, gte, sql } from "drizzle-orm";
 import * as cheerio from 'cheerio';
 import fetch from 'node-fetch';
-import { callOllamaMistral } from './utils/aiService.js';
+import aiService from './utils/aiService.js';
 
 interface NewsSource {
   name: string;
@@ -779,7 +779,7 @@ Focus on Canadian political context and identify:
 - Appeal to fear/emotion
 `;
 
-      const responseText = await callOllamaMistral(analysisPrompt);
+      const responseText = await aiService.generateResponse(analysisPrompt);
       const analysis = this.parseAnalysisResponse(responseText);
       
       return {
@@ -927,7 +927,7 @@ Focus on:
 - Emotional manipulation differences
 `;
 
-      const responseText = await callOllamaMistral(comparisonPrompt);
+      const responseText = await aiService.generateResponse(comparisonPrompt);
       const comparison = this.parseAnalysisResponse(responseText);
       
       // Store comparison results

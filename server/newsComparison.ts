@@ -3,7 +3,7 @@ import { db } from './db.js';
 import { newsArticles } from '../shared/schema.js';
 import { eq, and, gte, desc } from 'drizzle-orm';
 
-import { callOllamaMistral } from './utils/aiService.js';
+import aiService from './utils/aiService.js';
 
 interface CrossSourceAnalysis {
   sourceComparison: Array<{
@@ -164,7 +164,7 @@ Provide analysis in JSON format with:
 7. recommendations: Advice for readers on interpreting this story
 `;
 
-    const responseText = await callOllamaMistral(analysisPrompt);
+    const responseText = await aiService.generateResponse(analysisPrompt);
     return JSON.parse(responseText);
   }
 
@@ -192,7 +192,7 @@ Respond in JSON format with:
 - unsupportedStatements: Claims lacking evidence
 `;
 
-    const responseText = await callOllamaMistral(factCheckPrompt);
+    const responseText = await aiService.generateResponse(factCheckPrompt);
     return JSON.parse(responseText);
   }
 

@@ -3,7 +3,7 @@ import { newsArticles, newsComparisons } from "../shared/schema.js";
 // import { eq, desc, and, gte, sql } from "drizzle-orm";
 import * as cheerio from 'cheerio';
 import fetch from 'node-fetch';
-import { callOllamaMistral } from './utils/aiService.js';
+import aiService from './utils/aiService.js';
 // interface TopicComparison {
 //   topic: string;
 //   articles: ArticleAnalysis[];
@@ -709,7 +709,7 @@ Focus on Canadian political context and identify:
 - Strawman arguments
 - Appeal to fear/emotion
 `;
-            const responseText = await callOllamaMistral(analysisPrompt);
+            const responseText = await aiService.generateResponse(analysisPrompt);
             const analysis = this.parseAnalysisResponse(responseText);
             return {
                 ...article,
@@ -843,7 +843,7 @@ Focus on:
 - Coordinated messaging patterns
 - Emotional manipulation differences
 `;
-            const responseText = await callOllamaMistral(comparisonPrompt);
+            const responseText = await aiService.generateResponse(comparisonPrompt);
             const comparison = this.parseAnalysisResponse(responseText);
             // Store comparison results
             await this.storeTopicComparison(topic, articles, comparison);

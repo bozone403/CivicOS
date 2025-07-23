@@ -1,6 +1,6 @@
 import pino from "pino";
 const logger = pino();
-import { callOllamaMistral } from './utils/aiService.js';
+import aiService from './utils/aiService.js';
 export const canadianMediaOutlets = [
     {
         id: "cbc",
@@ -234,7 +234,7 @@ export async function analyzeArticleCredibility(articleText, sourceName) {
             "propagandaTechniques": array of strings,
             "analysisNotes": string
           }`;
-        const responseText = await callOllamaMistral(`Analyze this article for credibility and bias:\n\n${articleText.substring(0, 2000)}`);
+        const responseText = await aiService.generateResponse(`Analyze this article for credibility and bias:\n\n${articleText.substring(0, 2000)}`);
         const analysis = JSON.parse(responseText);
         return {
             credibilityScore: outlet ? outlet.credibilityScore : analysis.credibilityScore,

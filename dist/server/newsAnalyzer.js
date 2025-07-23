@@ -4,7 +4,7 @@ import { db } from './db.js';
 import * as schema from '../shared/schema.js';
 import { eq } from 'drizzle-orm';
 import pino from "pino";
-import { callOllamaMistral } from './utils/aiService.js';
+import aiService from './utils/aiService.js';
 const logger = pino();
 const CANADIAN_NEWS_SOURCES = [
     {
@@ -308,7 +308,7 @@ Respond in JSON format with these exact keys:
   "relatedBills": ["bill1", "bill2"],
   "analysisNotes": "detailed analysis explanation"
 }`;
-        const responseText = await callOllamaMistral(prompt);
+        const responseText = await aiService.generateResponse(prompt);
         const analysis = JSON.parse(responseText);
         return {
             truthScore: Math.max(0, Math.min(100, analysis.truthScore || 50)),
@@ -387,7 +387,7 @@ Respond in JSON format:
   "missingContext": ["context1", "context2"],
   "analysisDetails": "detailed explanation"
 }`;
-        const responseText = await callOllamaMistral(prompt);
+        const responseText = await aiService.generateResponse(prompt);
         const analysis = JSON.parse(responseText);
         return {
             techniques: analysis.techniques || [],

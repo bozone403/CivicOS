@@ -2,7 +2,7 @@ import express from 'express';
 import { db } from '../db.js';
 import { bills, votes, electoralCandidates, electoralVotes, users } from '../../shared/schema.js';
 import { eq, and, desc, sql } from 'drizzle-orm';
-import { callOllamaMistral } from '../utils/aiService.js';
+import aiService from '../utils/aiService.js';
 
 const router = express.Router();
 

@@ -1,7 +1,7 @@
 import { db } from './db.js';
 import { newsArticles } from '../shared/schema.js';
 import { eq, and, gte, desc } from 'drizzle-orm';
-import { callOllamaMistral } from './utils/aiService.js';
+import aiService from './utils/aiService.js';
 /**
  * Advanced AI-powered news comparison and analysis service
  * Provides unbiased critique and cross-source verification
@@ -93,7 +93,7 @@ Provide analysis in JSON format with:
 6. reliabilityScore: Overall reliability (0-100)
 7. recommendations: Advice for readers on interpreting this story
 `;
-        const responseText = await callOllamaMistral(analysisPrompt);
+        const responseText = await aiService.generateResponse(analysisPrompt);
         return JSON.parse(responseText);
     }
     /**
@@ -118,7 +118,7 @@ Respond in JSON format with:
 - disputedClaims: Claims with conflicting evidence
 - unsupportedStatements: Claims lacking evidence
 `;
-        const responseText = await callOllamaMistral(factCheckPrompt);
+        const responseText = await aiService.generateResponse(factCheckPrompt);
         return JSON.parse(responseText);
     }
     /**

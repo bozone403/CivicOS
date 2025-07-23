@@ -3,7 +3,7 @@ import { newsArticles } from "../shared/schema.js";
 import { desc } from "drizzle-orm";
 import * as cheerio from "cheerio";
 import fetch from 'node-fetch';
-import { callOllamaMistral } from './utils/aiService.js';
+import aiService from './utils/aiService.js';
 /**
  * Revolutionary news aggregator using OpenAI for Canadian political intelligence
  */
@@ -131,7 +131,7 @@ Provide comprehensive analysis in JSON format with these fields:
 - summary: string (concise 2-sentence summary)
 - publicImpact: number (0-100, impact on public opinion)`;
         try {
-            const responseText = await callOllamaMistral(prompt);
+            const responseText = await aiService.generateResponse(prompt);
             const analysis = JSON.parse(responseText);
             return {
                 title: article.title,

@@ -2,7 +2,7 @@ import fetch from 'node-fetch';
 import pino from "pino";
 const logger = pino();
 
-import { callOllamaMistral } from './utils/aiService.js';
+import aiService from './utils/aiService.js';
 
 interface MediaOutlet {
   id: string;
@@ -303,7 +303,7 @@ export async function analyzeArticleCredibility(articleText: string, sourceName:
             "propagandaTechniques": array of strings,
             "analysisNotes": string
           }`;
-    const responseText = await callOllamaMistral(`Analyze this article for credibility and bias:\n\n${articleText.substring(0, 2000)}`);
+    const responseText = await aiService.generateResponse(`Analyze this article for credibility and bias:\n\n${articleText.substring(0, 2000)}`);
     const analysis = JSON.parse(responseText);
     
     return {

@@ -6,7 +6,7 @@ import path from 'path';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-async function runMigration() {
+async function runMigration(): Promise<void> {
   try {
     console.log('🗄️  Running database migration...');
     

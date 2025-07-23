@@ -4,7 +4,7 @@ import { db } from './db.js';
 import * as schema from '../shared/schema.js';
 import { eq } from 'drizzle-orm';
 import pino from "pino";
-import { callOllamaMistral } from './utils/aiService.js';
+import aiService from './utils/aiService.js';
 const logger = pino();
 
 interface NewsSource {
@@ -383,7 +383,7 @@ Respond in JSON format with these exact keys:
   "analysisNotes": "detailed analysis explanation"
 }`;
 
-    const responseText = await callOllamaMistral(prompt);
+    const responseText = await aiService.generateResponse(prompt);
     const analysis = JSON.parse(responseText);
     
     return {
@@ -464,7 +464,7 @@ Respond in JSON format:
   "analysisDetails": "detailed explanation"
 }`;
 
-    const responseText = await callOllamaMistral(prompt);
+    const responseText = await aiService.generateResponse(prompt);
     const analysis = JSON.parse(responseText);
     
     return {

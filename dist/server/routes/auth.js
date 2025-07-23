@@ -33,16 +33,105 @@ export function jwtAuth(req, res, next) {
     }
 }
 export function registerAuthRoutes(app) {
+    // Test endpoint to check database schema
+    app.get("/api/auth/test-schema", async (req, res) => {
+        try {
+            console.log('🔍 Testing database schema...');
+            // Test if we can create a user with all fields
+            const testUserData = {
+                id: 'test-schema-check',
+                email: 'test@example.com',
+                password: 'test',
+                firstName: 'Test',
+                lastName: 'User',
+                phoneNumber: '123-456-7890',
+                dateOfBirth: new Date('1990-01-01'),
+                city: 'Test City',
+                province: 'Test Province',
+                postalCode: 'A1A 1A1',
+                federalRiding: 'Test Riding',
+                provincialRiding: 'Test Provincial Riding',
+                municipalWard: 'Test Ward',
+                citizenshipStatus: 'citizen',
+                voterRegistrationStatus: 'registered',
+                communicationStyle: 'auto',
+                country: 'Canada',
+                civicPoints: 0,
+                currentLevel: 1,
+                trustScore: "100.00",
+                verificationLevel: 'unverified',
+                engagementLevel: 'newcomer',
+                achievementTier: 'bronze',
+                profileCompleteness: 50,
+                createdAt: new Date(),
+                updatedAt: new Date(),
+            };
+            console.log('📝 Test user data:', testUserData);
+            // Try to create the user (this will fail if fields don't exist)
+            const user = await storage.createUser(testUserData);
+            console.log('✅ Schema test successful - all fields available');
+            // Clean up the test user
+            await db.delete(users).where(eq(users.id, 'test-schema-check'));
+            res.json({
+                status: 'success',
+                message: 'Database schema is correct - all user fields available',
+                timestamp: new Date().toISOString()
+            });
+        }
+        catch (err) {
+            console.error('❌ Schema test failed:', err);
+            res.status(500).json({
+                status: 'error',
+                message: 'Database schema test failed - missing fields',
+                error: err?.message || String(err),
+                timestamp: new Date().toISOString()
+            });
+        }
+    });
     // Registration endpoint
     app.post("/api/auth/register", async (req, res) => {
         try {
-            const { email, password, firstName, lastName, city, province, postalCode } = req.body;
+            console.log('🔍 Registration request received:', {
+                body: req.body,
+                headers: req.headers,
+                method: req.method,
+                url: req.url
+            });
+            const { email, password, firstName, lastName, phoneNumber, dateOfBirth, city, province, postalCode, federalRiding, provincialRiding, municipalWard, citizenshipStatus, voterRegistrationStatus, communicationStyle } = req.body;
+            console.log('📝 Parsed registration data:', {
+                email: email ? 'provided' : 'missing',
+                password: password ? 'provided' : 'missing',
+                firstName: firstName ? 'provided' : 'missing',
+                lastName: lastName ? 'provided' : 'missing',
+                city: city ? 'provided' : 'missing',
+                province: province ? 'provided' : 'missing',
+                postalCode: postalCode ? 'provided' : 'missing',
+                phoneNumber: phoneNumber ? 'provided' : 'missing',
+                dateOfBirth: dateOfBirth ? 'provided' : 'missing',
+                federalRiding: federalRiding ? 'provided' : 'missing',
+                provincialRiding: provincialRiding ? 'provided' : 'missing',
+                municipalWard: municipalWard ? 'provided' : 'missing',
+                citizenshipStatus: citizenshipStatus ? 'provided' : 'missing',
+                voterRegistrationStatus: voterRegistrationStatus ? 'provided' : 'missing',
+                communicationStyle: communicationStyle ? 'provided' : 'missing'
+            });
+            // Required fields validation
             if (!email || !password || !firstName || !lastName || !city || !province || !postalCode) {
+                console.log('❌ Missing required fields:', {
+                    email: !!email,
+                    password: !!password,
+                    firstName: !!firstName,
+                    lastName: !!lastName,
+                    city: !!city,
+                    province: !!province,
+                    postalCode: !!postalCode
+                });
                 return res.status(400).json({ message: "All fields are required: email, password, firstName, lastName, city, province, postalCode" });
             }
             // Check if user already exists
             const existingUser = await storage.getUserByEmail(email);
             if (existingUser) {
+                console.log('❌ User already exists:', email);
                 return res.status(409).json({ message: "Email already registered" });
             }
             // Hash password
@@ -50,27 +139,45 @@ export function registerAuthRoutes(app) {
             // Create user with enhanced profile data
             const userId = uuidv4();
             const now = new Date();
-            const user = await storage.createUser({
+            const userData = {
                 id: userId,
                 email,
                 password: hashedPassword,
                 firstName,
                 lastName,
+                phoneNumber: phoneNumber || null,
+                dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : null,
                 city,
                 province,
                 postalCode,
+                federalRiding: federalRiding || null,
+                provincialRiding: provincialRiding || null,
+                municipalWard: municipalWard || null,
+                citizenshipStatus: citizenshipStatus || 'citizen',
+                voterRegistrationStatus: voterRegistrationStatus || 'unknown',
+                communicationStyle: communicationStyle || 'auto',
                 country: 'Canada',
                 civicPoints: 0,
                 currentLevel: 1,
                 trustScore: "100.00",
                 verificationLevel: 'unverified',
-                communicationStyle: 'auto',
                 engagementLevel: 'newcomer',
                 achievementTier: 'bronze',
-                profileCompleteness: 50, // Enhanced profile with location data
+                profileCompleteness: 50,
                 createdAt: now,
                 updatedAt: now,
+            };
+            console.log('👤 Creating user with data:', {
+                id: userData.id,
+                email: userData.email,
+                firstName: userData.firstName,
+                lastName: userData.lastName,
+                city: userData.city,
+                province: userData.province,
+                postalCode: userData.postalCode
             });
+            const user = await storage.createUser(userData);
+            console.log('✅ User created successfully:', user.id);
             // Generate token
             const token = generateToken(user);
             res.status(201).json({
@@ -89,27 +196,45 @@ export function registerAuthRoutes(app) {
             });
         }
         catch (err) {
-            console.error('Registration error:', err);
+            console.error('❌ Registration error:', err);
             res.status(500).json({ message: err?.message || 'Registration failed' });
         }
     });
     // Login endpoint
     app.post("/api/auth/login", async (req, res) => {
         try {
+            console.log('🔍 Login request received:', {
+                body: req.body,
+                headers: req.headers,
+                method: req.method,
+                url: req.url
+            });
             const { email, password } = req.body;
             if (!email || !password) {
+                console.log('❌ Missing login credentials:', {
+                    email: !!email,
+                    password: !!password
+                });
                 return res.status(400).json({ message: "Email and password are required" });
             }
             // Find user by email
             const user = await storage.getUserByEmail(email);
             if (!user) {
+                console.log('❌ User not found for login:', email);
                 return res.status(401).json({ message: "Invalid credentials" });
             }
+            console.log('👤 User found for login:', {
+                id: user.id,
+                email: user.email,
+                hasPassword: !!user.password
+            });
             // Verify password
             const isValidPassword = await bcrypt.compare(password, user.password || '');
             if (!isValidPassword) {
+                console.log('❌ Invalid password for user:', email);
                 return res.status(401).json({ message: "Invalid credentials" });
             }
+            console.log('✅ Login successful for user:', email);
             // Generate token
             const token = generateToken(user);
             res.json({
@@ -124,7 +249,7 @@ export function registerAuthRoutes(app) {
             });
         }
         catch (err) {
-            console.error('Login error:', err?.stack || err);
+            console.error('❌ Login error:', err?.stack || err);
             res.status(500).json({ message: err?.message || 'Login failed' });
         }
     });

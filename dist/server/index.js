@@ -203,6 +203,18 @@ app.get("/health", (_req, res) => {
     });
     // Initialize automatic government data sync
     initializeDataSync();
+    // Run database migration if needed
+    if (process.env.NODE_ENV === 'production') {
+        setTimeout(async () => {
+            try {
+                const { runMigration } = await import('./migrate.js');
+                await runMigration();
+            }
+            catch (error) {
+                console.error('Migration error:', error);
+            }
+        }, 2000); // Run after 2 seconds
+    }
     // Initialize Ollama AI service for production
     if (process.env.NODE_ENV === 'production') {
         console.log('🤖 Initializing Ollama AI service for production...');

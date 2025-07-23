@@ -1,7 +1,7 @@
 import { db } from './db.js';
 import { bills, politicians, votes, politicianStatements } from '../shared/schema.js';
 import { sql, desc, like } from 'drizzle-orm';
-import { callOllamaMistral } from './utils/aiService.js';
+import aiService from './utils/aiService.js';
 export class CivicAIService {
     ollamaService;
     constructor() {
@@ -10,7 +10,7 @@ export class CivicAIService {
                 completions: {
                     create: async (options) => {
                         const prompt = options.messages.map((msg) => `${msg.role}: ${msg.content}`).join('\n');
-                        const responseText = await callOllamaMistral(prompt);
+                        const responseText = await aiService.generateResponse(prompt);
                         return {
                             choices: [{ message: { content: responseText } }]
                         };

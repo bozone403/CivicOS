@@ -3,7 +3,7 @@ import { Router } from "express";
 import { db } from "./db.js";
 import { socialPosts, socialComments, socialLikes, userFriends, users, notifications, userMessages } from "../shared/schema.js";
 import { eq, desc, and, isNull, or, inArray } from "drizzle-orm";
-import { callOllamaMistral } from "./utils/aiService.js";
+import aiService from "./utils/aiService.js";
 import pino from "pino";
 const logger = pino();
 // Online status tracking
@@ -619,7 +619,7 @@ Provide a brief, engaging analysis that highlights:
 3. Why this content matters to citizens
 
 Keep it under 100 words and make it engaging for social media.`;
-                const aiAnalysis = await callOllamaMistral(analysisPrompt);
+                const aiAnalysis = await aiService.generateResponse(analysisPrompt);
                 // Add AI analysis as a comment
                 await db.insert(socialComments).values({
                     postId: newPost.id,

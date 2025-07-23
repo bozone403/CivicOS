@@ -3,7 +3,7 @@ import { politicians, bills, votes, politicianStatements } from "../shared/schem
 import { eq, desc, count, sql, and, gte, lte } from "drizzle-orm";
 import fetch from 'node-fetch';
 
-import { callOllamaMistral } from './utils/aiService.js';
+import aiService from './utils/aiService.js';
 
 interface ComprehensiveAnalytics {
   politicalLandscape: {
