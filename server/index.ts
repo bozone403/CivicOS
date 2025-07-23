@@ -63,13 +63,18 @@ app.use((req, res, next) => {
     "https://www.civicos.ca",
     "http://civicos.ca",
     "http://www.civicos.ca",
+    "https://afterhourshvac.me",
+    "https://www.afterhourshvac.me",
+    "http://afterhourshvac.me",
+    "http://www.afterhourshvac.me",
     process.env.CORS_ORIGIN, // Custom CORS origin from env
   ].filter(Boolean);
 
-  // Allow all civicos.ca subdomains
+  // Allow all civicos.ca and afterhourshvac.me subdomains
   const origin = req.headers.origin;
   const civicosRegex = /^https?:\/\/(.*\.)?civicos\.ca$/;
-  const isAllowed = origin && (allowedOrigins.includes(origin) || civicosRegex.test(origin));
+  const afterhourshvacRegex = /^https?:\/\/(.*\.)?afterhourshvac\.me$/;
+  const isAllowed = origin && (allowedOrigins.includes(origin) || civicosRegex.test(origin) || afterhourshvacRegex.test(origin));
 
   // Allow only trusted origins in production, strict in development
   if (process.env.NODE_ENV === 'production') {
