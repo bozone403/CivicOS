@@ -377,14 +377,6 @@ export default function App() {
                 </Route>
                 
                 {/* CivicSocial Routes */}
-                <Route path="/civicsocial">
-                  <ProtectedRoute>
-                    <Layout>
-                      <CivicSocialFeed />
-                    </Layout>
-                  </ProtectedRoute>
-                </Route>
-                
                 <Route path="/civicsocial/feed">
                   <ProtectedRoute>
                     <Layout>
@@ -421,6 +413,14 @@ export default function App() {
                   <ProtectedRoute>
                     <Layout>
                       <CivicSocialMessages />
+                    </Layout>
+                  </ProtectedRoute>
+                </Route>
+                
+                <Route path="/civicsocial">
+                  <ProtectedRoute>
+                    <Layout>
+                      <CivicSocialFeed />
                     </Layout>
                   </ProtectedRoute>
                 </Route>
