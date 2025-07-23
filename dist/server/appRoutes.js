@@ -44,6 +44,32 @@ export async function registerRoutes(app) {
     });
     // Serve static files from the frontend build
     const publicPath = path.join(process.cwd(), 'dist/public');
+    console.log('🔍 Static file serving debug:');
+    console.log('  - process.cwd():', process.cwd());
+    console.log('  - publicPath:', publicPath);
+    console.log('  - __dirname:', __dirname);
+    // Check if the directory exists
+    const fs = require('fs');
+    if (fs.existsSync(publicPath)) {
+        console.log('  - ✅ Public path exists');
+        console.log('  - Files in public path:', fs.readdirSync(publicPath));
+    }
+    else {
+        console.log('  - ❌ Public path does not exist');
+        // Try alternative paths
+        const altPaths = [
+            path.join(__dirname, '../dist/public'),
+            path.join(__dirname, '../../dist/public'),
+            path.join(process.cwd(), 'dist/public'),
+            path.join(process.cwd(), '../dist/public'),
+        ];
+        for (const altPath of altPaths) {
+            if (fs.existsSync(altPath)) {
+                console.log('  - ✅ Found alternative path:', altPath);
+                break;
+            }
+        }
+    }
     app.use(express.static(publicPath));
     // SPA fallback: serve index.html for all non-API routes
     app.get('*', (req, res) => {
