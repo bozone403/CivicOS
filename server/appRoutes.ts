@@ -327,6 +327,79 @@ export async function registerRoutes(app: Express): Promise<void> {
     }
   });
 
+  // Profile update endpoint
+  app.put('/api/users/profile', jwtAuth, async (req, res) => {
+    try {
+      const userId = (req.user as JwtPayload)?.id;
+      if (!userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
+      const { firstName, lastName, bio, location, website, social, phoneNumber, city, province, postalCode } = req.body;
+
+      // Update user profile
+      const updateData: any = {
+        updatedAt: new Date()
+      };
+
+      if (firstName !== undefined) updateData.firstName = firstName;
+      if (lastName !== undefined) updateData.lastName = lastName;
+      if (bio !== undefined) updateData.bio = bio;
+      if (location !== undefined) updateData.location = location;
+      if (website !== undefined) updateData.website = website;
+      if (social !== undefined) updateData.social = social;
+      if (phoneNumber !== undefined) updateData.phoneNumber = phoneNumber;
+      if (city !== undefined) updateData.city = city;
+      if (province !== undefined) updateData.province = province;
+      if (postalCode !== undefined) updateData.postalCode = postalCode;
+
+      // Calculate profile completeness
+      const completenessFields = ['firstName', 'lastName', 'phoneNumber', 'city', 'province', 'postalCode', 'bio'];
+      const filledFields = completenessFields.filter(field => updateData[field] && updateData[field].trim() !== '');
+      const profileCompleteness = Math.round((filledFields.length / completenessFields.length) * 100);
+
+      if (profileCompleteness > 0) {
+        updateData.profileCompleteness = profileCompleteness;
+      }
+
+      await db.update(users)
+        .set(updateData)
+        .where(eq(users.id, userId));
+
+      // Get updated user data
+      const [updatedUser] = await db.select().from(users).where(eq(users.id, userId));
+
+      res.json({ 
+        message: "Profile updated successfully", 
+        user: updatedUser,
+        profileCompleteness 
+      });
+    } catch (error) {
+      logger.error({ msg: 'Error updating user profile', error });
+      res.status(500).json({ message: "Failed to update profile" });
+    }
+  });
+
+  // Get current user profile
+  app.get('/api/users/profile', jwtAuth, async (req, res) => {
+    try {
+      const userId = (req.user as JwtPayload)?.id;
+      if (!userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
+      const [user] = await db.select().from(users).where(eq(users.id, userId));
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      res.json({ user });
+    } catch (error) {
+      logger.error({ msg: 'Error fetching current user profile', error });
+      res.status(500).json({ message: "Failed to fetch profile" });
+    }
+  });
+
   // Dashboard comprehensive data
   app.get('/api/dashboard/comprehensive', async (_req, res) => {
     try {

@@ -139,7 +139,7 @@ export function useAuth() {
     }
 
     try {
-      await apiRequest(`/api/users/${user.id}/profile`, 'PATCH', updates);
+      await apiRequest(`/api/users/profile`, 'PUT', updates);
       queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
       toast({
         title: "Profile updated!",
