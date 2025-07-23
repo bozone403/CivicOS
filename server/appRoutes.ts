@@ -1,13 +1,19 @@
 import type { Express } from "express";
+import express from "express";
 import { storage } from "./storage.js";
 import simpleNotificationsRouter from "./simpleNotifications.js";
 import civicSocialRouter from "./civicSocial.js";
 import aiRoutes from "./aiRoutes.js";
+import path from "path";
+import { fileURLToPath } from 'url';
 
 // Import modular route registrations
 import { registerAuthRoutes, jwtAuth } from "./routes/auth.js";
 import { registerApiRoutes } from "./routes/api.js";
 import votingRouter from "./routes/voting.js";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 export async function registerRoutes(app: Express): Promise<void> {
   // Register modular routes
@@ -43,5 +49,20 @@ export async function registerRoutes(app: Express): Promise<void> {
         timestamp: new Date().toISOString()
       });
     }
+  });
+
+  // Serve static files from the frontend build
+  const publicPath = path.join(__dirname, '../dist/public');
+  app.use(express.static(publicPath));
+
+  // SPA fallback: serve index.html for all non-API routes
+  app.get('*', (req, res) => {
+    // Skip API routes
+    if (req.path.startsWith('/api/')) {
+      return res.status(404).json({ message: 'API endpoint not found' });
+    }
+    
+    // Serve index.html for all other routes (SPA routing)
+    res.sendFile(path.join(publicPath, 'index.html'));
   });
 }
