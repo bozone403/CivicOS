@@ -12,13 +12,26 @@ import {
   Settings, 
   LogOut,
   User,
+  UserPlus,
   Heart,
   MoreHorizontal,
   HelpCircle,
   Shield,
   BookOpen,
   TrendingUp,
-  MapPin
+  MapPin,
+  Gavel,
+  Scale,
+  Search,
+  DollarSign,
+  Eye,
+  Building,
+  Archive,
+  AlertTriangle,
+  Activity,
+  Brain,
+  BarChart3,
+  Crown
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
@@ -58,20 +71,59 @@ export function MobileNavigation() {
   });
   const unreadCount = notifications.filter((n) => !n.read).length;
 
-  // Essential mobile navigation items
-  const mobileNavItems = [
-    { title: "Feed", href: "/civicsocial/feed", icon: Home },
+  // Primary mobile navigation items (most important)
+  const primaryNavItems = [
+    { title: "Dashboard", href: "/dashboard", icon: Home },
+    { title: "Feed", href: "/civicsocial/feed", icon: MessageSquare },
     { title: "Vote", href: "/voting", icon: Vote },
     { title: "Politicians", href: "/politicians", icon: Users },
-    { title: "News", href: "/news", icon: FileText },
   ];
 
-  // More menu items
-  const moreMenuItems = [
-    { title: "Support", href: "/support", icon: HelpCircle, description: "Get help and contact us" },
-    { title: "Legal", href: "/legal", icon: BookOpen, description: "Legal documents and cases" },
-    { title: "Elections", href: "/elections", icon: TrendingUp, description: "Election information" },
-    { title: "Maps", href: "/maps", icon: MapPin, description: "Interactive political maps" },
+  // CivicSocial navigation items
+  const civicsocialItems = [
+    { title: "Profile", href: "/civicsocial/profile", icon: User, description: "Your social profile" },
+    { title: "Friends", href: "/civicsocial/friends", icon: UserPlus, description: "Manage friends" },
+    { title: "Messages", href: "/civicsocial/messages", icon: MessageSquare, description: "Private messages" },
+    { title: "Discussions", href: "/civicsocial/discussions", icon: MessageSquare, description: "Public discussions" },
+  ];
+
+  // Democracy section items
+  const democracyItems = [
+    { title: "Elections", href: "/elections", icon: Crown, description: "Election information" },
+    { title: "Contact Officials", href: "/contacts", icon: MessageSquare, description: "Contact representatives" },
+  ];
+
+  // Legal & Rights section items
+  const legalItems = [
+    { title: "Legal System", href: "/legal", icon: Gavel, description: "Legal documents" },
+    { title: "Your Rights", href: "/rights", icon: Shield, description: "Canadian rights" },
+    { title: "Cases", href: "/cases", icon: Scale, description: "Constitutional cases" },
+    { title: "Legal Search", href: "/legal-search", icon: Search, description: "Search legal info" },
+  ];
+
+  // Transparency section items
+  const transparencyItems = [
+    { title: "Campaign Finance", href: "/finance", icon: DollarSign, description: "Political funding" },
+    { title: "Lobbyists", href: "/lobbyists", icon: Eye, description: "Lobbyist mapping" },
+    { title: "Procurement", href: "/procurement", icon: Building, description: "Government contracts" },
+    { title: "Leaks", href: "/leaks", icon: Archive, description: "Document leaks" },
+    { title: "FOI Requests", href: "/foi", icon: Eye, description: "Freedom of information" },
+    { title: "Whistleblower", href: "/whistleblower", icon: AlertTriangle, description: "Whistleblower portal" },
+    { title: "Corruption", href: "/corruption", icon: Activity, description: "Corruption patterns" },
+  ];
+
+  // Analysis section items
+  const analysisItems = [
+    { title: "Political Memory", href: "/memory", icon: Brain, description: "Political history" },
+    { title: "Pulse", href: "/pulse", icon: Activity, description: "Political pulse" },
+    { title: "Trust Metrics", href: "/trust", icon: BarChart3, description: "Trust analysis" },
+    { title: "Maps", href: "/maps", icon: MapPin, description: "Interactive maps" },
+  ];
+
+  // Other items
+  const otherItems = [
+    { title: "News", href: "/news", icon: FileText, description: "Latest news" },
+    { title: "Support", href: "/support", icon: HelpCircle, description: "Get help" },
     { title: "Settings", href: "/settings", icon: Settings, description: "Account settings" },
     { title: "Profile", href: "/profile", icon: User, description: "Your profile" },
   ];
@@ -81,7 +133,7 @@ export function MobileNavigation() {
       {/* Bottom Navigation Toolbar */}
       <div className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-200 shadow-lg md:hidden">
         <div className="flex items-center justify-around px-2 py-2">
-          {mobileNavItems.map((item) => (
+          {primaryNavItems.map((item) => (
             <Link key={item.href} href={item.href}>
               <Button
                 variant="ghost"
@@ -130,29 +182,141 @@ export function MobileNavigation() {
                 <span className="text-xs font-medium">More</span>
               </Button>
             </SheetTrigger>
-            <SheetContent side="bottom" className="h-[80vh]">
+            <SheetContent side="bottom" className="h-[80vh] bg-white">
               <SheetHeader>
-                <SheetTitle className="text-left">More Options</SheetTitle>
+                <SheetTitle className="text-left">CivicOS Features</SheetTitle>
               </SheetHeader>
-              <div className="grid grid-cols-2 gap-4 mt-6">
-                {moreMenuItems.map((item) => (
-                  <Link key={item.href} href={item.href} onClick={() => setShowMoreMenu(false)}>
-                    <Button
-                      variant="outline"
-                      className="h-20 w-full flex flex-col items-center justify-center space-y-2 p-4"
-                    >
-                      <item.icon className="w-6 h-6" />
-                      <div className="text-center">
-                        <div className="font-medium text-sm">{item.title}</div>
-                        <div className="text-xs text-gray-500">{item.description}</div>
-                      </div>
-                    </Button>
-                  </Link>
-                ))}
+              
+              <div className="overflow-y-auto h-full pb-20">
+                {/* CivicSocial Section */}
+                <div className="mb-6">
+                  <h3 className="text-sm font-semibold text-gray-700 mb-3">CivicSocial</h3>
+                  <div className="grid grid-cols-2 gap-3">
+                    {civicsocialItems.map((item) => (
+                      <Link key={item.href} href={item.href} onClick={() => setShowMoreMenu(false)}>
+                        <Button
+                          variant="outline"
+                          className="h-20 w-full flex flex-col items-center justify-center space-y-2 p-4 bg-white"
+                        >
+                          <item.icon className="w-5 h-5" />
+                          <div className="text-center">
+                            <div className="font-medium text-xs">{item.title}</div>
+                            <div className="text-xs text-gray-500">{item.description}</div>
+                          </div>
+                        </Button>
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Democracy Section */}
+                <div className="mb-6">
+                  <h3 className="text-sm font-semibold text-gray-700 mb-3">Democracy</h3>
+                  <div className="grid grid-cols-2 gap-3">
+                    {democracyItems.map((item) => (
+                      <Link key={item.href} href={item.href} onClick={() => setShowMoreMenu(false)}>
+                        <Button
+                          variant="outline"
+                          className="h-20 w-full flex flex-col items-center justify-center space-y-2 p-4 bg-white"
+                        >
+                          <item.icon className="w-5 h-5" />
+                          <div className="text-center">
+                            <div className="font-medium text-xs">{item.title}</div>
+                            <div className="text-xs text-gray-500">{item.description}</div>
+                          </div>
+                        </Button>
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Legal & Rights Section */}
+                <div className="mb-6">
+                  <h3 className="text-sm font-semibold text-gray-700 mb-3">Legal & Rights</h3>
+                  <div className="grid grid-cols-2 gap-3">
+                    {legalItems.map((item) => (
+                      <Link key={item.href} href={item.href} onClick={() => setShowMoreMenu(false)}>
+                        <Button
+                          variant="outline"
+                          className="h-20 w-full flex flex-col items-center justify-center space-y-2 p-4 bg-white"
+                        >
+                          <item.icon className="w-5 h-5" />
+                          <div className="text-center">
+                            <div className="font-medium text-xs">{item.title}</div>
+                            <div className="text-xs text-gray-500">{item.description}</div>
+                          </div>
+                        </Button>
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Transparency Section */}
+                <div className="mb-6">
+                  <h3 className="text-sm font-semibold text-gray-700 mb-3">Transparency</h3>
+                  <div className="grid grid-cols-2 gap-3">
+                    {transparencyItems.map((item) => (
+                      <Link key={item.href} href={item.href} onClick={() => setShowMoreMenu(false)}>
+                        <Button
+                          variant="outline"
+                          className="h-20 w-full flex flex-col items-center justify-center space-y-2 p-4 bg-white"
+                        >
+                          <item.icon className="w-5 h-5" />
+                          <div className="text-center">
+                            <div className="font-medium text-xs">{item.title}</div>
+                            <div className="text-xs text-gray-500">{item.description}</div>
+                          </div>
+                        </Button>
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Analysis Section */}
+                <div className="mb-6">
+                  <h3 className="text-sm font-semibold text-gray-700 mb-3">Analysis</h3>
+                  <div className="grid grid-cols-2 gap-3">
+                    {analysisItems.map((item) => (
+                      <Link key={item.href} href={item.href} onClick={() => setShowMoreMenu(false)}>
+                        <Button
+                          variant="outline"
+                          className="h-20 w-full flex flex-col items-center justify-center space-y-2 p-4 bg-white"
+                        >
+                          <item.icon className="w-5 h-5" />
+                          <div className="text-center">
+                            <div className="font-medium text-xs">{item.title}</div>
+                            <div className="text-xs text-gray-500">{item.description}</div>
+                          </div>
+                        </Button>
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Other Section */}
+                <div className="mb-6">
+                  <h3 className="text-sm font-semibold text-gray-700 mb-3">Other</h3>
+                  <div className="grid grid-cols-2 gap-3">
+                    {otherItems.map((item) => (
+                      <Link key={item.href} href={item.href} onClick={() => setShowMoreMenu(false)}>
+                        <Button
+                          variant="outline"
+                          className="h-20 w-full flex flex-col items-center justify-center space-y-2 p-4 bg-white"
+                        >
+                          <item.icon className="w-5 h-5" />
+                          <div className="text-center">
+                            <div className="font-medium text-xs">{item.title}</div>
+                            <div className="text-xs text-gray-500">{item.description}</div>
+                          </div>
+                        </Button>
+                      </Link>
+                    ))}
+                  </div>
+                </div>
               </div>
               
               {/* Logout button at bottom */}
-              <div className="mt-6 pt-4 border-t">
+              <div className="absolute bottom-0 left-0 right-0 p-4 bg-white border-t">
                 <Button
                   variant="destructive"
                   onClick={() => {
