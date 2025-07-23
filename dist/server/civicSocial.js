@@ -145,6 +145,83 @@ router.get("/feed", async (req, res) => {
         res.status(500).json({ error: "Failed to fetch feed" });
     }
 });
+// GET /api/social/posts/:id - Get a specific post
+router.get("/posts/:id", async (req, res) => {
+    try {
+        const userId = (req.user?.id || req.user?.sub || req.query.userId);
+        if (!userId)
+            return res.status(401).json({ error: "Not authenticated" });
+        const postId = parseInt(req.params.id, 10);
+        if (isNaN(postId))
+            return res.status(400).json({ error: "Invalid post ID." });
+        // Get the specific post with user info
+        const [post] = await db
+            .select({
+            id: socialPosts.id,
+            userId: socialPosts.userId,
+            content: socialPosts.content,
+            imageUrl: socialPosts.imageUrl,
+            type: socialPosts.type,
+            originalItemId: socialPosts.originalItemId,
+            originalItemType: socialPosts.originalItemType,
+            comment: socialPosts.comment,
+            createdAt: socialPosts.createdAt,
+            updatedAt: socialPosts.updatedAt,
+            // User info
+            displayName: users.firstName,
+            email: users.email,
+            profileImageUrl: users.profileImageUrl,
+        })
+            .from(socialPosts)
+            .leftJoin(users, eq(socialPosts.userId, users.id))
+            .where(eq(socialPosts.id, postId));
+        if (!post) {
+            return res.status(404).json({ error: "Post not found." });
+        }
+        // Get reactions for this post
+        const reactions = await db
+            .select({
+            id: socialLikes.id,
+            userId: socialLikes.userId,
+            reaction: socialLikes.reaction,
+            createdAt: socialLikes.createdAt,
+        })
+            .from(socialLikes)
+            .where(eq(socialLikes.postId, postId));
+        // Get comments for this post
+        const comments = await db
+            .select({
+            id: socialComments.id,
+            userId: socialComments.userId,
+            content: socialComments.content,
+            createdAt: socialComments.createdAt,
+            // User info for comments
+            displayName: users.firstName,
+            email: users.email,
+            profileImageUrl: users.profileImageUrl,
+        })
+            .from(socialComments)
+            .leftJoin(users, eq(socialComments.userId, users.id))
+            .where(eq(socialComments.postId, postId))
+            .orderBy(desc(socialComments.createdAt));
+        // Check if current user has reacted
+        const userReaction = reactions.find(r => r.userId === userId);
+        res.json({
+            post: {
+                ...post,
+                reactions,
+                comments,
+                userReaction: userReaction?.reaction || null,
+                reactionCount: reactions.length,
+                commentCount: comments.length,
+            }
+        });
+    }
+    catch (err) {
+        logger.error("Get post error:", err);
+        res.status(500).json({ error: "Failed to get post" });
+    }
+});
 // POST /api/social/posts - Create a new post/share
 router.post("/posts", async (req, res) => {
     try {
