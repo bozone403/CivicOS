@@ -111,14 +111,76 @@ export async function registerRoutes(app: Express): Promise<void> {
 
   // JWT Registration
   app.post('/api/auth/register', async (req, res) => {
-    const { email, password } = req.body;
-    if (!email || !password) return res.status(400).json({ message: "Email and password required" });
-    const existing = await db.select().from(users).where(eq(users.email, email));
-    if (existing.length > 0) return res.status(409).json({ message: "Email already registered" });
-    const hash = await bcrypt.hash(password, 10);
-    const [user] = await db.insert(users).values({ id: uuidv4(), email, password: hash }).returning();
-    const token = generateToken(user);
-    res.json({ token, user: { id: user.id, email: user.email } });
+    try {
+      const { 
+        email, 
+        password, 
+        firstName, 
+        lastName, 
+        phoneNumber, 
+        dateOfBirth, 
+        city, 
+        province, 
+        postalCode, 
+        federalRiding, 
+        provincialRiding, 
+        municipalWard, 
+        citizenshipStatus, 
+        voterRegistrationStatus, 
+        communicationStyle 
+      } = req.body;
+      
+      if (!email || !password) {
+        return res.status(400).json({ message: "Email and password required" });
+      }
+
+      // Check if user already exists
+      const existing = await db.select().from(users).where(eq(users.email, email));
+      if (existing.length > 0) {
+        return res.status(409).json({ message: "Email already registered" });
+      }
+
+      // Hash password
+      const hash = await bcrypt.hash(password, 10);
+
+      // Create user with comprehensive data
+      const [user] = await db.insert(users).values({
+        id: uuidv4(),
+        email,
+        password: hash,
+        firstName,
+        lastName,
+        phoneNumber,
+        dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : null,
+        city,
+        province,
+        postalCode,
+        federalRiding,
+        provincialRiding,
+        municipalWard,
+        citizenshipStatus,
+        voterRegistrationStatus,
+        communicationStyle,
+        profileCompleteness: 25, // Basic registration gives 25% completeness
+        createdAt: new Date(),
+        updatedAt: new Date()
+      }).returning();
+
+      const token = generateToken(user);
+      res.json({ 
+        token, 
+        user: { 
+          id: user.id, 
+          email: user.email,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          profileCompleteness: user.profileCompleteness
+        } 
+      });
+    } catch (err) {
+      console.error('Registration error:', err);
+      res.status(500).json({ message: 'Registration failed' });
+    }
   });
 
   // JWT Login

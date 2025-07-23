@@ -12,6 +12,7 @@ import canadianCrest from "@/assets/ChatGPT Image Jun 20, 2025, 06_03_54 PM_1750
 import Landing from "@/pages/landing";
 import Auth from "@/pages/auth";
 import Login from "@/pages/Login";
+import Register from "@/pages/Register";
 import Dashboard from "@/pages/dashboard";
 import Profile from "@/pages/profile";
 import Settings from "@/pages/settings";
@@ -180,6 +181,7 @@ export default function App() {
             <Route path="/" component={Landing} />
             <Route path="/auth" component={Auth} />
             <Route path="/login" component={Login} />
+            <Route path="/register" component={Register} />
             <Route path="/about" component={About} />
             <Route path="/contact" component={Contact} />
             <Route path="/privacy" component={Privacy} />
