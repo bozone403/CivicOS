@@ -29,7 +29,7 @@ interface TutorialStep {
   feature: string;
 }
 
-export function FeatureTutorial() {
+export function FeatureTutorial({ onComplete }: { onComplete?: () => void }) {
   const { user } = useAuth();
   const [currentStep, setCurrentStep] = useState(0);
   const [showTutorial, setShowTutorial] = useState(false);
@@ -107,11 +107,13 @@ export function FeatureTutorial() {
   const completeTutorial = () => {
     localStorage.setItem('civicos-tutorial-completed', 'true');
     setShowTutorial(false);
+    onComplete?.();
   };
 
   const skipTutorial = () => {
     localStorage.setItem('civicos-tutorial-completed', 'true');
     setShowTutorial(false);
+    onComplete?.();
   };
 
   if (!showTutorial) return null;

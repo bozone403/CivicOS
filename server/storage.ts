@@ -38,7 +38,8 @@ export interface IStorage {
   getUser(id: string): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
   createUser(userData: UpsertUser): Promise<User>;
-  upsertUser(user: UpsertUser): Promise<User>;
+  upsertUser(userData: UpsertUser): Promise<User>;
+  updateUser(userId: string, updates: any): Promise<User>;
   updateUserVerification(id: string, isVerified: boolean): Promise<void>;
   
   // Bill operations
@@ -138,6 +139,19 @@ export class DatabaseStorage implements IStorage {
       .update(users)
       .set({ isVerified, civicLevel: isVerified ? "Verified" : "Registered", updatedAt: new Date() })
       .where(eq(users.id, id));
+  }
+
+  async updateUser(userId: string, updates: any): Promise<User> {
+    try {
+      const result = await db.update(users)
+        .set({ ...updates, updatedAt: new Date() })
+        .where(eq(users.id, userId))
+        .returning();
+      return result[0];
+    } catch (error) {
+      console.error('[DB][storage] Error updating user:', error);
+      throw error;
+    }
   }
 
   // Notification operations

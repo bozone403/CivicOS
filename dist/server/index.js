@@ -11,9 +11,10 @@ import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 import jwt from "jsonwebtoken";
 import pino from "pino";
-// Fix SSL certificate issues in production
-if (process.env.NODE_ENV === 'production') {
+// Security configuration - only disable SSL verification in development
+if (process.env.NODE_ENV === 'development') {
     process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+    console.warn('[SECURITY] SSL verification disabled in development mode');
 }
 const logger = pino();
 // Enforce SESSION_SECRET is set before anything else

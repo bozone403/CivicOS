@@ -1,111 +1,254 @@
 
-import { useState } from "react";
-import { useAuth } from "@/hooks/useAuth";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import React from "react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { AnimatedCardWithIcon } from "@/components/ui/animated-card";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { 
+  Vote, 
   Users, 
   FileText, 
-  Vote, 
-  TrendingUp, 
-  Shield, 
-  AlertTriangle,
-  CheckCircle,
+  MessageSquare, 
+  Bell,
+  Shield,
+  TrendingUp,
+  MapPin,
+  BookOpen,
+  Sparkles,
   Activity,
-  Eye,
-  Zap
+  Target,
+  Award,
+  Calendar
 } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import { useQuery } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
 
-import PoliticiansWidget from "@/components/widgets/PoliticiansWidget";
-import BillsVotingWidget from "@/components/widgets/BillsVotingWidget";
-import PetitionsWidget from "@/components/widgets/PetitionsWidget";
-import { NewsAnalysisWidget } from "@/components/widgets/NewsAnalysisWidget";
-import { LegalSystemWidget } from "@/components/widgets/LegalSystemWidget";
-import ComprehensiveNewsWidget from "@/components/widgets/ComprehensiveNewsWidget";
-import { PrimeMinisterIntelligence } from "@/components/widgets/PrimeMinisterIntelligence";
-import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
+interface DashboardStats {
+  totalVotes: number;
+  activeBills: number;
+  politiciansTracked: number;
+  petitionsSigned: number;
+  civicPoints: number;
+  trustScore: number;
+  recentActivity: Array<{
+    id: string;
+    type: string;
+    title: string;
+    timestamp: string;
+    icon: string;
+  }>;
+}
 
 export default function Dashboard() {
-  const { user, isAuthenticated } = useAuth();
-  const [selectedTab, setSelectedTab] = useState("overview");
-  const [liveData, setLiveData] = useState(true);
+  const { user } = useAuth();
 
-  if (!isAuthenticated) {
+  const { data: stats, isLoading, error } = useQuery<DashboardStats>({
+    queryKey: ['/api/dashboard/stats'],
+    queryFn: () => apiRequest('/api/dashboard/stats', 'GET'),
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    retry: 2,
+  });
+
+  if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="flex items-center justify-center min-h-[400px]">
+        <LoadingSpinner size="lg" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">
-          <Shield className="w-16 h-16 mx-auto mb-4 text-blue-600" />
-          <h2 className="text-2xl font-bold mb-2">Authentication Required</h2>
-          <p className="text-gray-600 mb-4">Please log in to access your civic dashboard</p>
+          <div className="text-red-600 mb-4">Failed to load dashboard data</div>
+          <Button onClick={() => window.location.reload()}>Retry</Button>
         </div>
       </div>
     );
   }
 
+  const currentStats = stats || {
+    totalVotes: 0,
+    activeBills: 0,
+    politiciansTracked: 0,
+    petitionsSigned: 0,
+    civicPoints: 0,
+    trustScore: 100,
+    recentActivity: []
+  };
+
   return (
     <div className="space-y-6">
-      {/* Live Data Toggle */}
-      <div className="flex items-center space-x-3 mb-2">
-        <Switch id="live-data-toggle" checked={liveData} onCheckedChange={setLiveData} />
-        <Label htmlFor="live-data-toggle" className="text-sm font-medium">
-          Live Data
-        </Label>
-        <span className="text-xs text-gray-500">({liveData ? "Real-time from Parliament" : "Demo Data"})</span>
+      {/* Welcome Section */}
+      <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg p-6 text-white">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold">
+              Welcome back, {user?.firstName || 'Citizen'}!
+            </h1>
+            <p className="text-blue-100 mt-2">
+              Stay engaged with Canadian democracy. Your voice matters.
+            </p>
+          </div>
+          <div className="text-right">
+            <div className="text-2xl font-bold">{currentStats.civicPoints}</div>
+            <div className="text-blue-100 text-sm">Civic Points</div>
+          </div>
+        </div>
       </div>
-      <Tabs value={selectedTab} onValueChange={setSelectedTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-2 lg:grid-cols-4 gap-1">
-          <TabsTrigger value="overview" className="flex items-center justify-center space-x-1 lg:space-x-2 text-xs lg:text-sm p-2 lg:p-3">
-            <Activity className="w-3 h-3 lg:w-4 lg:h-4" />
-            <span className="hidden sm:inline">Overview</span>
-            <span className="sm:hidden">Home</span>
-          </TabsTrigger>
-          <TabsTrigger value="engagement" className="flex items-center space-x-1 md:space-x-2 text-xs md:text-sm p-2 md:p-3">
-            <Vote className="w-3 h-3 md:w-4 md:h-4" />
-            <span className="hidden sm:inline">Engagement</span>
-            <span className="sm:hidden">Vote</span>
-          </TabsTrigger>
-          <TabsTrigger value="intelligence" className="flex items-center space-x-1 md:space-x-2 text-xs md:text-sm p-2 md:p-3">
-            <Eye className="w-3 h-3 md:w-4 md:h-4" />
-            <span className="hidden sm:inline">Intelligence</span>
-            <span className="sm:hidden">Intel</span>
-          </TabsTrigger>
-          <TabsTrigger value="legal" className="flex items-center space-x-1 md:space-x-2 text-xs md:text-sm p-2 md:p-3">
-            <Shield className="w-3 h-3 md:w-4 md:h-4" />
-            <span className="hidden sm:inline">Legal</span>
-            <span className="sm:hidden">Law</span>
-          </TabsTrigger>
-        </TabsList>
 
-        <TabsContent value="overview" className="space-y-4 md:space-y-6">
-          <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 md:gap-6">
-            <PoliticiansWidget liveData={liveData} />
-            <BillsVotingWidget liveData={liveData} />
-            <PetitionsWidget liveData={liveData} />
-            <NewsAnalysisWidget liveData={liveData} />
-          </div>
-        </TabsContent>
+      {/* Stats Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <AnimatedCardWithIcon
+          icon={<Vote className="h-4 w-4" />}
+          title="Total Votes"
+          description="Bills and petitions voted on"
+          value={currentStats.totalVotes}
+          trend="up"
+        />
+        
+        <AnimatedCardWithIcon
+          icon={<FileText className="h-4 w-4" />}
+          title="Active Bills"
+          description="Currently in parliament"
+          value={currentStats.activeBills}
+          trend="neutral"
+        />
+        
+        <AnimatedCardWithIcon
+          icon={<Users className="h-4 w-4" />}
+          title="Politicians Tracked"
+          description="Representatives you follow"
+          value={currentStats.politiciansTracked}
+          trend="up"
+        />
+        
+        <AnimatedCardWithIcon
+          icon={<Target className="h-4 w-4" />}
+          title="Petitions Signed"
+          description="Causes you support"
+          value={currentStats.petitionsSigned}
+          trend="up"
+        />
+      </div>
 
-        <TabsContent value="engagement" className="space-y-4 md:space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
-            <BillsVotingWidget liveData={liveData} />
-            <PetitionsWidget liveData={liveData} />
-          </div>
-        </TabsContent>
+      {/* Trust Score & Achievements */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <Card className="lg:col-span-2">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Shield className="h-5 w-5 text-green-600" />
+              Trust Score & Achievements
+            </CardTitle>
+            <CardDescription>
+              Your civic engagement level and recent achievements
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-2xl font-bold text-green-600">
+                  {currentStats.trustScore}%
+                </div>
+                <div className="text-sm text-muted-foreground">Trust Score</div>
+              </div>
+              <div className="w-32 h-2 bg-gray-200 rounded-full overflow-hidden">
+                <div 
+                  className="h-full bg-green-600 rounded-full transition-all duration-500"
+                  style={{ width: `${currentStats.trustScore}%` }}
+                />
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div className="text-center p-4 bg-blue-50 rounded-lg">
+                <Award className="h-8 w-8 text-blue-600 mx-auto mb-2" />
+                <div className="text-lg font-semibold">Level {Math.floor(currentStats.civicPoints / 100) + 1}</div>
+                <div className="text-sm text-muted-foreground">Civic Champion</div>
+              </div>
+              <div className="text-center p-4 bg-purple-50 rounded-lg">
+                <Sparkles className="h-8 w-8 text-purple-600 mx-auto mb-2" />
+                <div className="text-lg font-semibold">{Math.floor(currentStats.civicPoints / 50)}</div>
+                <div className="text-sm text-muted-foreground">Badges Earned</div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
-        <TabsContent value="intelligence" className="space-y-4 md:space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
-            <PrimeMinisterIntelligence />
-            <ComprehensiveNewsWidget liveData={liveData} />
-          </div>
-        </TabsContent>
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Activity className="h-5 w-5 text-blue-600" />
+              Recent Activity
+            </CardTitle>
+            <CardDescription>
+              Your latest civic engagement activities
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {currentStats.recentActivity.length > 0 ? (
+                currentStats.recentActivity.map((activity, index) => (
+                  <div 
+                    key={activity.id}
+                    className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 transition-colors"
+                    style={{ animationDelay: `${index * 100}ms` }}
+                  >
+                    <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                      {activity.icon === 'vote' && <Vote className="h-4 w-4 text-blue-600" />}
+                      {activity.icon === 'petition' && <Target className="h-4 w-4 text-green-600" />}
+                      {activity.icon === 'comment' && <MessageSquare className="h-4 w-4 text-purple-600" />}
+                    </div>
+                    <div className="flex-1">
+                      <div className="text-sm font-medium">{activity.title}</div>
+                      <div className="text-xs text-muted-foreground">{activity.timestamp}</div>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="text-center py-8 text-gray-500">
+                  <Activity className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+                  <p>No recent activity</p>
+                  <p className="text-sm">Start engaging to see your activity here</p>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
 
-        <TabsContent value="legal" className="space-y-4 md:space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
-            <LegalSystemWidget liveData={liveData} />
-            <NewsAnalysisWidget liveData={liveData} />
+      {/* Quick Actions */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Quick Actions</CardTitle>
+          <CardDescription>
+            Jump into civic engagement activities
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <Button variant="outline" className="h-20 flex-col gap-2">
+              <Vote className="h-6 w-6" />
+              <span>Vote on Bills</span>
+            </Button>
+            <Button variant="outline" className="h-20 flex-col gap-2">
+              <Users className="h-6 w-6" />
+              <span>Track Politicians</span>
+            </Button>
+            <Button variant="outline" className="h-20 flex-col gap-2">
+              <FileText className="h-6 w-6" />
+              <span>Read News</span>
+            </Button>
+            <Button variant="outline" className="h-20 flex-col gap-2">
+              <MessageSquare className="h-6 w-6" />
+              <span>Join Discussion</span>
+            </Button>
           </div>
-        </TabsContent>
-      </Tabs>
+        </CardContent>
+      </Card>
     </div>
   );
 }

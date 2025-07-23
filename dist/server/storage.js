@@ -54,6 +54,19 @@ export class DatabaseStorage {
             .set({ isVerified, civicLevel: isVerified ? "Verified" : "Registered", updatedAt: new Date() })
             .where(eq(users.id, id));
     }
+    async updateUser(userId, updates) {
+        try {
+            const result = await db.update(users)
+                .set({ ...updates, updatedAt: new Date() })
+                .where(eq(users.id, userId))
+                .returning();
+            return result[0];
+        }
+        catch (error) {
+            console.error('[DB][storage] Error updating user:', error);
+            throw error;
+        }
+    }
     // Notification operations
     async getUserNotifications(userId) {
         try {

@@ -45,9 +45,10 @@ export function useAuth() {
   // User query with better error handling and timeout
   const { data: user, isLoading, error } = useQuery<User | null>({
     queryKey: ["/api/auth/user"],
-    retry: 1,
+    retry: 2,
     retryDelay: 1000,
     enabled: hasToken, // Only run query if there's a token
+    staleTime: 5 * 60 * 1000, // 5 minutes
     queryFn: async () => {
       try {
         const token = getToken();
@@ -55,12 +56,13 @@ export function useAuth() {
         
         const url = `${config.apiUrl.replace(/\/$/, "")}/api/auth/user`;
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 8000); // 8 second timeout
+        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
         
         try {
           const response = await fetch(url, {
             headers: {
               'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json',
             },
             signal: controller.signal,
           });
@@ -69,14 +71,12 @@ export function useAuth() {
           
           if (response.status === 401) {
             localStorage.removeItem('civicos-jwt');
-            setAuthError("Session expired or invalid. Please log in again.");
+            setAuthError("Session expired. Please log in again.");
             return null;
           }
           
           if (!response.ok) {
-            const text = await response.text();
-            setAuthError(`API error: HTTP ${response.status}: ${response.statusText}. Response: ${text}`);
-            throw new Error(`HTTP ${response.status}: ${response.statusText}. Response: ${text}`);
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
           }
           
           const data = await response.json();
@@ -91,7 +91,7 @@ export function useAuth() {
           throw fetchError;
         }
       } catch (error) {
-        setAuthError("Network or server error. Please check your connection or try again later.");
+        setAuthError("Network or server error. Please try again later.");
         return null;
       }
     },
@@ -116,7 +116,7 @@ export function useAuth() {
       const result = await apiRequest("/api/auth/login", "POST", { email, password });
       if (result.token) {
         localStorage.setItem('civicos-jwt', result.token);
-        queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+        await queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
         toast({
           title: "Login successful",
           description: "Welcome to CivicOS!",
