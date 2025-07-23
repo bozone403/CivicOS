@@ -45,16 +45,13 @@ export function useAuth() {
     queryFn: async () => {
       try {
         const token = getToken();
-        console.log("[useAuth] Token:", token ? "present" : "missing");
         if (!token) return null;
         const url = `${config.apiUrl.replace(/\/$/, "")}/api/auth/user`;
-        console.log("[useAuth] Fetching user from:", url);
         const response = await fetch(url, {
           headers: {
             'Authorization': `Bearer ${token}`,
           },
         });
-        console.log("[useAuth] Response status:", response.status);
         if (response.status === 401) {
           localStorage.removeItem('civicos-jwt');
           setAuthError("Session expired or invalid. Please log in again.");
@@ -62,16 +59,13 @@ export function useAuth() {
         }
         if (!response.ok) {
           const text = await response.text();
-          console.log("[useAuth] Error response:", text);
           setAuthError(`API error: HTTP ${response.status}: ${response.statusText}. Response: ${text}`);
           throw new Error(`HTTP ${response.status}: ${response.statusText}. Response: ${text}`);
         }
         const data = await response.json();
-        console.log("[useAuth] User data received:", data);
         setAuthError(null);
         return data;
       } catch (error) {
-        console.error("[useAuth] Error fetching user:", error);
         setAuthError("Network or server error. Please check your connection or try again later.");
         return null;
       }

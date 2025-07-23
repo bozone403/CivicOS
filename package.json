@@ -4,7 +4,7 @@
   "type": "module",
   "license": "MIT",
   "scripts": {
-    "dev": "NODE_ENV=development tsx server/index.ts",
+    "dev": "cross-env DATABASE_URL=\"postgresql://postgres.wmpsjclnykcxtqwxfffv:0QZpuL2bShMezo2S@aws-0-us-east-2.pooler.supabase.com:6543/postgres?sslmode=require\" SESSION_SECRET=\"civicos-dev-session-secret-2024\" NODE_ENV=development tsx server/index.ts",
     "build": "tsc --project tsconfig.server.json --outDir dist",
     "build:client": "cd client && npm run build",
     "build:full": "npm run build && npm run build:client",
@@ -139,7 +139,8 @@
     "@typescript-eslint/parser": "^8.36.0",
     "@vitejs/plugin-react": "^4.3.2",
     "autoprefixer": "^10.4.20",
-    "drizzle-kit": "^0.30.4",
+    "cross-env": "^7.0.3",
+    "drizzle-kit": "^0.30.6",
     "eslint": "^9.31.0",
     "eslint-plugin-react": "^7.37.5",
     "eslint-plugin-react-hooks": "^5.2.0",

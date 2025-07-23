@@ -33,7 +33,7 @@ export function Layout({ children }: LayoutProps) {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Desktop Navigation */}
+      {/* Desktop Navigation - Full sidebar and top bar */}
       <div className="hidden md:block">
         <LuxuryNavigation />
         <div className="md:ml-64 pt-16">
@@ -43,12 +43,15 @@ export function Layout({ children }: LayoutProps) {
         </div>
       </div>
 
-      {/* Mobile Navigation */}
+      {/* Mobile Navigation - Only bottom toolbar, no sidebar */}
       <div className="md:hidden">
-        <MobileNavigation />
-        <main className="pt-16 pb-20">
+        {/* Mobile content area - no sidebar margin */}
+        <main className="pt-16 pb-20 px-4">
           {children}
         </main>
+        
+        {/* Bottom toolbar only */}
+        <MobileNavigation />
       </div>
     </div>
   );

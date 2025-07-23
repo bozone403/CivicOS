@@ -1,67 +1,64 @@
-import { Switch, Route, Link, useLocation } from "wouter";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { queryClient } from "./lib/queryClient";
-import { Toaster } from "@/components/ui/toaster";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { ChatButton } from "@/components/ChatButton";
-import { FloatingChatButton } from "@/components/FloatingChatButton";
 import React, { useState, useEffect } from "react";
+import { Router, Route, Switch, useLocation } from "wouter";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { Toaster } from "@/components/ui/toaster";
+import { Button } from "@/components/ui/button";
+import { Layout } from "@/components/Layout";
 import { useAuth } from "@/hooks/useAuth";
+import { CanadianCoatOfArms } from "@/components/CanadianCoatOfArms";
+import canadianCrest from "@/assets/ChatGPT Image Jun 20, 2025, 06_03_54 PM_1750464244456.png";
 
-import { LuxuryNavigation } from "@/components/layout/LuxuryNavigation";
-import { MobileNavigation } from "@/components/MobileNavigation";
+// Pages
 import Landing from "@/pages/landing";
-import About from "@/pages/about";
-import Privacy from "@/pages/privacy";
-import Terms from "@/pages/terms";
-import Contact from "@/pages/contact";
-import Accessibility from "@/pages/accessibility";
+import Auth from "@/pages/auth";
 import Dashboard from "@/pages/dashboard";
-import Voting from "@/pages/voting";
-import Ledger from "@/pages/ledger";
+import Profile from "@/pages/profile";
+import Settings from "@/pages/settings";
+import News from "@/pages/news";
 import Politicians from "@/pages/politicians";
 import Petitions from "@/pages/petitions";
-import Discussions from "@/pages/discussions";
-import Legal from "@/pages/legal";
-import LegalSearch from "@/pages/legal-search";
-import Rights from "@/pages/rights";
-import Auth from "@/pages/auth";
-
+import Voting from "@/pages/voting";
 import Elections from "@/pages/elections";
+import Contacts from "@/pages/contacts";
+import Legal from "@/pages/legal";
+import Rights from "@/pages/rights";
+import Cases from "@/pages/cases";
+import LegalSearch from "@/pages/legal-search";
 import Finance from "@/pages/finance";
 import Lobbyists from "@/pages/lobbyists";
 import Procurement from "@/pages/procurement";
-import Memory from "@/pages/memory";
-import Cases from "@/pages/cases";
-import News from "@/pages/news";
-import Contacts from "@/pages/contacts";
-import Profile from "@/pages/profile";
-import Settings from "@/pages/settings";
-import FOI from "@/pages/foi";
 import Leaks from "@/pages/leaks";
+import FOI from "@/pages/foi";
 import Whistleblower from "@/pages/whistleblower";
 import Corruption from "@/pages/corruption";
+import Memory from "@/pages/memory";
 import Pulse from "@/pages/pulse";
 import Trust from "@/pages/trust";
 import Maps from "@/pages/maps";
-import Notifications from "@/pages/notifications";
-import UserProfile from "@/pages/user-profile";
-import IdentityVerification from "@/pages/identity-verification";
-import IdentityReview from "@/pages/admin/identity-review";
-import Manifesto from "@/pages/manifesto";
+import Ledger from "@/pages/ledger";
+
+// CivicSocial Pages
+import CivicSocialFeed from "@/pages/civicsocial-feed";
+import CivicSocialProfile from "@/pages/civicsocial-profile";
+import CivicSocialFriends from "@/pages/civicsocial-friends";
+import CivicSocialDiscussions from "@/pages/civicsocial-discussions";
+
+// Other pages
+import About from "@/pages/about";
+import Contact from "@/pages/contact";
+import Privacy from "@/pages/privacy";
+import Terms from "@/pages/terms";
+import Accessibility from "@/pages/accessibility";
 import NotFound from "@/pages/not-found";
-import canadianCrest from "./assets/ChatGPT Image Jun 20, 2025, 06_03_54 PM_1750464244456.png";
-import DashboardDemo from "@/pages/dashboard-demo";
-import CivicSocialLayout from "./pages/civicsocial";
-import CivicSocialFeed from "./pages/civicsocial-feed";
-import CivicSocialProfile from "./pages/civicsocial-profile";
-import CivicSocialFriends from "./pages/civicsocial-friends";
-import CivicSocialLanding from "./pages/civicsocial-landing";
-import CivicSocialDiscussions from "./pages/civicsocial-discussions";
-import { Button } from "./components/ui/button";
-import NotificationBell from "./components/NotificationBell";
-import { config } from "@/lib/config";
-import FooterNav from "@/components/FooterNav";
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 1,
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 
 // Add a simple error boundary
 class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { hasError: boolean; error: any }> {
@@ -93,7 +90,6 @@ class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { has
   }
 }
 
-// ProtectedRoute component
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading } = useAuth();
   const [, navigate] = useLocation();
@@ -134,7 +130,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
               Before you begin, please review and agree to our platform manifesto.
             </p>
           </div>
-          
+
           <div className="bg-blue-50 rounded-lg p-6 mb-6">
             <h2 className="text-xl font-semibold text-blue-900 mb-4">Our Commitment</h2>
             <div className="space-y-3 text-blue-800">
@@ -144,9 +140,9 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
               <p>• All information is verified from official sources</p>
             </div>
           </div>
-          
+
           <div className="flex flex-col sm:flex-row gap-4">
-            <Button 
+            <Button
               onClick={() => {
                 setHasAgreedToManifesto(true);
                 localStorage.setItem('civicos-manifesto-agreed', 'true');
@@ -155,8 +151,8 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
             >
               I Agree & Continue
             </Button>
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               onClick={() => navigate("/auth")}
               className="flex-1"
             >
@@ -171,148 +167,261 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
-function Router() {
-  const { isAuthenticated, isLoading } = useAuth();
+export default function App() {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <Router>
+        <div className="App">
+          <Switch>
+            {/* Public Routes */}
+            <Route path="/" component={Landing} />
+            <Route path="/auth" component={Auth} />
+            <Route path="/about" component={About} />
+            <Route path="/contact" component={Contact} />
+            <Route path="/privacy" component={Privacy} />
+            <Route path="/terms" component={Terms} />
+            <Route path="/accessibility" component={Accessibility} />
 
-  // Fix Manifesto route for wouter (must be a function with props)
-  const ManifestoRoute = () => {
-    const [, navigate] = useLocation();
-    const handleAgree = () => {
-      localStorage.setItem('civicos-manifesto-agreed', 'true');
-      navigate('/dashboard');
-    };
-    return <Manifesto onAgree={handleAgree} />;
-  };
+            {/* Protected Routes */}
+            <Route path="/dashboard">
+              <ProtectedRoute>
+                <Layout>
+                  <Dashboard />
+                </Layout>
+              </ProtectedRoute>
+            </Route>
 
-  React.useEffect(() => {
-    // console.debug("[Router] isAuthenticated", isAuthenticated, "isLoading", isLoading, "config.apiUrl", config.apiUrl);
-  }, [isAuthenticated, isLoading]);
+            <Route path="/profile">
+              <ProtectedRoute>
+                <Layout>
+                  <Profile />
+                </Layout>
+              </ProtectedRoute>
+            </Route>
 
-  if (isLoading || isAuthenticated === undefined) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-red-600 mx-auto"></div>
-          <p className="mt-4 text-slate-600">Loading CivicOS...</p>
+            <Route path="/settings">
+              <ProtectedRoute>
+                <Layout>
+                  <Settings />
+                </Layout>
+              </ProtectedRoute>
+            </Route>
+
+            <Route path="/news">
+              <ProtectedRoute>
+                <Layout>
+                  <News />
+                </Layout>
+              </ProtectedRoute>
+            </Route>
+
+            <Route path="/politicians">
+              <ProtectedRoute>
+                <Layout>
+                  <Politicians />
+                </Layout>
+              </ProtectedRoute>
+            </Route>
+
+            <Route path="/petitions">
+              <ProtectedRoute>
+                <Layout>
+                  <Petitions />
+                </Layout>
+              </ProtectedRoute>
+            </Route>
+
+            <Route path="/voting">
+              <ProtectedRoute>
+                <Layout>
+                  <Voting />
+                </Layout>
+              </ProtectedRoute>
+            </Route>
+
+            <Route path="/elections">
+              <ProtectedRoute>
+                <Layout>
+                  <Elections />
+                </Layout>
+              </ProtectedRoute>
+            </Route>
+
+            <Route path="/contacts">
+              <ProtectedRoute>
+                <Layout>
+                  <Contacts />
+                </Layout>
+              </ProtectedRoute>
+            </Route>
+
+            <Route path="/legal">
+              <ProtectedRoute>
+                <Layout>
+                  <Legal />
+                </Layout>
+              </ProtectedRoute>
+            </Route>
+
+            <Route path="/rights">
+              <ProtectedRoute>
+                <Layout>
+                  <Rights />
+                </Layout>
+              </ProtectedRoute>
+            </Route>
+
+            <Route path="/cases">
+              <ProtectedRoute>
+                <Layout>
+                  <Cases />
+                </Layout>
+              </ProtectedRoute>
+            </Route>
+
+            <Route path="/legal-search">
+              <ProtectedRoute>
+                <Layout>
+                  <LegalSearch />
+                </Layout>
+              </ProtectedRoute>
+            </Route>
+
+            <Route path="/finance">
+              <ProtectedRoute>
+                <Layout>
+                  <Finance />
+                </Layout>
+              </ProtectedRoute>
+            </Route>
+
+            <Route path="/lobbyists">
+              <ProtectedRoute>
+                <Layout>
+                  <Lobbyists />
+                </Layout>
+              </ProtectedRoute>
+            </Route>
+
+            <Route path="/procurement">
+              <ProtectedRoute>
+                <Layout>
+                  <Procurement />
+                </Layout>
+              </ProtectedRoute>
+            </Route>
+
+            <Route path="/leaks">
+              <ProtectedRoute>
+                <Layout>
+                  <Leaks />
+                </Layout>
+              </ProtectedRoute>
+            </Route>
+
+            <Route path="/foi">
+              <ProtectedRoute>
+                <Layout>
+                  <FOI />
+                </Layout>
+              </ProtectedRoute>
+            </Route>
+
+            <Route path="/whistleblower">
+              <ProtectedRoute>
+                <Layout>
+                  <Whistleblower />
+                </Layout>
+              </ProtectedRoute>
+            </Route>
+
+            <Route path="/corruption">
+              <ProtectedRoute>
+                <Layout>
+                  <Corruption />
+                </Layout>
+              </ProtectedRoute>
+            </Route>
+
+            <Route path="/memory">
+              <ProtectedRoute>
+                <Layout>
+                  <Memory />
+                </Layout>
+              </ProtectedRoute>
+            </Route>
+
+            <Route path="/pulse">
+              <ProtectedRoute>
+                <Layout>
+                  <Pulse />
+                </Layout>
+              </ProtectedRoute>
+            </Route>
+
+            <Route path="/trust">
+              <ProtectedRoute>
+                <Layout>
+                  <Trust />
+                </Layout>
+              </ProtectedRoute>
+            </Route>
+
+            <Route path="/maps">
+              <ProtectedRoute>
+                <Layout>
+                  <Maps />
+                </Layout>
+              </ProtectedRoute>
+            </Route>
+
+            <Route path="/ledger">
+              <ProtectedRoute>
+                <Layout>
+                  <Ledger />
+                </Layout>
+              </ProtectedRoute>
+            </Route>
+
+            {/* CivicSocial Routes */}
+            <Route path="/civicsocial/feed">
+              <ProtectedRoute>
+                <Layout>
+                  <CivicSocialFeed />
+                </Layout>
+              </ProtectedRoute>
+            </Route>
+
+            <Route path="/civicsocial-profile">
+              <ProtectedRoute>
+                <Layout>
+                  <CivicSocialProfile />
+                </Layout>
+              </ProtectedRoute>
+            </Route>
+
+            <Route path="/civicsocial-friends">
+              <ProtectedRoute>
+                <Layout>
+                  <CivicSocialFriends />
+                </Layout>
+              </ProtectedRoute>
+            </Route>
+
+            <Route path="/civicsocial-discussions">
+              <ProtectedRoute>
+                <Layout>
+                  <CivicSocialDiscussions />
+                </Layout>
+              </ProtectedRoute>
+            </Route>
+
+            {/* 404 Route */}
+            <Route component={NotFound} />
+          </Switch>
         </div>
-      </div>
-    );
-  }
-
-  // Public routes only
-  if (!isAuthenticated) {
-    return (
-      <main>
-        <Switch>
-          <Route path="/" component={Landing} />
-          <Route path="/about" component={About} />
-          <Route path="/privacy" component={Privacy} />
-          <Route path="/terms" component={Terms} />
-          <Route path="/contact" component={Contact} />
-          <Route path="/accessibility" component={Accessibility} />
-          <Route path="/auth" component={Auth} />
-          <Route path="/login" component={Auth} />
-          <Route path="/register" component={Auth} />
-          <Route path="/manifesto" component={ManifestoRoute} />
-          <Route path="*">{() => <NotFound />}</Route>
-        </Switch>
-      </main>
-    );
-  }
-
-  // Authenticated: show nav and protected routes
-  return (
-    <div className="min-h-screen bg-background">
-      <div className="flex">
-        <LuxuryNavigation />
-        <main className="flex-1 bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen overflow-x-auto">
-          {/* Mobile Navigation */}
-          <div className="lg:hidden bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700 p-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-slate-800 via-slate-700 to-slate-900 flex items-center justify-center shadow-lg border border-slate-600 overflow-hidden">
-                  <img 
-                    src={canadianCrest} 
-                    alt="CivicOS" 
-                    className="w-6 h-6 object-contain rounded-full"
-                  />
-                </div>
-                <h1 className="text-lg font-bold font-serif text-slate-900 dark:text-slate-100">CivicOS</h1>
-              </div>
-              <div className="flex items-center space-x-2">
-                <ChatButton />
-              </div>
-            </div>
-          </div>
-          <div className="p-2 sm:p-4 lg:p-6">
-            <Switch>
-              <Route path="/dashboard" component={() => <ProtectedRoute><Dashboard /></ProtectedRoute>} />
-              <Route path="/voting" component={() => <ProtectedRoute><Voting /></ProtectedRoute>} />
-              <Route path="/ledger" component={() => <ProtectedRoute><Ledger /></ProtectedRoute>} />
-              <Route path="/politicians" component={() => <ProtectedRoute><Politicians /></ProtectedRoute>} />
-              <Route path="/petitions" component={() => <ProtectedRoute><Petitions /></ProtectedRoute>} />
-              <Route path="/discussions" component={() => <ProtectedRoute><Discussions /></ProtectedRoute>} />
-              <Route path="/legal" component={() => <ProtectedRoute><Legal /></ProtectedRoute>} />
-              <Route path="/legal-search" component={() => <ProtectedRoute><LegalSearch /></ProtectedRoute>} />
-              <Route path="/rights" component={() => <ProtectedRoute><Rights /></ProtectedRoute>} />
-              <Route path="/elections" component={() => <ProtectedRoute><Elections /></ProtectedRoute>} />
-              <Route path="/news" component={() => <ProtectedRoute><News /></ProtectedRoute>} />
-              <Route path="/contacts" component={() => <ProtectedRoute><Contacts /></ProtectedRoute>} />
-              <Route path="/profile" component={() => <ProtectedRoute><Profile /></ProtectedRoute>} />
-              <Route path="/settings" component={() => <ProtectedRoute><Settings /></ProtectedRoute>} />
-              <Route path="/finance" component={() => <ProtectedRoute><Finance /></ProtectedRoute>} />
-              <Route path="/lobbyists" component={() => <ProtectedRoute><Lobbyists /></ProtectedRoute>} />
-              <Route path="/procurement" component={() => <ProtectedRoute><Procurement /></ProtectedRoute>} />
-              <Route path="/memory" component={() => <ProtectedRoute><Memory /></ProtectedRoute>} />
-              <Route path="/cases" component={() => <ProtectedRoute><Cases /></ProtectedRoute>} />
-              <Route path="/foi" component={() => <ProtectedRoute><FOI /></ProtectedRoute>} />
-              <Route path="/leaks" component={() => <ProtectedRoute><Leaks /></ProtectedRoute>} />
-              <Route path="/whistleblower" component={() => <ProtectedRoute><Whistleblower /></ProtectedRoute>} />
-              <Route path="/corruption" component={() => <ProtectedRoute><Corruption /></ProtectedRoute>} />
-              <Route path="/pulse" component={() => <ProtectedRoute><Pulse /></ProtectedRoute>} />
-              <Route path="/trust" component={() => <ProtectedRoute><Trust /></ProtectedRoute>} />
-              <Route path="/maps" component={() => <ProtectedRoute><Maps /></ProtectedRoute>} />
-              <Route path="/manifesto" component={ManifestoRoute} />
-              <Route path="/identity-verification" component={() => <ProtectedRoute><IdentityVerification /></ProtectedRoute>} />
-              <Route path="/admin/identity-review" component={() => <ProtectedRoute><IdentityReview /></ProtectedRoute>} />
-              <Route path="/notifications" component={() => <ProtectedRoute><Notifications /></ProtectedRoute>} />
-              <Route path="/users/:userId" component={() => <ProtectedRoute><UserProfile /></ProtectedRoute>} />
-              <Route path="/dashboard-demo" component={() => <ProtectedRoute><DashboardDemo /></ProtectedRoute>} />
-              {/* CivicSocial routes (protected) */}
-              <Route path="/civicsocial" component={() => <ProtectedRoute><CivicSocialLanding /></ProtectedRoute>} />
-              <Route path="/civicsocial/feed" component={() => <ProtectedRoute><CivicSocialFeed /></ProtectedRoute>} />
-              <Route path="/civicsocial/profile" component={() => <ProtectedRoute><CivicSocialProfile /></ProtectedRoute>} />
-              <Route path="/civicsocial/discussions" component={() => <ProtectedRoute><CivicSocialDiscussions /></ProtectedRoute>} />
-              <Route path="/civicsocial/friends" component={() => <ProtectedRoute><CivicSocialFriends /></ProtectedRoute>} />
-              <Route path="*">{() => <NotFound />}</Route>
-            </Switch>
-          </div>
-        </main>
-      </div>
-    </div>
-  );
-}
-
-function AppWithBot() {
-  return (
-    <>
-      <Router />
-      <FloatingChatButton />
-    </>
-  );
-}
-
-function App() {
-  return (
-    <TooltipProvider>
-      <ErrorBoundary>
         <Toaster />
-        <Router />
-        <FloatingChatButton />
-        <FooterNav /> {/* Mobile footer nav, md:hidden */}
-      </ErrorBoundary>
-    </TooltipProvider>
+      </Router>
+    </QueryClientProvider>
   );
 }
-
-export default App;

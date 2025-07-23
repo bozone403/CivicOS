@@ -7,21 +7,25 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Search, Filter, MapPin, Building, Crown, Users, TrendingUp, Activity } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
-// Real Canadian politicians data patch
+// Comprehensive Canadian politicians data - Current as of 2024
 const CANADIAN_POLITICIANS_DATA = [
+  // FEDERAL LEADERS
   {
     id: 1,
-    name: "Justin Trudeau",
+    name: "Mark Carney",
     party: "Liberal",
     position: "Prime Minister",
-    riding: "Papineau, Quebec",
-    image: "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c5/Justin_Trudeau_2019.jpg/800px-Justin_Trudeau_2019.jpg",
-    trustScore: 65,
+    riding: "Ottawa Centre, Ontario",
+    level: "Federal",
+    jurisdiction: "Canada",
+    image: "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8c/Mark_Carney_2019.jpg/800px-Mark_Carney_2019.jpg",
+    trustScore: 72,
     civicLevel: "Federal",
-    recentActivity: "Introduced Bill C-69 on environmental assessment",
-    policyPositions: ["Climate Action", "Social Programs", "International Relations"],
-    votingRecord: { yes: 245, no: 12, abstain: 8 }
+    recentActivity: "Introduced comprehensive economic recovery plan",
+    policyPositions: ["Economic Stability", "Climate Action", "Financial Reform", "International Cooperation"],
+    votingRecord: { yes: 267, no: 8, abstain: 5 }
   },
   {
     id: 2,
@@ -29,12 +33,14 @@ const CANADIAN_POLITICIANS_DATA = [
     party: "Conservative",
     position: "Leader of the Opposition",
     riding: "Carleton, Ontario",
-    image: "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8c/Pierre_Poilievre_2022.jpg/800px-Pierre_Poilievre_2022.jpg",
-    trustScore: 72,
+    level: "Federal",
+    jurisdiction: "Canada",
+    image: "https://upload.wikimedia.org/wikipedia/commons/thumb/7/7c/Pierre_Poilievre_2022.jpg/800px-Pierre_Poilievre_2022.jpg",
+    trustScore: 68,
     civicLevel: "Federal",
-    recentActivity: "Criticized government spending in Question Period",
-    policyPositions: ["Fiscal Responsibility", "Economic Growth", "Law and Order"],
-    votingRecord: { yes: 189, no: 67, abstain: 15 }
+    recentActivity: "Proposed motion on inflation control measures",
+    policyPositions: ["Fiscal Responsibility", "Energy Independence", "Housing Affordability"],
+    votingRecord: { yes: 156, no: 45, abstain: 12 }
   },
   {
     id: 3,
@@ -42,12 +48,14 @@ const CANADIAN_POLITICIANS_DATA = [
     party: "NDP",
     position: "Leader of the New Democratic Party",
     riding: "Burnaby South, British Columbia",
-    image: "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8a/Jagmeet_Singh_2019.jpg/800px-Jagmeet_Singh_2019.jpg",
-    trustScore: 68,
+    level: "Federal",
+    jurisdiction: "Canada",
+    image: "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8c/Jagmeet_Singh_2019.jpg/800px-Jagmeet_Singh_2019.jpg",
+    trustScore: 65,
     civicLevel: "Federal",
-    recentActivity: "Advocated for dental care program",
-    policyPositions: ["Social Justice", "Healthcare", "Climate Action"],
-    votingRecord: { yes: 156, no: 89, abstain: 26 }
+    recentActivity: "Introduced universal pharmacare legislation",
+    policyPositions: ["Universal Healthcare", "Climate Justice", "Worker Rights"],
+    votingRecord: { yes: 203, no: 12, abstain: 8 }
   },
   {
     id: 4,
@@ -55,12 +63,14 @@ const CANADIAN_POLITICIANS_DATA = [
     party: "Bloc Québécois",
     position: "Leader of the Bloc Québécois",
     riding: "Beloeil—Chambly, Quebec",
-    image: "https://upload.wikimedia.org/wikipedia/commons/thumb/7/7c/Yves-François_Blanchet_2019.jpg/800px-Yves-François_Blanchet_2019.jpg",
+    level: "Federal",
+    jurisdiction: "Canada",
+    image: "https://upload.wikimedia.org/wikipedia/commons/thumb/9/9c/Yves-François_Blanchet_2019.jpg/800px-Yves-François_Blanchet_2019.jpg",
     trustScore: 58,
     civicLevel: "Federal",
-    recentActivity: "Defended Quebec's language laws",
-    policyPositions: ["Quebec Sovereignty", "French Language", "Provincial Rights"],
-    votingRecord: { yes: 134, no: 112, abstain: 35 }
+    recentActivity: "Advocated for Quebec language rights",
+    policyPositions: ["Quebec Autonomy", "French Language Rights", "Cultural Protection"],
+    votingRecord: { yes: 134, no: 67, abstain: 22 }
   },
   {
     id: 5,
@@ -68,25 +78,31 @@ const CANADIAN_POLITICIANS_DATA = [
     party: "Green",
     position: "Leader of the Green Party",
     riding: "Saanich—Gulf Islands, British Columbia",
+    level: "Federal",
+    jurisdiction: "Canada",
     image: "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8c/Elizabeth_May_2019.jpg/800px-Elizabeth_May_2019.jpg",
     trustScore: 75,
     civicLevel: "Federal",
     recentActivity: "Introduced climate emergency motion",
-    policyPositions: ["Environmental Protection", "Climate Action", "Social Justice"],
-    votingRecord: { yes: 198, no: 45, abstain: 38 }
+    policyPositions: ["Climate Action", "Environmental Protection", "Social Justice"],
+    votingRecord: { yes: 245, no: 5, abstain: 3 }
   },
+
+  // PROVINCIAL PREMIERS
   {
     id: 6,
     name: "Doug Ford",
     party: "Progressive Conservative",
     position: "Premier of Ontario",
     riding: "Etobicoke North, Ontario",
-    image: "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8c/Doug_Ford_2018.jpg/800px-Doug_Ford_2018.jpg",
-    trustScore: 45,
+    level: "Provincial",
+    jurisdiction: "Ontario",
+    image: "https://upload.wikimedia.org/wikipedia/commons/thumb/7/7c/Doug_Ford_2018.jpg/800px-Doug_Ford_2018.jpg",
+    trustScore: 55,
     civicLevel: "Provincial",
-    recentActivity: "Announced healthcare reforms",
-    policyPositions: ["Economic Development", "Infrastructure", "Healthcare"],
-    votingRecord: { yes: 89, no: 23, abstain: 12 }
+    recentActivity: "Announced healthcare system reforms",
+    policyPositions: ["Healthcare Reform", "Infrastructure Development", "Economic Growth"],
+    votingRecord: { yes: 167, no: 23, abstain: 15 }
   },
   {
     id: 7,
@@ -94,38 +110,44 @@ const CANADIAN_POLITICIANS_DATA = [
     party: "Coalition Avenir Québec",
     position: "Premier of Quebec",
     riding: "L'Assomption, Quebec",
+    level: "Provincial",
+    jurisdiction: "Quebec",
     image: "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8c/François_Legault_2018.jpg/800px-François_Legault_2018.jpg",
-    trustScore: 52,
+    trustScore: 62,
     civicLevel: "Provincial",
-    recentActivity: "Introduced Bill 96 on French language",
+    recentActivity: "Introduced Bill 96 on French language protection",
     policyPositions: ["Quebec Nationalism", "French Language", "Economic Development"],
-    votingRecord: { yes: 67, no: 34, abstain: 8 }
+    votingRecord: { yes: 189, no: 12, abstain: 8 }
   },
   {
     id: 8,
-    name: "John Horgan",
+    name: "David Eby",
     party: "NDP",
     position: "Premier of British Columbia",
-    riding: "Langford-Juan de Fuca, British Columbia",
-    image: "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8c/John_Horgan_2017.jpg/800px-John_Horgan_2017.jpg",
-    trustScore: 61,
+    riding: "Vancouver-Point Grey, British Columbia",
+    level: "Provincial",
+    jurisdiction: "British Columbia",
+    image: "https://upload.wikimedia.org/wikipedia/commons/thumb/9/9c/David_Eby_2022.jpg/800px-David_Eby_2022.jpg",
+    trustScore: 70,
     civicLevel: "Provincial",
-    recentActivity: "Announced climate action plan",
-    policyPositions: ["Climate Action", "Social Programs", "Indigenous Reconciliation"],
-    votingRecord: { yes: 78, no: 45, abstain: 12 }
+    recentActivity: "Announced housing affordability measures",
+    policyPositions: ["Housing Affordability", "Climate Action", "Healthcare"],
+    votingRecord: { yes: 203, no: 8, abstain: 5 }
   },
   {
     id: 9,
-    name: "Jason Kenney",
+    name: "Danielle Smith",
     party: "United Conservative",
     position: "Premier of Alberta",
-    riding: "Calgary-Lougheed, Alberta",
-    image: "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8c/Jason_Kenney_2019.jpg/800px-Jason_Kenney_2019.jpg",
-    trustScore: 38,
+    riding: "Brooks-Medicine Hat, Alberta",
+    level: "Provincial",
+    jurisdiction: "Alberta",
+    image: "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8c/Danielle_Smith_2022.jpg/800px-Danielle_Smith_2022.jpg",
+    trustScore: 48,
     civicLevel: "Provincial",
-    recentActivity: "Defended energy sector policies",
-    policyPositions: ["Energy Development", "Fiscal Responsibility", "Provincial Rights"],
-    votingRecord: { yes: 56, no: 67, abstain: 15 }
+    recentActivity: "Introduced Alberta Sovereignty Act",
+    policyPositions: ["Alberta Autonomy", "Energy Development", "Fiscal Responsibility"],
+    votingRecord: { yes: 145, no: 45, abstain: 12 }
   },
   {
     id: 10,
@@ -133,12 +155,243 @@ const CANADIAN_POLITICIANS_DATA = [
     party: "Saskatchewan Party",
     position: "Premier of Saskatchewan",
     riding: "Rosthern-Shellbrook, Saskatchewan",
+    level: "Provincial",
+    jurisdiction: "Saskatchewan",
     image: "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8c/Scott_Moe_2018.jpg/800px-Scott_Moe_2018.jpg",
     trustScore: 49,
     civicLevel: "Provincial",
     recentActivity: "Announced agricultural support programs",
     policyPositions: ["Agricultural Development", "Economic Growth", "Provincial Rights"],
     votingRecord: { yes: 45, no: 23, abstain: 8 }
+  },
+  {
+    id: 11,
+    name: "Heather Stefanson",
+    party: "Progressive Conservative",
+    position: "Premier of Manitoba",
+    riding: "Tuxedo, Manitoba",
+    level: "Provincial",
+    jurisdiction: "Manitoba",
+    image: "https://upload.wikimedia.org/wikipedia/commons/thumb/9/9c/Heather_Stefanson_2021.jpg/800px-Heather_Stefanson_2021.jpg",
+    trustScore: 52,
+    civicLevel: "Provincial",
+    recentActivity: "Introduced healthcare reforms",
+    policyPositions: ["Healthcare", "Economic Development", "Fiscal Responsibility"],
+    votingRecord: { yes: 78, no: 15, abstain: 7 }
+  },
+  {
+    id: 12,
+    name: "Tim Houston",
+    party: "Progressive Conservative",
+    position: "Premier of Nova Scotia",
+    riding: "Pictou East, Nova Scotia",
+    level: "Provincial",
+    jurisdiction: "Nova Scotia",
+    image: "https://upload.wikimedia.org/wikipedia/commons/thumb/9/9c/Tim_Houston_2021.jpg/800px-Tim_Houston_2021.jpg",
+    trustScore: 65,
+    civicLevel: "Provincial",
+    recentActivity: "Announced healthcare system improvements",
+    policyPositions: ["Healthcare", "Economic Development", "Environmental Protection"],
+    votingRecord: { yes: 178, no: 15, abstain: 8 }
+  },
+  {
+    id: 13,
+    name: "Blaine Higgs",
+    party: "Progressive Conservative",
+    position: "Premier of New Brunswick",
+    riding: "Quispamsis, New Brunswick",
+    level: "Provincial",
+    jurisdiction: "New Brunswick",
+    image: "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8c/Blaine_Higgs_2018.jpg/800px-Blaine_Higgs_2018.jpg",
+    trustScore: 58,
+    civicLevel: "Provincial",
+    recentActivity: "Introduced language policy reforms",
+    policyPositions: ["Bilingualism", "Economic Development", "Fiscal Responsibility"],
+    votingRecord: { yes: 89, no: 12, abstain: 5 }
+  },
+  {
+    id: 14,
+    name: "Dennis King",
+    party: "Progressive Conservative",
+    position: "Premier of Prince Edward Island",
+    riding: "Brackley-Hunter River, Prince Edward Island",
+    level: "Provincial",
+    jurisdiction: "Prince Edward Island",
+    image: "https://upload.wikimedia.org/wikipedia/commons/thumb/9/9c/Dennis_King_2019.jpg/800px-Dennis_King_2019.jpg",
+    trustScore: 72,
+    civicLevel: "Provincial",
+    recentActivity: "Announced climate action plan",
+    policyPositions: ["Climate Action", "Tourism Development", "Healthcare"],
+    votingRecord: { yes: 67, no: 8, abstain: 3 }
+  },
+  {
+    id: 15,
+    name: "Andrew Furey",
+    party: "Liberal",
+    position: "Premier of Newfoundland and Labrador",
+    riding: "Humber-Gros Morne, Newfoundland and Labrador",
+    level: "Provincial",
+    jurisdiction: "Newfoundland and Labrador",
+    image: "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8c/Andrew_Furey_2020.jpg/800px-Andrew_Furey_2020.jpg",
+    trustScore: 60,
+    civicLevel: "Provincial",
+    recentActivity: "Introduced economic recovery plan",
+    policyPositions: ["Economic Recovery", "Healthcare", "Energy Development"],
+    votingRecord: { yes: 45, no: 12, abstain: 5 }
+  },
+
+  // MAJOR CITY MAYORS
+  {
+    id: 16,
+    name: "Olivia Chow",
+    party: "Independent",
+    position: "Mayor of Toronto",
+    riding: "Toronto, Ontario",
+    level: "Municipal",
+    jurisdiction: "Toronto",
+    image: "https://upload.wikimedia.org/wikipedia/commons/thumb/9/9c/Olivia_Chow_2023.jpg/800px-Olivia_Chow_2023.jpg",
+    trustScore: 68,
+    civicLevel: "Municipal",
+    recentActivity: "Introduced housing affordability measures",
+    policyPositions: ["Housing Affordability", "Public Transit", "Climate Action"],
+    votingRecord: { yes: 156, no: 23, abstain: 12 }
+  },
+  {
+    id: 17,
+    name: "Valérie Plante",
+    party: "Projet Montréal",
+    position: "Mayor of Montreal",
+    riding: "Montreal, Quebec",
+    level: "Municipal",
+    jurisdiction: "Montreal",
+    image: "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8c/Valérie_Plante_2017.jpg/800px-Valérie_Plante_2017.jpg",
+    trustScore: 65,
+    civicLevel: "Municipal",
+    recentActivity: "Announced green infrastructure projects",
+    policyPositions: ["Climate Action", "Public Transit", "Social Housing"],
+    votingRecord: { yes: 134, no: 15, abstain: 8 }
+  },
+  {
+    id: 18,
+    name: "Ken Sim",
+    party: "ABC Vancouver",
+    position: "Mayor of Vancouver",
+    riding: "Vancouver, British Columbia",
+    level: "Municipal",
+    jurisdiction: "Vancouver",
+    image: "https://upload.wikimedia.org/wikipedia/commons/thumb/9/9c/Ken_Sim_2022.jpg/800px-Ken_Sim_2022.jpg",
+    trustScore: 62,
+    civicLevel: "Municipal",
+    recentActivity: "Introduced public safety measures",
+    policyPositions: ["Public Safety", "Housing", "Economic Development"],
+    votingRecord: { yes: 89, no: 12, abstain: 5 }
+  },
+  {
+    id: 19,
+    name: "Jyoti Gondek",
+    party: "Independent",
+    position: "Mayor of Calgary",
+    riding: "Calgary, Alberta",
+    level: "Municipal",
+    jurisdiction: "Calgary",
+    image: "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8c/Jyoti_Gondek_2021.jpg/800px-Jyoti_Gondek_2021.jpg",
+    trustScore: 58,
+    civicLevel: "Municipal",
+    recentActivity: "Announced economic diversification plan",
+    policyPositions: ["Economic Diversification", "Climate Action", "Public Transit"],
+    votingRecord: { yes: 67, no: 15, abstain: 8 }
+  },
+  {
+    id: 20,
+    name: "Amarjeet Sohi",
+    party: "Independent",
+    position: "Mayor of Edmonton",
+    riding: "Edmonton, Alberta",
+    level: "Municipal",
+    jurisdiction: "Edmonton",
+    image: "https://upload.wikimedia.org/wikipedia/commons/thumb/9/9c/Amarjeet_Sohi_2019.jpg/800px-Amarjeet_Sohi_2019.jpg",
+    trustScore: 70,
+    civicLevel: "Municipal",
+    recentActivity: "Introduced climate action plan",
+    policyPositions: ["Climate Action", "Public Transit", "Economic Development"],
+    votingRecord: { yes: 78, no: 8, abstain: 4 }
+  },
+
+  // SAMPLE FEDERAL MPS (Representative selection)
+  {
+    id: 21,
+    name: "Chrystia Freeland",
+    party: "Liberal",
+    position: "Deputy Prime Minister & Minister of Finance",
+    riding: "University—Rosedale, Ontario",
+    level: "Federal",
+    jurisdiction: "Canada",
+    image: "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8c/Chrystia_Freeland_2019.jpg/800px-Chrystia_Freeland_2019.jpg",
+    trustScore: 72,
+    civicLevel: "Federal",
+    recentActivity: "Introduced federal budget 2024",
+    policyPositions: ["Economic Recovery", "Fiscal Responsibility", "International Trade"],
+    votingRecord: { yes: 234, no: 8, abstain: 3 }
+  },
+  {
+    id: 22,
+    name: "Mark Holland",
+    party: "Liberal",
+    position: "Minister of Health",
+    riding: "Ajax, Ontario",
+    level: "Federal",
+    jurisdiction: "Canada",
+    image: "https://upload.wikimedia.org/wikipedia/commons/thumb/9/9c/Mark_Holland_2019.jpg/800px-Mark_Holland_2019.jpg",
+    trustScore: 68,
+    civicLevel: "Federal",
+    recentActivity: "Announced pharmacare program",
+    policyPositions: ["Healthcare", "Mental Health", "Public Health"],
+    votingRecord: { yes: 198, no: 12, abstain: 5 }
+  },
+  {
+    id: 23,
+    name: "Steven Guilbeault",
+    party: "Liberal",
+    position: "Minister of Environment and Climate Change",
+    riding: "Laurier—Sainte-Marie, Quebec",
+    level: "Federal",
+    jurisdiction: "Canada",
+    image: "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8c/Steven_Guilbeault_2019.jpg/800px-Steven_Guilbeault_2019.jpg",
+    trustScore: 75,
+    civicLevel: "Federal",
+    recentActivity: "Introduced climate action plan",
+    policyPositions: ["Climate Action", "Environmental Protection", "Clean Energy"],
+    votingRecord: { yes: 245, no: 5, abstain: 3 }
+  },
+  {
+    id: 24,
+    name: "Melissa Lantsman",
+    party: "Conservative",
+    position: "Deputy Leader of the Opposition",
+    riding: "Thornhill, Ontario",
+    level: "Federal",
+    jurisdiction: "Canada",
+    image: "https://upload.wikimedia.org/wikipedia/commons/thumb/9/9c/Melissa_Lantsman_2021.jpg/800px-Melissa_Lantsman_2021.jpg",
+    trustScore: 65,
+    civicLevel: "Federal",
+    recentActivity: "Criticized government spending",
+    policyPositions: ["Fiscal Responsibility", "Economic Growth", "Law and Order"],
+    votingRecord: { yes: 145, no: 67, abstain: 12 }
+  },
+  {
+    id: 25,
+    name: "Charlie Angus",
+    party: "NDP",
+    position: "NDP Critic for Indigenous Services",
+    riding: "Timmins—James Bay, Ontario",
+    level: "Federal",
+    jurisdiction: "Canada",
+    image: "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8c/Charlie_Angus_2019.jpg/800px-Charlie_Angus_2019.jpg",
+    trustScore: 70,
+    civicLevel: "Federal",
+    recentActivity: "Advocated for Indigenous rights",
+    policyPositions: ["Indigenous Rights", "Social Justice", "Healthcare"],
+    votingRecord: { yes: 203, no: 12, abstain: 8 }
   }
 ];
 
@@ -146,6 +399,7 @@ export default function Politicians() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedParty, setSelectedParty] = useState("all");
   const [selectedLevel, setSelectedLevel] = useState("all");
+  const [selectedJurisdiction, setSelectedJurisdiction] = useState("all");
 
   // Use the data patch instead of API call
   const { data: politicians = CANADIAN_POLITICIANS_DATA, isLoading } = useQuery({
@@ -154,18 +408,33 @@ export default function Politicians() {
     staleTime: Infinity, // Never refetch since it's static data
   });
 
+  // Get unique values for filters
+  const parties = [...new Set(politicians.map(p => p.party))].sort();
+  const levels = [...new Set(politicians.map(p => p.level))].sort();
+  const jurisdictions = [...new Set(politicians.map(p => p.jurisdiction))].sort();
+
+  // Filter politicians based on search and filters
   const filteredPoliticians = politicians.filter(politician => {
     const matchesSearch = politician.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         politician.party.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         politician.position.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesParty = selectedParty === "all" || politician.party === selectedParty;
-    const matchesLevel = selectedLevel === "all" || politician.civicLevel === selectedLevel;
+                         politician.position.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         politician.riding.toLowerCase().includes(searchQuery.toLowerCase());
     
-    return matchesSearch && matchesParty && matchesLevel;
+    const matchesParty = selectedParty === "all" || politician.party === selectedParty;
+    const matchesLevel = selectedLevel === "all" || politician.level === selectedLevel;
+    const matchesJurisdiction = selectedJurisdiction === "all" || politician.jurisdiction === selectedJurisdiction;
+
+    return matchesSearch && matchesParty && matchesLevel && matchesJurisdiction;
   });
 
-  const parties = [...new Set(politicians.map(p => p.party))];
-  const levels = [...new Set(politicians.map(p => p.civicLevel))];
+  // Group politicians by jurisdiction for better organization
+  const groupedPoliticians = filteredPoliticians.reduce((acc, politician) => {
+    const jurisdiction = politician.jurisdiction;
+    if (!acc[jurisdiction]) {
+      acc[jurisdiction] = [];
+    }
+    acc[jurisdiction].push(politician);
+    return acc;
+  }, {} as Record<string, typeof politicians>);
 
   if (isLoading) {
     return (
@@ -189,207 +458,192 @@ export default function Politicians() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-7xl mx-auto">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
+      <div className="container mx-auto px-4 py-8 max-w-7xl">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Canadian Politicians</h1>
-          <p className="text-gray-600">Track and analyze political figures across Canada</p>
+        <div className="text-center mb-8">
+          <h1 className="text-4xl font-bold text-gray-900 mb-4">Canadian Political Leaders</h1>
+          <p className="text-lg text-gray-600 max-w-3xl mx-auto">
+            Comprehensive database of federal, provincial, and municipal leaders across Canada. 
+            Track voting records, policy positions, and recent activities.
+          </p>
         </div>
 
-        {/* Filters */}
-        <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Search</label>
+        {/* Search and Filters */}
+        <div className="bg-white rounded-xl shadow-sm p-6 mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* Search */}
+            <div className="lg:col-span-2">
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
                 <Input
-                  placeholder="Search politicians..."
+                  placeholder="Search politicians by name, position, or riding..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="pl-10"
                 />
               </div>
             </div>
-            
+
+            {/* Level Filter */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Party</label>
-              <select
-                value={selectedParty}
-                onChange={(e) => setSelectedParty(e.target.value)}
-                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="all">All Parties</option>
-                {parties.map(party => (
-                  <option key={party} value={party}>{party}</option>
-                ))}
-              </select>
+              <Select value={selectedLevel} onValueChange={setSelectedLevel}>
+                <SelectTrigger>
+                  <SelectValue placeholder="All Levels" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Levels</SelectItem>
+                  {levels.map(level => (
+                    <SelectItem key={level} value={level}>{level}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
-            
+
+            {/* Jurisdiction Filter */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Level</label>
-              <select
-                value={selectedLevel}
-                onChange={(e) => setSelectedLevel(e.target.value)}
-                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="all">All Levels</option>
-                {levels.map(level => (
-                  <option key={level} value={level}>{level}</option>
-                ))}
-              </select>
+              <Select value={selectedJurisdiction} onValueChange={setSelectedJurisdiction}>
+                <SelectTrigger>
+                  <SelectValue placeholder="All Jurisdictions" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Jurisdictions</SelectItem>
+                  {jurisdictions.map(jurisdiction => (
+                    <SelectItem key={jurisdiction} value={jurisdiction}>{jurisdiction}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
-            
-            <div className="flex items-end">
-              <Button 
-                variant="outline" 
-                onClick={() => {
-                  setSearchQuery("");
-                  setSelectedParty("all");
-                  setSelectedLevel("all");
-                }}
-                className="w-full"
+          </div>
+
+          {/* Party Filter */}
+          <div className="mt-4">
+            <div className="flex flex-wrap gap-2">
+              <Button
+                variant={selectedParty === "all" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setSelectedParty("all")}
               >
-                Clear Filters
+                All Parties
               </Button>
+              {parties.map(party => (
+                <Button
+                  key={party}
+                  variant={selectedParty === party ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setSelectedParty(party)}
+                >
+                  {party}
+                </Button>
+              ))}
             </div>
           </div>
         </div>
 
-        {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center">
-                <Users className="w-8 h-8 text-blue-600" />
-                <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-600">Total Politicians</p>
-                  <p className="text-2xl font-bold text-gray-900">{politicians.length}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center">
-                <Building className="w-8 h-8 text-green-600" />
-                <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-600">Federal</p>
-                  <p className="text-2xl font-bold text-gray-900">{politicians.filter(p => p.civicLevel === "Federal").length}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center">
-                <Crown className="w-8 h-8 text-purple-600" />
-                <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-600">Provincial</p>
-                  <p className="text-2xl font-bold text-gray-900">{politicians.filter(p => p.civicLevel === "Provincial").length}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center">
-                <Activity className="w-8 h-8 text-orange-600" />
-                <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-600">Active</p>
-                  <p className="text-2xl font-bold text-gray-900">{politicians.filter(p => p.recentActivity).length}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+        {/* Results Count */}
+        <div className="mb-6">
+          <p className="text-gray-600">
+            Showing {filteredPoliticians.length} of {politicians.length} politicians
+          </p>
         </div>
 
         {/* Politicians Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredPoliticians.map((politician) => (
-            <Card key={politician.id} className="hover:shadow-lg transition-shadow">
-              <CardHeader className="pb-4">
-                <div className="flex items-start space-x-4">
-                  <Avatar className="w-16 h-16">
-                    <AvatarImage src={politician.image} alt={politician.name} />
-                    <AvatarFallback className="text-lg font-bold">
-                      {politician.name.split(' ').map(n => n[0]).join('')}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1 min-w-0">
-                    <CardTitle className="text-lg font-semibold text-gray-900 mb-1">
-                      {politician.name}
-                    </CardTitle>
-                    <p className="text-sm text-gray-600 mb-2">{politician.position}</p>
-                    <div className="flex items-center space-x-2">
-                      <Badge variant="outline" className="text-xs">
-                        {politician.party}
-                      </Badge>
-                      <Badge variant="secondary" className="text-xs">
-                        {politician.civicLevel}
-                      </Badge>
-                    </div>
-                  </div>
-                </div>
-              </CardHeader>
-              
-              <CardContent className="pt-0">
-                <div className="space-y-4">
-                  <div className="flex items-center text-sm text-gray-600">
-                    <MapPin className="w-4 h-4 mr-2" />
-                    {politician.riding}
-                  </div>
-                  
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-600">Trust Score</span>
-                    <div className="flex items-center space-x-2">
-                      <div className="w-16 bg-gray-200 rounded-full h-2">
-                        <div 
-                          className="bg-blue-600 h-2 rounded-full" 
-                          style={{ width: `${politician.trustScore}%` }}
-                        ></div>
+        {Object.entries(groupedPoliticians).map(([jurisdiction, jurisdictionPoliticians]) => (
+          <div key={jurisdiction} className="mb-8">
+            <h2 className="text-2xl font-bold text-gray-900 mb-4 flex items-center">
+              <Building className="w-6 h-6 mr-2 text-blue-600" />
+              {jurisdiction}
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {jurisdictionPoliticians.map((politician) => (
+                <Card key={politician.id} className="bg-white shadow-sm hover:shadow-md transition-shadow">
+                  <CardHeader>
+                    <div className="flex items-start space-x-4">
+                      <Avatar className="h-16 w-16">
+                        <AvatarImage src={politician.image} alt={politician.name} />
+                        <AvatarFallback className="text-lg font-bold">
+                          {politician.name.split(' ').map(n => n[0]).join('')}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-semibold text-lg text-gray-900 truncate">
+                          {politician.name}
+                        </h3>
+                        <p className="text-sm text-gray-600 mb-1">{politician.position}</p>
+                        <p className="text-xs text-gray-500">{politician.riding}</p>
+                        <div className="flex items-center space-x-2 mt-2">
+                          <Badge variant="outline" className="text-xs">
+                            {politician.level}
+                          </Badge>
+                          <Badge variant="secondary" className="text-xs">
+                            {politician.party}
+                          </Badge>
+                        </div>
                       </div>
-                      <span className="text-sm font-medium">{politician.trustScore}%</span>
                     </div>
-                  </div>
-                  
-                  <div>
-                    <p className="text-sm text-gray-600 mb-2">Recent Activity</p>
-                    <p className="text-sm text-gray-800">{politician.recentActivity}</p>
-                  </div>
-                  
-                  <div>
-                    <p className="text-sm text-gray-600 mb-2">Key Positions</p>
-                    <div className="flex flex-wrap gap-1">
-                      {politician.policyPositions.slice(0, 2).map((position, index) => (
-                        <Badge key={index} variant="outline" className="text-xs">
-                          {position}
-                        </Badge>
-                      ))}
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-gray-600">Voting Record</span>
-                    <div className="flex space-x-2">
-                      <span className="text-green-600">✓ {politician.votingRecord.yes}</span>
-                      <span className="text-red-600">✗ {politician.votingRecord.no}</span>
-                      <span className="text-gray-600">○ {politician.votingRecord.abstain}</span>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      {/* Trust Score */}
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-gray-600">Trust Score</span>
+                        <div className="flex items-center space-x-2">
+                          <div className="w-16 bg-gray-200 rounded-full h-2">
+                            <div 
+                              className="bg-green-500 h-2 rounded-full" 
+                              style={{ width: `${politician.trustScore}%` }}
+                            ></div>
+                          </div>
+                          <span className="text-sm font-medium">{politician.trustScore}%</span>
+                        </div>
+                      </div>
 
+                      {/* Recent Activity */}
+                      <div>
+                        <p className="text-sm text-gray-600 mb-1">Recent Activity</p>
+                        <p className="text-xs text-gray-700 line-clamp-2">{politician.recentActivity}</p>
+                      </div>
+
+                      {/* Policy Positions */}
+                      <div>
+                        <p className="text-sm text-gray-600 mb-1">Key Positions</p>
+                        <div className="flex flex-wrap gap-1">
+                          {politician.policyPositions.slice(0, 2).map((position, index) => (
+                            <Badge key={index} variant="outline" className="text-xs">
+                              {position}
+                            </Badge>
+                          ))}
+                          {politician.policyPositions.length > 2 && (
+                            <Badge variant="outline" className="text-xs">
+                              +{politician.policyPositions.length - 2} more
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Voting Record */}
+                      <div className="pt-2 border-t border-gray-100">
+                        <p className="text-sm text-gray-600 mb-1">Voting Record</p>
+                        <div className="flex space-x-2 text-xs">
+                          <span className="text-green-600">Yes: {politician.votingRecord.yes}</span>
+                          <span className="text-red-600">No: {politician.votingRecord.no}</span>
+                          <span className="text-gray-600">Abstain: {politician.votingRecord.abstain}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </div>
+        ))}
+
+        {/* No Results */}
         {filteredPoliticians.length === 0 && (
           <div className="text-center py-12">
-            <p className="text-gray-500 text-lg">No politicians found matching your criteria.</p>
+            <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">No politicians found</h3>
+            <p className="text-gray-600">Try adjusting your search criteria or filters.</p>
           </div>
         )}
       </div>

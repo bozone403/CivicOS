@@ -12,7 +12,7 @@ import { VerificationStatusBadge } from "@/components/VerificationStatusBadge";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { CanadianCoatOfArms, CanadianMapleLeaf } from "@/components/CanadianCoatOfArms";
+import { CanadianCoatOfArms } from "@/components/CanadianCoatOfArms";
 import DonationPopup from "@/components/DonationPopup";
 import DonationSuccess from "@/components/DonationSuccess";
 import civicOSLogo from "@assets/ChatGPT Image Jun 20, 2025, 05_42_18 PM_1750462997583.png";
@@ -51,7 +51,6 @@ import {
   Globe,
   User,
   Settings as SettingsIcon,
-  HelpCircle,
   Info,
   UserPlus,
   MessageCircle,
@@ -173,11 +172,8 @@ export function LuxuryNavigation() {
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (searchQuery.trim()) {
-      // Navigate to search results or implement search functionality
-      toast({
-        title: "Search",
-        description: `Searching for: ${searchQuery}`,
-      });
+      // Navigate to search results page with query
+      window.location.href = `/search?q=${encodeURIComponent(searchQuery.trim())}`;
     }
   };
 
@@ -348,10 +344,6 @@ export function LuxuryNavigation() {
                   >
                     <Heart className="w-4 h-4 mr-3 text-red-600" />
                     Support Platform
-                  </Button>
-                  <Button variant="outline" size="sm" className="w-full justify-start text-sm h-9">
-                    <HelpCircle className="w-4 h-4 mr-3" />
-                    Help & Support
                   </Button>
                   <Button variant="outline" size="sm" className="w-full justify-start text-sm h-9">
                     <Info className="w-4 h-4 mr-3" />
