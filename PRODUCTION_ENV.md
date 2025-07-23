@@ -1,60 +1,121 @@
-# Production Environment Configuration
+# CivicOS Production Environment Configuration
 
-## Required Environment Variables for Render
+## Core AI Integration (Ollama + Mistral)
 
-Set these in your Render dashboard under Environment Variables:
+### Required Environment Variables for AI Functionality
 
 ```bash
-# Database Configuration
-DATABASE_URL=postgresql://postgres.wmpsjclnykcxtqwxfffv:0QZpuL2bShMezo2S@aws-0-us-east-2.pooler.supabase.com:6543/postgres?sslmode=require
-
-# JWT Configuration
-SESSION_SECRET=a1b2c3d4e5f6789012345678901234567890abcdef1234567890abcdef12
-JWT_SECRET=civicos-jwt-secret-key-2024
-
-# CORS Configuration
-CORS_ORIGIN=https://civicos.ca
-
-# Base URL Configuration
-BASE_URL=https://civicos.ca
-FRONTEND_BASE_URL=https://civicos.ca
-
-# Supabase Configuration
-SUPABASE_URL=https://wmpsjclnykcxtqwxfffv.supabase.co
-SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndtcHNqY2xueWtjeHRxd3hmZmZ2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE4MjYwNDEsImV4cCI6MjA2NzQwMjA0MX0.hHrXn_D4e8f9JFLig5-DTVOzr5aCUpi3aeh922mNw4c
-SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndtcHNqY2xueWtjeHRxd3hmZmZ2Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1MTgyNjA0MSwiZXhwIjoyMDY3NDAyMDQxfQ.VeqLO3T2Ixu31MYrTxLX1Qod4rUxMfBcCGXmQlyrXY4
-
-# Stripe Configuration
-STRIPE_PUBLISHABLE_KEY=pk_live_51RXSIIG7smx2v2qq53S9qPt0UQoMQfRy7G8aTWU9XuHjRrbwvnoZSOIZuehqm6a9Gs3Evb7zgIKtifP3jWq9yukf00CJBb2Sfn
-STRIPE_SECRET_KEY=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
-
-# Application Configuration
-NODE_ENV=production
-PORT=5001
-
-# Admin Configuration
-ADMIN_EMAIL=Jordan@iron-Oak.Ca
-
-# Feature Flags
-ENABLE_STRIPE_PAYMENTS=true
-ENABLE_SUPABASE_AUTH=true
-ENABLE_OLLAMA=false
-
-# AI Configuration (disabled in production)
+# Ollama Configuration (REQUIRED for AI functionality)
 OLLAMA_BASE_URL=http://localhost:11434
 OLLAMA_MODEL=mistral:latest
+ENABLE_OLLAMA=true
 
-# Production Configuration
-ENABLE_DEBUG_LOGGING=false
-ENABLE_HOT_RELOAD=false
+# AI Service Configuration
+AI_SERVICE_ENABLED=true
+MISTRAL_ENABLED=true
 ```
 
-## Key Changes for Production
+### Production AI Setup
 
-1. **ENABLE_OLLAMA=false** - Disables Ollama AI service in production
-2. **NODE_TLS_REJECT_UNAUTHORIZED=0** - Allows Supabase SSL connections
-3. **ENABLE_DEBUG_LOGGING=false** - Reduces log noise in production
+1. **Ollama Installation**: The system automatically installs Ollama during deployment
+2. **Mistral Model**: Automatically downloads and configures Mistral:latest
+3. **Service Integration**: All AI calls route through Ollama Mistral
 
-## AI Service Fallback
+### AI Endpoints Available
 
-When Ollama is disabled, the AI service will provide intelligent fallback responses instead of failing. 
+- `/api/ai/chat` - CivicOS chatbot with Mistral
+- `/api/ai/analyze-news` - News analysis with bias detection
+- `/api/ai/analyze-policy` - Policy and bill analysis
+- `/api/ai/civic-insights` - Civic intelligence insights
+- `/api/ai/health` - AI service health check
+
+## Database Configuration (Supabase)
+
+```bash
+# Database Connection
+DATABASE_URL=postgresql://username:password@host:port/database
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_ANON_KEY=your-anon-key
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+```
+
+## Security & Performance
+
+```bash
+# Production Security
+NODE_ENV=production
+RENDER=true
+PORT=10000
+
+# SSL Configuration
+SSL_ENABLED=true
+SSL_VERIFY=true
+
+# Rate Limiting
+RATE_LIMIT_ENABLED=true
+RATE_LIMIT_WINDOW_MS=900000
+RATE_LIMIT_MAX_REQUESTS=100
+```
+
+## Deployment Verification
+
+### Health Check Endpoints
+
+1. **Backend Health**: `GET /api/health`
+2. **AI Service Health**: `GET /api/ai/health`
+3. **Database Health**: `GET /api/db/health`
+
+### Expected Responses
+
+```json
+{
+  "status": "healthy",
+  "timestamp": "2024-01-01T00:00:00.000Z",
+  "services": {
+    "database": "connected",
+    "ai": "available",
+    "ollama": "running"
+  }
+}
+```
+
+## Troubleshooting
+
+### AI Service Issues
+
+1. **Ollama Not Starting**: Check if Ollama is installed and running
+2. **Mistral Model Missing**: Run `ollama pull mistral:latest`
+3. **Connection Refused**: Verify Ollama service is running on port 11434
+
+### Database Issues
+
+1. **SSL Connection**: Ensure DATABASE_URL includes SSL parameters
+2. **Migration Errors**: Check for pending migrations
+3. **Connection Timeout**: Verify Supabase credentials
+
+## Production Commands
+
+```bash
+# Start production server with AI
+npm run start
+
+# Initialize Ollama manually
+npm run init:ollama
+
+# Check AI service health
+curl https://your-domain.com/api/ai/health
+
+# Deploy to Render
+npm run deploy:render
+```
+
+## AI Service Integration
+
+The CivicOS AI system uses Ollama with Mistral for:
+- Real-time civic intelligence analysis
+- News bias detection and fact-checking
+- Policy analysis and summarization
+- Politician statement verification
+- Civic engagement insights
+
+All AI functionality is core to the application and must be enabled in production. 

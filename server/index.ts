@@ -237,6 +237,19 @@ app.get("/health", (_req, res) => {
   // Initialize automatic government data sync
   initializeDataSync();
   
+  // Initialize Ollama AI service for production
+  if (process.env.NODE_ENV === 'production') {
+    console.log('🤖 Initializing Ollama AI service for production...');
+    try {
+      const { initializeOllama } = await import('./initOllama.js');
+      await initializeOllama();
+      console.log('✅ Ollama AI service initialized successfully');
+    } catch (error) {
+      console.error('❌ Failed to initialize Ollama AI service:', error);
+      console.log('⚠️  AI functionality will use fallback responses');
+    }
+  }
+  
   // Run immediate data scraping on startup
   setTimeout(async () => {
     try {

@@ -17,12 +17,9 @@ export async function callOllamaMistral(prompt: string): Promise<string> {
   const baseUrl = process.env.OLLAMA_BASE_URL || "http://localhost:11434";
   const model = process.env.OLLAMA_MODEL || "mistral:latest";
   
-  // Check if we're in production and Ollama is not available
-  if (process.env.NODE_ENV === 'production' && !process.env.ENABLE_OLLAMA) {
-    return generateFallbackResponse(prompt);
-  }
-
   try {
+    console.log(`🤖 Calling Ollama Mistral at ${baseUrl} with model ${model}`);
+    
     const response = await fetch(`${baseUrl}/api/generate`, {
       method: "POST",
       headers: {
@@ -41,9 +38,10 @@ export async function callOllamaMistral(prompt: string): Promise<string> {
     }
 
     const data = await response.json() as OllamaResponse;
+    console.log(`✅ Ollama Mistral response received`);
     return data.response;
   } catch (error) {
-    console.warn("Error calling Ollama Mixtral:", error);
+    console.warn("Error calling Ollama Mistral:", error);
     return generateFallbackResponse(prompt);
   }
 }
