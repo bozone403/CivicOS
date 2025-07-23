@@ -124,7 +124,7 @@ export function FeatureTutorial({ onComplete }: { onComplete?: () => void }) {
     <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
       <div className="relative max-w-md w-full">
         {/* Tutorial Card */}
-        <Card className={`relative overflow-hidden animate-pulse ${currentTutorialStep.glowColor}`}>
+        <Card className={`relative overflow-hidden animate-pulse ${currentTutorialStep.glowColor} bg-white shadow-xl`}>
           {/* Glow Effect */}
           <div className={`absolute inset-0 ${currentTutorialStep.color} opacity-20 blur-xl`}></div>
           
