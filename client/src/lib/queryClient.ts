@@ -27,16 +27,40 @@ export async function apiRequest(
   const token = getToken();
   const headers: Record<string, string> = data ? { "Content-Type": "application/json" } : {};
   if (token) headers["Authorization"] = `Bearer ${token}`;
-  // Production logging (commented out for performance)
-  // console.debug("[apiRequest] fullUrl:", fullUrl, "method:", method, "token:", token);
-  const res = await fetch(fullUrl, {
-    method,
-    headers,
-    body: data ? JSON.stringify(data) : undefined,
-    credentials: "include",
-  });
-  await throwIfResNotOk(res);
-  return await res.json();
+  
+  // Add timeout controller
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+  
+  try {
+    const res = await fetch(fullUrl, {
+      method,
+      headers,
+      body: data ? JSON.stringify(data) : undefined,
+      credentials: "include",
+      signal: controller.signal,
+    });
+    
+    clearTimeout(timeoutId);
+    
+    if (!res.ok) {
+      const text = (await res.text()) || res.statusText;
+      if (res.status === 401) {
+        // Clear invalid token
+        localStorage.removeItem('civicos-jwt');
+        throw new Error("Authentication failed. Please log in again.");
+      }
+      throw new Error(`${res.status}: ${text}`);
+    }
+    
+    return await res.json();
+  } catch (error) {
+    clearTimeout(timeoutId);
+    if (error instanceof Error && error.name === 'AbortError') {
+      throw new Error("Request timed out. Please try again.");
+    }
+    throw error;
+  }
 }
 
 type UnauthorizedBehavior = "returnNull" | "throw";

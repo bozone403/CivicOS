@@ -4,7 +4,7 @@
   "type": "module",
   "license": "MIT",
   "scripts": {
-    "dev": "cross-env DATABASE_URL=\"postgresql://postgres.wmpsjclnykcxtqwxfffv:0QZpuL2bShMezo2S@aws-0-us-east-2.pooler.supabase.com:6543/postgres?sslmode=require\" SESSION_SECRET=\"civicos-dev-session-secret-2024\" NODE_ENV=development tsx server/index.ts",
+    "dev": "tsx server/index.ts",
     "build": "tsc --project tsconfig.server.json --outDir dist",
     "build:client": "cd client && npm run build",
     "build:full": "npm run build && npm run build:client",

@@ -37,34 +37,59 @@ export function useAuth() {
   const [, navigate] = useLocation();
   const [authError, setAuthError] = useState<string | null>(null);
 
-  // Temporarily disable user query to avoid loading issues
+  // Check for existing token on mount
+  const [hasToken] = useState(() => {
+    return !!getToken();
+  });
+
+  // User query with better error handling and timeout
   const { data: user, isLoading, error } = useQuery<User | null>({
     queryKey: ["/api/auth/user"],
-    retry: false,
-    enabled: !!getToken(), // Only run query if there's a token
+    retry: 1,
+    retryDelay: 1000,
+    enabled: hasToken, // Only run query if there's a token
     queryFn: async () => {
       try {
         const token = getToken();
         if (!token) return null;
+        
         const url = `${config.apiUrl.replace(/\/$/, "")}/api/auth/user`;
-        const response = await fetch(url, {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-          },
-        });
-        if (response.status === 401) {
-          localStorage.removeItem('civicos-jwt');
-          setAuthError("Session expired or invalid. Please log in again.");
-          return null;
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 8000); // 8 second timeout
+        
+        try {
+          const response = await fetch(url, {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+            },
+            signal: controller.signal,
+          });
+          
+          clearTimeout(timeoutId);
+          
+          if (response.status === 401) {
+            localStorage.removeItem('civicos-jwt');
+            setAuthError("Session expired or invalid. Please log in again.");
+            return null;
+          }
+          
+          if (!response.ok) {
+            const text = await response.text();
+            setAuthError(`API error: HTTP ${response.status}: ${response.statusText}. Response: ${text}`);
+            throw new Error(`HTTP ${response.status}: ${response.statusText}. Response: ${text}`);
+          }
+          
+          const data = await response.json();
+          setAuthError(null);
+          return data;
+        } catch (fetchError) {
+          clearTimeout(timeoutId);
+          if (fetchError instanceof Error && fetchError.name === 'AbortError') {
+            setAuthError("Request timed out. Please check your connection.");
+            return null;
+          }
+          throw fetchError;
         }
-        if (!response.ok) {
-          const text = await response.text();
-          setAuthError(`API error: HTTP ${response.status}: ${response.statusText}. Response: ${text}`);
-          throw new Error(`HTTP ${response.status}: ${response.statusText}. Response: ${text}`);
-        }
-        const data = await response.json();
-        setAuthError(null);
-        return data;
       } catch (error) {
         setAuthError("Network or server error. Please check your connection or try again later.");
         return null;
@@ -73,7 +98,7 @@ export function useAuth() {
   });
 
   // Handle network errors gracefully
-  const hasNetworkError = error && (error.message?.includes("fetch") || error.message?.includes("network"));
+  const hasNetworkError = error && (error.message?.includes("fetch") || error.message?.includes("network") || error.message?.includes("timeout"));
 
   const logout = () => {
     localStorage.removeItem('civicos-jwt');
@@ -89,19 +114,22 @@ export function useAuth() {
   const login = async (email: string, password: string) => {
     try {
       const result = await apiRequest("/api/auth/login", "POST", { email, password });
-      if (result.token) localStorage.setItem('civicos-jwt', result.token);
-      queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
-      toast({
-        title: "Login successful",
-        description: "Welcome to CivicOS!",
-      });
-      navigate("/dashboard");
+      if (result.token) {
+        localStorage.setItem('civicos-jwt', result.token);
+        queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+        toast({
+          title: "Login successful",
+          description: "Welcome to CivicOS!",
+        });
+        navigate("/dashboard");
+      }
     } catch (error: any) {
       toast({
         title: "Login failed",
-        description: error.message || "Invalid credentials",
+        description: error.message || "Invalid credentials. Please try again.",
         variant: "destructive",
       });
+      throw error;
     }
   };
 

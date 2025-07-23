@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Router, Route, Switch, useLocation } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
+import { FloatingChatButton } from "@/components/FloatingChatButton";
 import { Button } from "@/components/ui/button";
 import { Layout } from "@/components/Layout";
 import { useAuth } from "@/hooks/useAuth";
@@ -443,6 +444,7 @@ export default function App() {
           </Switch>
         </div>
         <Toaster />
+        <FloatingChatButton />
       </Router>
     </QueryClientProvider>
   );

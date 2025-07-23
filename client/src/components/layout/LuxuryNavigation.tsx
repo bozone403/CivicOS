@@ -1,5 +1,5 @@
 import * as React from "react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
@@ -140,6 +140,14 @@ export function LuxuryNavigation() {
   const [searchQuery, setSearchQuery] = useState("");
   const { toast } = useToast();
 
+  // Check if popups have been shown in this session
+  useEffect(() => {
+    const donationShown = sessionStorage.getItem('donationPopupShown');
+    if (donationShown) {
+      setShowDonationPopup(false);
+    }
+  }, []);
+
   // Fetch notifications
   const { data: notifications = [] } = useQuery<Notification[]>({
     queryKey: ['/api/notifications'],
@@ -166,15 +174,16 @@ export function LuxuryNavigation() {
   const handleDonationSuccess = () => {
     setShowDonationPopup(false);
     setShowDonationSuccess(true);
-    setTimeout(() => setShowDonationSuccess(false), 3000);
+    sessionStorage.setItem('donationPopupShown', 'true');
   };
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    if (searchQuery.trim()) {
-      // Navigate to search results page with query
-      window.location.href = `/search?q=${encodeURIComponent(searchQuery.trim())}`;
-    }
+    // Implement search functionality
+    toast({
+      title: "Search",
+      description: `Searching for: ${searchQuery}`,
+    });
   };
 
   return (
