@@ -70,134 +70,59 @@ export default function CivicSocialMessages() {
   // Fetch conversations
   const { data: conversations = [] } = useQuery<Conversation[]>({
     queryKey: ['/api/social/conversations'],
-    queryFn: () => Promise.resolve([
-      {
-        id: "1",
-        participants: ["user1", "user2"],
-        lastMessage: {
-          id: "msg1",
-          content: "Hey! How's the CivicOS platform working for you?",
-          senderId: "user2",
-          receiverId: "user1",
-          timestamp: new Date(Date.now() - 1000 * 60 * 5).toISOString(),
-          isRead: false
+    queryFn: async () => {
+      const response = await fetch('/api/social/conversations', {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('civicos-jwt')}`,
         },
-        unreadCount: 1,
-        participant: {
-          firstName: "Sarah",
-          lastName: "Johnson",
-          profileImageUrl: "https://images.unsplash.com/photo-1494790108755-2616b612b786?w=150&h=150&fit=crop&crop=face",
-          email: "sarah.johnson@email.com",
-          isOnline: true
-        }
-      },
-      {
-        id: "2",
-        participants: ["user1", "user3"],
-        lastMessage: {
-          id: "msg2",
-          content: "The voting system is really impressive!",
-          senderId: "user1",
-          receiverId: "user3",
-          timestamp: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
-          isRead: true
-        },
-        unreadCount: 0,
-        participant: {
-          firstName: "Michael",
-          lastName: "Chen",
-          profileImageUrl: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face",
-          email: "michael.chen@email.com",
-          isOnline: false
-        }
-      },
-      {
-        id: "3",
-        participants: ["user1", "user4"],
-        lastMessage: {
-          id: "msg3",
-          content: "Have you seen the latest political news?",
-          senderId: "user4",
-          receiverId: "user1",
-          timestamp: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(),
-          isRead: false
-        },
-        unreadCount: 1,
-        participant: {
-          firstName: "Emma",
-          lastName: "Davis",
-          profileImageUrl: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&h=150&fit=crop&crop=face",
-          email: "emma.davis@email.com",
-          isOnline: true
-        }
+      });
+      if (!response.ok) {
+        throw new Error('Failed to fetch conversations');
       }
-    ]),
-    staleTime: Infinity,
+      return response.json();
+    },
+    staleTime: 30000, // 30 seconds
   });
 
   // Fetch messages for selected conversation
   const { data: messages = [] } = useQuery<Message[]>({
     queryKey: ['/api/social/messages', selectedConversation],
-    queryFn: () => Promise.resolve([
-      {
-        id: "msg1",
-        content: "Hey! How's the CivicOS platform working for you?",
-        senderId: "user2",
-        receiverId: "user1",
-        timestamp: new Date(Date.now() - 1000 * 60 * 5).toISOString(),
-        isRead: false,
-        sender: {
-          firstName: "Sarah",
-          lastName: "Johnson",
-          profileImageUrl: "https://images.unsplash.com/photo-1494790108755-2616b612b786?w=150&h=150&fit=crop&crop=face",
-          email: "sarah.johnson@email.com"
-        }
-      },
-      {
-        id: "msg2",
-        content: "It's amazing! The voting system is really intuitive.",
-        senderId: "user1",
-        receiverId: "user2",
-        timestamp: new Date(Date.now() - 1000 * 60 * 4).toISOString(),
-        isRead: true
-      },
-      {
-        id: "msg3",
-        content: "I love how transparent everything is. The politician profiles are so detailed!",
-        senderId: "user2",
-        receiverId: "user1",
-        timestamp: new Date(Date.now() - 1000 * 60 * 3).toISOString(),
-        isRead: false
-      },
-      {
-        id: "msg4",
-        content: "Exactly! And the CivicSocial feature makes it feel like a real community.",
-        senderId: "user1",
-        receiverId: "user2",
-        timestamp: new Date(Date.now() - 1000 * 60 * 2).toISOString(),
-        isRead: true
-      },
-      {
-        id: "msg5",
-        content: "Have you tried the parallel voting system yet?",
-        senderId: "user2",
-        receiverId: "user1",
-        timestamp: new Date(Date.now() - 1000 * 60 * 1).toISOString(),
-        isRead: false
+    queryFn: async () => {
+      if (!selectedConversation) return [];
+      const response = await fetch(`/api/social/messages/${selectedConversation}`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('civicos-jwt')}`,
+        },
+      });
+      if (!response.ok) {
+        throw new Error('Failed to fetch messages');
       }
-    ]),
+      return response.json();
+    },
     enabled: !!selectedConversation,
-    staleTime: Infinity,
+    staleTime: 10000, // 10 seconds
   });
 
   // Send message mutation
   const sendMessageMutation = useMutation({
-    mutationFn: (content: string) => 
-      apiRequest('/api/social/messages', 'POST', {
-        content,
-        receiverId: selectedConversation,
-        conversationId: selectedConversation
-      }),
+    mutationFn: async (content: string) => {
+      const response = await fetch('/api/social/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('civicos-jwt')}`,
+        },
+        body: JSON.stringify({
+          content,
+          receiverId: selectedConversation,
+          conversationId: selectedConversation
+        }),
+      });
+      if (!response.ok) {
+        throw new Error('Failed to send message');
+      }
+      return response.json();
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/social/messages', selectedConversation] });
       queryClient.invalidateQueries({ queryKey: ['/api/social/conversations'] });
@@ -277,54 +202,62 @@ export default function CivicSocialMessages() {
         {/* Conversations List */}
         <ScrollArea className="flex-1">
           <div className="space-y-1 p-2">
-            {filteredConversations.map((conversation) => (
-              <div
-                key={conversation.id}
-                onClick={() => setSelectedConversation(conversation.id)}
-                className={`p-3 rounded-lg cursor-pointer transition-colors ${
-                  selectedConversation === conversation.id
-                    ? "bg-blue-50 border border-blue-200"
-                    : "hover:bg-gray-50"
-                }`}
-              >
-                <div className="flex items-center space-x-3">
-                  <div className="relative">
-                    <Avatar className="w-12 h-12">
-                      <AvatarImage src={conversation.participant?.profileImageUrl} />
-                      <AvatarFallback>
-                        {conversation.participant?.firstName?.[0]}{conversation.participant?.lastName?.[0]}
-                      </AvatarFallback>
-                    </Avatar>
-                    {conversation.participant?.isOnline && (
-                      <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 border-2 border-white rounded-full" />
-                    )}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between">
-                      <h3 className="font-semibold text-sm truncate">
-                        {conversation.participant?.firstName} {conversation.participant?.lastName}
-                      </h3>
-                      {conversation.lastMessage && (
-                        <span className="text-xs text-gray-500">
-                          {new Date(conversation.lastMessage.timestamp).toLocaleTimeString([], { 
-                            hour: '2-digit', 
-                            minute: '2-digit' 
-                          })}
-                        </span>
+            {filteredConversations.length === 0 ? (
+              <div className="text-center py-8 text-gray-500">
+                <MessageCircle className="w-12 h-12 mx-auto mb-2 text-gray-300" />
+                <p>No conversations yet</p>
+                <p className="text-sm">Add friends to start messaging</p>
+              </div>
+            ) : (
+              filteredConversations.map((conversation) => (
+                <div
+                  key={conversation.id}
+                  onClick={() => setSelectedConversation(conversation.id)}
+                  className={`p-3 rounded-lg cursor-pointer transition-colors ${
+                    selectedConversation === conversation.id
+                      ? "bg-blue-50 border border-blue-200"
+                      : "hover:bg-gray-50"
+                  }`}
+                >
+                  <div className="flex items-center space-x-3">
+                    <div className="relative">
+                      <Avatar className="w-12 h-12">
+                        <AvatarImage src={conversation.participant?.profileImageUrl} />
+                        <AvatarFallback>
+                          {conversation.participant?.firstName?.[0]}{conversation.participant?.lastName?.[0]}
+                        </AvatarFallback>
+                      </Avatar>
+                      {conversation.participant?.isOnline && (
+                        <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 border-2 border-white rounded-full" />
                       )}
                     </div>
-                    <p className="text-sm text-gray-600 truncate">
-                      {conversation.lastMessage?.content}
-                    </p>
-                    {conversation.unreadCount > 0 && (
-                      <Badge variant="secondary" className="mt-1">
-                        {conversation.unreadCount}
-                      </Badge>
-                    )}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between">
+                        <h3 className="font-semibold text-sm truncate">
+                          {conversation.participant?.firstName} {conversation.participant?.lastName}
+                        </h3>
+                        {conversation.lastMessage && (
+                          <span className="text-xs text-gray-500">
+                            {new Date(conversation.lastMessage.timestamp).toLocaleTimeString([], { 
+                              hour: '2-digit', 
+                              minute: '2-digit' 
+                            })}
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-sm text-gray-600 truncate">
+                        {conversation.lastMessage?.content || "No messages yet"}
+                      </p>
+                      {conversation.unreadCount > 0 && (
+                        <Badge variant="secondary" className="mt-1">
+                          {conversation.unreadCount}
+                        </Badge>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              ))
+            )}
           </div>
         </ScrollArea>
       </div>
@@ -374,43 +307,51 @@ export default function CivicSocialMessages() {
             {/* Messages */}
             <ScrollArea className="flex-1 p-4">
               <div className="space-y-4">
-                {messages.map((message) => {
-                  const isOwnMessage = message.senderId === user?.id;
-                  return (
-                    <div
-                      key={message.id}
-                      className={`flex ${isOwnMessage ? 'justify-end' : 'justify-start'}`}
-                    >
-                      <div className={`flex items-end space-x-2 max-w-xs lg:max-w-md ${isOwnMessage ? 'flex-row-reverse space-x-reverse' : ''}`}>
-                        {!isOwnMessage && (
-                          <Avatar className="w-8 h-8">
-                            <AvatarImage src={message.sender?.profileImageUrl} />
-                            <AvatarFallback>
-                              {message.sender?.firstName?.[0]}{message.sender?.lastName?.[0]}
-                            </AvatarFallback>
-                          </Avatar>
-                        )}
-                        <div
-                          className={`px-4 py-2 rounded-lg ${
-                            isOwnMessage
-                              ? 'bg-blue-500 text-white'
-                              : 'bg-gray-100 text-gray-900'
-                          }`}
-                        >
-                          <p className="text-sm">{message.content}</p>
-                          <p className={`text-xs mt-1 ${
-                            isOwnMessage ? 'text-blue-100' : 'text-gray-500'
-                          }`}>
-                            {new Date(message.timestamp).toLocaleTimeString([], { 
-                              hour: '2-digit', 
-                              minute: '2-digit' 
-                            })}
-                          </p>
+                {messages.length === 0 ? (
+                  <div className="text-center py-8 text-gray-500">
+                    <MessageCircle className="w-12 h-12 mx-auto mb-2 text-gray-300" />
+                    <p>No messages yet</p>
+                    <p className="text-sm">Start the conversation!</p>
+                  </div>
+                ) : (
+                  messages.map((message) => {
+                    const isOwnMessage = message.senderId === user?.id;
+                    return (
+                      <div
+                        key={message.id}
+                        className={`flex ${isOwnMessage ? 'justify-end' : 'justify-start'}`}
+                      >
+                        <div className={`flex items-end space-x-2 max-w-xs lg:max-w-md ${isOwnMessage ? 'flex-row-reverse space-x-reverse' : ''}`}>
+                          {!isOwnMessage && (
+                            <Avatar className="w-8 h-8">
+                              <AvatarImage src={message.sender?.profileImageUrl} />
+                              <AvatarFallback>
+                                {message.sender?.firstName?.[0]}{message.sender?.lastName?.[0]}
+                              </AvatarFallback>
+                            </Avatar>
+                          )}
+                          <div
+                            className={`px-4 py-2 rounded-lg ${
+                              isOwnMessage
+                                ? 'bg-blue-500 text-white'
+                                : 'bg-gray-100 text-gray-900'
+                            }`}
+                          >
+                            <p className="text-sm">{message.content}</p>
+                            <p className={`text-xs mt-1 ${
+                              isOwnMessage ? 'text-blue-100' : 'text-gray-500'
+                            }`}>
+                              {new Date(message.timestamp).toLocaleTimeString([], { 
+                                hour: '2-digit', 
+                                minute: '2-digit' 
+                              })}
+                            </p>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })
+                )}
                 <div ref={messagesEndRef} />
               </div>
             </ScrollArea>

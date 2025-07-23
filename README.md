@@ -41,7 +41,8 @@ npm start
 Required environment variables:
 - `DATABASE_URL` - PostgreSQL connection string
 - `SESSION_SECRET` - Session encryption key
-- `OPENAI_API_KEY` - OpenAI API key for AI features
+- `OLLAMA_BASE_URL` - Ollama server URL for local AI
+- `OLLAMA_MODEL` - Ollama model name (default: mistral:latest)
 - `STRIPE_SECRET_KEY` - Stripe payment processing
 - `FRONTEND_BASE_URL` - Frontend base URL
 

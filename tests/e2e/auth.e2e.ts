@@ -12,10 +12,10 @@ test.describe('Authentication Flow', () => {
     await page.fill('input[name="email"]', testUser.email);
     await page.fill('input[name="password"]', testUser.password);
     await page.click('button[type="submit"]');
-    await expect(page).toHaveURL(/login|dashboard|profile/); // Should redirect after register
+    await expect(page).toHaveURL(/auth|dashboard|profile/); // Should redirect after register
 
     // Go to login page
-    await page.goto('/login');
+    await page.goto('/auth');
     await page.fill('input[name="email"]', testUser.email);
     await page.fill('input[name="password"]', testUser.password);
     await page.click('button[type="submit"]');
@@ -27,10 +27,10 @@ test.describe('Authentication Flow', () => {
 
     // Logout
     await page.click('button:has-text("Logout")');
-    await expect(page).toHaveURL(/login/);
+    await expect(page).toHaveURL(/auth/);
 
     // Try to access protected page after logout
     await page.goto('/profile');
-    await expect(page).toHaveURL(/login/);
+    await expect(page).toHaveURL(/auth/);
   });
 }); 

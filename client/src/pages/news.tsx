@@ -278,9 +278,10 @@ export default function News() {
     return matchesSearch && matchesCategory && matchesRegion && matchesSource;
   });
 
-  const categories = [...new Set(newsArticles.map(a => a.category))];
-  const regions = [...new Set(newsArticles.map(a => a.region))];
-  const sources = [...new Set(newsArticles.map(a => a.source))];
+  // Extract unique values for filters
+  const categories = Array.from(new Set(newsArticles.map(a => a.category)));
+  const regions = Array.from(new Set(newsArticles.map(a => a.region)));
+  const sources = Array.from(new Set(newsArticles.map(a => a.source)));
 
   const getCredibilityColor = (score: number) => {
     if (score >= 90) return "text-green-600";

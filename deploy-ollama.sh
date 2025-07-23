@@ -22,15 +22,15 @@ echo "⏳ Waiting for Ollama to be ready..."
 sleep 10
 
 # Pull the required model
-echo "📥 Downloading Llama 3.2 model..."
-ollama pull llama3.2:3b
+echo "📥 Downloading Mixtral model..."
+ollama pull mistral:latest
 
 # Test the model
 echo "🧪 Testing AI service..."
 curl -X POST http://localhost:11434/api/generate \
   -H "Content-Type: application/json" \
   -d '{
-    "model": "llama3.2:3b",
+    "model": "mistral:latest",
     "prompt": "Hello, I am CivicOS AI assistant. How can I help you with Canadian civic engagement?",
     "stream": false
   }'

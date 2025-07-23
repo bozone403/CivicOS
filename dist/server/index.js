@@ -11,10 +11,14 @@ import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 import jwt from "jsonwebtoken";
 import pino from "pino";
-// Security configuration - only disable SSL verification in development
+// Security configuration - production-safe
 if (process.env.NODE_ENV === 'development') {
     process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
     console.warn('[SECURITY] SSL verification disabled in development mode');
+}
+else {
+    // Production: enforce SSL verification
+    process.env.NODE_TLS_REJECT_UNAUTHORIZED = '1';
 }
 const logger = pino();
 // Enforce SESSION_SECRET is set before anything else
@@ -56,7 +60,7 @@ app.use((req, res, next) => {
     const origin = req.headers.origin;
     const civicosRegex = /^https?:\/\/(.*\.)?civicos\.ca$/;
     const isAllowed = origin && (allowedOrigins.includes(origin) || civicosRegex.test(origin));
-    // Allow only trusted origins in production, '*' in development
+    // Allow only trusted origins in production, strict in development
     if (process.env.NODE_ENV === 'production') {
         if (isAllowed) {
             res.header("Access-Control-Allow-Origin", origin);
@@ -66,6 +70,7 @@ app.use((req, res, next) => {
         }
     }
     else {
+        // Development: allow civicos.ca for testing
         res.header("Access-Control-Allow-Origin", "https://civicos.ca");
     }
     res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");

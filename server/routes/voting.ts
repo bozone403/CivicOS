@@ -1,157 +1,251 @@
-import { Express, Request, Response } from "express";
-import { storage } from "../storage.js";
-import { db } from "../db.js";
-import { bills, votes, politicians, userActivity } from "../../shared/schema.js";
-import { eq, and, desc, sql, count } from "drizzle-orm";
+import express from 'express';
+import { db } from '../db.js';
+import { bills, votes, electoralCandidates, electoralVotes, users } from '../../shared/schema.js';
+import { eq, and, desc, sql } from 'drizzle-orm';
+import { callOllamaMistral } from '../utils/aiService.js';
 
-// JWT Auth middleware
-function jwtAuth(req: any, res: any, next: any) {
-  const authHeader = req.headers.authorization;
-  if (!authHeader || !authHeader.startsWith("Bearer ")) {
-    return res.status(401).json({ message: "Missing or invalid token" });
-  }
+const router = express.Router();
+
+// Get all bills for voting
+router.get('/bills', async (req, res) => {
   try {
-    const token = authHeader.split(" ")[1];
-    const JWT_SECRET = process.env.SESSION_SECRET;
-    if (!JWT_SECRET) {
-      return res.status(500).json({ message: "Server configuration error" });
-    }
-    const decoded = require('jsonwebtoken').verify(token, JWT_SECRET);
-    req.user = decoded;
-    next();
-  } catch (err) {
-    return res.status(401).json({ message: "Invalid or expired token" });
+    const allBills = await db.select().from(bills).orderBy(desc(bills.createdAt));
+    res.json(allBills);
+  } catch (error) {
+    console.error('Error fetching bills:', error);
+    res.status(500).json({ error: 'Failed to fetch bills' });
   }
-}
+});
 
-export function registerVotingRoutes(app: Express) {
-  // Get all bills for voting
-  app.get('/api/voting/bills', jwtAuth, async (req: Request, res: Response) => {
-    try {
-      const userId = (req as any).user?.id;
-      if (!userId) {
-        return res.status(401).json({ message: "Unauthorized" });
-      }
+// Vote on a bill
+router.post('/bills/vote', async (req, res) => {
+  try {
+    const { billId, vote } = req.body;
+    const userId = (req as any).user?.id;
 
-      // Get active bills from database
-      const activeBills = await storage.getActiveBills();
-      
-      // Get user's votes for these bills
-      const userVotes = await storage.getUserVotes(userId);
-      
-      // Combine bills with user's voting status
-      const billsWithVotes = activeBills.map(bill => {
-        const userVote = userVotes.find(vote => 
-          vote.itemId === bill.id && vote.itemType === 'bill'
-        );
-        return {
-          ...bill,
-          userVote: userVote ? userVote.voteValue : null,
-          hasVoted: !!userVote
-        };
-      });
-
-      res.json(billsWithVotes);
-    } catch (error) {
-      console.error('Error fetching voting bills:', error);
-      res.status(500).json({ error: 'Failed to fetch voting bills' });
+    if (!userId) {
+      return res.status(401).json({ error: 'Authentication required' });
     }
-  });
 
-  // Submit a vote
-  app.post('/api/voting/vote', jwtAuth, async (req: Request, res: Response) => {
-    try {
-      const userId = (req as any).user?.id;
-      if (!userId) {
-        return res.status(401).json({ message: "Unauthorized" });
-      }
-
-      const { itemId, itemType, vote, verificationId } = req.body;
-      
-      if (!itemId || !itemType || !vote || !verificationId) {
-        return res.status(400).json({ message: "Missing required fields" });
-      }
-
-      // Check if user already voted
-      const existingVote = await storage.getVoteByUserAndItem(userId, itemId, itemType);
-      if (existingVote) {
-        return res.status(409).json({ message: "Already voted on this item" });
-      }
-
-      // Create vote with blockchain hash (mock for now)
-      const blockHash = `hash_${Date.now()}_${Math.random()}`;
-      
-      const newVote = await storage.createVote({
-        userId,
-        itemId,
-        itemType,
-        voteValue: vote,
-        verificationId,
-        blockHash
-      });
-
-      // Update user activity
-      await db.insert(userActivity).values({
-        userId,
-        activityType: 'vote',
-        entityId: itemId,
-        entityType: itemType,
-        details: { vote, itemId, itemType },
-        createdAt: new Date()
-      });
-
-      res.json({
-        message: "Vote submitted successfully",
-        vote: newVote
-      });
-    } catch (error) {
-      console.error('Error submitting vote:', error);
-      res.status(500).json({ error: 'Failed to submit vote' });
+    if (!billId || !vote) {
+      return res.status(400).json({ error: 'Bill ID and vote are required' });
     }
-  });
 
-  // Get vote statistics for a bill
-  app.get('/api/voting/stats/:billId', jwtAuth, async (req: Request, res: Response) => {
-    try {
-      const { billId } = req.params;
-      
-      const stats = await storage.getBillVoteStats(parseInt(billId));
-      
-      res.json(stats);
-    } catch (error) {
-      console.error('Error fetching vote stats:', error);
-      res.status(500).json({ error: 'Failed to fetch vote statistics' });
+    // Check if user already voted on this bill
+    const existingVote = await db.select().from(votes)
+      .where(and(
+        eq(votes.userId, userId),
+        eq(votes.itemId, billId),
+        eq(votes.itemType, 'bill')
+      ));
+
+    if (existingVote.length > 0) {
+      return res.status(400).json({ error: 'You have already voted on this bill' });
     }
-  });
 
-  // Get user's voting history
-  app.get('/api/voting/history', jwtAuth, async (req: Request, res: Response) => {
-    try {
-      const userId = (req as any).user?.id;
-      if (!userId) {
-        return res.status(401).json({ message: "Unauthorized" });
+    // Create verification ID and block hash
+    const verificationId = `vote_${userId}_${billId}_${Date.now()}`;
+    const blockHash = `hash_${verificationId}_${Math.random().toString(36)}`;
+
+    // Insert vote
+    await db.insert(votes).values({
+      userId,
+      itemId: billId,
+      itemType: 'bill',
+      voteValue: vote === 'yes' ? 1 : vote === 'no' ? -1 : 0,
+      reasoning: req.body.reasoning || null,
+      verificationId,
+      blockHash,
+      isVerified: true
+    });
+
+    res.json({ success: true, message: 'Vote recorded successfully' });
+  } catch (error) {
+    console.error('Error recording vote:', error);
+    res.status(500).json({ error: 'Failed to record vote' });
+  }
+});
+
+// Get electoral candidates
+router.get('/electoral/candidates', async (req, res) => {
+  try {
+    const candidates = await db.select().from(electoralCandidates).orderBy(electoralCandidates.name);
+    res.json(candidates);
+  } catch (error) {
+    console.error('Error fetching electoral candidates:', error);
+    res.status(500).json({ error: 'Failed to fetch candidates' });
+  }
+});
+
+// Vote on electoral candidate
+router.post('/electoral/vote', async (req, res) => {
+  try {
+    const { candidateId, voteType, reasoning } = req.body;
+    const userId = (req as any).user?.id;
+
+    if (!userId) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+
+    if (!candidateId || !voteType) {
+      return res.status(400).json({ error: 'Candidate ID and vote type are required' });
+    }
+
+    // Check if user already voted on this candidate
+    const existingVote = await db.select().from(electoralVotes)
+      .where(and(
+        eq(electoralVotes.userId, userId),
+        eq(electoralVotes.candidateId, candidateId)
+      ));
+
+    if (existingVote.length > 0) {
+      return res.status(400).json({ error: 'You have already voted on this candidate' });
+    }
+
+    // Create verification ID and block hash
+    const verificationId = `electoral_${userId}_${candidateId}_${Date.now()}`;
+    const blockHash = `hash_${verificationId}_${Math.random().toString(36)}`;
+
+    // Insert electoral vote
+    await db.insert(electoralVotes).values({
+      userId,
+      candidateId,
+      voteType,
+      reasoning: reasoning || null,
+      verificationId,
+      blockHash,
+      isVerified: true
+    });
+
+    res.json({ success: true, message: 'Electoral vote recorded successfully' });
+  } catch (error) {
+    console.error('Error recording electoral vote:', error);
+    res.status(500).json({ error: 'Failed to record electoral vote' });
+  }
+});
+
+// Get electoral voting results
+router.get('/electoral/results', async (req, res) => {
+  try {
+    const results = await db.execute(sql`
+      SELECT 
+        ec.id,
+        ec.name,
+        ec.party,
+        ec.position,
+        COUNT(ev.id) as total_votes,
+        COUNT(CASE WHEN ev.vote_type = 'preference' THEN 1 END) as preference_votes,
+        COUNT(CASE WHEN ev.vote_type = 'support' THEN 1 END) as support_votes,
+        COUNT(CASE WHEN ev.vote_type = 'oppose' THEN 1 END) as oppose_votes,
+        ec.trust_score
+      FROM electoral_candidates ec
+      LEFT JOIN electoral_votes ev ON ec.id = ev.candidate_id
+      GROUP BY ec.id, ec.name, ec.party, ec.position, ec.trust_score
+      ORDER BY total_votes DESC, ec.name
+    `);
+
+    res.json(results.rows);
+  } catch (error) {
+    console.error('Error fetching electoral results:', error);
+    res.status(500).json({ error: 'Failed to fetch electoral results' });
+  }
+});
+
+// Get user's electoral votes
+router.get('/electoral/user-votes', async (req, res) => {
+  try {
+    const userId = (req as any).user?.id;
+    if (!userId) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+
+    const userVotes = await db.select({
+      candidateId: electoralVotes.candidateId,
+      voteType: electoralVotes.voteType,
+      reasoning: electoralVotes.reasoning,
+      timestamp: electoralVotes.timestamp
+    }).from(electoralVotes)
+    .where(eq(electoralVotes.userId, userId))
+    .orderBy(desc(electoralVotes.timestamp));
+
+    res.json(userVotes);
+  } catch (error) {
+    console.error('Error fetching user electoral votes:', error);
+    res.status(500).json({ error: 'Failed to fetch user votes' });
+  }
+});
+
+// Initialize electoral candidates (run once)
+router.post('/electoral/initialize', async (req, res) => {
+  try {
+    const candidates = [
+      {
+        name: "Mark Carney",
+        party: "Liberal Party",
+        position: "Prime Minister of Canada",
+        jurisdiction: "Federal",
+        bio: "Former Bank of Canada Governor and Bank of England Governor. Appointed Prime Minister in 2025, bringing significant financial expertise to government leadership.",
+        keyPolicies: ["Economic stability", "Climate action", "Financial regulation", "International cooperation"],
+        trustScore: "75.00"
+      },
+      {
+        name: "Pierre Poilievre",
+        party: "Conservative Party",
+        position: "Leader of the Opposition",
+        jurisdiction: "Federal",
+        bio: "Conservative Party leader known for his focus on economic issues, inflation concerns, and cryptocurrency advocacy.",
+        keyPolicies: ["Economic freedom", "Reduced government spending", "Digital currency", "Common sense policies"],
+        trustScore: "65.00"
+      },
+      {
+        name: "Yves-François Blanchet",
+        party: "Bloc Québécois",
+        position: "Party Leader",
+        jurisdiction: "Federal",
+        bio: "Leader of the Bloc Québécois, advocating for Quebec's interests and sovereignty within the Canadian federation.",
+        keyPolicies: ["Quebec sovereignty", "French language protection", "Provincial autonomy", "Cultural preservation"],
+        trustScore: "70.00"
+      },
+      {
+        name: "Don Davies",
+        party: "New Democratic Party",
+        position: "Interim Leader",
+        jurisdiction: "Federal",
+        bio: "Interim leader of the NDP, continuing the party's tradition of progressive policies and social justice advocacy.",
+        keyPolicies: ["Universal healthcare", "Social justice", "Climate action", "Workers' rights"],
+        trustScore: "72.00"
+      },
+      {
+        name: "Elizabeth May",
+        party: "Green Party",
+        position: "Party Leader",
+        jurisdiction: "Federal",
+        bio: "Long-time leader of the Green Party, environmental advocate, and former MP for Saanich—Gulf Islands.",
+        keyPolicies: ["Climate emergency", "Environmental protection", "Social justice", "Electoral reform"],
+        trustScore: "78.00"
       }
+    ];
 
-      const userVotes = await storage.getUserVotes(userId);
-      
-      // Get bill details for each vote
-      const votesWithDetails = await Promise.all(
-        userVotes.map(async (vote) => {
-          if (vote.itemType === 'bill') {
-            const bill = await storage.getBill(vote.itemId);
-            return {
-              ...vote,
-              itemDetails: bill
-            };
-          }
-          return vote;
-        })
-      );
-
-      res.json(votesWithDetails);
-    } catch (error) {
-      console.error('Error fetching voting history:', error);
-      res.status(500).json({ error: 'Failed to fetch voting history' });
+    // Check if candidates already exist
+    const existingCandidates = await db.select().from(electoralCandidates);
+    if (existingCandidates.length > 0) {
+      return res.json({ message: 'Candidates already initialized' });
     }
-  });
+
+    // Insert candidates
+    for (const candidate of candidates) {
+      await db.insert(electoralCandidates).values(candidate);
+    }
+
+    res.json({ success: true, message: 'Electoral candidates initialized successfully' });
+  } catch (error) {
+    console.error('Error initializing electoral candidates:', error);
+    res.status(500).json({ error: 'Failed to initialize candidates' });
+  }
+});
+
+export default router;
+
+export function registerVotingRoutes(app: express.Application) {
+  app.use('/api/voting', router);
 } 

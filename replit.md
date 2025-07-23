@@ -12,7 +12,7 @@ The application follows a full-stack TypeScript architecture with clear separati
 - **Backend**: Express.js server with TypeScript
 - **Database**: PostgreSQL with Drizzle ORM for type-safe database operations
 - **Real-time Features**: WebSocket-based monitoring and data synchronization
-- **AI Integration**: OpenAI GPT-4o and Anthropic Claude for content analysis and civic assistance
+- **AI Integration**: Local Ollama with Mixtral model for content analysis and civic assistance
 
 ## Key Components
 
@@ -56,9 +56,9 @@ The platform uses a comprehensive schema including:
 - Elections Canada data feeds
 
 ### AI Services
-- **OpenAI GPT-4o**: Primary AI for content analysis and civic assistance
-- **Anthropic Claude-3.5 Sonnet**: Content summarization and legal analysis
-- **Mistral AI**: Data verification and content authenticity checking
+- **Local Ollama**: Primary AI server for content analysis and civic assistance
+- **Mixtral Model**: Advanced language model for content summarization and legal analysis
+- **Local Processing**: Zero API costs with full privacy and control
 
 ### Core Libraries
 - **Drizzle ORM**: Type-safe database operations

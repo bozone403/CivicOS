@@ -14,17 +14,14 @@ export class AuthenticDataService {
         try {
             const stats = await db.execute(sql `
         SELECT 
-          COUNT(*) as total,
-          COUNT(CASE WHEN level = 'federal' THEN 1 END) as federal,
-          COUNT(CASE WHEN level = 'provincial' THEN 1 END) as provincial,
-          COUNT(CASE WHEN level = 'municipal' THEN 1 END) as municipal,
-          COUNT(DISTINCT party) as parties,
-          COUNT(DISTINCT jurisdiction) as jurisdictions
+          COUNT(*) as total_politicians,
+          COUNT(CASE WHEN constituency IS NOT NULL THEN 1 END) as with_constituency,
+          COUNT(CASE WHEN contact_info IS NOT NULL THEN 1 END) as with_contact
         FROM politicians
       `);
             const row = stats.rows[0];
             return {
-                total: String(Number(row?.total) || 0),
+                total: String(Number(row?.total_politicians) || 0),
                 federal: String(Number(row?.federal) || 0),
                 provincial: String(Number(row?.provincial) || 0),
                 municipal: String(Number(row?.municipal) || 0),

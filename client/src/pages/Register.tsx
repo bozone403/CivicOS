@@ -4,7 +4,10 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/com
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Shield, User, Lock, Eye, EyeOff, ArrowRight, AlertTriangle, Mail } from "lucide-react";
+import { Separator } from "@/components/ui/separator";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Shield, User, Lock, Eye, EyeOff, ArrowRight, AlertTriangle, Mail, Phone, MapPin, Calendar, FileText, CheckCircle } from "lucide-react";
 import { CanadianCoatOfArms } from "@/components/CanadianCoatOfArms";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
@@ -17,9 +20,17 @@ interface RegistrationData {
   confirmPassword: string;
   firstName: string;
   lastName: string;
+  phoneNumber: string;
+  dateOfBirth: string;
   city: string;
   province: string;
   postalCode: string;
+  federalRiding: string;
+  provincialRiding: string;
+  municipalWard: string;
+  citizenshipStatus: string;
+  voterRegistrationStatus: string;
+  communicationStyle: string;
   agreeToTerms: boolean;
   agreeToPrivacy: boolean;
   agreeToVerification: boolean;
@@ -31,9 +42,17 @@ interface RegistrationErrors {
   confirmPassword?: string;
   firstName?: string;
   lastName?: string;
+  phoneNumber?: string;
+  dateOfBirth?: string;
   city?: string;
   province?: string;
   postalCode?: string;
+  federalRiding?: string;
+  provincialRiding?: string;
+  municipalWard?: string;
+  citizenshipStatus?: string;
+  voterRegistrationStatus?: string;
+  communicationStyle?: string;
   agreeToTerms?: string;
   agreeToPrivacy?: string;
   agreeToVerification?: string;
@@ -46,6 +65,18 @@ const PROVINCES = [
   "Northwest Territories", "Nunavut", "Yukon"
 ];
 
+const CITIZENSHIP_STATUSES = [
+  "citizen", "permanent_resident", "temporary_resident", "visitor"
+];
+
+const VOTER_STATUSES = [
+  "registered", "not_registered", "unknown"
+];
+
+const COMMUNICATION_STYLES = [
+  "auto", "simple", "casual", "formal", "technical"
+];
+
 export default function Register() {
   const [formData, setFormData] = useState<RegistrationData>({
     email: "",
@@ -53,9 +84,17 @@ export default function Register() {
     confirmPassword: "",
     firstName: "",
     lastName: "",
+    phoneNumber: "",
+    dateOfBirth: "",
     city: "",
     province: "",
     postalCode: "",
+    federalRiding: "",
+    provincialRiding: "",
+    municipalWard: "",
+    citizenshipStatus: "citizen",
+    voterRegistrationStatus: "unknown",
+    communicationStyle: "auto",
     agreeToTerms: false,
     agreeToPrivacy: false,
     agreeToVerification: false,
@@ -100,13 +139,13 @@ export default function Register() {
 
     // Terms agreement
     if (!formData.agreeToTerms) {
-      newErrors.agreeToTerms = "You must agree to the terms of service";
+      (newErrors as any).agreeToTerms = "You must agree to the terms of service";
     }
     if (!formData.agreeToPrivacy) {
-      newErrors.agreeToPrivacy = "You must agree to the privacy policy";
+      (newErrors as any).agreeToPrivacy = "You must agree to the privacy policy";
     }
     if (!formData.agreeToVerification) {
-      newErrors.agreeToVerification = "You must agree to identity verification";
+      (newErrors as any).agreeToVerification = "You must agree to identity verification";
     }
 
     setErrors(newErrors);
@@ -128,9 +167,17 @@ export default function Register() {
         password: formData.password,
         firstName: formData.firstName,
         lastName: formData.lastName,
+        phoneNumber: formData.phoneNumber,
+        dateOfBirth: formData.dateOfBirth,
         city: formData.city,
         province: formData.province,
         postalCode: formData.postalCode,
+        federalRiding: formData.federalRiding,
+        provincialRiding: formData.provincialRiding,
+        municipalWard: formData.municipalWard,
+        citizenshipStatus: formData.citizenshipStatus,
+        voterRegistrationStatus: formData.voterRegistrationStatus,
+        communicationStyle: formData.communicationStyle,
       };
 
       const res = await apiRequest("/api/auth/register", "POST", registrationPayload);
@@ -171,7 +218,7 @@ export default function Register() {
   const handleInputChange = (field: keyof RegistrationData, value: string | boolean) => {
     setFormData(prev => ({ ...prev, [field]: value }));
     // Clear error when user starts typing
-    if (errors[field as keyof RegistrationErrors]) {
+    if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: undefined }));
     }
   };
@@ -338,6 +385,250 @@ export default function Register() {
                   </div>
                 </div>
 
+                <Separator />
+
+                {/* Contact Information */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">Contact Information</h3>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="phoneNumber">Phone Number</Label>
+                      <div className="relative">
+                        <Phone className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                        <Input
+                          id="phoneNumber"
+                          type="tel"
+                          value={formData.phoneNumber}
+                          onChange={(e) => handleInputChange('phoneNumber', e.target.value)}
+                          className="h-12 pl-12"
+                          disabled={isLoading}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="dateOfBirth">Date of Birth</Label>
+                      <div className="relative">
+                        <Calendar className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                        <Input
+                          id="dateOfBirth"
+                          type="date"
+                          value={formData.dateOfBirth}
+                          onChange={(e) => handleInputChange('dateOfBirth', e.target.value)}
+                          className="h-12 pl-12"
+                          disabled={isLoading}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <Separator />
+
+                {/* Location Information */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">Location Information</h3>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="city">City *</Label>
+                      <Input
+                        id="city"
+                        value={formData.city}
+                        onChange={(e) => handleInputChange('city', e.target.value)}
+                        className="h-12"
+                        disabled={isLoading}
+                      />
+                      {errors.city && <p className="text-red-500 text-sm">{errors.city}</p>}
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="province">Province *</Label>
+                      <Select value={formData.province} onValueChange={(value) => handleInputChange('province', value)}>
+                        <SelectTrigger className="h-12">
+                          <SelectValue placeholder="Select province" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {PROVINCES.map((province) => (
+                            <SelectItem key={province} value={province}>
+                              {province}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {errors.province && <p className="text-red-500 text-sm">{errors.province}</p>}
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="postalCode">Postal Code *</Label>
+                      <Input
+                        id="postalCode"
+                        value={formData.postalCode}
+                        onChange={(e) => handleInputChange('postalCode', e.target.value)}
+                        className="h-12"
+                        disabled={isLoading}
+                      />
+                      {errors.postalCode && <p className="text-red-500 text-sm">{errors.postalCode}</p>}
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="federalRiding">Federal Riding</Label>
+                      <Input
+                        id="federalRiding"
+                        value={formData.federalRiding}
+                        onChange={(e) => handleInputChange('federalRiding', e.target.value)}
+                        className="h-12"
+                        disabled={isLoading}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="provincialRiding">Provincial Riding</Label>
+                      <Input
+                        id="provincialRiding"
+                        value={formData.provincialRiding}
+                        onChange={(e) => handleInputChange('provincialRiding', e.target.value)}
+                        className="h-12"
+                        disabled={isLoading}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="municipalWard">Municipal Ward</Label>
+                      <Input
+                        id="municipalWard"
+                        value={formData.municipalWard}
+                        onChange={(e) => handleInputChange('municipalWard', e.target.value)}
+                        className="h-12"
+                        disabled={isLoading}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <Separator />
+
+                {/* Civic Information */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">Civic Information</h3>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="citizenshipStatus">Citizenship Status</Label>
+                      <Select value={formData.citizenshipStatus} onValueChange={(value) => handleInputChange('citizenshipStatus', value)}>
+                        <SelectTrigger className="h-12">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {CITIZENSHIP_STATUSES.map((status) => (
+                            <SelectItem key={status} value={status}>
+                              {status.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="voterRegistrationStatus">Voter Registration</Label>
+                      <Select value={formData.voterRegistrationStatus} onValueChange={(value) => handleInputChange('voterRegistrationStatus', value)}>
+                        <SelectTrigger className="h-12">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {VOTER_STATUSES.map((status) => (
+                            <SelectItem key={status} value={status}>
+                              {status.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="communicationStyle">Communication Style</Label>
+                      <Select value={formData.communicationStyle} onValueChange={(value) => handleInputChange('communicationStyle', value)}>
+                        <SelectTrigger className="h-12">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {COMMUNICATION_STYLES.map((style) => (
+                            <SelectItem key={style} value={style}>
+                              {style.charAt(0).toUpperCase() + style.slice(1)}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                </div>
+
+                <Separator />
+
+                {/* Terms and Conditions */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">Terms and Conditions</h3>
+                  
+                  <div className="space-y-3">
+                    <div className="flex items-start space-x-3">
+                      <Checkbox
+                        id="agreeToTerms"
+                        checked={formData.agreeToTerms}
+                        onCheckedChange={(checked) => handleInputChange('agreeToTerms', checked as boolean)}
+                        disabled={isLoading}
+                      />
+                      <div className="space-y-1">
+                        <Label htmlFor="agreeToTerms" className="text-sm font-medium">
+                          I agree to the Terms of Service *
+                        </Label>
+                        <p className="text-xs text-gray-500">
+                          You must agree to our terms of service to create an account.
+                        </p>
+                      </div>
+                    </div>
+                    {errors.agreeToTerms && <p className="text-red-500 text-sm">{errors.agreeToTerms}</p>}
+
+                    <div className="flex items-start space-x-3">
+                      <Checkbox
+                        id="agreeToPrivacy"
+                        checked={formData.agreeToPrivacy}
+                        onCheckedChange={(checked) => handleInputChange('agreeToPrivacy', checked as boolean)}
+                        disabled={isLoading}
+                      />
+                      <div className="space-y-1">
+                        <Label htmlFor="agreeToPrivacy" className="text-sm font-medium">
+                          I agree to the Privacy Policy *
+                        </Label>
+                        <p className="text-xs text-gray-500">
+                          You must agree to our privacy policy to create an account.
+                        </p>
+                      </div>
+                    </div>
+                    {errors.agreeToPrivacy && <p className="text-red-500 text-sm">{errors.agreeToPrivacy}</p>}
+
+                    <div className="flex items-start space-x-3">
+                      <Checkbox
+                        id="agreeToVerification"
+                        checked={formData.agreeToVerification}
+                        onCheckedChange={(checked) => handleInputChange('agreeToVerification', checked as boolean)}
+                        disabled={isLoading}
+                      />
+                      <div className="space-y-1">
+                        <Label htmlFor="agreeToVerification" className="text-sm font-medium">
+                          I agree to identity verification *
+                        </Label>
+                        <p className="text-xs text-gray-500">
+                          You must agree to identity verification for platform integrity.
+                        </p>
+                      </div>
+                    </div>
+                    {errors.agreeToVerification && <p className="text-red-500 text-sm">{errors.agreeToVerification}</p>}
+                  </div>
+                </div>
+
                 <Button
                   type="submit"
                   disabled={isLoading}
@@ -361,7 +652,7 @@ export default function Register() {
                     Already have an account?{" "}
                     <button
                       type="button"
-                      onClick={() => navigate("/login")}
+                      onClick={() => navigate("/auth")}
                       className="text-red-600 hover:text-red-700 font-medium"
                     >
                       Sign in here
@@ -396,4 +687,4 @@ export default function Register() {
       </footer>
     </div>
   );
-}
+} 

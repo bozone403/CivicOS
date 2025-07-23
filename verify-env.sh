@@ -43,11 +43,17 @@ else
     echo "❌ SUPABASE_ANON_KEY - Missing or invalid"
 fi
 
-# OpenAI
-if grep -q "OPENAI_API_KEY=sk-" "$ENV_FILE"; then
-    echo "✅ OPENAI_API_KEY - Configured"
+# Ollama Configuration
+if grep -q "OLLAMA_BASE_URL=" "$ENV_FILE"; then
+    echo "✅ OLLAMA_BASE_URL - Configured"
 else
-    echo "❌ OPENAI_API_KEY - Missing or invalid"
+    echo "❌ OLLAMA_BASE_URL - Missing"
+fi
+
+if grep -q "OLLAMA_MODEL=" "$ENV_FILE"; then
+    echo "✅ OLLAMA_MODEL - Configured"
+else
+    echo "❌ OLLAMA_MODEL - Missing"
 fi
 
 # Stripe
@@ -75,7 +81,7 @@ echo "🎯 Deployment Readiness Check:"
 echo ""
 
 # Count configured vs missing
-CONFIGURED=$(grep -E "^(DATABASE_URL|SESSION_SECRET|SUPABASE_URL|SUPABASE_ANON_KEY|OPENAI_API_KEY|STRIPE_SECRET_KEY|STRIPE_PUBLISHABLE_KEY)=" "$ENV_FILE" | grep -v "your" | wc -l)
+CONFIGURED=$(grep -E "^(DATABASE_URL|SESSION_SECRET|SUPABASE_URL|SUPABASE_ANON_KEY|OLLAMA_BASE_URL|OLLAMA_MODEL|STRIPE_SECRET_KEY|STRIPE_PUBLISHABLE_KEY)=" "$ENV_FILE" | grep -v "your" | wc -l)
 TOTAL=7
 
 if [ "$CONFIGURED" -eq "$TOTAL" ]; then

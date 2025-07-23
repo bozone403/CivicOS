@@ -23,7 +23,7 @@ describe('Auth Integration', () => {
 
   it('should register a new user', async () => {
     const res = await request(server)
-      .post('/api/register')
+      .post('/api/auth/register')
       .send(testUser);
     expect(res.status).toBe(201);
     expect(res.body).toHaveProperty('id');
@@ -31,14 +31,14 @@ describe('Auth Integration', () => {
 
   it('should not allow duplicate registration', async () => {
     const res = await request(server)
-      .post('/api/register')
+      .post('/api/auth/register')
       .send(testUser);
     expect(res.status).toBe(409); // Conflict
   });
 
   it('should login and return a JWT', async () => {
     const res = await request(server)
-      .post('/api/login')
+      .post('/api/auth/login')
       .send(testUser);
     expect(res.status).toBe(200);
     expect(res.body).toHaveProperty('token');
@@ -47,14 +47,14 @@ describe('Auth Integration', () => {
 
   it('should not login with wrong password', async () => {
     const res = await request(server)
-      .post('/api/login')
+      .post('/api/auth/login')
       .send({ ...testUser, password: 'WrongPassword!' });
     expect(res.status).toBe(401);
   });
 
   it('should access a protected route with JWT', async () => {
     const res = await request(server)
-      .get('/api/profile')
+      .get('/api/auth/user')
       .set('Authorization', `Bearer ${jwtToken}`);
     expect(res.status).toBe(200);
     expect(res.body).toHaveProperty('email', testUser.email);
@@ -62,13 +62,13 @@ describe('Auth Integration', () => {
 
   it('should not access protected route without JWT', async () => {
     const res = await request(server)
-      .get('/api/profile');
+      .get('/api/auth/user');
     expect(res.status).toBe(401);
   });
 
   it('should not access protected route with invalid JWT', async () => {
     const res = await request(server)
-      .get('/api/profile')
+      .get('/api/auth/user')
       .set('Authorization', 'Bearer invalidtoken');
     expect(res.status).toBe(401);
   });

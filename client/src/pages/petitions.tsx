@@ -229,9 +229,10 @@ export default function Petitions() {
     return matchesSearch && matchesCategory && matchesRegion && matchesStatus;
   });
 
-  const categories = [...new Set(petitions.map(p => p.category))];
-  const regions = [...new Set(petitions.map(p => p.region))];
-  const statuses = [...new Set(petitions.map(p => p.status))];
+  // Extract unique values for filters
+  const categories = Array.from(new Set(petitions.map(p => p.category)));
+  const regions = Array.from(new Set(petitions.map(p => p.region)));
+  const statuses = Array.from(new Set(petitions.map(p => p.status)));
 
   const getUrgencyColor = (urgency: string) => {
     switch (urgency) {

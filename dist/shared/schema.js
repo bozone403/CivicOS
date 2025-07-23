@@ -343,6 +343,7 @@ export const criminalCodeSections = pgTable("criminal_code_sections", {
     isSummary: boolean("is_summary").default(false),
     isIndictable: boolean("is_indictable").default(false),
     isHybrid: boolean("is_hybrid").default(false),
+    category: varchar("category"),
     explanationSimple: text("explanation_simple"),
     commonExamples: text("common_examples").array(),
     defenses: text("defenses").array(),
@@ -1003,10 +1004,12 @@ export const insertNotificationSchema = createInsertSchema(notifications).omit({
 export const charterRights = pgTable("charter_rights", {
     id: serial("id").primaryKey(),
     section: integer("section").notNull().unique(),
+    sectionNumber: varchar("section_number"),
     title: varchar("title").notNull(),
     category: varchar("category").notNull(), // fundamental, democratic, mobility, legal, equality, language
     text: text("text").notNull(),
     plainLanguage: text("plain_language").notNull(),
+    description: text("description"),
     examples: text("examples").array(),
     limitations: text("limitations").array(),
     relatedSections: integer("related_sections").array(),
@@ -1100,4 +1103,31 @@ export const commentLikes = pgTable("comment_likes", {
     createdAt: timestamp("created_at").defaultNow(),
 }, (table) => ({
     uniqueCommentLike: unique().on(table.commentId, table.userId),
+}));
+// --- Electoral Voting System ---
+export const electoralCandidates = pgTable("electoral_candidates", {
+    id: serial("id").primaryKey(),
+    name: varchar("name").notNull(),
+    party: varchar("party").notNull(),
+    position: varchar("position").notNull(), // "Prime Minister", "Party Leader", etc.
+    jurisdiction: varchar("jurisdiction").default("Federal"),
+    imageUrl: varchar("image_url"),
+    bio: text("bio"),
+    keyPolicies: text("key_policies").array(),
+    trustScore: decimal("trust_score", { precision: 5, scale: 2 }).default("50.00"),
+    createdAt: timestamp("created_at").defaultNow(),
+    updatedAt: timestamp("updated_at").defaultNow(),
+});
+export const electoralVotes = pgTable("electoral_votes", {
+    id: serial("id").primaryKey(),
+    userId: varchar("user_id").notNull().references(() => users.id),
+    candidateId: integer("candidate_id").notNull().references(() => electoralCandidates.id),
+    voteType: varchar("vote_type").notNull(), // "preference", "support", "oppose"
+    reasoning: text("reasoning"),
+    verificationId: varchar("verification_id").notNull().unique(),
+    blockHash: varchar("block_hash").notNull(),
+    timestamp: timestamp("timestamp").defaultNow(),
+    isVerified: boolean("is_verified").default(true),
+}, (table) => ({
+    uniqueUserVote: unique().on(table.userId, table.candidateId),
 }));

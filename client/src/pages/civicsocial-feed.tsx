@@ -314,16 +314,23 @@ export function CivicSocialPostCard({ post, user, onReact, onComment, onDelete, 
     };
   }
 
+  // Get display name for post
+  const getDisplayName = (post: any) => {
+    if (post.displayName) return post.displayName;
+    if (post.email) return post.email.split('@')[0];
+    return `User ${post.userId}`;
+  };
+
   return (
     <Card className={`flex gap-4 p-4 md:p-6 bg-white shadow-md rounded-xl border border-gray-200 fade-in-up hover:shadow-xl transition-shadow duration-200`} role="article" tabIndex={0} aria-label={post.type === "share" ? `Shared ${post.originalItemType}` : "Post"}>
       {/* Avatar */}
       <div className="w-12 h-12 rounded-full bg-blue-600 flex items-center justify-center font-bold text-2xl text-white shadow-md mt-1">
-        {post.displayName ? post.displayName[0] : "?"}
+        {getDisplayName(post)[0] || "?"}
       </div>
       {/* Post Content */}
       <div className="flex-1 flex flex-col gap-1">
         <div className="flex items-center gap-2">
-          <span className="font-bold text-base">{post.displayName || `User ${post.userId}`}</span>
+          <span className="font-bold text-base">{getDisplayName(post)}</span>
           <span className="text-xs text-gray-500">{new Date(post.createdAt).toLocaleString()}</span>
           {user?.id === post.userId && (
             <Button size="icon" variant="ghost" aria-label="Delete post" onClick={() => onDelete(post.id)} onKeyDown={handleKeyDown(() => onDelete(post.id))} className="ml-auto text-red-600 hover:bg-red-100 focus:ring-2 focus:ring-red-400" tabIndex={0}>
@@ -334,8 +341,8 @@ export function CivicSocialPostCard({ post, user, onReact, onComment, onDelete, 
             <a href={`/civicsocial-profile`} className="ml-2 text-xs text-blue-600 underline hover:text-blue-800 focus:ring-2 focus:ring-blue-400" tabIndex={0} aria-label="View on Wall">View on Wall</a>
           )}
         </div>
-        {post.image && (
-          <img src={post.image} alt="Post attachment" className="w-full max-h-64 object-contain rounded border mb-2" />
+        {post.imageUrl && (
+          <img src={post.imageUrl} alt="Post attachment" className="w-full max-h-64 object-contain rounded border mb-2" />
         )}
         <div className="text-base mt-1 break-words prose dark:prose-invert max-w-none">
           <ReactMarkdown remarkPlugins={[remarkGfm]}>{post.content || ""}</ReactMarkdown>
@@ -402,9 +409,9 @@ export function CivicSocialPostCard({ post, user, onReact, onComment, onDelete, 
             {post.comments.map((c: any) => (
               <div key={c.id} className="text-xs mb-1 flex items-center gap-2">
                 <div className="w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center font-bold text-sm">
-                  {c.displayName ? c.displayName[0] : "?"}
+                  {getDisplayName(c)[0] || "?"}
                 </div>
-                <span className="font-semibold">{c.displayName || `User ${c.userId}`}:</span> {c.content}
+                <span className="font-semibold">{getDisplayName(c)}:</span> {c.content}
               </div>
             ))}
           </div>

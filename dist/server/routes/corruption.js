@@ -4,63 +4,22 @@ export function registerCorruptionRoutes(app) {
         try {
             const { search, category, severity, page = '1', limit = '20' } = req.query;
             const offset = (parseInt(page) - 1) * parseInt(limit);
-            // Mock data for now
-            const mockCorruption = [
-                {
-                    id: '1',
-                    title: 'Contract Favoritism Investigation',
-                    category: 'Procurement Fraud',
-                    severity: 'High',
-                    status: 'Under Investigation',
-                    dateReported: '2024-01-20',
-                    description: 'Allegations of preferential treatment in government contracts',
-                    amount: 2500000,
-                    location: 'Ottawa, ON',
-                    involvedParties: ['Government Official A', 'Company B'],
-                    evidenceLevel: 'Strong',
-                    publicImpact: 'High'
-                },
-                {
-                    id: '2',
-                    title: 'Misuse of Public Funds',
-                    category: 'Financial Mismanagement',
-                    severity: 'Medium',
-                    status: 'Resolved',
-                    dateReported: '2023-12-15',
-                    description: 'Inappropriate use of taxpayer dollars for personal expenses',
-                    amount: 150000,
-                    location: 'Toronto, ON',
-                    involvedParties: ['Official C'],
-                    evidenceLevel: 'Confirmed',
-                    publicImpact: 'Medium'
-                }
-            ];
-            // Filter by search term
-            let filteredCorruption = mockCorruption;
-            if (search) {
-                const searchLower = search.toLowerCase();
-                filteredCorruption = mockCorruption.filter(item => item.title.toLowerCase().includes(searchLower) ||
-                    item.category.toLowerCase().includes(searchLower) ||
-                    item.description.toLowerCase().includes(searchLower));
-            }
-            // Filter by category
-            if (category && category !== 'all') {
-                filteredCorruption = filteredCorruption.filter(item => item.category === category);
-            }
-            // Filter by severity
-            if (severity && severity !== 'all') {
-                filteredCorruption = filteredCorruption.filter(item => item.severity === severity);
-            }
-            // Pagination
-            const total = filteredCorruption.length;
-            const paginatedCorruption = filteredCorruption.slice(offset, offset + parseInt(limit));
+            // Production data fetching - integrate with real government databases
+            // This would connect to ethics commissioner, auditor general, etc.
+            const corruption = await fetchCorruptionData({
+                search: search,
+                category: category,
+                severity: severity,
+                offset,
+                limit: parseInt(limit)
+            });
             res.json({
-                corruption: paginatedCorruption,
+                corruption: corruption.data,
                 pagination: {
                     page: parseInt(page),
                     limit: parseInt(limit),
-                    total,
-                    pages: Math.ceil(total / parseInt(limit))
+                    total: corruption.total,
+                    pages: Math.ceil(corruption.total / parseInt(limit))
                 }
             });
         }
@@ -69,4 +28,16 @@ export function registerCorruptionRoutes(app) {
             res.status(500).json({ error: 'Failed to fetch corruption data' });
         }
     });
+}
+async function fetchCorruptionData(params) {
+    // Production implementation would:
+    // 1. Connect to Ethics Commissioner database
+    // 2. Query Auditor General reports
+    // 3. Access Conflict of Interest records
+    // 4. Return real, verified corruption data
+    // For now, return empty array until real data sources are integrated
+    return {
+        data: [],
+        total: 0
+    };
 }

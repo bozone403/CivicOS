@@ -7,70 +7,23 @@ export function registerCorruptionRoutes(app: Express) {
       const { search, category, severity, page = '1', limit = '20' } = req.query;
       const offset = (parseInt(page as string) - 1) * parseInt(limit as string);
       
-      // Mock data for now
-      const mockCorruption = [
-        {
-          id: '1',
-          title: 'Contract Favoritism Investigation',
-          category: 'Procurement Fraud',
-          severity: 'High',
-          status: 'Under Investigation',
-          dateReported: '2024-01-20',
-          description: 'Allegations of preferential treatment in government contracts',
-          amount: 2500000,
-          location: 'Ottawa, ON',
-          involvedParties: ['Government Official A', 'Company B'],
-          evidenceLevel: 'Strong',
-          publicImpact: 'High'
-        },
-        {
-          id: '2',
-          title: 'Misuse of Public Funds',
-          category: 'Financial Mismanagement',
-          severity: 'Medium',
-          status: 'Resolved',
-          dateReported: '2023-12-15',
-          description: 'Inappropriate use of taxpayer dollars for personal expenses',
-          amount: 150000,
-          location: 'Toronto, ON',
-          involvedParties: ['Official C'],
-          evidenceLevel: 'Confirmed',
-          publicImpact: 'Medium'
-        }
-      ];
-      
-      // Filter by search term
-      let filteredCorruption = mockCorruption;
-      if (search) {
-        const searchLower = (search as string).toLowerCase();
-        filteredCorruption = mockCorruption.filter(item => 
-          item.title.toLowerCase().includes(searchLower) ||
-          item.category.toLowerCase().includes(searchLower) ||
-          item.description.toLowerCase().includes(searchLower)
-        );
-      }
-      
-      // Filter by category
-      if (category && category !== 'all') {
-        filteredCorruption = filteredCorruption.filter(item => item.category === category);
-      }
-      
-      // Filter by severity
-      if (severity && severity !== 'all') {
-        filteredCorruption = filteredCorruption.filter(item => item.severity === severity);
-      }
-      
-      // Pagination
-      const total = filteredCorruption.length;
-      const paginatedCorruption = filteredCorruption.slice(offset, offset + parseInt(limit as string));
+      // Production data fetching - integrate with real government databases
+      // This would connect to ethics commissioner, auditor general, etc.
+      const corruption = await fetchCorruptionData({
+        search: search as string,
+        category: category as string,
+        severity: severity as string,
+        offset,
+        limit: parseInt(limit as string)
+      });
       
       res.json({
-        corruption: paginatedCorruption,
+        corruption: corruption.data,
         pagination: {
           page: parseInt(page as string),
           limit: parseInt(limit as string),
-          total,
-          pages: Math.ceil(total / parseInt(limit as string))
+          total: corruption.total,
+          pages: Math.ceil(corruption.total / parseInt(limit as string))
         }
       });
     } catch (error) {
@@ -78,4 +31,24 @@ export function registerCorruptionRoutes(app: Express) {
       res.status(500).json({ error: 'Failed to fetch corruption data' });
     }
   });
+}
+
+async function fetchCorruptionData(params: {
+  search?: string;
+  category?: string;
+  severity?: string;
+  offset: number;
+  limit: number;
+}) {
+  // Production implementation would:
+  // 1. Connect to Ethics Commissioner database
+  // 2. Query Auditor General reports
+  // 3. Access Conflict of Interest records
+  // 4. Return real, verified corruption data
+  
+  // For now, return empty array until real data sources are integrated
+  return {
+    data: [],
+    total: 0
+  };
 } 

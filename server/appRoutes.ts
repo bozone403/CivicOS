@@ -7,6 +7,7 @@ import aiRoutes from "./aiRoutes.js";
 // Import modular route registrations
 import { registerAuthRoutes, jwtAuth } from "./routes/auth.js";
 import { registerApiRoutes } from "./routes/api.js";
+import votingRouter from "./routes/voting.js";
 
 export async function registerRoutes(app: Express): Promise<void> {
   // Register modular routes
@@ -21,6 +22,9 @@ export async function registerRoutes(app: Express): Promise<void> {
 
   // AI routes (free AI service using Ollama)
   app.use("/api/ai", aiRoutes);
+
+  // Voting routes (JWT protected)
+  app.use("/api/voting", jwtAuth, votingRouter);
 
   // Health check endpoint
   app.get('/api/health', async (req, res) => {

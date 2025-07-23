@@ -7,6 +7,11 @@ import { registerDashboardRoutes } from "./dashboard.js";
 import { registerVotingRoutes } from "./voting.js";
 import { registerPetitionsRoutes } from "./petitions.js";
 import { registerRightsRoutes } from "./rights.js";
+import { registerPoliticiansRoutes } from "./politicians.js";
+import { registerLegalRoutes } from "./legal.js";
+import { registerNewsRoutes } from "./news.js";
+import { registerBillsRoutes } from "./bills.js";
+import { registerAIRoutes } from "./ai.js";
 
 export function registerApiRoutes(app: Express) {
   registerLeaksRoutes(app);
@@ -17,4 +22,9 @@ export function registerApiRoutes(app: Express) {
   registerVotingRoutes(app);
   registerPetitionsRoutes(app);
   registerRightsRoutes(app);
+  registerPoliticiansRoutes(app);
+  registerLegalRoutes(app);
+  registerNewsRoutes(app);
+  registerBillsRoutes(app);
+  registerAIRoutes(app);
 } 

@@ -1,123 +1,203 @@
 import fetch from 'node-fetch';
 
-export async function callOllamaMistral(prompt: string): Promise<string> {
-  try {
-    // Try local Ollama first
-    const localOllamaUrl = process.env.OLLAMA_URL || 'http://localhost:11434';
-    const response = await fetch(`${localOllamaUrl}/api/generate`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ 
-        model: 'mistral', 
-        prompt, 
-        stream: false,
-        options: {
-          temperature: 0.7,
-          top_p: 0.9,
-          max_tokens: 1000
-        }
-      })
-    });
-    
-    if (response.ok) {
-      const data: any = await response.json();
-      return data.response || data.generated_text || '';
-    }
-  } catch (error) {
-    console.error('Ollama connection failed:', error);
-  }
-  
-  // Try production AI endpoint if configured
-  try {
-    const productionUrl = process.env.AI_API_URL;
-    if (productionUrl && productionUrl !== 'https://your-production-ai-endpoint.com/api/generate') {
-      const response = await fetch(productionUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ model: 'mistral', prompt, stream: false })
-      });
-      
-      if (response.ok) {
-        const data: any = await response.json();
-        return data.response || data.generated_text || '';
-      }
-    }
-  } catch (error) {
-    console.error('Production AI endpoint failed:', error);
-  }
-  
-  // Enhanced fallback with better responses
-  return generateEnhancedLocalResponse(prompt);
+interface OllamaRequest {
+  model: string;
+  prompt: string;
+  stream: boolean;
+  options?: {
+    temperature?: number;
+    top_p?: number;
+    max_tokens?: number;
+  };
 }
 
-function generateEnhancedLocalResponse(prompt: string): string {
-  const promptLower = prompt.toLowerCase();
-  
-  // Enhanced keyword-based responses
-  if (promptLower.includes('carney') || promptLower.includes('prime minister')) {
-    return "Mark Carney became Prime Minister in 2025, succeeding Justin Trudeau. As former Bank of Canada Governor and Bank of England Governor, he brings significant financial expertise. However, his Goldman Sachs background raises questions about potential conflicts of interest in financial policy decisions. His approach to inflation and monetary policy will be closely watched.";
+interface OllamaResponse {
+  model: string;
+  created_at: string;
+  response: string;
+  done: boolean;
+  context?: number[];
+  total_duration?: number;
+  load_duration?: number;
+  prompt_eval_count?: number;
+  prompt_eval_duration?: number;
+  eval_count?: number;
+  eval_duration?: number;
+}
+
+/**
+ * Call Ollama with Mixtral model for all AI operations
+ */
+export async function callOllamaMistral(prompt: string, options?: {
+  temperature?: number;
+  maxTokens?: number;
+}): Promise<string> {
+  try {
+    const baseUrl = process.env.OLLAMA_URL || 'http://localhost:11434';
+    const model = 'mistral:latest'; // Using Mixtral exclusively
+    
+    const request: OllamaRequest = {
+      model,
+      prompt,
+      stream: false,
+      options: {
+        temperature: options?.temperature || 0.7,
+        top_p: 0.9,
+        max_tokens: options?.maxTokens || 4000
+      }
+    };
+
+    const response = await fetch(`${baseUrl}/api/generate`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(request),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Ollama API error: ${response.status} ${response.statusText}`);
+    }
+
+    const data = await response.json() as OllamaResponse;
+    return data.response.trim();
+  } catch (error) {
+    console.error('Error calling Ollama Mixtral:', error);
+    throw new Error('Failed to generate AI response');
   }
-  
-  if (promptLower.includes('trudeau')) {
-    return "Justin Trudeau served as Prime Minister from 2015 to 2025. His tenure included the SNC-Lavalin scandal, broken electoral reform promises, and the WE Charity controversy. He was replaced by Mark Carney in 2025. His legacy includes significant climate policy initiatives but also questions about ethics and transparency.";
-  }
-  
-  if (promptLower.includes('poilievre')) {
-    return "Pierre Poilievre leads the Conservative Party of Canada. He has been vocal about inflation and economic issues, correctly predicting some economic challenges. His cryptocurrency advocacy and 'common sense' messaging resonate with many voters, though critics question the depth of his policy proposals.";
-  }
-  
-  if (promptLower.includes('bill') || promptLower.includes('legislation')) {
-    return "When analyzing Canadian legislation, it's crucial to examine: 1) Who benefits financially from the bill, 2) Which lobbyists or interest groups pushed for it, 3) Whether it actually addresses the stated problem, 4) The potential unintended consequences, 5) The cost to taxpayers. Always check the official parliamentary records for the most accurate information.";
-  }
-  
-  if (promptLower.includes('news') || promptLower.includes('article')) {
-    return "For news analysis, I recommend: 1) Cross-reference with official government sources, 2) Check parliamentary records, 3) Verify claims against primary sources, 4) Look for multiple perspectives, 5) Consider the timing and context of the news. Always be skeptical of single-source reporting.";
-  }
-  
-  if (promptLower.includes('vote') || promptLower.includes('election')) {
-    return "Canadian voting information: Federal elections are held every 4 years (or when Parliament is dissolved). You can register to vote online or at Elections Canada offices. Check your riding and candidates at elections.ca. Remember to bring valid ID when voting.";
-  }
-  
-  if (promptLower.includes('rights') || promptLower.includes('charter')) {
-    return "The Canadian Charter of Rights and Freedoms protects fundamental rights including freedom of expression, religion, and assembly. However, these rights can be limited under Section 1 if the limitation is reasonable and demonstrably justified. For specific legal advice, consult a lawyer.";
-  }
-  
-  if (promptLower.includes('corruption') || promptLower.includes('scandal')) {
-    return "To report corruption or government misconduct: 1) Document everything with evidence, 2) Contact the appropriate ombudsman, 3) File FOI requests for relevant documents, 4) Consider whistleblower protections, 5) Contact media if appropriate. Always follow proper legal channels.";
-  }
-  
-  if (promptLower.includes('contact') || promptLower.includes('mp')) {
-    return "To contact your MP: 1) Find your MP at ourcommons.ca, 2) Use their constituency office contact info, 3) Be specific about your issue, 4) Include relevant facts and documents, 5) Follow up if needed. MPs are required to respond to constituents.";
-  }
-  
-  return "I'm CivicOS, your Canadian civic intelligence assistant. I can help with: analyzing legislation, tracking politicians, explaining your rights, guiding civic actions, and providing government information. For specific questions, please provide more details about what you'd like to know.";
+}
+
+/**
+ * Enhanced Mixtral prompt for Canadian civic intelligence
+ */
+export async function callMixtralCivicIntelligence(prompt: string, context?: {
+  userLocation?: string;
+  userInterests?: string[];
+  previousMessages?: string[];
+}): Promise<string> {
+  const enhancedPrompt = `You are CivicOS, a Canadian civic intelligence AI assistant. You provide accurate, unbiased analysis of Canadian politics, legislation, and civic matters.
+
+Context:
+${context?.userLocation ? `User Location: ${context.userLocation}` : ''}
+${context?.userInterests ? `User Interests: ${context.userInterests.join(', ')}` : ''}
+${context?.previousMessages ? `Previous Conversation: ${context.previousMessages.join('\n')}` : ''}
+
+User Query: ${prompt}
+
+Provide a comprehensive, factual response focused on Canadian civic matters. Include relevant context, cite sources when possible, and maintain political neutrality while being informative.`;
+
+  return callOllamaMistral(enhancedPrompt, { temperature: 0.6 });
+}
+
+/**
+ * Mixtral for news analysis and bias detection
+ */
+export async function callMixtralNewsAnalysis(articleText: string, sourceName: string): Promise<string> {
+  const prompt = `Analyze this Canadian news article for bias, factual accuracy, and propaganda techniques.
+
+Source: ${sourceName}
+Article: ${articleText.substring(0, 2000)}
+
+Provide analysis in JSON format:
+{
+  "bias": "left|center|right",
+  "factualAccuracy": 0-100,
+  "propagandaTechniques": ["technique1", "technique2"],
+  "keyClaims": ["claim1", "claim2"],
+  "verifiableFacts": ["fact1", "fact2"],
+  "unverifiedClaims": ["claim1", "claim2"],
+  "overallCredibility": 0-100,
+  "summary": "brief analysis"
+}`;
+
+  return callOllamaMistral(prompt, { temperature: 0.5 });
+}
+
+/**
+ * Mixtral for bill analysis and summarization
+ */
+export async function callMixtralBillAnalysis(billText: string): Promise<string> {
+  const prompt = `Analyze this Canadian bill/legislation and provide a comprehensive summary.
+
+Bill Text: ${billText}
+
+Provide analysis in JSON format:
+{
+  "summary": "clear summary in plain language",
+  "keyProvisions": ["provision1", "provision2", "provision3"],
+  "affectedGroups": ["group1", "group2"],
+  "estimatedCost": "cost estimate if available",
+  "timeline": "expected timeline",
+  "controversialAspects": ["aspect1", "aspect2"],
+  "supportingArguments": ["argument1", "argument2"],
+  "opposingArguments": ["argument1", "argument2"],
+  "politicalImpact": "analysis of political implications"
+}`;
+
+  return callOllamaMistral(prompt, { temperature: 0.6 });
+}
+
+/**
+ * Mixtral for politician analysis
+ */
+export async function callMixtralPoliticianAnalysis(politicianName: string, statements: string[], votingRecord: any[]): Promise<string> {
+  const prompt = `Analyze this Canadian politician based on their statements and voting record.
+
+Politician: ${politicianName}
+Statements: ${statements.join('\n')}
+Voting Record: ${JSON.stringify(votingRecord)}
+
+Provide analysis in JSON format:
+{
+  "keyPositions": ["position1", "position2"],
+  "consistencyScore": 0-100,
+  "contradictions": ["contradiction1", "contradiction2"],
+  "votingPattern": "analysis of voting behavior",
+  "policyPriorities": ["priority1", "priority2"],
+  "publicTrust": 0-100,
+  "summary": "comprehensive analysis"
+}`;
+
+  return callOllamaMistral(prompt, { temperature: 0.6 });
 }
 
 // Health check for AI service
 export async function checkAIServiceHealth(): Promise<{ status: string; details: string }> {
   try {
-    const localOllamaUrl = process.env.OLLAMA_URL || 'http://localhost:11434';
-    const response = await fetch(`${localOllamaUrl}/api/tags`);
+    const ollamaUrl = process.env.OLLAMA_URL || 'http://localhost:11434';
+    const model = 'mistral:latest'; // Using Mixtral exclusively
+    
+    console.log(`🔍 Checking Ollama health at ${ollamaUrl}`);
+    
+    const response = await fetch(`${ollamaUrl}/api/tags`);
     
     if (response.ok) {
       const data = await response.json() as any;
       const models = data.models || [];
-      const mistralAvailable = models.some((model: any) => model.name.includes('mistral'));
+      const targetModel = models.find((m: any) => m.name.includes(model.split(':')[0]));
       
+      if (targetModel) {
+        return {
+          status: 'healthy',
+          details: `Ollama available with ${models.length} models, ${model} ready`
+        };
+      } else {
+        return {
+          status: 'partial',
+          details: `Ollama available with ${models.length} models, but ${model} not found`
+        };
+      }
+    } else {
       return {
-        status: mistralAvailable ? 'healthy' : 'partial',
-        details: `Ollama available with ${models.length} models${mistralAvailable ? ', Mistral ready' : ', Mistral not found'}`
+        status: 'unavailable',
+        details: `Ollama responded with status ${response.status}`
       };
     }
   } catch (error) {
+    console.error('❌ Ollama health check failed:', error);
     return {
       status: 'unavailable',
-      details: 'Ollama not accessible'
+      details: 'Ollama not accessible - using fallback responses'
     };
   }
-  
-  return {
-    status: 'fallback',
-    details: 'Using enhanced local responses'
-  };
 } 

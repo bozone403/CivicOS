@@ -1,6 +1,6 @@
 import fetch from 'node-fetch';
 
-// the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
+// CivicOS AI Service using local Ollama with Mixtral model
 import { storage } from './storage';
 import { db } from './db.js';
 import { bills, politicians, votes, politicianStatements } from '../shared/schema.js';
@@ -29,11 +29,10 @@ interface AIResponse {
 }
 
 export class CivicAIService {
-  private openai: any;
+  private ollamaService: any;
 
   constructor() {
-    // Removed OpenAI_API_KEY environment variable check
-    this.openai = {
+    this.ollamaService = {
       chat: {
         completions: {
           create: async (options: any) => {
@@ -117,8 +116,8 @@ It is the firewall between the people and the machinery of power.
 
 User region: ${region || "Not specified"}`;
 
-      const response = await this.openai.chat.completions.create({
-        model: 'gpt-4o',
+      const response = await this.ollamaService.chat.completions.create({
+        model: 'mistral:latest',
         max_tokens: 2000,
         messages: [
           { role: 'system', content: systemPrompt },
@@ -285,8 +284,8 @@ Respond in JSON format with: {
   "keywords": []
 }`;
 
-    const response = await this.openai.chat.completions.create({
-      model: 'gpt-4o',
+    const response = await this.ollamaService.chat.completions.create({
+      model: 'mistral:latest',
       max_tokens: 1024,
       messages: [{ role: 'user', content: analysisPrompt }],
       response_format: { type: "json_object" }
@@ -438,8 +437,8 @@ Answer the query with complete honesty and provide specific evidence for any cla
 
 Analyze this using the government data provided. Be direct and factual. If politicians are lying or being inconsistent, call it out with specific examples. Focus on facts, voting records, and documented statements.`;
 
-    const response = await this.openai.chat.completions.create({
-      model: 'gpt-4o',
+    const response = await this.ollamaService.chat.completions.create({
+      model: 'mistral:latest',
       max_tokens: 2000,
       messages: [
         { role: 'system', content: systemPrompt },
@@ -557,8 +556,8 @@ Guidelines:
 - Reference actual Canadian government structures and processes
 - If you don't have specific current data, explain what would typically be the case`;
 
-      const response = await this.openai.chat.completions.create({
-        model: 'gpt-4o', // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
+      const response = await this.ollamaService.chat.completions.create({
+        model: 'mistral:latest',
         max_tokens: 1500,
         messages: [
           { role: 'system', content: systemPrompt },

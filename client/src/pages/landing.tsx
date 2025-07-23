@@ -579,7 +579,7 @@ export default function Landing() {
           </div>
           <Button
             size="lg"
-            onClick={() => window.location.href = '/login'}
+            onClick={() => window.location.href = '/auth'}
             className="bg-white text-red-600 hover:bg-red-50 px-8 py-3 text-lg font-semibold"
           >
             {t.hero.cta} / Accéder à la Plateforme

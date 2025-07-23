@@ -1,8 +1,26 @@
 // PARANOID: All CivicSocial endpoints must use real, production data only. No demo/test logic allowed. All endpoints must remain JWT-protected via parent router. If you add new endpoints, ensure they are protected and use only real data.
 import { Router } from "express";
 import { db } from "./db.js";
-import { socialPosts, socialComments, socialLikes, userFriends, notifications } from "../shared/schema.js";
+import { socialPosts, socialComments, socialLikes, userFriends, users, notifications, userMessages } from "../shared/schema.js";
 import { eq, desc, and, isNull, or, inArray } from "drizzle-orm";
+import { callOllamaMistral } from "./utils/aiService.js";
+import pino from "pino";
+const logger = pino();
+// Online status tracking
+const onlineUsers = new Set();
+// Check if user is online
+async function checkUserOnlineStatus(userId) {
+    return onlineUsers.has(userId);
+}
+// Update user online status
+export function updateUserOnlineStatus(userId, isOnline) {
+    if (isOnline) {
+        onlineUsers.add(userId);
+    }
+    else {
+        onlineUsers.delete(userId);
+    }
+}
 const router = Router();
 // Helper: check and notify if a post is trending
 async function checkAndNotifyTrending(postId) {
@@ -38,19 +56,63 @@ router.get("/feed", async (req, res) => {
         const userId = (req.user?.id || req.user?.sub || req.query.userId);
         if (!userId)
             return res.status(401).json({ error: "Not authenticated" });
+        // Get posts with user information
         const posts = await db
-            .select()
+            .select({
+            id: socialPosts.id,
+            userId: socialPosts.userId,
+            content: socialPosts.content,
+            imageUrl: socialPosts.imageUrl,
+            type: socialPosts.type,
+            originalItemId: socialPosts.originalItemId,
+            originalItemType: socialPosts.originalItemType,
+            comment: socialPosts.comment,
+            createdAt: socialPosts.createdAt,
+            updatedAt: socialPosts.updatedAt,
+            // User info
+            displayName: users.firstName,
+            email: users.email,
+            profileImageUrl: users.profileImageUrl,
+        })
             .from(socialPosts)
+            .leftJoin(users, eq(socialPosts.userId, users.id))
             .orderBy(desc(socialPosts.createdAt))
             .limit(50);
-        // For each post, get reactions grouped by emoji
+        // Get post IDs for batch queries
         const postIds = posts.map((p) => p.id);
+        // Get reactions for all posts
         let reactions = [];
         if (postIds.length > 0) {
             reactions = await db
-                .select({ postId: socialLikes.postId, reaction: socialLikes.reaction, userId: socialLikes.userId })
+                .select({
+                postId: socialLikes.postId,
+                reaction: socialLikes.reaction,
+                userId: socialLikes.userId
+            })
                 .from(socialLikes)
                 .where(inArray(socialLikes.postId, postIds));
+        }
+        // Get comments for all posts with user information
+        let comments = [];
+        if (postIds.length > 0) {
+            comments = await db
+                .select({
+                id: socialComments.id,
+                postId: socialComments.postId,
+                userId: socialComments.userId,
+                content: socialComments.content,
+                parentCommentId: socialComments.parentCommentId,
+                createdAt: socialComments.createdAt,
+                updatedAt: socialComments.updatedAt,
+                // User info for comments
+                displayName: users.firstName,
+                email: users.email,
+                profileImageUrl: users.profileImageUrl,
+            })
+                .from(socialComments)
+                .leftJoin(users, eq(socialComments.userId, users.id))
+                .where(inArray(socialComments.postId, postIds))
+                .orderBy(desc(socialComments.createdAt));
         }
         // Group reactions by postId and emoji
         const reactionMap = {};
@@ -61,29 +123,39 @@ router.get("/feed", async (req, res) => {
                 reactionMap[r.postId][r.reaction] = [];
             reactionMap[r.postId][r.reaction].push(r.userId);
         }
-        // Attach reactions to posts
-        const postsWithReactions = posts.map((p) => ({
+        // Group comments by postId
+        const commentMap = {};
+        for (const c of comments) {
+            if (!commentMap[c.postId])
+                commentMap[c.postId] = [];
+            commentMap[c.postId].push(c);
+        }
+        // Attach reactions and comments to posts
+        const postsWithData = posts.map((p) => ({
             ...p,
             reactions: reactionMap[p.id] || {},
+            comments: commentMap[p.id] || [],
+            commentsCount: (commentMap[p.id] || []).length,
+            likesCount: Object.values(reactionMap[p.id] || {}).reduce((sum, users) => sum + users.length, 0),
         }));
-        res.json({ feed: postsWithReactions });
+        res.json({ feed: postsWithData });
     }
     catch (err) {
-        console.error("Feed error:", err);
-        res.status(500).json({ error: "Failed to fetch feed", details: err });
+        logger.error("Feed error:", err);
+        res.status(500).json({ error: "Failed to fetch feed" });
     }
 });
 // POST /api/social/posts - Create a new post/share
 router.post("/posts", async (req, res) => {
     try {
         // Debug: log auth header and body
-        console.log("[POST /api/social/posts] Authorization:", req.headers.authorization);
-        console.log("[POST /api/social/posts] req.user:", req.user);
-        console.log("[POST /api/social/posts] req.body:", req.body);
+        logger.info("[POST /api/social/posts] Authorization:", req.headers.authorization);
+        logger.info("[POST /api/social/posts] req.user:", req.user);
+        logger.info("[POST /api/social/posts] req.body:", req.body);
         // Try id, then sub (JWT), then query param
         const userId = (req.user?.id || req.user?.sub || req.body.userId);
         if (!userId) {
-            console.error("[POST /api/social/posts] Not authenticated. req.user:", req.user);
+            logger.error("[POST /api/social/posts] Not authenticated. req.user:", req.user);
             return res.status(401).json({ error: "Not authenticated" });
         }
         const { content, imageUrl, type, originalItemId, originalItemType, comment } = req.body;
@@ -105,11 +177,32 @@ router.post("/posts", async (req, res) => {
             comment,
         })
             .returning();
-        res.status(201).json({ post: inserted });
+        // Get the complete post with user info
+        const [completePost] = await db
+            .select({
+            id: socialPosts.id,
+            userId: socialPosts.userId,
+            content: socialPosts.content,
+            imageUrl: socialPosts.imageUrl,
+            type: socialPosts.type,
+            originalItemId: socialPosts.originalItemId,
+            originalItemType: socialPosts.originalItemType,
+            comment: socialPosts.comment,
+            createdAt: socialPosts.createdAt,
+            updatedAt: socialPosts.updatedAt,
+            // User info
+            displayName: users.firstName,
+            email: users.email,
+            profileImageUrl: users.profileImageUrl,
+        })
+            .from(socialPosts)
+            .leftJoin(users, eq(socialPosts.userId, users.id))
+            .where(eq(socialPosts.id, inserted.id));
+        res.status(201).json({ post: completePost });
     }
     catch (err) {
-        console.error("Create post error:", err);
-        res.status(500).json({ error: "Failed to create post", details: err });
+        logger.error("Create post error:", err);
+        res.status(500).json({ error: "Failed to create post" });
     }
 });
 // POST /api/social/posts/:id/comment - Add a comment
@@ -133,11 +226,29 @@ router.post("/posts/:id/comment", async (req, res) => {
             parentCommentId,
         })
             .returning();
-        res.status(201).json({ comment: inserted });
+        // Get the complete comment with user info
+        const [completeComment] = await db
+            .select({
+            id: socialComments.id,
+            postId: socialComments.postId,
+            userId: socialComments.userId,
+            content: socialComments.content,
+            parentCommentId: socialComments.parentCommentId,
+            createdAt: socialComments.createdAt,
+            updatedAt: socialComments.updatedAt,
+            // User info
+            displayName: users.firstName,
+            email: users.email,
+            profileImageUrl: users.profileImageUrl,
+        })
+            .from(socialComments)
+            .leftJoin(users, eq(socialComments.userId, users.id))
+            .where(eq(socialComments.id, inserted.id));
+        res.status(201).json({ comment: completeComment });
     }
     catch (err) {
-        console.error("Create comment error:", err);
-        res.status(500).json({ error: "Failed to add comment", details: err });
+        logger.error("Create comment error:", err);
+        res.status(500).json({ error: "Failed to add comment" });
     }
 });
 // POST /api/social/posts/:id/like - Like/unlike a post
@@ -181,8 +292,8 @@ router.post("/posts/:id/like", async (req, res) => {
         }
     }
     catch (err) {
-        console.error("Reaction error:", err);
-        res.status(500).json({ error: "Failed to react to post", details: err });
+        logger.error("Reaction error:", err);
+        res.status(500).json({ error: "Failed to react to post" });
     }
 });
 // DELETE /api/social/posts/:id - Delete a post (owner only)
@@ -203,8 +314,202 @@ router.delete("/posts/:id", async (req, res) => {
         res.json({ success: true });
     }
     catch (err) {
-        console.error("Delete post error:", err);
-        res.status(500).json({ error: "Failed to delete post", details: err });
+        logger.error("Delete post error:", err);
+        res.status(500).json({ error: "Failed to delete post" });
+    }
+});
+// GET /api/social/conversations - Get user's conversations
+router.get("/conversations", async (req, res) => {
+    try {
+        const userId = (req.user?.id || req.user?.sub || req.query.userId);
+        if (!userId)
+            return res.status(401).json({ error: "Not authenticated" });
+        // Get conversations where user is a participant
+        const conversations = await db
+            .select({
+            id: userFriends.id,
+            userId: userFriends.userId,
+            friendId: userFriends.friendId,
+            status: userFriends.status,
+            createdAt: userFriends.createdAt,
+            // Friend info
+            displayName: users.firstName,
+            email: users.email,
+            profileImageUrl: users.profileImageUrl,
+        })
+            .from(userFriends)
+            .leftJoin(users, eq(userFriends.friendId, users.id))
+            .where(and(eq(userFriends.userId, userId), eq(userFriends.status, "accepted")));
+        // Get conversations where user is the friend
+        const reverseConversations = await db
+            .select({
+            id: userFriends.id,
+            userId: userFriends.friendId,
+            friendId: userFriends.userId,
+            status: userFriends.status,
+            createdAt: userFriends.createdAt,
+            // Friend info
+            displayName: users.firstName,
+            email: users.email,
+            profileImageUrl: users.profileImageUrl,
+        })
+            .from(userFriends)
+            .leftJoin(users, eq(userFriends.userId, users.id))
+            .where(and(eq(userFriends.friendId, userId), eq(userFriends.status, "accepted")));
+        // Get last messages for each conversation
+        const allConversations = [...conversations, ...reverseConversations].map(async (conv) => {
+            const conversationId = conv.friendId;
+            // Get last message for this conversation
+            const lastMessage = await db
+                .select({
+                id: userMessages.id,
+                content: userMessages.content,
+                senderId: userMessages.senderId,
+                receiverId: userMessages.recipientId,
+                timestamp: userMessages.createdAt,
+                isRead: userMessages.isRead,
+            })
+                .from(userMessages)
+                .where(or(and(eq(userMessages.senderId, userId), eq(userMessages.recipientId, conversationId)), and(eq(userMessages.senderId, conversationId), eq(userMessages.recipientId, userId))))
+                .orderBy(desc(userMessages.createdAt))
+                .limit(1);
+            // Get unread count
+            const unreadCount = await db
+                .select({ count: userMessages.id })
+                .from(userMessages)
+                .where(and(eq(userMessages.recipientId, userId), eq(userMessages.senderId, conversationId), eq(userMessages.isRead, false)));
+            return {
+                id: conversationId,
+                participants: [conv.userId, conv.friendId],
+                participant: {
+                    firstName: conv.displayName || "User",
+                    lastName: "",
+                    profileImageUrl: conv.profileImageUrl,
+                    email: conv.email,
+                    isOnline: await checkUserOnlineStatus(conv.userId),
+                },
+                lastMessage: lastMessage[0] || null,
+                unreadCount: unreadCount.length,
+            };
+        });
+        const resolvedConversations = await Promise.all(allConversations);
+        res.json(resolvedConversations);
+    }
+    catch (err) {
+        logger.error("Conversations error:", err);
+        res.status(500).json({ error: "Failed to fetch conversations" });
+    }
+});
+// GET /api/social/messages/:conversationId - Get messages for a conversation
+router.get("/messages/:conversationId", async (req, res) => {
+    try {
+        const userId = (req.user?.id || req.user?.sub);
+        if (!userId)
+            return res.status(401).json({ error: "Not authenticated" });
+        const conversationId = req.params.conversationId;
+        // Get messages between user and conversation partner
+        const conversationMessages = await db
+            .select({
+            id: userMessages.id,
+            content: userMessages.content,
+            senderId: userMessages.senderId,
+            receiverId: userMessages.recipientId,
+            timestamp: userMessages.createdAt,
+            isRead: userMessages.isRead,
+            // Sender info
+            senderFirstName: users.firstName,
+            senderEmail: users.email,
+            senderProfileImageUrl: users.profileImageUrl,
+        })
+            .from(userMessages)
+            .leftJoin(users, eq(userMessages.senderId, users.id))
+            .where(or(and(eq(userMessages.senderId, userId), eq(userMessages.recipientId, conversationId)), and(eq(userMessages.senderId, conversationId), eq(userMessages.recipientId, userId))))
+            .orderBy(desc(userMessages.createdAt))
+            .limit(50);
+        // Mark messages as read
+        await db
+            .update(userMessages)
+            .set({ isRead: true })
+            .where(and(eq(userMessages.recipientId, userId), eq(userMessages.senderId, conversationId), eq(userMessages.isRead, false)));
+        // Format messages
+        const formattedMessages = conversationMessages.map(msg => ({
+            id: msg.id,
+            content: msg.content,
+            senderId: msg.senderId,
+            receiverId: msg.receiverId,
+            timestamp: msg.timestamp,
+            isRead: msg.isRead,
+            sender: {
+                firstName: msg.senderFirstName || "User",
+                lastName: "",
+                profileImageUrl: msg.senderProfileImageUrl,
+                email: msg.senderEmail,
+            },
+        }));
+        res.json(formattedMessages.reverse()); // Reverse to show oldest first
+    }
+    catch (err) {
+        logger.error("Messages error:", err);
+        res.status(500).json({ error: "Failed to fetch messages" });
+    }
+});
+// POST /api/social/messages - Send a message
+router.post("/messages", async (req, res) => {
+    try {
+        const userId = (req.user?.id || req.user?.sub);
+        if (!userId)
+            return res.status(401).json({ error: "Not authenticated" });
+        const { content, receiverId, conversationId } = req.body;
+        if (!content || !receiverId) {
+            return res.status(400).json({ error: "Content and receiverId are required." });
+        }
+        // Insert the message
+        const [inserted] = await db
+            .insert(userMessages)
+            .values({
+            senderId: userId,
+            recipientId: receiverId,
+            content,
+            isRead: false,
+        })
+            .returning();
+        // Get the complete message with sender info
+        const [completeMessage] = await db
+            .select({
+            id: userMessages.id,
+            content: userMessages.content,
+            senderId: userMessages.senderId,
+            receiverId: userMessages.recipientId,
+            timestamp: userMessages.createdAt,
+            isRead: userMessages.isRead,
+            // Sender info
+            senderFirstName: users.firstName,
+            senderEmail: users.email,
+            senderProfileImageUrl: users.profileImageUrl,
+        })
+            .from(userMessages)
+            .leftJoin(users, eq(userMessages.senderId, users.id))
+            .where(eq(userMessages.id, inserted.id));
+        res.status(201).json({
+            message: {
+                id: completeMessage.id,
+                content: completeMessage.content,
+                senderId: completeMessage.senderId,
+                receiverId: completeMessage.receiverId,
+                timestamp: completeMessage.timestamp,
+                isRead: completeMessage.isRead,
+                sender: {
+                    firstName: completeMessage.senderFirstName || "User",
+                    lastName: "",
+                    profileImageUrl: completeMessage.senderProfileImageUrl,
+                    email: completeMessage.senderEmail,
+                },
+            }
+        });
+    }
+    catch (err) {
+        logger.error("Send message error:", err);
+        res.status(500).json({ error: "Failed to send message" });
     }
 });
 // POST /api/social/friends - Send, accept, or remove a friend request
@@ -246,8 +551,8 @@ router.post("/friends", async (req, res) => {
         }
     }
     catch (err) {
-        console.error("Friend request error:", err);
-        res.status(500).json({ error: "Failed to process friend request", details: err });
+        logger.error("Friend request error:", err);
+        res.status(500).json({ error: "Failed to process friend request" });
     }
 });
 // GET /api/social/friends - List friends and pending requests
@@ -274,8 +579,70 @@ router.get("/friends", async (req, res) => {
         res.json({ friends, sent, received });
     }
     catch (err) {
-        console.error("Friends error:", err);
-        res.status(500).json({ error: "Failed to fetch friends", details: err });
+        logger.error("Friends error:", err);
+        res.status(500).json({ error: "Failed to fetch friends" });
+    }
+});
+// POST /api/social/share - Share content to CivicSocial
+router.post("/share", async (req, res) => {
+    try {
+        const userId = (req.user?.id || req.user?.sub);
+        if (!userId)
+            return res.status(401).json({ error: "Not authenticated" });
+        const { itemType, itemId, comment, title, summary } = req.body;
+        if (!itemType || !itemId || !title) {
+            return res.status(400).json({ error: "itemType, itemId, and title are required" });
+        }
+        // Create the share post
+        const [newPost] = await db.insert(socialPosts).values({
+            userId,
+            type: "share",
+            originalItemId: itemId,
+            originalItemType: itemType,
+            comment: comment || null,
+            content: `${title}\n\n${summary || ""}${comment ? `\n\nComment: ${comment}` : ""}`,
+            createdAt: new Date(),
+            updatedAt: new Date()
+        }).returning();
+        // Generate AI analysis of the shared content if it's a bill or politician
+        if (itemType === "bill" || itemType === "politician" || itemType === "electoral") {
+            try {
+                const analysisPrompt = `Analyze this shared ${itemType} content for the CivicSocial community:
+
+Title: ${title}
+Summary: ${summary}
+Comment: ${comment || "No comment provided"}
+
+Provide a brief, engaging analysis that highlights:
+1. Key points of interest
+2. Potential impact on Canadian politics
+3. Why this content matters to citizens
+
+Keep it under 100 words and make it engaging for social media.`;
+                const aiAnalysis = await callOllamaMistral(analysisPrompt);
+                // Add AI analysis as a comment
+                await db.insert(socialComments).values({
+                    postId: newPost.id,
+                    userId: "system", // System-generated comment
+                    content: `🤖 AI Analysis: ${aiAnalysis}`,
+                    createdAt: new Date(),
+                    updatedAt: new Date()
+                });
+            }
+            catch (error) {
+                logger.error("AI analysis failed:", error);
+                // Continue without AI analysis
+            }
+        }
+        res.status(201).json({
+            success: true,
+            post: newPost,
+            message: "Content shared successfully to CivicSocial"
+        });
+    }
+    catch (error) {
+        logger.error("Share error:", error);
+        res.status(500).json({ error: "Failed to share content" });
     }
 });
 export default router;

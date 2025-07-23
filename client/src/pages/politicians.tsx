@@ -433,10 +433,10 @@ export default function Politicians() {
     staleTime: Infinity, // Never refetch since it's static data
   });
 
-  // Get unique values for filters
-  const parties = [...new Set(politicians.map(p => p.party))].sort();
-  const levels = [...new Set(politicians.map(p => p.level))].sort();
-  const jurisdictions = [...new Set(politicians.map(p => p.jurisdiction))].sort();
+  // Extract unique values for filters
+  const parties = Array.from(new Set(politicians.map(p => p.party))).sort();
+  const levels = Array.from(new Set(politicians.map(p => p.level))).sort();
+  const jurisdictions = Array.from(new Set(politicians.map(p => p.jurisdiction))).sort();
 
   // Filter politicians based on search and filters
   const filteredPoliticians = politicians.filter(politician => {

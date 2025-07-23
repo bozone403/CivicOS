@@ -16,14 +16,12 @@ const DEFAULT_CONFIG: DataModeConfig = {
 export function useDataMode() {
   const [config, setConfig] = useState<DataModeConfig>(DEFAULT_CONFIG);
 
-  // Check if we should use live data based on environment
+  // Production always uses live data
   useEffect(() => {
-    const isProduction = import.meta.env.MODE === 'production';
-    
     setConfig(prev => ({
       ...prev,
-      useLiveData: isProduction,
-      dataSource: isProduction ? "Parliament of Canada APIs" : "Government APIs"
+      useLiveData: true,
+      dataSource: "Parliament of Canada APIs"
     }));
   }, []);
 

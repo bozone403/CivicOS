@@ -1,390 +1,112 @@
-import { useQuery } from "@tanstack/react-query";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
-import { Vote, Clock, TrendingUp, Calendar, Users, CheckCircle } from "lucide-react";
-import { Link } from "wouter";
-import { useAuth } from "@/hooks/useAuth";
-import { useCivicSocialPost } from "@/hooks/useCivicSocial";
-import { useToast } from "@/hooks/use-toast";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
-import { useState } from "react";
+import React from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { useQuery } from '@tanstack/react-query';
+import { api } from '@/lib/api';
 
 interface Bill {
-  id: number;
-  billNumber: string;
+  id: string;
   title: string;
+  description: string;
   status: string;
-  summary: string;
-  votingDeadline?: string;
-  yesVotes: number;
-  noVotes: number;
-  totalVotes: number;
-  publicSupport: number;
   category: string;
   jurisdiction: string;
-  sponsor?: string;
-  urgency: 'low' | 'medium' | 'high';
-  estimatedImpact: number;
+  votesFor: number;
+  votesAgainst: number;
+  userVote?: 'for' | 'against' | null;
 }
 
-interface UserVote {
-  billId: number;
-  voteValue: string;
-  reasoning?: string;
-  timestamp: string;
-}
+export default function BillsVotingWidget() {
+  const { data: bills = [], isLoading, error } = useQuery({
+    queryKey: ['/api/bills'],
+    queryFn: () => api.get('/api/bills').then(res => res.json()),
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
 
-const MOCK_DASHBOARD = false;
-
-export default function BillsVotingWidget({ liveData = true }: { liveData?: boolean }) {
-  if (MOCK_DASHBOARD) {
-    const bills = [
-      { id: 1, billNumber: 'C-1', title: 'Demo Bill 1', status: 'active', summary: 'A bill for demo purposes', yesVotes: 100, noVotes: 20, totalVotes: 120, publicSupport: 80, category: 'Demo', jurisdiction: 'Federal', urgency: 'high', estimatedImpact: 5 },
-      { id: 2, billNumber: 'C-2', title: 'Demo Bill 2', status: 'pending', summary: 'Another demo bill', yesVotes: 50, noVotes: 10, totalVotes: 60, publicSupport: 60, category: 'Demo', jurisdiction: 'Provincial', urgency: 'medium', estimatedImpact: 3 },
-    ];
-    const votingStats = { totalParticipants: 200 };
+  if (isLoading) {
     return (
-      <Card className="h-96 flex flex-col">
-        <CardHeader className="pb-3 flex-shrink-0">
-          <CardTitle className="flex items-center space-x-2">
-            <Vote className="h-4 w-4 sm:h-5 sm:w-5" />
-            <span className="text-sm sm:text-base">Bills & Voting (Demo)</span>
-          </CardTitle>
+      <Card>
+        <CardHeader>
+          <CardTitle>Recent Bills</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-2">
-            {bills.map((b) => (
-              <div key={b.id} className="border rounded-lg p-3">
-                <div className="font-bold">{b.title}</div>
-                <div className="text-xs text-gray-600">{b.billNumber} • {b.status}</div>
-                <div className="text-xs text-gray-500">Yes: {b.yesVotes} No: {b.noVotes}</div>
-                <div className="text-xs text-gray-400">Support: {b.publicSupport}%</div>
+          <div className="space-y-4">
+            {[...Array(3)].map((_, i) => (
+              <div key={i} className="animate-pulse">
+                <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
+                <div className="h-3 bg-gray-200 rounded w-1/2"></div>
               </div>
             ))}
-            <div className="mt-2 text-xs text-gray-700">Total Participants: {votingStats.totalParticipants}</div>
           </div>
         </CardContent>
       </Card>
     );
   }
 
-  const { data: bills = [], isLoading: billsLoading } = useQuery<Bill[]>({
-    queryKey: ['/api/bills'],
-    refetchInterval: 120000, // Refresh every 2 minutes
-    select: (data) => data.slice(0, 6), // Show latest 6 bills
-  });
+  if (error) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Recent Bills</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-gray-500">Unable to load bills</p>
+        </CardContent>
+      </Card>
+    );
+  }
 
-  const { data: userVotes = [], isLoading: votesLoading } = useQuery<UserVote[]>({
-    queryKey: ['/api/votes/user'],
-    refetchInterval: 180000, // Refresh every 3 minutes
-  });
-
-  const { data: votingStats } = useQuery<{ totalParticipants?: number }>({
-    queryKey: ['/api/voting/stats'],
-    refetchInterval: 300000, // Refresh every 5 minutes
-  });
-
-  // Fallback data when API returns empty
-  const fallbackBills: Bill[] = [
-    {
-      id: 1,
-      billNumber: 'C-11',
-      title: 'Online Streaming Act',
-      status: 'active',
-      summary: 'An Act to amend the Broadcasting Act and to make related and consequential amendments to other Acts',
-      votingDeadline: '2024-12-31',
-      yesVotes: 245,
-      noVotes: 55,
-      totalVotes: 300,
-      publicSupport: 82,
-      category: 'Media & Broadcasting',
-      jurisdiction: 'Federal',
-      sponsor: 'Justin Trudeau',
-      urgency: 'high',
-      estimatedImpact: 85
-    },
-    {
-      id: 2,
-      billNumber: 'C-18',
-      title: 'Online News Act',
-      status: 'active',
-      summary: 'An Act respecting online communications platforms that make news content available to persons in Canada',
-      votingDeadline: '2024-11-30',
-      yesVotes: 180,
-      noVotes: 120,
-      totalVotes: 300,
-      publicSupport: 60,
-      category: 'Media & Broadcasting',
-      jurisdiction: 'Federal',
-      sponsor: 'Pablo Rodriguez',
-      urgency: 'medium',
-      estimatedImpact: 70
-    },
-    {
-      id: 3,
-      billNumber: 'C-13',
-      title: 'An Act to amend the Official Languages Act',
-      status: 'pending',
-      summary: 'An Act to amend the Official Languages Act, to enact the Use of French in Federally Regulated Private Businesses Act',
-      votingDeadline: '2024-10-15',
-      yesVotes: 200,
-      noVotes: 100,
-      totalVotes: 300,
-      publicSupport: 67,
-      category: 'Language & Culture',
-      jurisdiction: 'Federal',
-      sponsor: 'Ginette Petitpas Taylor',
-      urgency: 'medium',
-      estimatedImpact: 65
-    },
-    {
-      id: 4,
-      billNumber: 'C-15',
-      title: 'United Nations Declaration on the Rights of Indigenous Peoples Act',
-      status: 'passed',
-      summary: 'An Act respecting the United Nations Declaration on the Rights of Indigenous Peoples',
-      votingDeadline: '2023-06-21',
-      yesVotes: 265,
-      noVotes: 35,
-      totalVotes: 300,
-      publicSupport: 88,
-      category: 'Indigenous Rights',
-      jurisdiction: 'Federal',
-      sponsor: 'David Lametti',
-      urgency: 'high',
-      estimatedImpact: 90
-    }
-  ];
-
-  const fallbackVotingStats = { totalParticipants: 15420 };
-
-  // Use liveData to determine whether to use real data or fallback
-  const displayBills = liveData && bills.length > 0 ? bills : fallbackBills;
-  const displayVotingStats = votingStats || fallbackVotingStats;
+  const recentBills = bills.slice(0, 3);
 
   const getStatusColor = (status: string) => {
     switch (status.toLowerCase()) {
-      case 'active': return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200';
-      case 'pending': return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200';
-      case 'passed': return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200';
-      case 'failed': return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200';
-      default: return 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200';
+      case 'active': return 'bg-green-100 text-green-800';
+      case 'passed': return 'bg-blue-100 text-blue-800';
+      case 'failed': return 'bg-red-100 text-red-800';
+      case 'pending': return 'bg-yellow-100 text-yellow-800';
+      default: return 'bg-gray-100 text-gray-800';
     }
   };
 
-  const getUrgencyColor = (urgency: string) => {
-    switch (urgency) {
-      case 'high': return 'border-l-red-500 bg-red-50 dark:bg-red-900/20';
-      case 'medium': return 'border-l-yellow-500 bg-yellow-50 dark:bg-yellow-900/20';
-      default: return 'border-l-blue-500 bg-blue-50 dark:bg-blue-900/20';
-    }
+  const getVotePercentage = (forVotes: number, againstVotes: number) => {
+    const total = forVotes + againstVotes;
+    return total > 0 ? Math.round((forVotes / total) * 100) : 0;
   };
-
-  const getUserVote = (billId: number) => {
-    return userVotes.find(vote => vote.billId === billId);
-  };
-
-  const calculateVotePercentage = (yesVotes: number, totalVotes: number) => {
-    return totalVotes > 0 ? Math.round((yesVotes / totalVotes) * 100) : 0;
-  };
-
-  const isVotingActive = (deadline?: string) => {
-    if (!deadline) return true;
-    return new Date(deadline) > new Date();
-  };
-
-  const { user } = useAuth();
-  const civicSocialPost = useCivicSocialPost();
-  const { toast } = useToast();
-  const [shareDialog, setShareDialog] = useState<{ open: boolean; bill?: Bill }>({ open: false });
-  const [shareComment, setShareComment] = useState("");
-
-  if (billsLoading && votesLoading) {
-    return (
-      <Card className="h-96">
-        <CardHeader>
-          <CardTitle className="flex items-center space-x-2">
-            <Vote className="h-5 w-5" />
-            <span>Bills & Voting</span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="animate-pulse space-y-4">
-            {[...Array(4)].map((_, i) => (
-              <div key={i} className="h-24 bg-gray-200 dark:bg-gray-700 rounded"></div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
 
   return (
-    <Card className="h-96 flex flex-col">
-      <CardHeader className="pb-3 flex-shrink-0">
-        <CardTitle className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-2 sm:space-y-0">
-          <div className="flex items-center space-x-2">
-            <Vote className="h-4 w-4 sm:h-5 sm:w-5" />
-            <span className="text-sm sm:text-base">Bills & Voting</span>
-          </div>
-          <div className="flex items-center space-x-1 sm:space-x-2">
-            <Badge variant="outline" className="text-xs px-1 sm:px-2">
-              {displayBills.filter(b => b.status === 'active').length} Active
-            </Badge>
-            {displayVotingStats && (
-              <Badge variant="secondary" className="text-xs px-1 sm:px-2">
-                {displayVotingStats.totalParticipants ?? 0} Voters
-              </Badge>
-            )}
-          </div>
-        </CardTitle>
+    <Card>
+      <CardHeader>
+        <CardTitle>Recent Bills</CardTitle>
       </CardHeader>
-      <CardContent className="flex-1 overflow-y-auto pr-2">
-        <div className="space-y-3">
-          {/* Show bills with fallback data */}
-          {displayBills.map((bill) => {
-                const userVote = getUserVote(bill.id);
-                const votePercentage = calculateVotePercentage(bill.yesVotes, bill.totalVotes);
-                const votingActive = isVotingActive(bill.votingDeadline);
-                
-                return (
-                  <div key={bill.id} className="border rounded-lg p-3 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
-                    <div className="flex items-start justify-between mb-2">
-                      <div className="flex-1">
-                        <div className="flex items-center space-x-2 mb-1">
-                          <Badge variant="secondary" className="text-xs">{bill.billNumber}</Badge>
-                          <Badge className={`text-xs ${getStatusColor(bill.status)}`}>
-                            {bill.status}
-                          </Badge>
-                          {userVote && (
-                            <CheckCircle className="h-3 w-3 text-green-500" />
-                          )}
-                        </div>
-                        <h4 className="font-medium text-sm mb-1 line-clamp-2">{bill.title}</h4>
-                        <p className="text-xs text-gray-600 dark:text-gray-300 line-clamp-2">
-                          {bill.summary}
-                        </p>
-                      </div>
-                    </div>
-
-                    {/* Vote Progress Bar */}
-                    <div className="space-y-1 mb-2">
-                      <div className="flex justify-between text-xs">
-                        <span>Support</span>
-                        <span>{votePercentage}%</span>
-                      </div>
-                      <Progress value={votePercentage} className="h-1.5" />
-                    </div>
-
-                    {/* Vote Actions */}
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-2 text-xs text-gray-500">
-                        <Users className="h-3 w-3" />
-                        <span>{bill.totalVotes} votes</span>
-                        {bill.sponsor && (
-                          <>
-                            <span>•</span>
-                            <span>{bill.sponsor}</span>
-                          </>
-                        )}
-                      </div>
-                      
-                      {userVote ? (
-                        <Badge variant="secondary" className="text-xs">
-                          Voted {userVote.voteValue}
-                        </Badge>
-                      ) : votingActive ? (
-                        <Button variant="outline" size="sm" className="h-6 px-2 text-xs">
-                          Vote
-                        </Button>
-                      ) : (
-                        <span className="text-xs text-gray-400">Closed</span>
-                      )}
-                    </div>
-
-                    {/* Impact & Deadline */}
-                    <div className="flex items-center justify-between mt-2 text-xs text-gray-500">
-                      <div className="flex items-center space-x-1">
-                        <TrendingUp className="h-3 w-3" />
-                        <span>{bill.estimatedImpact}% impact</span>
-                      </div>
-                      {bill.votingDeadline && (
-                        <div className="flex items-center space-x-1">
-                          <Calendar className="h-3 w-3" />
-                          <span>{new Date(bill.votingDeadline).toLocaleDateString()}</span>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Share to CivicSocial button */}
-                    <div className="flex justify-end mt-2">
-                      <Dialog open={shareDialog.open && shareDialog.bill?.id === bill.id} onOpenChange={open => setShareDialog({ open, bill: open ? bill : undefined })}>
-                        <DialogTrigger asChild>
-                          <Button size="sm" variant="outline" className="text-xs" onClick={() => setShareDialog({ open: true, bill })}>
-                            Share to CivicSocial
-                          </Button>
-                        </DialogTrigger>
-                        <DialogContent className="max-w-md">
-                          <DialogHeader>
-                            <DialogTitle>Share Bill to CivicSocial</DialogTitle>
-                            <DialogDescription>Let your friends and followers know about this bill. You can add a comment below.</DialogDescription>
-                          </DialogHeader>
-                          <form
-                            className="flex flex-col gap-3"
-                            onSubmit={e => {
-                              e.preventDefault();
-                              if (!user) return;
-                              civicSocialPost.mutate({
-                                type: "share",
-                                originalItemId: bill.id,
-                                originalItemType: "bill",
-                                comment: shareComment,
-                                userId: user.id,
-                                displayName: user.firstName || user.email || "Anonymous",
-                                content: `Shared bill: ${bill.title}\n${bill.summary}`,
-                              }, {
-                                onSuccess: () => {
-                                  setShareDialog({ open: false });
-                                  setShareComment("");
-                                  toast({ title: "Bill shared!", description: "Your share was added to the CivicSocial feed." });
-                                },
-                              });
-                            }}
-                          >
-                            <textarea
-                              className="border rounded px-3 py-2"
-                              placeholder="Add a comment (optional)"
-                              value={shareComment}
-                              onChange={e => setShareComment(e.target.value)}
-                              rows={3}
-                              aria-label="Share comment"
-                            />
-                            <div className="flex gap-2 justify-end">
-                              <Button type="button" variant="outline" onClick={() => setShareDialog({ open: false })} aria-label="Cancel share">
-                                Cancel
-                              </Button>
-                              <Button type="submit" disabled={civicSocialPost.isPending} aria-label="Submit share">
-                                {civicSocialPost.isPending ? "Sharing..." : "Share"}
-                              </Button>
-                            </div>
-                          </form>
-                        </DialogContent>
-                      </Dialog>
-                    </div>
-                  </div>
-                );
-              })}
-        </div>
-
-        <div className="mt-4 pt-3 border-t">
-          <Link href="/voting">
-            <Button variant="outline" size="sm" className="w-full">
-              <Vote className="h-4 w-4 mr-2" />
-              View All Bills
-            </Button>
-          </Link>
+      <CardContent>
+        <div className="space-y-4">
+          {recentBills.map((bill: Bill) => (
+            <div key={bill.id} className="border-b border-gray-200 pb-4 last:border-b-0">
+              <div className="flex items-start justify-between mb-2">
+                <h4 className="font-medium text-sm">{bill.title}</h4>
+                <Badge className={getStatusColor(bill.status)} variant="secondary">
+                  {bill.status}
+                </Badge>
+              </div>
+              <p className="text-xs text-gray-600 mb-2 line-clamp-2">
+                {bill.description}
+              </p>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <span className="text-xs text-gray-500">
+                    {getVotePercentage(bill.votesFor, bill.votesAgainst)}% support
+                  </span>
+                  <span className="text-xs text-gray-400">
+                    ({bill.votesFor + bill.votesAgainst} votes)
+                  </span>
+                </div>
+                <Button size="sm" variant="outline">
+                  Vote
+                </Button>
+              </div>
+            </div>
+          ))}
         </div>
       </CardContent>
     </Card>
