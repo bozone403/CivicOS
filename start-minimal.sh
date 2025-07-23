@@ -23,6 +23,6 @@ else
     echo "🔧 Development environment detected"
 fi
 
-# Start the Node.js application
-echo "🌐 Starting CivicOS application..."
-exec node dist/server/index.js 
+# Start the Node.js application without Ollama
+echo "🚀 Starting Node.js server..."
+node dist/server/index.js 
