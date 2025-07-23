@@ -23,6 +23,6 @@ else
     echo "🔧 Development environment detected"
 fi
 
-# Start the Node.js application without Ollama
-echo "🚀 Starting Node.js server..."
+# Start the Node.js application directly without Ollama
+echo "🚀 Starting Node.js application..."
 node dist/server/index.js 

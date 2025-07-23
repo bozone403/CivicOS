@@ -270,43 +270,33 @@ app.get("/health", (_req, res) => {
           
           // Test Mistral model with timeout
           try {
-            const mistralController = new AbortController();
-            const mistralTimeoutId = setTimeout(() => mistralController.abort(), 5000); // 5 second timeout
-            
-            const mistralResponse = await fetch('http://127.0.0.1:11434/api/generate', {
+            const modelResponse = await fetch('http://127.0.0.1:11434/api/generate', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
-                model: 'mistral:latest',
+                model: 'mistral',
                 prompt: 'Hello',
                 stream: false
               }),
-              signal: mistralController.signal
+              signal: controller.signal
             });
             
-            clearTimeout(mistralTimeoutId);
-            
-            if (mistralResponse.ok) {
-              console.log('✅ Mistral model is working');
+            if (modelResponse.ok) {
+              console.log('✅ Mistral model is ready');
             } else {
-              console.log('⚠️  Mistral model not responding properly');
+              console.log('⚠️  Mistral model not available, using fallback');
             }
-          } catch (mistralError) {
-            console.log('⚠️  Mistral model test failed:', mistralError);
+          } catch (error) {
+            console.log('⚠️  Mistral model test failed, using fallback');
           }
         } else {
-          console.log('⚠️  Ollama service not responding properly');
+          console.log('⚠️  Ollama not available, using fallback responses');
         }
       } catch (error) {
-        console.error('❌ Failed to connect to Ollama AI service:', error);
-        console.log('⚠️  AI functionality will use fallback responses');
+        console.log('⚠️  Ollama initialization failed, using fallback responses');
       }
-    }, 10000); // Wait 10 seconds for Ollama to be ready
-  } else {
-    console.log('🤖 Ollama AI service disabled - using fallback responses');
+    }, 2000); // Wait 2 seconds before trying
   }
-  
-
   
   // Run immediate data scraping on startup
   setTimeout(async () => {
