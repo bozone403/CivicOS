@@ -110,7 +110,7 @@ export default function NotificationBell() {
           </div>
           <div className="p-2 border-b flex items-center justify-center">
             <a
-              href="/civicsocial"
+              href="/civicsocial/feed"
               className="inline-flex items-center gap-2 px-3 py-1.5 rounded bg-blue-50 hover:bg-blue-100 text-blue-700 font-medium text-xs focus:outline-none focus:ring-2 focus:ring-blue-400 transition"
               tabIndex={0}
               aria-label="Go to CivicSocial"

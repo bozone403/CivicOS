@@ -11,6 +11,7 @@ import canadianCrest from "@/assets/ChatGPT Image Jun 20, 2025, 06_03_54 PM_1750
 // Pages
 import Landing from "@/pages/landing";
 import Auth from "@/pages/auth";
+import Login from "@/pages/Login";
 import Dashboard from "@/pages/dashboard";
 import Profile from "@/pages/profile";
 import Settings from "@/pages/settings";
@@ -49,6 +50,7 @@ import Contact from "@/pages/contact";
 import Privacy from "@/pages/privacy";
 import Terms from "@/pages/terms";
 import Accessibility from "@/pages/accessibility";
+import Notifications from "@/pages/notifications";
 import NotFound from "@/pages/not-found";
 
 const queryClient = new QueryClient({
@@ -176,6 +178,7 @@ export default function App() {
             {/* Public Routes */}
             <Route path="/" component={Landing} />
             <Route path="/auth" component={Auth} />
+            <Route path="/login" component={Login} />
             <Route path="/about" component={About} />
             <Route path="/contact" component={Contact} />
             <Route path="/privacy" component={Privacy} />
@@ -383,6 +386,14 @@ export default function App() {
               </ProtectedRoute>
             </Route>
 
+            <Route path="/notifications">
+              <ProtectedRoute>
+                <Layout>
+                  <Notifications />
+                </Layout>
+              </ProtectedRoute>
+            </Route>
+
             {/* CivicSocial Routes */}
             <Route path="/civicsocial/feed">
               <ProtectedRoute>
@@ -392,7 +403,7 @@ export default function App() {
               </ProtectedRoute>
             </Route>
 
-            <Route path="/civicsocial-profile">
+            <Route path="/civicsocial/profile">
               <ProtectedRoute>
                 <Layout>
                   <CivicSocialProfile />
@@ -400,7 +411,7 @@ export default function App() {
               </ProtectedRoute>
             </Route>
 
-            <Route path="/civicsocial-friends">
+            <Route path="/civicsocial/friends">
               <ProtectedRoute>
                 <Layout>
                   <CivicSocialFriends />
@@ -408,7 +419,7 @@ export default function App() {
               </ProtectedRoute>
             </Route>
 
-            <Route path="/civicsocial-discussions">
+            <Route path="/civicsocial/discussions">
               <ProtectedRoute>
                 <Layout>
                   <CivicSocialDiscussions />
