@@ -33,6 +33,29 @@ export function jwtAuth(req, res, next) {
     }
 }
 export function registerAuthRoutes(app) {
+    // Debug endpoint to check JWT secret
+    app.get("/api/auth/debug-jwt", async (req, res) => {
+        try {
+            const secret = process.env.SESSION_SECRET;
+            const hasSecret = !!secret;
+            const secretLength = secret ? secret.length : 0;
+            res.json({
+                status: 'success',
+                hasSecret,
+                secretLength,
+                secretPreview: secret ? `${secret.substring(0, 10)}...` : 'undefined',
+                timestamp: new Date().toISOString()
+            });
+        }
+        catch (err) {
+            res.status(500).json({
+                status: 'error',
+                message: 'Debug endpoint failed',
+                error: err instanceof Error ? err.message : 'Unknown error',
+                timestamp: new Date().toISOString()
+            });
+        }
+    });
     // Test endpoint to check database schema
     app.get("/api/auth/test-schema", async (req, res) => {
         try {
