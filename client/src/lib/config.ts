@@ -1,7 +1,7 @@
 // Configuration for different environments
 interface Config {
   apiUrl: string;
-  environment: 'production' | 'development';
+  environment: 'production';
 }
 
 const getConfig = (): Config => {
@@ -12,21 +12,11 @@ const getConfig = (): Config => {
       environment: 'production'
     };
   }
-  const isProduction = window.location.hostname === 'civicos.ca' || window.location.hostname === 'www.civicos.ca';
-  if (isProduction) {
-    return {
-      apiUrl: 'https://civicos.onrender.com',
-      environment: 'production'
-    };
-  }
-  // Only allow localhost fallback in explicit development mode
-  if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-    return {
-      apiUrl: 'http://localhost:5001',
-      environment: 'development'
-    };
-  }
-  throw new Error('API base URL is not set. Please set VITE_API_BASE_URL for this environment.');
+  // Always use production URLs for live testing
+  return {
+    apiUrl: 'https://civicos.onrender.com',
+    environment: 'production'
+  };
 };
 
 export const config = getConfig(); 
