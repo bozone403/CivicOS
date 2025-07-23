@@ -184,11 +184,11 @@ export default function Landing() {
   };
 
   const handleLoginClick = () => {
-    setLocation('/login');
+    setLocation('/auth');
   };
 
   const handleGetStartedClick = () => {
-    setLocation('/login');
+    setLocation('/auth');
   };
 
   return (

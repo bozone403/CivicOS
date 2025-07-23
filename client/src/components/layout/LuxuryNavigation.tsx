@@ -80,6 +80,7 @@ const navigationSections = [
   {
     title: "Democracy",
     items: [
+      { title: "Dashboard", href: "/dashboard", icon: Home },
       { title: "Bills & Voting", href: "/voting", icon: Vote },
       { title: "Elections", href: "/elections", icon: Crown },
       { title: "Politicians", href: "/politicians", icon: Users },

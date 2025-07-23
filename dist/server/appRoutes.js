@@ -3,28 +3,8 @@ import simpleNotificationsRouter from "./simpleNotifications.js";
 import civicSocialRouter from "./civicSocial.js";
 import aiRoutes from "./aiRoutes.js";
 // Import modular route registrations
-import { registerAuthRoutes } from "./routes/auth.js";
+import { registerAuthRoutes, jwtAuth } from "./routes/auth.js";
 import { registerApiRoutes } from "./routes/api.js";
-// JWT Auth middleware
-function jwtAuth(req, res, next) {
-    const authHeader = req.headers.authorization;
-    if (!authHeader || !authHeader.startsWith("Bearer ")) {
-        return res.status(401).json({ message: "Missing or invalid token" });
-    }
-    try {
-        const token = authHeader.split(" ")[1];
-        const JWT_SECRET = process.env.SESSION_SECRET;
-        if (!JWT_SECRET) {
-            return res.status(500).json({ message: "Server configuration error" });
-        }
-        const decoded = require('jsonwebtoken').verify(token, JWT_SECRET);
-        req.user = decoded;
-        next();
-    }
-    catch (err) {
-        return res.status(401).json({ message: "Invalid or expired token" });
-    }
-}
 export async function registerRoutes(app) {
     // Register modular routes
     registerAuthRoutes(app);

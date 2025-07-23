@@ -184,6 +184,36 @@ export function registerAuthRoutes(app: Express) {
     res.json({ message: "Logged out (client should delete token)" });
   });
 
+  // Profile update endpoint (JWT protected)
+  app.put('/api/users/profile', jwtAuth, async (req: Request, res: Response) => {
+    try {
+      const userId = (req.user as JwtPayload)?.id;
+      if (!userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
+      const { firstName, lastName, bio, profileImageUrl, location, website } = req.body;
+      
+      // Update user profile
+      await db.update(users)
+        .set({
+          firstName: firstName || undefined,
+          lastName: lastName || undefined,
+          bio: bio || undefined,
+          profileImageUrl: profileImageUrl || undefined,
+          location: location || undefined,
+          website: website || undefined,
+          updatedAt: new Date()
+        })
+        .where(eq(users.id, userId));
+
+      res.json({ message: "Profile updated successfully" });
+    } catch (error) {
+      console.error('Profile update error:', error);
+      res.status(500).json({ message: "Failed to update profile" });
+    }
+  });
+
   // Profile picture upload route (JWT protected)
   app.post('/api/auth/upload-profile-picture', jwtAuth, upload.single('profilePicture'), async (req: any, res: Response) => {
     try {
