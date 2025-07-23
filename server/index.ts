@@ -240,29 +240,44 @@ app.get("/health", (_req, res) => {
   // Initialize Ollama AI service for production
   if (process.env.NODE_ENV === 'production') {
     console.log('🤖 Initializing Ollama AI service for production...');
-    try {
-      // Test Ollama connection
-      const response = await fetch('http://127.0.0.1:11434/api/tags');
-      if (response.ok) {
-        console.log('✅ Ollama is running and ready');
-        // Check if Mistral is available
-        const data = await response.json();
-        const models = data.models || [];
-        const mistralModel = models.find((m: any) => m.name.includes('mistral'));
-        if (mistralModel) {
-          console.log('✅ Mistral model is available');
+    
+    // Wait a bit for Ollama to be ready
+    setTimeout(async () => {
+      try {
+        // Test Ollama connection
+        const response = await fetch('http://127.0.0.1:11434/api/tags');
+        if (response.ok) {
+          console.log('✅ Ollama AI service is ready');
+          
+          // Test Mistral model
+          const mistralResponse = await fetch('http://127.0.0.1:11434/api/generate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              model: 'mistral:latest',
+              prompt: 'Hello',
+              stream: false
+            })
+          });
+          
+          if (mistralResponse.ok) {
+            console.log('✅ Mistral model is working');
+          } else {
+            console.log('⚠️  Mistral model not responding properly');
+          }
         } else {
-          console.log('⚠️  Mistral model not found, pulling...');
-          // This would be handled by the startup script
+          console.log('⚠️  Ollama service not responding properly');
         }
-      } else {
-        throw new Error('Ollama not responding');
+      } catch (error) {
+        console.error('❌ Failed to connect to Ollama AI service:', error);
+        console.log('⚠️  AI functionality will use fallback responses');
       }
-    } catch (error) {
-      console.error('❌ Failed to connect to Ollama:', error);
-      console.log('⚠️  AI functionality will use fallback responses');
-    }
+    }, 20000); // Wait 20 seconds for Ollama to be ready
+  } else {
+    console.log('🤖 Ollama AI service disabled - using fallback responses');
   }
+  
+
   
   // Run immediate data scraping on startup
   setTimeout(async () => {
