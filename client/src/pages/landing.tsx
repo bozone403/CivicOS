@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { CanadianCoatOfArms } from "@/components/CanadianCoatOfArms";
+import { LanguageToggle } from "@/components/LanguageToggle";
 import canadianCrest from "@/assets/ChatGPT Image Jun 20, 2025, 06_03_54 PM_1750464244456.png";
 import { useState, useEffect } from "react";
 import {
@@ -199,6 +200,10 @@ export default function Landing() {
               <Button variant="outline" size="sm">
                 {t.hero.login}
               </Button>
+              <LanguageToggle 
+                currentLanguage={language}
+                onLanguageChange={setLanguage}
+              />
             </div>
           </div>
         </div>
