@@ -51,7 +51,11 @@ export default function Dashboard() {
     retry: 2,
   });
 
+  // Debug logging
+  console.log('Dashboard Debug:', { user, isLoading, error, stats });
+
   if (isLoading) {
+    console.log('Dashboard is loading...');
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <LoadingSpinner size="lg" />
@@ -60,6 +64,7 @@ export default function Dashboard() {
   }
 
   if (error) {
+    console.log('Dashboard error:', error);
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">
