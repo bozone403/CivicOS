@@ -207,8 +207,7 @@ app.get("/health", (_req, res) => {
     if (process.env.NODE_ENV === 'production') {
         setTimeout(async () => {
             try {
-                const { runMigration } = await import('./migrate.js');
-                await runMigration();
+                console.log('🗄️  Database migrations handled by startup script');
             }
             catch (error) {
                 console.error('Migration error:', error);
@@ -221,25 +220,39 @@ app.get("/health", (_req, res) => {
         // Wait a bit for Ollama to be ready
         setTimeout(async () => {
             try {
-                // Test Ollama connection
-                const response = await fetch('http://127.0.0.1:11434/api/tags');
+                // Test Ollama connection with timeout
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+                const response = await fetch('http://127.0.0.1:11434/api/tags', {
+                    signal: controller.signal
+                });
+                clearTimeout(timeoutId);
                 if (response.ok) {
                     console.log('✅ Ollama AI service is ready');
-                    // Test Mistral model
-                    const mistralResponse = await fetch('http://127.0.0.1:11434/api/generate', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            model: 'mistral:latest',
-                            prompt: 'Hello',
-                            stream: false
-                        })
-                    });
-                    if (mistralResponse.ok) {
-                        console.log('✅ Mistral model is working');
+                    // Test Mistral model with timeout
+                    try {
+                        const mistralController = new AbortController();
+                        const mistralTimeoutId = setTimeout(() => mistralController.abort(), 10000); // 10 second timeout
+                        const mistralResponse = await fetch('http://127.0.0.1:11434/api/generate', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                model: 'mistral:latest',
+                                prompt: 'Hello',
+                                stream: false
+                            }),
+                            signal: mistralController.signal
+                        });
+                        clearTimeout(mistralTimeoutId);
+                        if (mistralResponse.ok) {
+                            console.log('✅ Mistral model is working');
+                        }
+                        else {
+                            console.log('⚠️  Mistral model not responding properly');
+                        }
                     }
-                    else {
-                        console.log('⚠️  Mistral model not responding properly');
+                    catch (mistralError) {
+                        console.log('⚠️  Mistral model test failed:', mistralError);
                     }
                 }
                 else {
@@ -250,7 +263,7 @@ app.get("/health", (_req, res) => {
                 console.error('❌ Failed to connect to Ollama AI service:', error);
                 console.log('⚠️  AI functionality will use fallback responses');
             }
-        }, 20000); // Wait 20 seconds for Ollama to be ready
+        }, 30000); // Wait 30 seconds for Ollama to be ready
     }
     else {
         console.log('🤖 Ollama AI service disabled - using fallback responses');

@@ -24,15 +24,15 @@ if [ "$NODE_ENV" = "production" ]; then
     if command -v ollama &> /dev/null; then
         echo "🤖 Ollama found, attempting to start..."
         
-        # Start Ollama in background
-        OLLAMA_HOST=0.0.0.0:11434 ollama serve &
+        # Start Ollama in background with proper error handling
+        OLLAMA_HOST=0.0.0.0:11434 ollama serve > /dev/null 2>&1 &
         OLLAMA_PID=$!
         
         # Wait a bit for Ollama to start
-        sleep 5
+        sleep 10
         
         # Check if Ollama is responding
-        if curl -s http://127.0.0.1:11434/api/tags > /dev/null 2>&1; then
+        if curl -s --max-time 5 http://127.0.0.1:11434/api/tags > /dev/null 2>&1; then
             echo "✅ Ollama started successfully"
             
             # Check for Mistral model
@@ -40,7 +40,7 @@ if [ "$NODE_ENV" = "production" ]; then
                 echo "✅ Mistral model available"
             else
                 echo "📥 Downloading Mistral model..."
-                ollama pull mistral:latest &
+                ollama pull mistral:latest > /dev/null 2>&1 &
             fi
         else
             echo "⚠️  Ollama failed to start - continuing without AI service"
