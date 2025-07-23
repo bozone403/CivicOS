@@ -7,18 +7,15 @@ services:
       # Install system dependencies
       apt-get update && apt-get install -y curl wget
       
-      # Install Ollama (but don't require it to work)
-      curl -fsSL https://ollama.ai/install.sh | sh || echo "Ollama installation failed - continuing"
-      
       # Build the application
       npm install
       npm run build
-    startCommand: ./start-render.sh
+    startCommand: ./start-minimal.sh
     envVars:
       - key: NODE_ENV
         value: production
       - key: ENABLE_OLLAMA
-        value: true
+        value: false
       - key: OLLAMA_HOST
         value: 0.0.0.0:11434
       - key: OLLAMA_BASE_URL
@@ -26,6 +23,6 @@ services:
       - key: OLLAMA_MODEL
         value: mistral:latest
       - key: AI_SERVICE_ENABLED
-        value: true
+        value: false
       - key: MISTRAL_ENABLED
-        value: true 
+        value: false 
