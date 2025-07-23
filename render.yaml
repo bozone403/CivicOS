@@ -7,42 +7,13 @@ services:
       # Install system dependencies
       apt-get update && apt-get install -y curl wget
       
-      # Install Ollama
-      curl -fsSL https://ollama.ai/install.sh | sh
+      # Install Ollama (but don't require it to work)
+      curl -fsSL https://ollama.ai/install.sh | sh || echo "Ollama installation failed - continuing"
       
       # Build the application
       npm install
       npm run build
-    startCommand: |
-      # Start Ollama in background and wait for it to be ready
-      echo "🤖 Starting Ollama service..."
-      OLLAMA_HOST=0.0.0.0:11434 ollama serve &
-      OLLAMA_PID=$!
-      
-      # Wait for Ollama to be ready
-      echo "⏳ Waiting for Ollama to be ready..."
-      sleep 15
-      
-      # Check if Mistral model is available
-      echo "🔍 Checking for Mistral model..."
-      if ! ollama list | grep -q "mistral"; then
-        echo "📥 Downloading Mistral model..."
-        ollama pull mistral:latest
-      else
-        echo "✅ Mistral model already available"
-      fi
-      
-      # Test Ollama connection
-      echo "🧪 Testing Ollama connection..."
-      if curl -s http://127.0.0.1:11434/api/tags > /dev/null; then
-        echo "✅ Ollama is ready!"
-      else
-        echo "❌ Ollama connection failed"
-      fi
-      
-      # Start the application
-      echo "🚀 Starting CivicOS backend..."
-      npm start
+    startCommand: ./start-render.sh
     envVars:
       - key: NODE_ENV
         value: production

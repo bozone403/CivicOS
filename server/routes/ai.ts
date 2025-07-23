@@ -1,5 +1,5 @@
 import { Express, Request, Response } from "express";
-import { callOllamaMistral, checkAIServiceHealth } from "../utils/aiService.js";
+import aiService from "../utils/aiService.js";
 
 // JWT Auth middleware
 function jwtAuth(req: any, res: any, next: any) {
@@ -25,12 +25,15 @@ export function registerAIRoutes(app: Express) {
   // AI Health Check
   app.get('/api/ai/health', async (req: Request, res: Response) => {
     try {
-      const health = await checkAIServiceHealth();
+      const isHealthy = await aiService.isServiceHealthy();
+      const status = aiService.getServiceStatus();
+      
       res.json({
-        status: health.status,
-        details: health.details,
+        status: isHealthy ? 'healthy' : 'unavailable',
+        details: isHealthy ? 'Ollama is running and ready' : 'Ollama is not available',
         timestamp: new Date().toISOString(),
-        service: 'CivicOS Free AI Service'
+        service: 'CivicOS Free AI Service',
+        serviceStatus: status
       });
     } catch (error) {
       console.error('Error checking AI health:', error);
@@ -68,7 +71,7 @@ User message: ${message}
 
 Provide a comprehensive, accurate, and actionable response focused on Canadian civic engagement. Include specific resources, contact information, and next steps when relevant. Be informative, professional, and empowering.`;
 
-      const response = await callOllamaMistral(prompt);
+      const response = await aiService.generateResponse(prompt);
       
       res.json({
         response,
@@ -110,7 +113,7 @@ Provide a detailed analysis in JSON format with these fields:
 - sourceReliability: string assessing the source's track record and credibility
 - factCheckStatus: string indicating if claims need verification`;
 
-      const response = await callOllamaMistral(prompt);
+      const response = await aiService.generateResponse(prompt);
       
       // Try to parse JSON response
       let analysis;
@@ -169,7 +172,7 @@ Provide a comprehensive analysis in JSON format with these fields:
 - stakeholderAnalysis: string identifying key stakeholders and their positions
 - timeline: string describing implementation timeline and key dates`;
 
-      const response = await callOllamaMistral(prompt);
+      const response = await aiService.generateResponse(prompt);
       
       // Try to parse JSON response
       let analysis;
@@ -223,7 +226,7 @@ Provide insights in JSON format with these fields:
 - impact: string describing potential impact
 - nextSteps: array of recommended next steps`;
 
-      const response = await callOllamaMistral(prompt);
+      const response = await aiService.generateResponse(prompt);
       
       // Try to parse JSON response
       let insights;
@@ -279,7 +282,7 @@ Provide analysis in JSON format with these fields:
 - publicService: string describing their public service record
 - recommendations: array of suggestions for civic engagement`;
 
-      const response = await callOllamaMistral(prompt);
+      const response = await aiService.generateResponse(prompt);
       
       // Try to parse JSON response
       let analysis;
