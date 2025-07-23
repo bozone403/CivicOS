@@ -52,7 +52,11 @@ import {
   User,
   Settings as SettingsIcon,
   HelpCircle,
-  Info
+  Info,
+  UserPlus,
+  MessageCircle,
+  Newspaper,
+  FileSignature
 } from "lucide-react";
 
 interface NavItem {
@@ -63,17 +67,18 @@ interface NavItem {
   subItems?: NavItem[];
 }
 
-// Facebook-style navigation sections
+// CivicSocial navigation items for top header
+const civicsocialNavItems = [
+  { title: "Feed", href: "/civicsocial/feed", icon: Home },
+  { title: "Profile", href: "/civicsocial-profile", icon: User },
+  { title: "Friends", href: "/civicsocial-friends", icon: UserPlus },
+  { title: "Messages", href: "/civicsocial-discussions", icon: MessageCircle },
+  { title: "News", href: "/news", icon: Newspaper },
+  { title: "Petitions", href: "/petitions", icon: FileSignature },
+];
+
+// Sidebar navigation sections (excluding CivicSocial items)
 const navigationSections = [
-  {
-    title: "Main",
-    items: [
-      { title: "Dashboard", href: "/dashboard", icon: Home },
-      { title: "CivicSocial", href: "/civicsocial/feed", icon: Users },
-      { title: "News", href: "/news", icon: TrendingUp },
-      { title: "Petitions", href: "/petitions", icon: FileText },
-    ]
-  },
   {
     title: "Democracy",
     items: [
@@ -133,6 +138,7 @@ export function LuxuryNavigation() {
   const [showDonationPopup, setShowDonationPopup] = useState(false);
   const [showDonationSuccess, setShowDonationSuccess] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
   const { toast } = useToast();
 
   // Fetch notifications
@@ -164,9 +170,20 @@ export function LuxuryNavigation() {
     setTimeout(() => setShowDonationSuccess(false), 3000);
   };
 
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      // Navigate to search results or implement search functionality
+      toast({
+        title: "Search",
+        description: `Searching for: ${searchQuery}`,
+      });
+    }
+  };
+
   return (
     <>
-      {/* Facebook-style Top Bar */}
+      {/* Facebook-style Top Bar with CivicSocial Navigation */}
       <div className="fixed top-0 left-0 right-0 z-50 bg-white border-b border-gray-200 shadow-sm">
         <div className="flex items-center justify-between px-4 h-16">
           {/* Left: Logo and Search */}
@@ -175,42 +192,32 @@ export function LuxuryNavigation() {
               <img src={canadianCrest} alt="CivicOS" className="w-8 h-8" />
               <span className="text-xl font-bold text-gray-900">CivicOS</span>
             </div>
-            <div className="hidden md:flex relative">
+            <form onSubmit={handleSearch} className="hidden md:flex relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
               <input
                 type="text"
                 placeholder="Search CivicOS..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-64 pl-10 pr-4 py-2 bg-gray-100 border border-gray-300 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
-            </div>
+            </form>
           </div>
 
-          {/* Center: Main Navigation */}
+          {/* Center: CivicSocial Navigation */}
           <div className="hidden lg:flex items-center space-x-1">
-            <Link href="/dashboard">
-              <Button variant={isActive('/dashboard') ? 'default' : 'ghost'} size="sm" className="px-4">
-                <Home className="w-4 h-4 mr-2" />
-                Dashboard
-              </Button>
-            </Link>
-            <Link href="/civicsocial/feed">
-              <Button variant={isActive('/civicsocial') ? 'default' : 'ghost'} size="sm" className="px-4">
-                <Users className="w-4 h-4 mr-2" />
-                CivicSocial
-              </Button>
-            </Link>
-            <Link href="/news">
-              <Button variant={isActive('/news') ? 'default' : 'ghost'} size="sm" className="px-4">
-                <TrendingUp className="w-4 h-4 mr-2" />
-                News
-              </Button>
-            </Link>
-            <Link href="/petitions">
-              <Button variant={isActive('/petitions') ? 'default' : 'ghost'} size="sm" className="px-4">
-                <FileText className="w-4 h-4 mr-2" />
-                Petitions
-              </Button>
-            </Link>
+            {civicsocialNavItems.map((item) => (
+              <Link key={item.href} href={item.href}>
+                <Button 
+                  variant={isActive(item.href) ? 'default' : 'ghost'} 
+                  size="sm" 
+                  className="px-4"
+                >
+                  <item.icon className="w-4 h-4 mr-2" />
+                  {item.title}
+                </Button>
+              </Link>
+            ))}
           </div>
 
           {/* Right: User Menu */}
@@ -326,33 +333,22 @@ export function LuxuryNavigation() {
               </div>
             ))}
 
-            {/* User Info Section */}
-            {!isCollapsed && (
-              <div className="pt-6 border-t border-gray-200">
-                <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
-                  <div className="w-10 h-10 rounded-full bg-gray-600 flex items-center justify-center text-white font-bold">
-                    {user?.firstName?.[0] || user?.email?.[0] || "U"}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-900 truncate">
-                      {user?.firstName && user?.lastName 
-                        ? `${user.firstName} ${user.lastName}`
-                        : user?.email?.split('@')[0] || 'User'
-                      }
-                    </p>
-                    <p className="text-xs text-gray-500 truncate">{user?.email}</p>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Quick Actions */}
+            {/* Support Section - More Prominent */}
             {!isCollapsed && (
               <div className="space-y-2">
                 <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                  Quick Actions
+                  Support
                 </h3>
                 <div className="space-y-1">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="w-full justify-start text-sm h-9 border-2 border-red-200 bg-red-50 hover:bg-red-100 hover:border-red-300 text-red-700 font-semibold shadow-md hover:shadow-lg transform hover:scale-105 transition-all duration-200"
+                    onClick={() => setShowDonationPopup(true)}
+                  >
+                    <Heart className="w-4 h-4 mr-3 text-red-600" />
+                    Support Platform
+                  </Button>
                   <Button variant="outline" size="sm" className="w-full justify-start text-sm h-9">
                     <HelpCircle className="w-4 h-4 mr-3" />
                     Help & Support
