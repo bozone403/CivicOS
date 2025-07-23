@@ -58,7 +58,6 @@ export async function registerRoutes(app: Express): Promise<void> {
   console.log('  - process.cwd():', process.cwd());
   console.log('  - publicPath:', publicPath);
   console.log('  - __dirname:', __dirname);
-  console.log('  - process.env.PWD:', process.env.PWD);
   
   // Check if the directory exists
   if (fs.existsSync(publicPath)) {
@@ -72,10 +71,7 @@ export async function registerRoutes(app: Express): Promise<void> {
       path.join(__dirname, '../../dist/public'),
       path.join(process.cwd(), 'dist/public'),
       path.join(process.cwd(), '../dist/public'),
-      path.join(process.cwd(), 'src/dist/public'),
-      path.join(process.cwd(), '../src/dist/public'),
       '/opt/render/project/src/dist/public',
-      '/opt/render/project/src/dist/dist/public',
     ];
     for (const altPath of altPaths) {
       if (fs.existsSync(altPath)) {
