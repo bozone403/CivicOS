@@ -47,6 +47,29 @@ export function jwtAuth(req: any, res: any, next: any) {
 }
 
 export function registerAuthRoutes(app: Express) {
+  // Environment check endpoint
+  app.get("/api/auth/env-check", async (req: Request, res: Response) => {
+    try {
+      const sessionSecret = process.env.SESSION_SECRET;
+      const nodeEnv = process.env.NODE_ENV;
+      
+      res.json({ 
+        status: 'success', 
+        hasSessionSecret: !!sessionSecret,
+        sessionSecretLength: sessionSecret ? sessionSecret.length : 0,
+        nodeEnv,
+        timestamp: new Date().toISOString()
+      });
+    } catch (err) {
+      res.status(500).json({ 
+        status: 'error', 
+        message: 'Environment check failed',
+        error: err instanceof Error ? err.message : 'Unknown error',
+        timestamp: new Date().toISOString()
+      });
+    }
+  });
+
   // Debug endpoint to check JWT secret
   app.get("/api/auth/debug-jwt", async (req: Request, res: Response) => {
     try {
