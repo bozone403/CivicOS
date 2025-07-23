@@ -8,9 +8,9 @@ if ! command -v ollama &> /dev/null; then
     curl -fsSL https://ollama.ai/install.sh | sh
 fi
 
-# Start Ollama in background
+# Start Ollama in background with proper configuration
 echo "🤖 Starting Ollama service..."
-ollama serve &
+OLLAMA_HOST=0.0.0.0:11434 ollama serve &
 OLLAMA_PID=$!
 
 # Wait for Ollama to be ready
