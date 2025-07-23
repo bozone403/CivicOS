@@ -46,7 +46,20 @@ export default function Dashboard() {
 
   const { data: stats, isLoading, error } = useQuery<DashboardStats>({
     queryKey: ['/api/dashboard/stats'],
-    queryFn: () => apiRequest('/api/dashboard/stats', 'GET'),
+    queryFn: async () => {
+      console.log('🔍 Dashboard API call starting...');
+      console.log('🔍 User:', user);
+      console.log('🔍 Token:', localStorage.getItem('civicos-jwt'));
+      
+      try {
+        const result = await apiRequest('/api/dashboard/stats', 'GET');
+        console.log('✅ Dashboard API call successful:', result);
+        return result;
+      } catch (error) {
+        console.error('❌ Dashboard API call failed:', error);
+        throw error;
+      }
+    },
     staleTime: 5 * 60 * 1000, // 5 minutes
     retry: 2,
   });
@@ -69,6 +82,7 @@ export default function Dashboard() {
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">
           <div className="text-red-600 mb-4">Failed to load dashboard data</div>
+          <div className="text-sm text-gray-600 mb-4">{error.message}</div>
           <Button onClick={() => window.location.reload()}>Retry</Button>
         </div>
       </div>
