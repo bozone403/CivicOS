@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -6,7 +6,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { VotingButtons } from "./VotingButtons";
-import { CommentSystem } from "./CommentSystem";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
@@ -112,9 +111,18 @@ export function InteractiveContent({
         </div>
       </div>
 
-      {/* Facebook-style Comments Section */}
+      {/* Comments Section - Placeholder */}
       {showComments && (
-        <CommentSystem targetType={targetType} targetId={Number(targetId)} />
+        <div className="p-4 bg-gray-50 rounded-lg">
+          <div className="flex items-center space-x-2 mb-4">
+            <MessageCircle className="w-4 h-4 text-gray-600" />
+            <span className="font-medium text-gray-900">Comments</span>
+          </div>
+          <div className="text-center py-8 text-gray-500">
+            <MessageCircle className="w-8 h-8 mx-auto mb-2 text-gray-400" />
+            <p>Comments feature coming soon</p>
+          </div>
+        </div>
       )}
     </div>
   );

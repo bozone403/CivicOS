@@ -3364,4 +3364,26 @@ export async function registerRoutes(app) {
             res.status(500).json({ message: "Failed to update profile" });
         }
     });
+    // FOI routes
+    app.get('/api/foi/requests', async (req, res) => {
+        try {
+            const requests = await db.execute(sql `
+        SELECT 
+          id, title, department, requestor, date_submitted as "dateSubmitted",
+          date_responded as "dateResponded", status, response_type as "responseType",
+          pages_requested as "pagesRequested", pages_released as "pagesReleased",
+          pages_withheld as "pagesWithheld", exemptions_used as "exemptionsUsed",
+          total_cost as "totalCost", summary, key_findings as "keyFindings",
+          public_impact as "publicImpact", media_attention as "mediaAttention"
+        FROM foi_requests 
+        ORDER BY date_submitted DESC 
+        LIMIT 100
+      `);
+            res.json(requests.rows);
+        }
+        catch (error) {
+            logger.error({ msg: 'Error fetching FOI requests', error });
+            res.status(500).json({ message: "Failed to fetch FOI requests" });
+        }
+    });
 }

@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -6,128 +7,29 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Eye, FileText, Calendar, Download, Clock, CheckCircle, XCircle, AlertCircle } from "lucide-react";
+import { apiRequest } from "@/lib/queryClient";
 
 export default function FOIPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
 
-  // Remove the foiRequests array and replace with API data only
-  // const foiRequests = [
-  //   {
-  //     id: 1,
-  //     title: "Phoenix Pay System Total Costs",
-  //     department: "Treasury Board Secretariat",
-  //     requestor: "Canadian Taxpayers Federation",
-  //     dateSubmitted: "2023-06-15",
-  //     dateResponded: "2023-08-14",
-  //     status: "Completed",
-  //     responseType: "Partial Release",
-  //     pagesRequested: "All documents",
-  //     pagesReleased: 847,
-  //     pagesWithheld: 312,
-  //     exemptionsUsed: ["Cabinet confidence", "Third party information"],
-  //     totalCost: 4200000000,
-  //     summary: "Request for all costs related to Phoenix pay system implementation and ongoing maintenance.",
-  //     keyFindings: [
-  //       "Total project cost exceeded $4.2 billion as of 2023",
-  //       "Ongoing maintenance costs $185M annually",
-  //       "Over 300,000 employees still experiencing pay issues"
-  //     ],
-  //     publicImpact: 8.7,
-  //     mediaAttention: "High"
-  //   },
-  //   {
-  //     id: 2,
-  //     title: "Prime Minister's Travel Expenses 2022-2023",
-  //     department: "Privy Council Office",
-  //     requestor: "Democracy Watch",
-  //     dateSubmitted: "2023-04-01",
-  //     dateResponded: "2023-06-30",
-  //     status: "Completed",
-  //     responseType: "Full Release",
-  //     pagesRequested: "Travel manifests and expenses",
-  //     pagesReleased: 234,
-  //     pagesWithheld: 0,
-  //     exemptionsUsed: [],
-  //     totalCost: 8750000,
-  //     summary: "Comprehensive breakdown of Prime Minister's official travel costs for fiscal year 2022-23.",
-  //     keyFindings: [
-  //       "Total travel costs: $8.75 million",
-  //       "Average cost per international trip: $245,000",
-  //       "Security and advance team costs account for 60% of expenses"
-  //     ],
-  //     publicImpact: 6.2,
-  //     mediaAttention: "Moderate"
-  //   },
-  //   {
-  //     id: 3,
-  //     title: "COVID-19 Vaccine Contract Details",
-  //     department: "Public Health Agency of Canada",
-  //     requestor: "Globe and Mail",
-  //     dateSubmitted: "2022-11-10",
-  //     dateResponded: "2023-02-08",
-  //     status: "Completed",
-  //     responseType: "Heavily Redacted",
-  //     pagesRequested: "All vaccine procurement contracts",
-  //     pagesReleased: 156,
-  //     pagesWithheld: 890,
-  //     exemptionsUsed: ["Commercial confidentiality", "International relations"],
-  //     totalCost: 9200000000,
-  //     summary: "Details of COVID-19 vaccine procurement contracts with pharmaceutical companies.",
-  //     keyFindings: [
-  //       "Canada paid premium prices for early vaccine access",
-  //       "Liability protections provided to manufacturers",
-  //       "Significant waste due to over-procurement"
-  //     ],
-  //     publicImpact: 7.9,
-  //     mediaAttention: "High"
-  //   },
-  //   {
-  //     id: 4,
-  //     title: "RCMP Surveillance Equipment Purchases",
-  //     department: "Royal Canadian Mounted Police",
-  //     requestor: "Privacy International",
-  //     dateSubmitted: "2023-09-05",
-  //     dateResponded: null,
-  //     status: "Under Review",
-  //     responseType: "Pending",
-  //     pagesRequested: "Equipment procurement 2020-2023",
-  //     pagesReleased: 0,
-  //     pagesWithheld: 0,
-  //     exemptionsUsed: [],
-  //     totalCost: null,
-  //     summary: "Request for details on surveillance technology acquisitions including facial recognition and cell tower simulators.",
-  //     keyFindings: [],
-  //     publicImpact: 8.1,
-  //     mediaAttention: "Moderate"
-  //   }
-  // ];
+  // Fetch FOI requests from API
+  const { data: foiRequests = [], isLoading, error } = useQuery({
+    queryKey: ["/api/foi/requests"],
+    queryFn: async () => {
+      const response = await apiRequest("/api/foi/requests", "GET");
+      return response || [];
+    },
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
 
-  // Use API data only. If no data, show fallback UI.
-  const [foiData, setFoiData] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  const fetchFoiData = async () => {
-    try {
-      setLoading(true);
-      const response = await fetch("https://api.example.com/foi-requests"); // Replace with your actual API endpoint
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      const data: any[] = await response.json();
-      setFoiData(data);
-    } catch (err) {
-      setError("Failed to fetch FOI requests. Please try again later.");
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchFoiData();
-  }, []);
+  // Filter requests based on search and status
+  const filteredRequests = foiRequests.filter((request: any) => {
+    const matchesSearch = request.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         request.department.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesStatus = filterStatus === "all" || request.status === filterStatus;
+    return matchesSearch && matchesStatus;
+  });
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -184,7 +86,7 @@ export default function FOIPage() {
           </Badge>
           <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
             <FileText className="w-3 h-3 mr-1" />
-            {foiData.length} Requests
+            {foiRequests.length} Requests
           </Badge>
         </div>
       </div>
@@ -222,9 +124,9 @@ export default function FOIPage() {
           </div>
 
           <div className="grid gap-6">
-            {loading && <p>Loading FOI requests...</p>}
-            {error && <p className="text-red-500">{error}</p>}
-            {!loading && !error && foiData.length === 0 && (
+            {isLoading && <p>Loading FOI requests...</p>}
+            {error && <p className="text-red-500">{error.message}</p>}
+            {!isLoading && filteredRequests.length === 0 && (
               <Card>
                 <CardContent className="text-center py-12 text-muted-foreground">
                   <FileText className="w-12 h-12 mx-auto mb-4 opacity-50" />
@@ -236,8 +138,8 @@ export default function FOIPage() {
                 </CardContent>
               </Card>
             )}
-            {!loading && !error && foiData.length > 0 && (
-              foiData.map((request) => (
+            {!isLoading && filteredRequests.length > 0 && (
+              filteredRequests.map((request: any) => (
                 <Card key={request.id} className="hover:shadow-lg transition-shadow">
                   <CardHeader>
                     <div className="flex items-start justify-between">
