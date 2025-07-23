@@ -1,7 +1,7 @@
 // Configuration for different environments
 interface Config {
   apiUrl: string;
-  environment: 'production';
+  environment: 'production' | 'development';
 }
 
 const getConfig = (): Config => {
@@ -23,13 +23,10 @@ const getConfig = (): Config => {
   if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
     return {
       apiUrl: 'http://localhost:5001',
-      environment: 'production'
+      environment: 'development'
     };
   }
   throw new Error('API base URL is not set. Please set VITE_API_BASE_URL for this environment.');
 };
 
-export const config = {
-  // Ensure no trailing slash to avoid double slashes in API calls
-  apiUrl: "https://civicos.onrender.com"
-}; 
+export const config = getConfig(); 

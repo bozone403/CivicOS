@@ -27,7 +27,7 @@ export default function Auth() {
   });
   const [errors, setErrors] = useState({ login: "", register: "" });
   const { toast } = useToast();
-  const { isAuthenticated, authError } = useAuth();
+  const { isAuthenticated } = useAuth();
   const [pendingRedirect, setPendingRedirect] = useState<"dashboard" | "profile" | null>(null);
 
   // Redirect authenticated users away from /auth
@@ -135,18 +135,6 @@ export default function Auth() {
       lastName: registerData.lastName
     });
   };
-
-  if (authError) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-red-50">
-        <div className="max-w-md w-full bg-white shadow-lg rounded-lg p-8 text-center">
-          <h1 className="text-2xl font-bold text-red-600 mb-2">Authentication Error</h1>
-          <p className="text-gray-700 mb-4">{authError}</p>
-          <button className="bg-red-600 text-white px-4 py-2 rounded" onClick={() => navigate("/auth")}>Go to Login</button>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 flex items-center justify-center p-4 sm:p-6">
