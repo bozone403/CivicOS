@@ -35,16 +35,13 @@ import {
   Megaphone,
   Globe,
   Newspaper,
-  FileSignature,
-  Gift,
-  Sparkles
+  FileSignature
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import { useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import DonationPopup from "@/components/DonationPopup";
-import DonationSuccess from "@/components/DonationSuccess";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { useToast } from "@/hooks/use-toast";
@@ -66,19 +63,6 @@ export function MobileNavigation() {
   const { toast } = useToast();
   const [showMoreMenu, setShowMoreMenu] = useState(false);
   const [showDonationPopup, setShowDonationPopup] = useState(false);
-  const [showDonationSuccess, setShowDonationSuccess] = useState(false);
-  const [donationAmount, setDonationAmount] = useState(0);
-
-  const handleDonationSuccess = () => {
-    setDonationAmount(25); // Default amount for success message
-    setShowDonationPopup(false);
-    setShowDonationSuccess(true);
-    setTimeout(() => setShowDonationSuccess(false), 3000);
-  };
-
-  const handleDonationClose = () => {
-    setShowDonationPopup(false);
-  };
 
   const isActive = (href: string) => {
     if (href === "/" && location === "/") return true;
@@ -208,25 +192,21 @@ export function MobileNavigation() {
                 <SheetTitle className="text-left">CivicOS Features</SheetTitle>
               </SheetHeader>
               
-              {/* Prominent Donation Button */}
-              <div className="mb-6 p-4 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg mx-4 mt-4">
-                <Button
-                  onClick={() => {
-                    setShowDonationPopup(true);
-                    setShowMoreMenu(false);
-                  }}
-                  className="w-full bg-white text-blue-600 hover:bg-gray-50 font-semibold py-3 rounded-lg shadow-lg border-2 border-white/20"
-                >
-                  <Gift className="w-5 h-5 mr-2" />
-                  <Sparkles className="w-4 h-4 mr-2" />
-                  Support CivicOS
-                </Button>
-                <p className="text-white/90 text-xs mt-2 text-center">
-                  Help us build a better democracy
-                </p>
-              </div>
-              
               <div className="overflow-y-auto h-full pb-20">
+                {/* Support Button */}
+                <div className="mb-6">
+                  <Button
+                    onClick={() => {
+                      setShowDonationPopup(true);
+                      setShowMoreMenu(false);
+                    }}
+                    className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3"
+                  >
+                    <Heart className="w-4 h-4 mr-2" />
+                    Support CivicOS
+                  </Button>
+                </div>
+                
                 {/* CivicSocial Section */}
                 <div className="mb-6">
                   <h3 className="text-sm font-semibold text-gray-700 mb-3">CivicSocial</h3>
@@ -376,15 +356,8 @@ export function MobileNavigation() {
       {/* Donation Popup */}
       <DonationPopup
         isOpen={showDonationPopup}
-        onClose={handleDonationClose}
-        onSuccess={handleDonationSuccess}
-      />
-
-      {/* Donation Success */}
-      <DonationSuccess
-        isOpen={showDonationSuccess}
-        onClose={() => setShowDonationSuccess(false)}
-        amount={donationAmount}
+        onClose={() => setShowDonationPopup(false)}
+        onSuccess={() => {}}
       />
     </>
   );
