@@ -9,6 +9,7 @@ import { Phone, Mail, MapPin, Globe, Clock, User, Building2, Calendar, FileText,
 
 import { useState } from "react";
 import { Link } from "wouter";
+import { apiRequest } from "@/lib/queryClient";
 
 interface ContactInfo {
   id: number;
@@ -117,7 +118,17 @@ export default function ContactsPage() {
   const [selectedService, setSelectedService] = useState<GovernmentService | null>(null);
 
   const { data: contacts = [], isLoading } = useQuery<ContactInfo[]>({
-    queryKey: ["/api/contacts/comprehensive"],
+    queryKey: ["/api/contacts/officials"],
+    queryFn: async () => {
+      try {
+        const result = await apiRequest('/api/contacts/officials', 'GET');
+        // Ensure we always return an array
+        return Array.isArray(result) ? result : [];
+      } catch (error) {
+        console.error('Failed to fetch contacts:', error);
+        return [];
+      }
+    },
   });
 
   const { data: jurisdictions = [] } = useQuery<string[]>({

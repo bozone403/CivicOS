@@ -79,11 +79,12 @@ export default function Voting() {
 
   // Fetch bills from comprehensive data service
   const { data: bills = [], isLoading, error } = useQuery<Bill[]>({
-    queryKey: ['/api/bills/comprehensive'],
+    queryKey: ['/api/bills'],
     queryFn: async () => {
       try {
-        const result = await apiRequest('/api/bills/comprehensive', 'GET');
-        return result;
+        const result = await apiRequest('/api/bills', 'GET');
+        // Ensure we always return an array
+        return Array.isArray(result) ? result : [];
       } catch (error) {
         console.error('Failed to fetch bills:', error);
         // Return comprehensive fallback data
@@ -247,7 +248,7 @@ export default function Voting() {
         title: "Vote recorded!",
         description: `Your ${data.vote} vote on ${data.billId} has been recorded.`,
       });
-      queryClient.invalidateQueries({ queryKey: ['/api/bills/comprehensive'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/bills'] });
     },
     onError: (error: any) => {
       toast({

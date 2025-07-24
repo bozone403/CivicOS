@@ -76,11 +76,12 @@ export default function Politicians() {
 
   // Fetch politicians from comprehensive data service
   const { data: politicians = [], isLoading, error } = useQuery<Politician[]>({
-    queryKey: ['/api/politicians/comprehensive'],
+    queryKey: ['/api/politicians'],
     queryFn: async () => {
       try {
-        const result = await apiRequest('/api/politicians/comprehensive', 'GET');
-        return result;
+        const result = await apiRequest('/api/politicians', 'GET');
+        // Ensure we always return an array
+        return Array.isArray(result) ? result : [];
       } catch (error) {
         console.error('Failed to fetch politicians:', error);
         // Return fallback data if API fails
@@ -91,12 +92,12 @@ export default function Politicians() {
     retry: 2,
   });
 
-  // Get unique parties for filter
-  const parties = Array.from(new Set(politicians.map(p => p.party))).sort();
-  const levels = Array.from(new Set(politicians.map(p => p.level))).sort();
+  // Get unique parties for filter - ensure politicians is always an array
+  const parties = Array.from(new Set((politicians || []).map(p => p.party))).sort();
+  const levels = Array.from(new Set((politicians || []).map(p => p.level))).sort();
 
-  // Filter politicians
-  const filteredPoliticians = politicians.filter(politician => {
+  // Filter politicians - ensure politicians is always an array
+  const filteredPoliticians = (politicians || []).filter(politician => {
     const matchesSearch = politician.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          politician.riding.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          politician.party.toLowerCase().includes(searchTerm.toLowerCase());

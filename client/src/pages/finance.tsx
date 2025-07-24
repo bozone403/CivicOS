@@ -53,11 +53,12 @@ export default function FinancePage() {
   const [selectedRecord, setSelectedRecord] = useState<CampaignFinance | null>(null);
 
   const { data: financeData = [], isLoading, error } = useQuery<CampaignFinance[]>({
-    queryKey: ["/api/finance/comprehensive"],
+    queryKey: ["/api/finance"],
     queryFn: async () => {
       try {
-        const result = await apiRequest('/api/finance/comprehensive', 'GET');
-        return result;
+        const result = await apiRequest('/api/finance', 'GET');
+        // Ensure we always return an array
+        return Array.isArray(result) ? result : [];
       } catch (error) {
         console.error('Failed to fetch finance data:', error);
         // Return comprehensive fallback data

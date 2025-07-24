@@ -62,11 +62,12 @@ export default function News() {
 
   // Fetch news articles from comprehensive data service
   const { data: newsArticles = [], isLoading: articlesLoading, error: articlesError } = useQuery<NewsArticle[]>({
-    queryKey: ['/api/news/comprehensive'],
+    queryKey: ['/api/news'],
     queryFn: async () => {
       try {
-        const result = await apiRequest('/api/news/comprehensive', 'GET');
-        return result;
+        const result = await apiRequest('/api/news', 'GET');
+        // Ensure we always return an array
+        return Array.isArray(result) ? result : [];
       } catch (error) {
         console.error('Failed to fetch news:', error);
         // Return fallback data
