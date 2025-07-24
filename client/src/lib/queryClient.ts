@@ -30,7 +30,7 @@ export async function apiRequest(
   
   // Add timeout controller
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+  const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
   
   try {
     const res = await fetch(fullUrl, {

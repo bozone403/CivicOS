@@ -461,22 +461,12 @@ export default function Voting() {
                   <div className="space-y-2">
                     <div className="flex items-center justify-between text-xs">
                       <span className="text-gray-600">Public Support</span>
-                      <span className="font-medium">{bill.publicSupport.yes}% in favor</span>
+                      <span className="font-medium">{bill.publicSupport?.yes || 0}% in favor</span>
                     </div>
-                    <div className="flex h-2 bg-gray-200 rounded-full overflow-hidden">
-                      <div 
-                        className="bg-green-500" 
-                        style={{ width: `${bill.publicSupport.yes}%` }}
-                      />
-                      <div 
-                        className="bg-red-500" 
-                        style={{ width: `${bill.publicSupport.no}%` }}
-                      />
-                      <div 
-                        className="bg-gray-400" 
-                        style={{ width: `${bill.publicSupport.neutral}%` }}
-                      />
-                    </div>
+                    <Progress 
+                      value={bill.publicSupport?.yes || 0} 
+                      className="h-2" 
+                    />
                   </div>
 
                   {/* Cost/Revenue */}
@@ -650,9 +640,9 @@ export default function Voting() {
                         <div className="space-y-2">
                           <div className="flex justify-between text-sm">
                             <span>Support</span>
-                            <span>{selectedBill.publicSupport.yes}%</span>
+                            <span>{selectedBill.publicSupport?.yes || 0}%</span>
                           </div>
-                          <Progress value={selectedBill.publicSupport.yes} className="h-2" />
+                          <Progress value={selectedBill.publicSupport?.yes || 0} className="h-2" />
                         </div>
                       </div>
 
