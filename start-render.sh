@@ -110,4 +110,6 @@ echo "🔧 Backend: https://civicos.onrender.com/api"
 echo "🤖 AI Service: https://civicos.onrender.com/api/ai"
 
 # Start the Node.js application
-exec NODE_ENV=production RENDER=true node dist/server/index.js 
+export NODE_ENV=production
+export RENDER=true
+exec node dist/server/index.js 
