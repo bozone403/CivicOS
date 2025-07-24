@@ -4,21 +4,33 @@ class AIService {
     model;
     isEnabled;
     isHealthy = false;
+    lastHealthCheck = 0;
+    healthCheckInterval = 30000; // Check every 30 seconds
+    failureCount = 0;
+    circuitBreakerThreshold = 5;
     constructor() {
         this.ollamaUrl = process.env.OLLAMA_BASE_URL || 'http://127.0.0.1:11434';
         this.model = process.env.OLLAMA_MODEL || 'mistral:latest';
         this.isEnabled = process.env.AI_SERVICE_ENABLED === 'true';
-        // Check Ollama health on startup
-        this.checkHealth();
+        // Check Ollama health on startup with delay
+        setTimeout(() => {
+            this.checkHealth();
+        }, 30000); // Wait 30 seconds before first health check
     }
     async checkHealth() {
         if (!this.isEnabled) {
-            // console.log removed for production
             return;
+        }
+        // Circuit breaker: if too many failures, don't try for a while
+        if (this.failureCount >= this.circuitBreakerThreshold) {
+            const timeSinceLastCheck = Date.now() - this.lastHealthCheck;
+            if (timeSinceLastCheck < 5 * 60 * 1000) { // Wait 5 minutes before retry
+                return;
+            }
         }
         try {
             const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 5000);
+            const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
             const response = await fetch(`${this.ollamaUrl}/api/tags`, {
                 method: 'GET',
                 signal: controller.signal
@@ -26,37 +38,37 @@ class AIService {
             clearTimeout(timeoutId);
             if (response.ok) {
                 this.isHealthy = true;
-                // console.log removed for production
+                this.failureCount = 0; // Reset failure count on success
             }
             else {
                 this.isHealthy = false;
-                // console.log removed for production
+                this.failureCount++;
             }
         }
         catch (error) {
             this.isHealthy = false;
-            // console.log removed for production
+            this.failureCount++;
         }
+        this.lastHealthCheck = Date.now();
     }
     async generateResponse(prompt) {
-        // Re-check health before each request
-        if (!this.isHealthy) {
+        // Re-check health before each request only if it's been a while
+        const timeSinceLastCheck = Date.now() - this.lastHealthCheck;
+        if (timeSinceLastCheck > this.healthCheckInterval) {
             await this.checkHealth();
         }
-        // Return offline response if Ollama is not available
-        if (!this.isHealthy) {
-            // console.log removed for production
+        // Return offline response if Ollama is not available or circuit breaker is open
+        if (!this.isHealthy || this.failureCount >= this.circuitBreakerThreshold) {
             return this.getOfflineResponse(prompt);
         }
         try {
-            // console.log removed for production
             const requestBody = {
                 model: this.model,
                 prompt: prompt,
                 stream: false
             };
             const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 30000);
+            const timeoutId = setTimeout(() => controller.abort(), 20000); // Reduced to 20 seconds
             const response = await fetch(`${this.ollamaUrl}/api/generate`, {
                 method: 'POST',
                 headers: {
@@ -67,13 +79,15 @@ class AIService {
             });
             clearTimeout(timeoutId);
             if (!response.ok) {
+                this.failureCount++;
                 throw new Error(`Ollama API error: ${response.status} ${response.statusText}`);
             }
             const data = await response.json();
+            this.failureCount = 0; // Reset on success
             return data.response;
         }
         catch (error) {
-            // console.error removed for production
+            this.failureCount++;
             return this.getOfflineResponse(prompt);
         }
     }

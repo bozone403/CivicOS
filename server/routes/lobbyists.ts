@@ -6,7 +6,7 @@ function jwtAuth(req: any, res: any, next: any) {
   // Simple JWT check for now
   const token = req.headers.authorization?.replace('Bearer ', '');
   if (!token) {
-    return res.status(401).json({ message: "Missing or invalid token" });
+    return ResponseFormatter.unauthorized(res, "Missing or invalid token");
   }
   // For now, just check if token exists
   (req as any).user = { id: 'test-user-id' };
@@ -59,8 +59,8 @@ export function registerLobbyistsRoutes(app: Express) {
       const stats = {
         totalLobbyists: 0,
         activeLobbyists: 0,
-        topLobbyingFirms: [],
-        recentActivity: []
+        topLobbyingFirms: [] as any[],
+        recentActivity: [] as any[]
       };
 
       const processingTime = Date.now() - startTime;

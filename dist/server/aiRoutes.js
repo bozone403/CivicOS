@@ -40,9 +40,11 @@ router.post('/chat', async (req, res) => {
     }
     catch (error) {
         // console.error removed for production
-        res.status(500).json({
-            error: 'Failed to generate chat response',
-            message: error instanceof Error ? error.message : 'Unknown error'
+        // Return graceful error response instead of 500
+        res.status(200).json({
+            message: "I apologize, but I'm currently experiencing technical difficulties. Please try again later.",
+            timestamp: new Date().toISOString(),
+            service: 'fallback'
         });
     }
 });
@@ -64,9 +66,17 @@ router.post('/analyze-news', async (req, res) => {
     }
     catch (error) {
         // console.error removed for production
-        res.status(500).json({
-            error: 'Failed to analyze news',
-            message: error instanceof Error ? error.message : 'Unknown error'
+        // Return graceful error response instead of 500
+        res.status(200).json({
+            analysis: {
+                summary: "Analysis temporarily unavailable",
+                keyPoints: ["Service is experiencing technical difficulties"],
+                sentiment: "neutral",
+                civicImpact: "Unable to analyze at this time",
+                relatedIssues: []
+            },
+            timestamp: new Date().toISOString(),
+            service: 'fallback'
         });
     }
 });
@@ -88,9 +98,17 @@ router.post('/analyze-policy', async (req, res) => {
     }
     catch (error) {
         // console.error removed for production
-        res.status(500).json({
-            error: 'Failed to analyze policy',
-            message: error instanceof Error ? error.message : 'Unknown error'
+        // Return graceful error response instead of 500
+        res.status(200).json({
+            analysis: {
+                summary: "Policy analysis temporarily unavailable",
+                pros: ["Service is experiencing technical difficulties"],
+                cons: ["Unable to provide detailed analysis"],
+                impact: "Analysis unavailable at this time",
+                recommendations: ["Please try again later"]
+            },
+            timestamp: new Date().toISOString(),
+            service: 'fallback'
         });
     }
 });

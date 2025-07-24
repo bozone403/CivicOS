@@ -652,8 +652,12 @@ export async function runNewsAnalysis(): Promise<void> {
  */
 export function initializeNewsAnalysis(): void {
   
-  // Run initial analysis
-  runNewsAnalysis();
+  // Run initial analysis with delay to ensure server is fully started
+  setTimeout(() => {
+    runNewsAnalysis().catch(error => {
+      logger.error({ msg: "Initial news analysis failed", error });
+    });
+  }, 15000); // 15 second delay
   
   // Schedule daily analysis at 6 AM
   const runDaily = () => {
@@ -668,8 +672,14 @@ export function initializeNewsAnalysis(): void {
     const timeUntilNext = nextRun.getTime() - now.getTime();
     
     setTimeout(() => {
-      runNewsAnalysis();
-      setInterval(runNewsAnalysis, 24 * 60 * 60 * 1000); // Every 24 hours
+      runNewsAnalysis().catch(error => {
+        logger.error({ msg: "Scheduled news analysis failed", error });
+      });
+      setInterval(() => {
+        runNewsAnalysis().catch(error => {
+          logger.error({ msg: "Scheduled news analysis failed", error });
+        });
+      }, 24 * 60 * 60 * 1000); // Every 24 hours
     }, timeUntilNext);
   };
   

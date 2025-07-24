@@ -68,17 +68,13 @@ export async function registerRoutes(app: Express): Promise<void> {
 
   // Serve static files from the frontend build
   const publicPath = path.join(process.cwd(), 'dist/public');
-  // console.log removed for production
   console.log('  - process.cwd():', process.cwd());
-  // console.log removed for production
-  // console.log removed for production
   
   // Check if the directory exists
   if (fs.existsSync(publicPath)) {
-    // console.log removed for production
     console.log('  - Files in public path:', fs.readdirSync(publicPath));
+    app.use(express.static(publicPath));
   } else {
-    // console.log removed for production
     // Try alternative paths
     const altPaths = [
       path.join(__dirname, '../dist/public'),
@@ -89,10 +85,8 @@ export async function registerRoutes(app: Express): Promise<void> {
     ];
     for (const altPath of altPaths) {
       if (fs.existsSync(altPath)) {
-        // console.log removed for production
         // Use the first found path
         const actualPath = altPath;
-        // console.log removed for production
         app.use(express.static(actualPath));
         
         // SPA fallback: serve index.html for all non-API routes
@@ -108,7 +102,6 @@ export async function registerRoutes(app: Express): Promise<void> {
         return;
       }
     }
-    // console.log removed for production
   }
   
   app.use(express.static(publicPath));

@@ -46,6 +46,15 @@ function jwtAuth(req, res, next) {
 }
 const app = express();
 app.set('trust proxy', 1); // Trust first proxy (Render, Heroku, etc.)
+// Simple health check endpoint
+app.get('/health', (req, res) => {
+    res.json({
+        status: 'healthy',
+        timestamp: new Date().toISOString(),
+        environment: process.env.NODE_ENV || 'development',
+        service: 'CivicOS API'
+    });
+});
 // CORS configuration
 // This logic allows all civicos.ca subdomains and any origin in allowedOrigins, including process.env.CORS_ORIGIN if set.
 // In production, only trusted origins are allowed. In dev, any origin is allowed.
@@ -199,21 +208,29 @@ app.get("/health", (_req, res) => {
     httpServer.listen(PORT, () => {
         logger.info({ msg: `Server running on port ${PORT}`, environment: process.env.NODE_ENV });
     });
-    // Initialize automatic government data sync
-    initializeDataSync();
-    // Initialize Ollama AI service for production (optional)
+    // Initialize automatic government data sync (non-blocking)
+    setTimeout(() => {
+        try {
+            initializeDataSync();
+        }
+        catch (error) {
+            logger.error({ msg: "Failed to initialize data sync", error });
+        }
+    }, 30000); // Increased to 30 seconds to ensure server is fully started
+    // Initialize Ollama AI service for production (optional) - with better error handling
     if (process.env.NODE_ENV === 'production') {
-        // Wait a bit for Ollama to be ready
+        // Wait longer for Ollama to be ready
         setTimeout(async () => {
             try {
                 // Test Ollama connection with timeout
                 const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 3000); // 3 second timeout
+                const timeoutId = setTimeout(() => controller.abort(), 10000); // Increased timeout
                 const response = await fetch('http://127.0.0.1:11434/api/tags', {
                     signal: controller.signal
                 });
                 clearTimeout(timeoutId);
                 if (response.ok) {
+                    logger.info('Ollama service is available');
                     // Test Mistral model with timeout
                     try {
                         const modelResponse = await fetch('http://127.0.0.1:11434/api/generate', {
@@ -221,12 +238,15 @@ app.get("/health", (_req, res) => {
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({
                                 model: 'mistral',
-                                prompt: 'Hello',
+                                prompt: 'Test',
                                 stream: false
                             }),
-                            signal: controller.signal
+                            signal: AbortSignal.timeout(15000) // 15 second timeout
                         });
-                        if (!modelResponse.ok) {
+                        if (modelResponse.ok) {
+                            logger.info('Mistral model is available and working');
+                        }
+                        else {
                             logger.warn('Mistral model not available, using fallback');
                         }
                     }
@@ -241,18 +261,21 @@ app.get("/health", (_req, res) => {
             catch (error) {
                 logger.warn('Ollama initialization failed, using fallback responses');
             }
-        }, 2000); // Wait 2 seconds before trying
+        }, 60000); // Wait 60 seconds before trying Ollama
     }
-    // Run immediate data scraping on startup
+    // Run immediate data scraping on startup - NON-BLOCKING with longer delay
     setTimeout(async () => {
         try {
             const { syncAllGovernmentData } = await import('./dataSync.js');
-            await syncAllGovernmentData();
+            // Run data sync in background without blocking server startup
+            syncAllGovernmentData().catch(error => {
+                logger.error({ msg: "Background data scraping failed:", error });
+            });
         }
         catch (error) {
-            logger.error({ msg: "Initial data scraping failed:", error });
+            logger.error({ msg: "Failed to import data sync module:", error });
         }
-    }, 5000); // 5 second delay
+    }, 120000); // Increased to 2 minutes delay to ensure server is fully started
     // Initialize confirmed government API data enhancement
     async function initializeConfirmedAPIs() {
         // Statistics Canada and Open Government API enhancement
@@ -277,28 +300,47 @@ app.get("/health", (_req, res) => {
                 await politicianDataEnhancer.enhanceAllPoliticians();
                 const stats = await politicianDataEnhancer.getEnhancementStats();
                 // Politician enhancement completed
-            }, 120000); // 2 minute delay to let initial data load
+            }, 180000); // Increased to 3 minutes delay to let initial data load
         }
         catch (error) {
             logger.error({ msg: 'Error enhancing politician data', error });
         }
     }
-    initializeConfirmedAPIs();
-    initializePoliticianEnhancement();
-    // Initialize daily news analysis and propaganda detection
-    initializeNewsAnalysis();
-    // Start comprehensive Canadian news analysis
-    comprehensiveNewsAnalyzer.performComprehensiveAnalysis().catch(error => {
-        logger.error({ msg: "Error in comprehensive news analysis", error });
-    });
-    // Schedule regular comprehensive news analysis (every 2 hours)
+    // Initialize daily news analysis and propaganda detection with better error handling
+    try {
+        setTimeout(() => {
+            try {
+                initializeNewsAnalysis();
+            }
+            catch (error) {
+                logger.error({ msg: "Failed to initialize news analysis", error });
+            }
+        }, 90000); // Delay news analysis by 90 seconds
+    }
+    catch (error) {
+        logger.error({ msg: "Failed to initialize news analysis", error });
+    }
+    // Start comprehensive Canadian news analysis (non-blocking) with much longer delay
+    setTimeout(() => {
+        comprehensiveNewsAnalyzer.performComprehensiveAnalysis().catch(error => {
+            logger.error({ msg: "Error in comprehensive news analysis", error });
+        });
+    }, 300000); // Increased to 5 minutes delay
+    // Schedule regular comprehensive news analysis (every 4 hours instead of 2)
     setInterval(() => {
         comprehensiveNewsAnalyzer.performComprehensiveAnalysis().catch(error => {
             logger.error({ msg: "Error in scheduled news analysis", error });
         });
-    }, 2 * 60 * 60 * 1000); // 2 hours
-    // Start real-time platform monitoring
-    realTimeMonitoring.startMonitoring();
+    }, 4 * 60 * 60 * 1000); // 4 hours instead of 2
+    // Start real-time platform monitoring (non-blocking) with delay
+    setTimeout(() => {
+        try {
+            realTimeMonitoring.startMonitoring();
+        }
+        catch (error) {
+            logger.error({ msg: "Failed to start real-time monitoring", error });
+        }
+    }, 45000); // Increased to 45 second delay
     // Initialize comprehensive legal database
     setTimeout(() => {
         // Legal data populator removed during cleanup

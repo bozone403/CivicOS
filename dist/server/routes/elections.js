@@ -1,53 +1,55 @@
 import { db } from "../db.js";
 import { elections, candidates, electoralDistricts } from "../../shared/schema.js";
 import { eq, desc, sql, count } from "drizzle-orm";
+import { ResponseFormatter } from "../utils/responseFormatter.js";
+import jwt from "jsonwebtoken";
 // JWT Auth middleware
 function jwtAuth(req, res, next) {
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
-        return res.status(401).json({ message: "Missing or invalid token" });
+        return ResponseFormatter.unauthorized(res, "Missing or invalid token");
     }
     try {
         const token = authHeader.split(" ")[1];
-        const JWT_SECRET = process.env.SESSION_SECRET;
-        if (!JWT_SECRET) {
-            return res.status(500).json({ message: "Server configuration error" });
+        const secret = process.env.SESSION_SECRET;
+        if (!secret) {
+            return ResponseFormatter.unauthorized(res, "Server configuration error");
         }
-        const decoded = require('jsonwebtoken').verify(token, JWT_SECRET);
+        const decoded = jwt.verify(token, secret);
         req.user = decoded;
         next();
     }
     catch (err) {
-        return res.status(401).json({ message: "Invalid or expired token" });
+        return ResponseFormatter.unauthorized(res, "Invalid or expired token");
     }
 }
 export function registerElectionsRoutes(app) {
     // Get all elections
     app.get('/api/elections', async (req, res) => {
+        const startTime = Date.now();
         try {
             const allElections = await db.select().from(elections).orderBy(desc(elections.electionDate));
-            res.json({
-                elections: allElections,
-                total: allElections.length,
-                message: "Elections data retrieved successfully"
-            });
+            const processingTime = Date.now() - startTime;
+            return ResponseFormatter.success(res, { elections: allElections }, "Elections data retrieved successfully", 200, allElections.length, undefined, processingTime);
         }
         catch (error) {
-            res.status(500).json({ error: 'Failed to fetch elections data' });
+            return ResponseFormatter.databaseError(res, `Failed to fetch elections data: ${error.message}`);
         }
     });
     // Get election by ID
     app.get('/api/elections/:id', async (req, res) => {
+        const startTime = Date.now();
         try {
             const { id } = req.params;
             const election = await db.select().from(elections).where(eq(elections.id, parseInt(id)));
             if (election.length === 0) {
-                return res.status(404).json({ message: "Election not found" });
+                return ResponseFormatter.notFound(res, "Election not found");
             }
-            res.json(election[0]);
+            const processingTime = Date.now() - startTime;
+            return ResponseFormatter.success(res, election[0], "Election data retrieved successfully", 200, undefined, undefined, processingTime);
         }
         catch (error) {
-            res.status(500).json({ error: 'Failed to fetch election data' });
+            return ResponseFormatter.databaseError(res, `Failed to fetch election data: ${error.message}`);
         }
     });
     // Get candidates for an election

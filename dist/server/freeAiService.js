@@ -27,13 +27,14 @@ class FreeAiService {
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                timeout: 30000, // 30 second timeout
+                timeout: 10000, // Reduced timeout to 10 seconds
             });
             return response.data.response;
         }
         catch (error) {
             // console.error removed for production
-            throw new Error('Failed to generate AI response');
+            // Return fallback response instead of throwing error
+            return "I apologize, but I'm currently experiencing technical difficulties. Please try again later or contact support if the issue persists.";
         }
     }
     /**

@@ -56,8 +56,8 @@ export const db = drizzle(pool, { schema });
 // Paranoid logging: log Pool type and SSL env (do NOT log credentials)
 logger.info('[DB] Drizzle instantiated. Pool type:', typeof pool, 'NODE_TLS_REJECT_UNAUTHORIZED:', process.env.NODE_TLS_REJECT_UNAUTHORIZED);
 
-// Paranoid: Test DB connection at startup
-(async () => {
+// Paranoid: Test DB connection at startup (non-blocking)
+setTimeout(async () => {
   try {
     const result = await pool.query('SELECT NOW() as now');
     logger.info('[DB] Connection test successful. Time:', result.rows[0].now);
@@ -71,4 +71,4 @@ logger.info('[DB] Drizzle instantiated. Pool type:', typeof pool, 'NODE_TLS_REJE
       process.exit(1);
     }
   }
-})();
+}, 10000); // 10 second delay to ensure server is fully started

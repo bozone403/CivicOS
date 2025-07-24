@@ -454,10 +454,12 @@ function calculateInitialTrustScore(official: GovernmentOfficial): string {
  */
 export function initializeDataSync(): void {
   
-  // Run initial sync
+  // Run initial sync with delay to ensure server is fully started
+  setTimeout(() => {
   syncAllGovernmentData().catch(error => {
     console.error("Initial data sync failed:", error instanceof Error ? error : String(error));
   });
+  }, 10000); // 10 second delay
   
   // Set up periodic sync (every 24 hours)
   setInterval(() => {

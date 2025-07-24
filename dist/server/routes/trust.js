@@ -1,24 +1,26 @@
 import { db } from "../db.js";
 import { users, politicians, factChecks } from "../../shared/schema.js";
 import { eq, desc, sql, count } from "drizzle-orm";
+import jwt from "jsonwebtoken";
+import { ResponseFormatter } from "../utils/responseFormatter.js";
 // JWT Auth middleware
 function jwtAuth(req, res, next) {
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
-        return res.status(401).json({ message: "Missing or invalid token" });
+        return ResponseFormatter.unauthorized(res, "Missing or invalid token");
     }
     try {
         const token = authHeader.split(" ")[1];
-        const JWT_SECRET = process.env.SESSION_SECRET;
-        if (!JWT_SECRET) {
-            return res.status(500).json({ message: "Server configuration error" });
+        const secret = process.env.SESSION_SECRET;
+        if (!secret) {
+            return ResponseFormatter.unauthorized(res, "Server configuration error");
         }
-        const decoded = require('jsonwebtoken').verify(token, JWT_SECRET);
+        const decoded = jwt.verify(token, secret);
         req.user = decoded;
         next();
     }
     catch (err) {
-        return res.status(401).json({ message: "Invalid or expired token" });
+        return ResponseFormatter.unauthorized(res, "Invalid or expired token");
     }
 }
 export function registerTrustRoutes(app) {

@@ -1,54 +1,66 @@
 import { db } from "../db.js";
 import { politicians, politicianStatements, politicianPositions, campaignFinance, politicianTruthTracking } from "../../shared/schema.js";
 import { eq, and, desc, sql, count, like, or } from "drizzle-orm";
+import { ResponseFormatter } from "../utils/responseFormatter.js";
+import jwt from "jsonwebtoken";
 // JWT Auth middleware
 function jwtAuth(req, res, next) {
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
-        return res.status(401).json({ message: "Missing or invalid token" });
+        return ResponseFormatter.unauthorized(res, "Missing or invalid token");
     }
     try {
         const token = authHeader.split(" ")[1];
-        const JWT_SECRET = process.env.SESSION_SECRET;
-        if (!JWT_SECRET) {
-            return res.status(500).json({ message: "Server configuration error" });
+        const secret = process.env.SESSION_SECRET;
+        if (!secret) {
+            return ResponseFormatter.unauthorized(res, "Server configuration error");
         }
-        const decoded = require('jsonwebtoken').verify(token, JWT_SECRET);
+        const decoded = jwt.verify(token, secret);
         req.user = decoded;
         next();
     }
     catch (err) {
-        return res.status(401).json({ message: "Invalid or expired token" });
+        return ResponseFormatter.unauthorized(res, "Invalid or expired token");
     }
 }
 export function registerPoliticiansRoutes(app) {
     // Get all politicians
     app.get('/api/politicians', async (req, res) => {
+        const startTime = Date.now();
         try {
             const { level, jurisdiction, party, search } = req.query;
-            let query = db.select().from(politicians);
-            const conditions = [];
-            if (level) {
-                conditions.push(eq(politicians.level, level));
+            let politiciansData;
+            if (level || jurisdiction || party || search) {
+                const conditions = [];
+                if (level) {
+                    conditions.push(eq(politicians.level, level));
+                }
+                if (jurisdiction) {
+                    conditions.push(eq(politicians.jurisdiction, jurisdiction));
+                }
+                if (party) {
+                    conditions.push(eq(politicians.party, party));
+                }
+                if (search) {
+                    conditions.push(or(like(politicians.name, `%${search}%`), like(politicians.position, `%${search}%`), like(politicians.constituency, `%${search}%`)));
+                }
+                politiciansData = await db
+                    .select()
+                    .from(politicians)
+                    .where(and(...conditions))
+                    .orderBy(desc(politicians.updatedAt));
             }
-            if (jurisdiction) {
-                conditions.push(eq(politicians.jurisdiction, jurisdiction));
+            else {
+                politiciansData = await db
+                    .select()
+                    .from(politicians)
+                    .orderBy(desc(politicians.updatedAt));
             }
-            if (party) {
-                conditions.push(eq(politicians.party, party));
-            }
-            if (search) {
-                conditions.push(or(like(politicians.name, `%${search}%`), like(politicians.position, `%${search}%`), like(politicians.constituency, `%${search}%`)));
-            }
-            if (conditions.length > 0) {
-                query = query.where(and(...conditions));
-            }
-            const politiciansData = await query.orderBy(desc(politicians.updatedAt));
-            res.json(politiciansData);
+            const processingTime = Date.now() - startTime;
+            return ResponseFormatter.success(res, politiciansData, "Politicians data retrieved successfully", 200, politiciansData.length, undefined, processingTime);
         }
         catch (error) {
-            // console.error removed for production
-            res.status(500).json({ error: 'Failed to fetch politicians' });
+            return ResponseFormatter.databaseError(res, `Failed to fetch politicians: ${error.message}`);
         }
     });
     // Get politician by ID
