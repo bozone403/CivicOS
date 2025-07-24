@@ -7,10 +7,6 @@ services:
       # Install system dependencies
       apt-get update && apt-get install -y curl wget tar
       
-      # Setup Ollama and Mistral during build
-      chmod +x ./setup-ollama.sh
-      ./setup-ollama.sh
-      
       # Build the application
       npm install
       npm run build
