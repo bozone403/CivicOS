@@ -18,6 +18,10 @@ import { registerFriendRoutes } from "./routes/friends.js";
 import { registerPetitionRoutes } from "./routes/petitions.js";
 import { registerMessageRoutes } from "./routes/messages.js";
 import { registerSocialRoutes } from "./routes/social.js"; // Added
+import { registerPoliticiansRoutes } from "./routes/politicians.js";
+import { registerBillsRoutes } from "./routes/bills.js";
+import { registerNewsRoutes } from "./routes/news.js";
+import { registerFinanceRoutes } from "./routes/finance.js";
 import votingRouter from "./routes/voting.js";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -32,6 +36,10 @@ export async function registerRoutes(app: Express): Promise<void> {
   registerPetitionRoutes(app);
   registerMessageRoutes(app);
   registerSocialRoutes(app); // Added
+  registerPoliticiansRoutes(app); // Added real Government APIs
+  registerBillsRoutes(app); // Added real Parliament bills
+  registerNewsRoutes(app); // Added real Government news
+  registerFinanceRoutes(app); // Added real Government finance data
 
   // Simple notifications routes (no auth required)
   app.use("/api/notifications", simpleNotificationsRouter);

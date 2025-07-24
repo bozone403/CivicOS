@@ -86,13 +86,13 @@ export default function Politicians() {
         console.error('Failed to fetch politicians:', error);
         // Return comprehensive fallback data if API fails
         return [
-          {
-            id: 1,
-            name: "Mark Carney",
-            party: "Liberal",
-            position: "Prime Minister",
+  {
+    id: 1,
+    name: "Mark Carney",
+    party: "Liberal",
+    position: "Prime Minister",
             riding: "Ottawa Centre",
-            level: "Federal",
+    level: "Federal",
             jurisdiction: "Federal",
             image: "/assets/mark-carney.jpg",
             trustScore: 85,
@@ -120,14 +120,14 @@ export default function Politicians() {
               total: 142000,
               year: "2025"
             }
-          },
-          {
-            id: 2,
-            name: "Pierre Poilievre",
-            party: "Conservative",
-            position: "Leader of the Opposition",
+  },
+  {
+    id: 2,
+    name: "Pierre Poilievre",
+    party: "Conservative",
+    position: "Leader of the Opposition",
             riding: "Carleton",
-            level: "Federal",
+    level: "Federal",
             jurisdiction: "Federal",
             image: "/assets/pierre-poilievre.jpg",
             trustScore: 72,
@@ -155,14 +155,14 @@ export default function Politicians() {
               total: 118500,
               year: "2025"
             }
-          },
-          {
-            id: 3,
-            name: "Jagmeet Singh",
-            party: "NDP",
-            position: "Leader of the New Democratic Party",
+  },
+  {
+    id: 3,
+    name: "Jagmeet Singh",
+    party: "NDP",
+    position: "Leader of the New Democratic Party",
             riding: "Burnaby South",
-            level: "Federal",
+    level: "Federal",
             jurisdiction: "Federal",
             image: "/assets/jagmeet-singh.jpg",
             trustScore: 78,
@@ -190,14 +190,14 @@ export default function Politicians() {
               total: 103800,
               year: "2025"
             }
-          },
-          {
-            id: 4,
-            name: "Yves-François Blanchet",
-            party: "Bloc Québécois",
-            position: "Leader of the Bloc Québécois",
+  },
+  {
+    id: 4,
+    name: "Yves-François Blanchet",
+    party: "Bloc Québécois",
+    position: "Leader of the Bloc Québécois",
             riding: "Beloeil—Chambly",
-            level: "Federal",
+    level: "Federal",
             jurisdiction: "Federal",
             image: "/assets/yves-francois-blanchet.jpg",
             trustScore: 65,
@@ -225,20 +225,20 @@ export default function Politicians() {
               total: 91200,
               year: "2025"
             }
-          },
-          {
-            id: 5,
-            name: "Elizabeth May",
-            party: "Green",
-            position: "Leader of the Green Party",
+  },
+  {
+    id: 5,
+    name: "Elizabeth May",
+    party: "Green",
+    position: "Leader of the Green Party",
             riding: "Saanich—Gulf Islands",
-            level: "Federal",
+    level: "Federal",
             jurisdiction: "Federal",
             image: "/assets/elizabeth-may.jpg",
             trustScore: 82,
             civicLevel: "Gold",
-            recentActivity: "Introduced climate emergency motion",
-            policyPositions: ["Climate Action", "Environmental Protection", "Social Justice"],
+    recentActivity: "Introduced climate emergency motion",
+    policyPositions: ["Climate Action", "Environmental Protection", "Social Justice"],
             votingRecord: { yes: 145, no: 34, abstain: 15 },
             contactInfo: {
               email: "elizabeth.may@parl.gc.ca",
@@ -327,9 +327,9 @@ export default function Politicians() {
             <p className="text-lg font-medium text-slate-600 dark:text-slate-400">
               Loading politician data...
             </p>
-          </div>
+                </div>
         </main>
-      </div>
+            </div>
     );
   }
 
@@ -367,12 +367,12 @@ export default function Politicians() {
           <div className="flex flex-col lg:flex-row gap-4">
             <div className="flex-1 relative">
               <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-              <Input
+                <Input
                 placeholder="Search by name, riding, or party..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
-              />
+                  className="pl-10"
+                />
             </div>
             <Select value={partyFilter} onValueChange={setPartyFilter}>
               <SelectTrigger className="w-full lg:w-48">
@@ -388,16 +388,16 @@ export default function Politicians() {
             <Select value={levelFilter} onValueChange={setLevelFilter}>
               <SelectTrigger className="w-full lg:w-48">
                 <SelectValue placeholder="Filter by level" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Levels</SelectItem>
-                {levels.map(level => (
-                  <SelectItem key={level} value={level}>{level}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Levels</SelectItem>
+                  {levels.map(level => (
+                    <SelectItem key={level} value={level}>{level}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
           <div className="mt-4 flex flex-wrap gap-2">
             <Badge variant="outline" className="text-xs">
               {filteredPoliticians.length} politicians found
@@ -409,7 +409,7 @@ export default function Politicians() {
         </div>
 
         {/* Politicians Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredPoliticians.map((politician) => (
             <Card key={politician.id} className="cursor-pointer hover:shadow-lg transition-shadow">
               <CardHeader className="pb-4">
@@ -432,54 +432,54 @@ export default function Politicians() {
                   <Badge className={getPartyColor(politician.party)}>
                     {politician.party}
                   </Badge>
-                  <Badge variant="outline" className="text-xs">
-                    {politician.level}
-                  </Badge>
-                </div>
-              </CardHeader>
+                          <Badge variant="outline" className="text-xs">
+                            {politician.level}
+                          </Badge>
+                    </div>
+                  </CardHeader>
               
-              <CardContent>
-                <div className="space-y-3">
+                  <CardContent>
+                    <div className="space-y-3">
                   <div className="flex items-center text-sm text-gray-600 dark:text-gray-300">
                     <MapPin className="w-4 h-4 mr-2" />
                     {politician.riding}
-                  </div>
-                  
+                      </div>
+
                   <div className="text-sm text-gray-600 dark:text-gray-300">
                     <strong>Recent:</strong> {politician.recentActivity}
-                  </div>
-                  
+                      </div>
+
                   <div className="flex items-center justify-between text-xs text-gray-500">
                     <div className="flex items-center gap-1">
                       <Vote className="w-3 h-3" />
                       {politician.votingRecord.yes + politician.votingRecord.no + politician.votingRecord.abstain} votes
-                    </div>
+                        </div>
                     <div className="flex items-center gap-1">
                       <DollarSign className="w-3 h-3" />
                       {formatCurrency(politician.expenses.total)} ({politician.expenses.year})
-                    </div>
-                  </div>
-                  
+                        </div>
+                      </div>
+
                   <div className="flex gap-2 pt-2">
-                    <Button 
-                      size="sm" 
-                      variant="outline" 
-                      className="flex-1"
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="flex-1"
                       onClick={() => setSelectedPolitician(politician)}
-                    >
+                        >
                       View Details
-                    </Button>
+                        </Button>
                     {politician.contactInfo.email && (
                       <Button size="sm" variant="outline" className="px-3">
                         <Mail className="w-4 h-4" />
-                      </Button>
+                        </Button>
                     )}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
 
         {filteredPoliticians.length === 0 && !isLoading && (
           <div className="text-center py-12">
@@ -494,20 +494,20 @@ export default function Politicians() {
         )}
 
         {/* Detailed View Modal/Sidebar could go here */}
-        {selectedPolitician && (
+            {selectedPolitician && (
           <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
             <div className="bg-white dark:bg-slate-800 rounded-lg max-w-4xl max-h-[90vh] overflow-y-auto">
               <div className="p-6">
                 <div className="flex justify-between items-start mb-6">
-                  <div>
-                    <h2 className="text-2xl font-bold">{selectedPolitician.name}</h2>
+                    <div>
+                      <h2 className="text-2xl font-bold">{selectedPolitician.name}</h2>
                     <p className="text-gray-600 dark:text-gray-300">{selectedPolitician.position}</p>
                   </div>
                   <Button variant="outline" onClick={() => setSelectedPolitician(null)}>
                     Close
                   </Button>
-                </div>
-                
+                    </div>
+
                 <Tabs defaultValue="overview" className="w-full">
                   <TabsList className="grid w-full grid-cols-4">
                     <TabsTrigger value="overview">Overview</TabsTrigger>
@@ -515,12 +515,12 @@ export default function Politicians() {
                     <TabsTrigger value="expenses">Expenses</TabsTrigger>
                     <TabsTrigger value="contact">Contact</TabsTrigger>
                   </TabsList>
-                  
+
                   <TabsContent value="overview" className="space-y-4">
-                    <div>
+                      <div>
                       <h3 className="font-semibold mb-2">Biography</h3>
                       <p className="text-sm text-gray-600 dark:text-gray-300">{selectedPolitician.bio}</p>
-                    </div>
+                          </div>
                     
                     <div>
                       <h3 className="font-semibold mb-2">Key Achievements</h3>
@@ -531,9 +531,9 @@ export default function Politicians() {
                           </li>
                         ))}
                       </ul>
-                    </div>
-                    
-                    <div>
+                      </div>
+
+                      <div>
                       <h3 className="font-semibold mb-2">Policy Positions</h3>
                       <div className="flex flex-wrap gap-2">
                         {selectedPolitician.policyPositions.map((position, index) => (
@@ -544,24 +544,24 @@ export default function Politicians() {
                       </div>
                     </div>
                   </TabsContent>
-                  
+
                   <TabsContent value="voting" className="space-y-4">
-                    <div className="grid grid-cols-3 gap-4">
+                      <div className="grid grid-cols-3 gap-4">
                       <div className="text-center">
-                        <div className="text-2xl font-bold text-green-600">{selectedPolitician.votingRecord.yes}</div>
+                          <div className="text-2xl font-bold text-green-600">{selectedPolitician.votingRecord.yes}</div>
                         <div className="text-sm text-gray-500">Yes Votes</div>
-                      </div>
+                        </div>
                       <div className="text-center">
-                        <div className="text-2xl font-bold text-red-600">{selectedPolitician.votingRecord.no}</div>
+                          <div className="text-2xl font-bold text-red-600">{selectedPolitician.votingRecord.no}</div>
                         <div className="text-sm text-gray-500">No Votes</div>
-                      </div>
+                        </div>
                       <div className="text-center">
-                        <div className="text-2xl font-bold text-gray-600">{selectedPolitician.votingRecord.abstain}</div>
+                          <div className="text-2xl font-bold text-gray-600">{selectedPolitician.votingRecord.abstain}</div>
                         <div className="text-sm text-gray-500">Abstained</div>
                       </div>
                     </div>
                   </TabsContent>
-                  
+
                   <TabsContent value="expenses" className="space-y-4">
                     <div className="grid grid-cols-2 gap-4">
                       <div>
@@ -576,13 +576,13 @@ export default function Politicians() {
                         <div className="text-sm text-gray-500">Office</div>
                         <div className="font-semibold">{formatCurrency(selectedPolitician.expenses.office)}</div>
                       </div>
-                      <div>
+                    <div>
                         <div className="text-sm text-gray-500">Total ({selectedPolitician.expenses.year})</div>
                         <div className="font-semibold">{formatCurrency(selectedPolitician.expenses.total)}</div>
                       </div>
                     </div>
                   </TabsContent>
-                  
+
                   <TabsContent value="contact" className="space-y-4">
                     <div className="grid grid-cols-1 gap-4">
                       {selectedPolitician.contactInfo.email && (
@@ -613,7 +613,7 @@ export default function Politicians() {
                           <a href={selectedPolitician.contactInfo.website} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
                             Official Website
                           </a>
-                        </div>
+                      </div>
                       )}
                     </div>
                   </TabsContent>
@@ -621,7 +621,7 @@ export default function Politicians() {
               </div>
             </div>
           </div>
-        )}
+            )}
       </main>
     </div>
   );
