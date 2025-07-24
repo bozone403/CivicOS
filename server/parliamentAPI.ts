@@ -154,6 +154,12 @@ export class ParliamentAPIService {
           ${mpData.name}, ${mpData.position}, ${mpData.party}, 
           ${mpData.jurisdiction}, ${mpData.constituency}, ${mpData.level}
         )
+        ON CONFLICT (name, jurisdiction) DO UPDATE SET
+          position = EXCLUDED.position,
+          party = EXCLUDED.party,
+          constituency = EXCLUDED.constituency,
+          level = EXCLUDED.level,
+          updated_at = NOW()
       `);
       
       logger.info({ 
@@ -163,31 +169,7 @@ export class ParliamentAPIService {
         jurisdiction: mpData.jurisdiction 
       });
     } catch (error) {
-      // Handle duplicate key errors gracefully
-      if ((error as any)?.code === '23505') {
-        // Duplicate key - politician already exists, try to update
-        try {
-          await db.execute(sql`
-            UPDATE politicians 
-            SET position = ${mpData.position},
-                party = ${mpData.party},
-                constituency = ${mpData.constituency},
-                level = ${mpData.level},
-                updated_at = NOW()
-            WHERE name = ${mpData.name} AND jurisdiction = ${mpData.jurisdiction}
-          `);
-          
-          logger.info({ 
-            msg: "Updated politician", 
-            name: mpData.name, 
-            jurisdiction: mpData.jurisdiction 
-          });
-        } catch (updateError) {
-          logger.error({ msg: 'Error updating MP data', error: updateError });
-        }
-      } else {
-        logger.error({ msg: 'Error storing MP data', error });
-      }
+      logger.error({ msg: 'Error storing MP data', error });
     }
   }
 
@@ -203,6 +185,10 @@ export class ParliamentAPIService {
           ${billData.title}, ${billData.billNumber}, ${billData.status},
           ${billData.summary}, ${billData.jurisdiction}
         )
+        ON CONFLICT ("billNumber") DO UPDATE SET
+          status = EXCLUDED.status,
+          description = EXCLUDED.description,
+          updated_at = NOW()
       `);
       
       logger.info({ 
@@ -211,28 +197,7 @@ export class ParliamentAPIService {
         title: billData.title 
       });
     } catch (error) {
-      // Handle duplicate key errors gracefully
-      if ((error as any)?.code === '23505') {
-        // Duplicate key - bill already exists, try to update
-        try {
-          await db.execute(sql`
-            UPDATE bills 
-            SET status = ${billData.status},
-                description = ${billData.summary},
-                updated_at = NOW()
-            WHERE "billNumber" = ${billData.billNumber}
-          `);
-          
-          logger.info({ 
-            msg: "Updated bill", 
-            billNumber: billData.billNumber 
-          });
-        } catch (updateError) {
-          logger.error({ msg: 'Error updating bill data', error: updateError });
-        }
-      } else {
-        logger.error({ msg: 'Error storing bill data', error });
-      }
+      logger.error({ msg: 'Error storing bill data', error });
     }
   }
 
