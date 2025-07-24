@@ -1,5 +1,4 @@
 import 'express';
-import session from 'express-session';
 
 // You may want to adjust the User interface to match your actual user object
 
@@ -14,8 +13,6 @@ declare global {
       user?: User;
       isAuthenticated(): boolean;
       logout(callback: (err: any) => void): void;
-      session?: session.Session & Partial<session.SessionData>;
-      sessionStore?: session.Store;
     }
   }
 }

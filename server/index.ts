@@ -385,8 +385,9 @@ app.post('/api/admin/session/cleanup', jwtAuth, async (req, res) => {
     return res.status(403).json({ message: 'Forbidden' });
   }
   try {
-    if (req.sessionStore && typeof (req.sessionStore as any).clear === 'function') {
-      await new Promise((resolve, reject) => (req.sessionStore as any).clear((err: any) => err ? reject(err) : resolve(undefined)));
+    const reqWithSession = req as any;
+    if (reqWithSession.sessionStore && typeof reqWithSession.sessionStore.clear === 'function') {
+      await new Promise((resolve, reject) => reqWithSession.sessionStore.clear((err: any) => err ? reject(err) : resolve(undefined)));
       res.json({ message: 'All sessions cleared' });
     } else {
       res.status(500).json({ message: 'Session store does not support cleanup' });
