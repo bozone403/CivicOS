@@ -243,6 +243,14 @@ export default function App() {
                   </ProtectedRoute>
                 </Route>
                 
+                <Route path="/finance">
+                  <ProtectedRoute>
+                    <Layout>
+                      <Finance />
+                    </Layout>
+                  </ProtectedRoute>
+                </Route>
+                
                 <Route path="/legal">
                   <ProtectedRoute>
                     <Layout>

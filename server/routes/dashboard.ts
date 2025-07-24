@@ -3,6 +3,7 @@ import { storage } from "../storage.js";
 import { db } from "../db.js";
 import { users, bills, votes, politicians, petitions, userActivity, petitionSignatures } from "../../shared/schema.js";
 import { eq, and, desc, sql, count } from "drizzle-orm";
+import { ResponseFormatter } from "../utils/responseFormatter.js";
 
 // JWT Auth middleware
 function jwtAuth(req: any, res: any, next: any) {
@@ -26,10 +27,14 @@ function jwtAuth(req: any, res: any, next: any) {
 
 export function registerDashboardRoutes(app: Express) {
   // Dashboard stats endpoint
-  app.get('/api/dashboard/stats', /* jwtAuth, */ async (req: Request, res: Response) => {
+  app.get('/api/dashboard/stats', jwtAuth, async (req: Request, res: Response) => {
+    const startTime = Date.now();
+    
     try {
-      const userId = (req as any).user?.id || 'test-user-id';
-      // console.log removed for production
+      const userId = (req as any).user?.id;
+      if (!userId) {
+        return ResponseFormatter.unauthorized(res, "User ID not found in token");
+      }
 
       // Get real political data from database
       const [
@@ -43,7 +48,7 @@ export function registerDashboardRoutes(app: Express) {
         db.select({ count: count() }).from(votes).where(eq(votes.userId, userId)),
         // Get active bills count
         db.select({ count: count() }).from(bills).where(eq(bills.status, 'active')),
-        // Get total politicians count (since there's no isTracked field)
+        // Get total politicians count
         db.select({ count: count() }).from(politicians),
         // Get petitions signed by user
         db.select({ count: count() }).from(petitionSignatures).where(eq(petitionSignatures.userId, userId)),
@@ -83,34 +88,37 @@ export function registerDashboardRoutes(app: Express) {
           timestamp: activity.createdAt?.toISOString() || new Date().toISOString(),
           icon: activity.activityType === 'vote' ? 'vote' : 
                 activity.activityType === 'petition_sign' ? 'petition' : 'comment'
-        })),
-        debug: {
-          message: "Real political data from database - DEPLOYMENT TEST",
-          timestamp: new Date().toISOString(),
-          userId: userId,
-          deploymentId: "2025-07-23-23-05"
-        }
+        }))
       };
 
-      // console.log removed for production
-      res.json(stats);
+      const processingTime = Date.now() - startTime;
+      return ResponseFormatter.success(
+        res,
+        stats,
+        "Dashboard statistics retrieved successfully",
+        200,
+        undefined,
+        undefined,
+        processingTime
+      );
     } catch (error) {
-      // console.error removed for production
-      res.status(500).json({ error: 'Failed to fetch dashboard stats', details: (error as Error).message });
+      return ResponseFormatter.databaseError(res, `Failed to fetch dashboard stats: ${(error as Error).message}`);
     }
   });
 
   // User profile endpoint
   app.get('/api/users/profile', jwtAuth, async (req: Request, res: Response) => {
+    const startTime = Date.now();
+    
     try {
       const userId = (req as any).user?.id;
       if (!userId) {
-        return res.status(401).json({ message: "Unauthorized" });
+        return ResponseFormatter.unauthorized(res, "User ID not found in token");
       }
 
       const user = await storage.getUser(userId);
       if (!user) {
-        return res.status(404).json({ message: "User not found" });
+        return ResponseFormatter.notFound(res, "User not found");
       }
 
       // Return user profile without sensitive data
@@ -132,10 +140,18 @@ export function registerDashboardRoutes(app: Express) {
         updatedAt: user.updatedAt
       };
 
-      res.json(profile);
+      const processingTime = Date.now() - startTime;
+      return ResponseFormatter.success(
+        res,
+        profile,
+        "User profile retrieved successfully",
+        200,
+        undefined,
+        undefined,
+        processingTime
+      );
     } catch (error) {
-      // console.error removed for production
-      res.status(500).json({ error: 'Failed to fetch user profile' });
+      return ResponseFormatter.databaseError(res, `Failed to fetch user profile: ${(error as Error).message}`);
     }
   });
 
@@ -171,10 +187,12 @@ export function registerDashboardRoutes(app: Express) {
 
   // User activity endpoint
   app.get('/api/users/activity', jwtAuth, async (req: Request, res: Response) => {
+    const startTime = Date.now();
+    
     try {
       const userId = (req as any).user?.id;
       if (!userId) {
-        return res.status(401).json({ message: "Unauthorized" });
+        return ResponseFormatter.unauthorized(res, "User ID not found in token");
       }
 
       const activity = await db.select()
@@ -183,10 +201,18 @@ export function registerDashboardRoutes(app: Express) {
         .orderBy(desc(userActivity.createdAt))
         .limit(20);
 
-      res.json(activity);
+      const processingTime = Date.now() - startTime;
+      return ResponseFormatter.success(
+        res,
+        activity,
+        "User activity retrieved successfully",
+        200,
+        activity.length,
+        undefined,
+        processingTime
+      );
     } catch (error) {
-      // console.error removed for production
-      res.status(500).json({ error: 'Failed to fetch user activity' });
+      return ResponseFormatter.databaseError(res, `Failed to fetch user activity: ${(error as Error).message}`);
     }
   });
 } 

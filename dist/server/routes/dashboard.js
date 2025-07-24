@@ -24,7 +24,7 @@ function jwtAuth(req, res, next) {
 }
 export function registerDashboardRoutes(app) {
     // Dashboard stats endpoint
-    app.get('/api/dashboard/stats', /* jwtAuth, */ async (req, res) => {
+    app.get('/api/dashboard/stats', jwtAuth, async (req, res) => {
         try {
             const userId = req.user?.id || 'test-user-id';
             // console.log removed for production

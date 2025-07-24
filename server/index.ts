@@ -55,6 +55,16 @@ interface JwtPayload {
   email: string;
 }
 
+// Simple health check endpoint
+app.get('/health', (req, res) => {
+  res.json({
+    status: 'healthy',
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV || 'development',
+    service: 'CivicOS API'
+  });
+});
+
 // CORS configuration
 // This logic allows all civicos.ca subdomains and any origin in allowedOrigins, including process.env.CORS_ORIGIN if set.
 // In production, only trusted origins are allowed. In dev, any origin is allowed.
@@ -277,15 +287,18 @@ app.get("/health", (_req, res) => {
     }, 2000); // Wait 2 seconds before trying
   }
   
-  // Run immediate data scraping on startup
+  // Run immediate data scraping on startup - NON-BLOCKING
   setTimeout(async () => {
     try {
       const { syncAllGovernmentData } = await import('./dataSync.js');
-      await syncAllGovernmentData();
+      // Run data sync in background without blocking server startup
+      syncAllGovernmentData().catch(error => {
+        logger.error({ msg: "Background data scraping failed:", error });
+      });
     } catch (error) {
-      logger.error({ msg: "Initial data scraping failed:", error });
+      logger.error({ msg: "Failed to import data sync module:", error });
     }
-  }, 5000); // 5 second delay
+  }, 10000); // 10 second delay to ensure server is fully started
   
   // Initialize confirmed government API data enhancement
   async function initializeConfirmedAPIs() {
