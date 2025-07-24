@@ -10,7 +10,7 @@ services:
       # Build the application
       npm install
       npm run build
-    startCommand: ./start-minimal.sh
+    startCommand: ./start-render.sh
     envVars:
       - key: NODE_ENV
         value: production
@@ -55,14 +55,16 @@ services:
       - key: ENABLE_SUPABASE_AUTH
         value: "true"
       - key: ENABLE_OLLAMA
-        value: false
+        value: true
       - key: OLLAMA_HOST
         value: 0.0.0.0:11434
       - key: OLLAMA_BASE_URL
-        value: http://127.0.0.1:11434
+        value: http://localhost:11434
+      - key: OLLAMA_URL
+        value: http://localhost:11434
       - key: OLLAMA_MODEL
         value: mistral:latest
       - key: AI_SERVICE_ENABLED
-        value: false
+        value: true
       - key: MISTRAL_ENABLED
-        value: false 
+        value: true 
