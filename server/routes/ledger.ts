@@ -20,7 +20,7 @@ export function registerLedgerRoutes(app: Express) {
     
     try {
       // Placeholder data until ledger table is created
-      const ledgerEntries = [];
+      const ledgerEntries: any[] = [];
       
       const processingTime = Date.now() - startTime;
       return ResponseFormatter.success(

@@ -20,7 +20,7 @@ export function registerLobbyistsRoutes(app: Express) {
     
     try {
       // Placeholder data until lobbyists table is created
-      const allLobbyists = [];
+      const allLobbyists: any[] = [];
       
       const processingTime = Date.now() - startTime;
       return ResponseFormatter.success(
