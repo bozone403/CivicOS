@@ -217,51 +217,42 @@ app.get("/health", (_req, res) => {
             logger.error({ msg: "Failed to initialize data sync", error });
         }
     }, 30000); // Increased to 30 seconds to ensure server is fully started
-    // Initialize Ollama AI service for production (optional) - with better error handling
+    // Initialize Ollama AI service for production (enhanced with robust error handling)
     if (process.env.NODE_ENV === 'production') {
-        // Wait longer for Ollama to be ready
+        // Start Ollama initialization in background - don't wait for completion
         setTimeout(async () => {
             try {
-                // Test Ollama connection with timeout
-                const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 10000); // Increased timeout
-                const response = await fetch('http://127.0.0.1:11434/api/tags', {
-                    signal: controller.signal
-                });
-                clearTimeout(timeoutId);
-                if (response.ok) {
-                    logger.info('Ollama service is available');
-                    // Test Mistral model with timeout
-                    try {
-                        const modelResponse = await fetch('http://127.0.0.1:11434/api/generate', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                model: 'mistral',
-                                prompt: 'Test',
-                                stream: false
-                            }),
-                            signal: AbortSignal.timeout(15000) // 15 second timeout
-                        });
-                        if (modelResponse.ok) {
-                            logger.info('Mistral model is available and working');
-                        }
-                        else {
-                            logger.warn('Mistral model not available, using fallback');
-                        }
+                logger.info({ msg: "Starting Ollama initialization process..." });
+                // Import the enhanced Ollama manager
+                const OllamaManagerModule = await import('./initOllama.js');
+                const OllamaManager = OllamaManagerModule.default;
+                const manager = new OllamaManager();
+                // Run health check first
+                const health = await manager.healthCheck();
+                logger.info({ msg: "Ollama health check", status: health });
+                if (!health.service) {
+                    logger.warn({ msg: "Ollama service not available - AI will use fallback responses" });
+                }
+                else if (!health.model) {
+                    logger.info({ msg: "Ollama service available but model missing - attempting initialization" });
+                    // Try to initialize model in background
+                    const initSuccess = await manager.initialize();
+                    if (initSuccess) {
+                        logger.info({ msg: "✅ Ollama and Mistral model successfully initialized" });
                     }
-                    catch (error) {
-                        logger.warn('Mistral model test failed, using fallback');
+                    else {
+                        logger.warn({ msg: "⚠️ Ollama initialization failed - using fallback responses" });
                     }
                 }
                 else {
-                    logger.warn('Ollama not available, using fallback responses');
+                    logger.info({ msg: "✅ Ollama service and model are both ready" });
                 }
             }
             catch (error) {
-                logger.warn('Ollama initialization failed, using fallback responses');
+                const errorMessage = error instanceof Error ? error.message : String(error);
+                logger.error({ msg: "Error during Ollama initialization", error: errorMessage });
             }
-        }, 60000); // Wait 60 seconds before trying Ollama
+        }, 45000); // Increased delay to let Ollama binary start properly
     }
     // Run immediate data scraping on startup - NON-BLOCKING with longer delay
     setTimeout(async () => {
