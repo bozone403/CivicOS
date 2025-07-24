@@ -223,23 +223,40 @@ Provide insights in JSON format with:
      * Get offline response when Ollama is not available
      */
     getOfflineResponse(prompt) {
+        // Check if this appears to be a crash/resource issue
+        const isCrashRelated = this.failureCount >= this.circuitBreakerThreshold;
+        if (isCrashRelated) {
+            return `I apologize, but the AI service is currently unavailable due to server resource limitations. 
+      
+Your CivicOS platform is fully operational for all other features including:
+• Browsing politicians and their voting records
+• Reading bills and legislation 
+• Accessing government transparency data
+• Using the civic engagement tools
+• Exploring procurement and finance data
+
+For AI-powered analysis and chatbot features, please try again later or contact support about upgrading server resources.
+
+In the meantime, you can find detailed information using the search and navigation tools throughout the platform.`;
+        }
+        // Provide context-aware responses based on prompt content
         const lowerPrompt = prompt.toLowerCase();
-        if (lowerPrompt.includes('hello') || lowerPrompt.includes('hi')) {
-            return "Hello! I'm the CivicOS AI assistant. I'm currently operating in offline mode while our Ollama service is being optimized. How can I help you with civic engagement today?";
+        if (lowerPrompt.includes('politician') || lowerPrompt.includes('mp') || lowerPrompt.includes('representative')) {
+            return `I'm currently experiencing technical difficulties with AI processing. However, you can explore politician information directly using the Politicians section of CivicOS, where you'll find voting records, contact information, and detailed profiles.`;
         }
-        if (lowerPrompt.includes('vote') || lowerPrompt.includes('election')) {
-            return "Voting is a fundamental civic right in Canada. You can register to vote through Elections Canada. Make sure to bring valid ID when voting. For more information, visit elections.ca";
+        if (lowerPrompt.includes('bill') || lowerPrompt.includes('legislation') || lowerPrompt.includes('law')) {
+            return `While AI analysis is temporarily unavailable, you can browse current and historical bills in the Bills & Voting section, where you'll find summaries, voting results, and full text of legislation.`;
         }
-        if (lowerPrompt.includes('petition') || lowerPrompt.includes('petition')) {
-            return "Petitions are a great way to engage with government. You can create or sign petitions through the House of Commons website. Make sure petitions follow parliamentary guidelines.";
+        if (lowerPrompt.includes('vote') || lowerPrompt.includes('voting')) {
+            return `AI voting analysis is currently offline, but you can access detailed voting records and participate in civic discussions through the Voting section and CivicSocial features.`;
         }
-        if (lowerPrompt.includes('bill') || lowerPrompt.includes('legislation')) {
-            return "Bills and legislation can be tracked through the Parliament of Canada website. You can search for specific bills and follow their progress through the legislative process.";
+        if (lowerPrompt.includes('news') || lowerPrompt.includes('media')) {
+            return `AI news analysis is temporarily unavailable. You can access curated news sources and fact-checking information in the News section of the platform.`;
         }
-        if (lowerPrompt.includes('politician') || lowerPrompt.includes('mp')) {
-            return "You can contact your Member of Parliament through the House of Commons website. MPs represent your riding and can help with federal government matters.";
-        }
-        return "Thank you for your question about civic engagement. I'm currently operating in offline mode while our Ollama service is being optimized. I'm here to help with Canadian civic information and can direct you to relevant government resources.";
+        // Default response
+        return `I apologize, but I'm currently experiencing technical difficulties. Please try again later or contact support if the issue persists.
+    
+While AI features are offline, all other CivicOS functionality remains available including government data, politician information, bills, voting records, and civic engagement tools.`;
     }
 }
 export default new AIService();

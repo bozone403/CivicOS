@@ -173,57 +173,102 @@ start_ollama() {
     pkill -f ollama 2>/dev/null || true
     sleep 3
     
-    # Set environment variables for Ollama
+    # Set environment variables for Ollama with resource limits
     export OLLAMA_HOST=0.0.0.0:11434
     export OLLAMA_MODELS=/tmp/ollama/models
     export OLLAMA_ORIGINS="*"
+    export OLLAMA_MAX_LOADED_MODELS=1
+    export OLLAMA_NUM_PARALLEL=1
+    export OLLAMA_MAX_QUEUE=10
+    export OLLAMA_FLASH_ATTENTION=false
+    export OLLAMA_LLM_LIBRARY="cpu"
     
     # Create necessary directories
     mkdir -p /tmp/ollama/models
     
-    echo "🔧 Starting Ollama daemon..."
+    echo "🔧 Starting Ollama daemon with resource limits..."
     echo "   Host: $OLLAMA_HOST"
     echo "   Models dir: $OLLAMA_MODELS"
+    echo "   Max models: $OLLAMA_MAX_LOADED_MODELS"
+    echo "   Parallel: $OLLAMA_NUM_PARALLEL"
     
-    # Start Ollama with full logging
-    nohup ./ollama serve > ../ollama.log 2>&1 &
+    # Test binary first
+    echo "🧪 Testing Ollama binary..."
+    if timeout 10 ./ollama --version >/dev/null 2>&1; then
+        echo "✅ Binary test passed"
+    else
+        echo "❌ Binary test failed - binary may be corrupted"
+        cd ..
+        return 1
+    fi
+    
+    # Start Ollama with resource monitoring and crash recovery
+    echo "🚀 Starting Ollama server..."
+    
+    # Use ulimit to prevent excessive resource usage
+    ulimit -v 8000000  # Limit virtual memory to ~8GB
+    ulimit -n 1024     # Limit file descriptors
+    
+    # Start with timeout and monitoring
+    timeout 300 ./ollama serve > ../ollama.log 2>&1 &
     local ollama_pid=$!
     
     cd ..
     
     echo "📋 Ollama started with PID: $ollama_pid"
     
-    # Extended wait time for startup
-    echo "⏳ Waiting for Ollama to initialize..."
+    # Monitor startup with shorter intervals
+    echo "⏳ Monitoring Ollama startup..."
     
-    local max_wait=120  # 2 minutes
+    local max_wait=60  # Reduced to 1 minute
     local wait_time=0
+    local last_status_check=0
     
     while [ $wait_time -lt $max_wait ]; do
-        if check_ollama 3; then
-            echo "🎉 Ollama is running successfully!"
-            echo "📋 Ollama process info:"
-            ps aux | grep ollama | grep -v grep || true
-            return 0
-        fi
-        
-        wait_time=$((wait_time + 5))
-        echo "   Waiting... ($wait_time/$max_wait seconds)"
-        
         # Check if process is still running
         if ! kill -0 $ollama_pid 2>/dev/null; then
-            echo "❌ Ollama process died, checking logs..."
-            echo "📋 Last 20 lines of ollama.log:"
-            tail -n 20 ollama.log 2>/dev/null || echo "No log file found"
+            echo "❌ Ollama process died during startup"
+            echo "📋 Last 30 lines of ollama.log:"
+            tail -n 30 ollama.log 2>/dev/null || echo "No log file found"
+            
+            # Check for common error patterns
+            if grep -q "out of memory\|killed\|segmentation fault\|core dumped" ollama.log 2>/dev/null; then
+                echo "💥 Detected memory/crash issue - Ollama may need more resources"
+                return 1
+            fi
+            
             return 1
         fi
         
-        sleep 5
+        # Test health every 10 seconds
+        if [ $((wait_time - last_status_check)) -ge 10 ]; then
+            if check_ollama 3; then
+                echo "🎉 Ollama is running successfully!"
+                echo "📋 Ollama process info:"
+                ps aux | grep ollama | grep -v grep || true
+                return 0
+            fi
+            last_status_check=$wait_time
+        fi
+        
+        wait_time=$((wait_time + 2))
+        echo "   Waiting... ($wait_time/$max_wait seconds)"
+        sleep 2
     done
     
     echo "❌ Ollama failed to start after $max_wait seconds"
+    echo "📋 Process status:"
+    if kill -0 $ollama_pid 2>/dev/null; then
+        echo "   Process still running but not responding to HTTP requests"
+        kill -TERM $ollama_pid 2>/dev/null
+        sleep 5
+        kill -KILL $ollama_pid 2>/dev/null
+    else
+        echo "   Process has exited"
+    fi
+    
     echo "📋 Final log check:"
-    tail -n 30 ollama.log 2>/dev/null || echo "No log file found"
+    tail -n 50 ollama.log 2>/dev/null || echo "No log file found"
     return 1
 }
 
@@ -318,9 +363,12 @@ fi
 echo ""
 echo "📋 Step 3: Ollama Service Startup"
 ollama_started=false
+ollama_crash_detected=false
 
 if [ -f "./ollama-bundle/ollama" ]; then
     echo "🚀 Attempting to start Ollama service..."
+    
+    # Try starting Ollama with crash detection
     if start_ollama; then
         echo "🎉 Ollama service started successfully!"
         ollama_started=true
@@ -333,18 +381,27 @@ if [ -f "./ollama-bundle/ollama" ]; then
         cd ..
     else
         echo "⚠️  Ollama service failed to start"
-        echo "📋 Diagnosis:"
-        echo "   - Checking for port conflicts..."
-        netstat -tuln 2>/dev/null | grep 11434 || echo "   - Port 11434 is free"
-        echo "   - Checking system resources..."
-        echo "   - Memory: $(free -m | grep '^Mem:' | awk '{printf "%.1f%%", $3/$2 * 100}')"
-        echo "   - CPU load: $(uptime | awk -F'load average:' '{print $2}')"
+        
+        # Check if it was a crash/memory issue
+        if grep -q "out of memory\|killed\|segmentation fault\|core dumped\|memory/crash issue" ollama.log 2>/dev/null; then
+            ollama_crash_detected=true
+            echo "💥 CRASH DETECTED: Ollama binary crashed due to resource constraints"
+            echo "   This is likely due to insufficient memory or CPU resources on Render"
+            echo "   The system will continue with fallback AI responses"
+        else
+            echo "📋 Diagnosis:"
+            echo "   - Checking for port conflicts..."
+            netstat -tuln 2>/dev/null | grep 11434 || echo "   - Port 11434 is free"
+            echo "   - Checking system resources..."
+            echo "   - Memory: $(free -m | grep '^Mem:' | awk '{printf "%.1f%%", $3/$2 * 100}' 2>/dev/null || echo 'Unknown')"
+            echo "   - CPU load: $(uptime | awk -F'load average:' '{print $2}' 2>/dev/null || echo 'Unknown')"
+        fi
     fi
 else
     echo "⚠️  Ollama binary not available - skipping service startup"
 fi
 
-# Step 4: Model setup (background process)
+# Step 4: Model setup (background process) - only if Ollama started successfully
 echo ""
 echo "📋 Step 4: Mistral Model Setup"
 if [ "$ollama_started" = true ]; then
@@ -362,6 +419,9 @@ if [ "$ollama_started" = true ]; then
     
     # Don't wait for model download - continue with server startup
     echo "✅ Model setup started in background (PID: $!)"
+elif [ "$ollama_crash_detected" = true ]; then
+    echo "⚠️  Skipping model setup - Ollama crashed due to resource constraints"
+    echo "💡 Consider upgrading to a higher memory Render plan for AI functionality"
 else
     echo "⚠️  Skipping model setup - Ollama service not running"
 fi
@@ -400,11 +460,30 @@ echo ""
 
 # Final system status
 echo "📊 Final System Status:"
-echo "   - Ollama Service: $([ "$ollama_started" = true ] && echo "✅ Running" || echo "❌ Failed")"
-echo "   - AI Service: $([ "$AI_SERVICE_ENABLED" = true ] && echo "✅ Enabled (with fallbacks)" || echo "❌ Disabled")"
+if [ "$ollama_started" = true ]; then
+    echo "   - Ollama Service: ✅ Running"
+    echo "   - AI Service: ✅ Enabled (with Mistral model)"
+elif [ "$ollama_crash_detected" = true ]; then
+    echo "   - Ollama Service: 💥 Crashed (resource constraints)"
+    echo "   - AI Service: ⚠️  Fallback mode only"
+    echo "   - Recommendation: 💡 Upgrade Render plan for AI functionality"
+else
+    echo "   - Ollama Service: ❌ Failed to start"
+    echo "   - AI Service: ⚠️  Fallback mode only"
+fi
+
 echo "   - Database: ✅ Configured (Supabase)"
 echo "   - Environment: ✅ Production"
+echo "   - Server Stability: ✅ Protected (won't crash if AI fails)"
 echo ""
+
+if [ "$ollama_crash_detected" = true ]; then
+    echo "⚠️  IMPORTANT: Ollama AI crashed due to resource limits"
+    echo "   Your CivicOS application will still work perfectly, but with limited AI features"
+    echo "   All other functionality (politicians, bills, voting, etc.) remains fully operational"
+    echo "   To enable full AI features, consider upgrading your Render plan"
+    echo ""
+fi
 
 # Monitor Ollama logs in background
 if [ "$ollama_started" = true ]; then
