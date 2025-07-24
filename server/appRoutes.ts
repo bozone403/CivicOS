@@ -36,6 +36,7 @@ import { registerCorruptionRoutes } from "./routes/corruption.js";
 import { registerElectionsRoutes } from "./routes/elections.js";
 import { registerRightsRoutes } from "./routes/rights.js";
 import votingRouter from "./routes/voting.js";
+import donationsRouter from "./routes/donations.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -84,6 +85,10 @@ export async function registerRoutes(app: Express): Promise<void> {
 
   // Search routes (no auth required for search)
   app.use("/api/search", searchRouter);
+
+  // Donations routes (no auth required for donations)
+  app.use("/api/donations", donationsRouter);
+  app.use("/api/create-payment-intent", donationsRouter);
 
   // Health check endpoint
   app.get('/api/health', async (req, res) => {
