@@ -9,7 +9,7 @@
     "build": "tsc --project tsconfig.server.json --outDir dist",
     "build:client": "cd client && npm run build",
     "build:full": "npm run build && npm run build:client",
-    "start": "NODE_ENV=production RENDER=true node dist/server/index.js",
+    "start": "./start.sh",
     "start:render": "bash start-render.sh",
     "postinstall": "echo 'Ollama will be installed during build process'",
     "check": "tsc",
