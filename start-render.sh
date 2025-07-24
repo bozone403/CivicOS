@@ -44,8 +44,8 @@ start_ollama() {
     pkill -f ollama 2>/dev/null || true
     sleep 2
     
-    # Start Ollama in background
-    ollama serve > /dev/null 2>&1 &
+    # Start Ollama with proper configuration for Render
+    OLLAMA_HOST=0.0.0.0:11434 OLLAMA_ORIGINS=* ollama serve > /dev/null 2>&1 &
     OLLAMA_PID=$!
     
     # Wait for Ollama to start

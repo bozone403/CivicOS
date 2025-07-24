@@ -30,7 +30,7 @@ class FreeAiService {
   private defaultModel: string;
 
   constructor() {
-    // For Render deployment, use the internal Ollama service
+    // For Render deployment, use localhost for internal communication
     this.baseUrl = process.env.OLLAMA_URL || 'http://localhost:11434';
     this.defaultModel = process.env.OLLAMA_MODEL || 'mistral:latest';
   }
