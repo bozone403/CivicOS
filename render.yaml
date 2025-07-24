@@ -13,7 +13,7 @@ services:
       # Build the application
       npm install
       npm run build
-    startCommand: ./start-render.sh
+    startCommand: ./start.sh
     envVars:
       - key: NODE_ENV
         value: production
