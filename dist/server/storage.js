@@ -63,7 +63,7 @@ export class DatabaseStorage {
             return result[0];
         }
         catch (error) {
-            console.error('[DB][storage] Error updating user:', error);
+            // console.error removed for production
             throw error;
         }
     }
@@ -77,7 +77,7 @@ export class DatabaseStorage {
             return result;
         }
         catch (error) {
-            console.error("Error fetching notifications:", error);
+            // console.error removed for production
             return [];
         }
     }
@@ -93,7 +93,7 @@ export class DatabaseStorage {
                 .where(and(eq(notifications.id, notificationId), eq(notifications.userId, userId)));
         }
         catch (error) {
-            console.error("Error marking notification as read:", error);
+            // console.error removed for production
             throw error;
         }
     }
@@ -104,7 +104,7 @@ export class DatabaseStorage {
                 .where(and(eq(notifications.id, notificationId), eq(notifications.userId, userId)));
         }
         catch (error) {
-            console.error("Error deleting notification:", error);
+            // console.error removed for production
             throw error;
         }
     }
@@ -115,7 +115,7 @@ export class DatabaseStorage {
                 .where(eq(notifications.userId, userId));
         }
         catch (error) {
-            console.error("Error clearing notifications:", error);
+            // console.error removed for production
             throw error;
         }
     }
@@ -157,7 +157,7 @@ export class DatabaseStorage {
         return bill;
     }
     async createBill(bill) {
-        console.log('[DB][storage] Attempting to create bill. Pool type:', typeof pool, 'DATABASE_URL:', process.env.DATABASE_URL, 'NODE_TLS_REJECT_UNAUTHORIZED:', process.env.NODE_TLS_REJECT_UNAUTHORIZED);
+        // console.log removed for production
         const [newBill] = await db.insert(bills).values(bill).returning();
         return newBill;
     }
@@ -217,7 +217,7 @@ export class DatabaseStorage {
         return politician;
     }
     async createPolitician(politician) {
-        console.log('[DB][storage] Attempting to create politician. Pool type:', typeof pool, 'DATABASE_URL:', process.env.DATABASE_URL, 'NODE_TLS_REJECT_UNAUTHORIZED:', process.env.NODE_TLS_REJECT_UNAUTHORIZED);
+        // console.log removed for production
         const [newPolitician] = await db.insert(politicians).values(politician).returning();
         return newPolitician;
     }
@@ -552,7 +552,7 @@ export class DatabaseStorage {
             };
         }
         catch (error) {
-            console.error('Error fetching civic ledger:', error);
+            // console.error removed for production
             return {
                 summary: {
                     totalVotes: 0,

@@ -23,7 +23,7 @@ export class GovernmentAPIService {
       const billsResponse = await fetch('https://www.parl.ca/legisinfo/en/bills');
       // No further logic for billsResponse yet
     } catch (error) {
-      console.error("Error fetching Parliament data:", error);
+      // console.error removed for production
     }
   }
 
@@ -37,7 +37,7 @@ export class GovernmentAPIService {
       const popResponse = await fetch('https://www150.statcan.gc.ca/t1/wds/rest/getDataFromVectorsAndLatestNPeriods');
       // No further logic for popResponse yet
     } catch (error) {
-      console.error("Error fetching Statistics Canada data:", error);
+      // console.error removed for production
     }
   }
 
@@ -51,7 +51,7 @@ export class GovernmentAPIService {
       const spendingResponse = await fetch('https://open.canada.ca/data/api/action/package_search?q=spending');
       // No further logic for spendingResponse yet
     } catch (error) {
-      console.error("Error fetching Open Government data:", error);
+      // console.error removed for production
     }
   }
 
@@ -65,7 +65,7 @@ export class GovernmentAPIService {
       const boundariesResponse = await fetch('https://www.elections.ca/res/cir/maps2/mapprov.asp');
       // No further logic for boundariesResponse yet
     } catch (error) {
-      console.error("Error fetching electoral data:", error);
+      // console.error removed for production
     }
   }
 
@@ -81,7 +81,7 @@ export class GovernmentAPIService {
       // Implementation would parse XML and insert verified data
       
     } catch (error) {
-      console.error("Error processing Parliament MP data:", error);
+      // console.error removed for production
     }
   }
 

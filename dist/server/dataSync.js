@@ -298,7 +298,7 @@ async function storeBill(bill) {
     }
     catch (error) {
         if (!error.message?.includes('duplicate')) {
-            console.error('Error storing bill:', error);
+            // console.error removed for production
         }
     }
 }

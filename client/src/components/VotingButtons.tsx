@@ -49,7 +49,7 @@ export function VotingButtons({
       queryClient.invalidateQueries({ queryKey: ["/api/bills"] });
     },
     onError: (error: any) => {
-      console.error("Voting error:", error);
+      // console.error removed for production
       
       // Parse error message from API response
       let errorMessage = "Failed to register vote";

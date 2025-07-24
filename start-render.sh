@@ -1,61 +1,45 @@
 #!/bin/bash
 
-echo "🚀 Starting CivicOS..."
+echo "🚀 CIVICOS SUITE - RENDER STARTUP SCRIPT"
+echo "========================================="
 
-# Check if we're in production
-if [ "$NODE_ENV" = "production" ]; then
-    echo "🏭 Production environment detected"
-    
-    # Apply database migrations if DATABASE_URL is available
-    if [ ! -z "$DATABASE_URL" ]; then
-        echo "🗄️  Applying database migrations..."
-        
-        # Apply the user fields migration
-        psql "$DATABASE_URL" -f migrations/0006_complete_user_fields.sql || {
-            echo "⚠️  Migration failed - continuing anyway"
-        }
-        
-        echo "✅ Database migrations completed"
-    else
-        echo "⚠️  DATABASE_URL not available - skipping migrations"
-    fi
-    
-    # Try to start Ollama if available (but don't fail if it doesn't work)
-    if command -v ollama &> /dev/null; then
-        echo "🤖 Ollama found, attempting to start..."
-        
-        # Start Ollama in background with proper error handling
-        OLLAMA_HOST=0.0.0.0:11434 ollama serve > /dev/null 2>&1 &
-        OLLAMA_PID=$!
-        
-        # Wait a bit for Ollama to start
-        sleep 5
-        
-        # Check if Ollama is responding
-        if curl -s --max-time 5 http://127.0.0.1:11434/api/tags > /dev/null 2>&1; then
-            echo "✅ Ollama started successfully"
-            
-            # Check for Mistral model
-            if ollama list | grep -q "mistral"; then
-                echo "✅ Mistral model available"
-            else
-                echo "📥 Downloading Mistral model..."
-                ollama pull mistral:latest > /dev/null 2>&1 &
-            fi
-        else
-            echo "⚠️  Ollama failed to start - continuing without AI service"
-            # Kill the background process if it exists
-            if [ ! -z "$OLLAMA_PID" ]; then
-                kill $OLLAMA_PID 2>/dev/null || true
-            fi
-        fi
-    else
-        echo "⚠️  Ollama not found - continuing without AI service"
-    fi
-else
-    echo "🔧 Development environment detected"
+# Set production environment
+export NODE_ENV=production
+export RENDER=true
+
+# Install Ollama if not already installed
+if ! command -v ollama &> /dev/null; then
+    echo "🤖 Installing Ollama..."
+    curl -fsSL https://ollama.ai/install.sh | sh
 fi
 
+# Start Ollama service in background
+echo "🤖 Starting Ollama AI service..."
+ollama serve > /dev/null 2>&1 &
+
+# Wait for Ollama to be ready
+echo "⏳ Waiting for Ollama to be ready..."
+sleep 10
+
+# Pull the Mistral model if not already available
+echo "📥 Ensuring Mistral model is available..."
+ollama pull mistral:latest
+
+# Verify Ollama is running
+echo "🔍 Verifying Ollama service..."
+if curl -s http://localhost:11434/api/tags > /dev/null; then
+    echo "✅ Ollama is running successfully"
+    echo "📋 Available models:"
+    ollama list
+else
+    echo "⚠️  Ollama may not be ready, continuing anyway..."
+fi
+
+# Start the main application
+echo "🚀 Starting CivicOS application on Render..."
+echo "🌐 Frontend: https://civicos.onrender.com"
+echo "🔧 Backend: https://civicos.onrender.com/api"
+echo "🤖 AI Service: https://civicos.onrender.com/api/ai"
+
 # Start the Node.js application
-echo "🌐 Starting CivicOS application..."
-exec node dist/server/index.js 
+NODE_ENV=production RENDER=true node dist/server/index.js 

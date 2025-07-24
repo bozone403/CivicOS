@@ -430,7 +430,7 @@ export async function populateSampleElectionData(): Promise<void> {
     await db.insert(schema.electoralDistricts).values(sampleDistricts);
 
   } catch (error) {
-    // console.error("Error populating sample election data:", error);
+    // // console.error removed for production
   }
 }
 
@@ -460,7 +460,7 @@ export async function scrapeAllElectionData(): Promise<void> {
     }
     
   } catch (error) {
-    // console.error("Error in comprehensive election scraping:", error);
+    // // console.error removed for production
     // Fallback to sample data
     await populateSampleElectionData();
   }

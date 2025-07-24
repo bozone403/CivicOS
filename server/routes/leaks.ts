@@ -26,7 +26,7 @@ export function registerLeaksRoutes(app: Express) {
         }
       });
     } catch (error) {
-      console.error('Error fetching leaks:', error);
+      // console.error removed for production
       res.status(500).json({ error: 'Failed to fetch leaks data' });
     }
   });

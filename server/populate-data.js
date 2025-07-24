@@ -2,12 +2,12 @@ import { storage } from '../dist/server/storage.js';
 import { scrapeCurrentMPs, scrapeFederalBills } from '../dist/server/scrapers.js';
 
 async function populatePoliticians() {
-  console.log('Populating politicians...');
+  // console.log removed for production
   
   try {
     // Try to scrape real data
     const scrapedMPs = await scrapeCurrentMPs();
-    console.log(`Scraped ${scrapedMPs.length} politicians`);
+    // console.log removed for production
     
     // Add fallback data if scraping didn't work well
     const fallbackPoliticians = [
@@ -77,28 +77,28 @@ async function populatePoliticians() {
           jurisdiction: politician.province,
           trustScore: politician.trustScore?.toString() || "75.0"
         });
-        console.log(`Stored politician: ${politician.name}`);
+        // console.log removed for production
       } catch (error) {
         // Ignore duplicates
         if (!error.message?.includes('duplicate')) {
-          console.error(`Error storing ${politician.name}:`, error.message);
+          // console.error removed for production
         }
       }
     }
     
-    console.log(`Successfully populated ${allPoliticians.length} politicians`);
+    // console.log removed for production
   } catch (error) {
-    console.error('Error populating politicians:', error);
+    // console.error removed for production
   }
 }
 
 async function populateBills() {
-  console.log('Populating bills...');
+  // console.log removed for production
   
   try {
     // Try to scrape real data
     const scrapedBills = await scrapeFederalBills();
-    console.log(`Scraped ${scrapedBills.length} bills`);
+    // console.log removed for production
     
     // Add fallback data
     const fallbackBills = [
@@ -152,18 +152,18 @@ async function populateBills() {
           status: bill.status,
           votingDeadline: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
         });
-        console.log(`Stored bill: ${bill.number} - ${bill.title}`);
+        // console.log removed for production
       } catch (error) {
         // Ignore duplicates
         if (!error.message?.includes('duplicate')) {
-          console.error(`Error storing bill ${bill.number}:`, error.message);
+          // console.error removed for production
         }
       }
     }
     
-    console.log(`Successfully populated ${allBills.length} bills`);
+    // console.log removed for production
   } catch (error) {
-    console.error('Error populating bills:', error);
+    // console.error removed for production
   }
 }
 
@@ -188,13 +188,13 @@ function inferCategory(title) {
 }
 
 async function populateAllData() {
-  console.log('=== Starting Data Population ===\n');
+  // console.log removed for production
   
   await populatePoliticians();
-  console.log('');
+  // console.log removed for production
   await populateBills();
   
-  console.log('\n=== Data Population Complete ===');
+  // console.log removed for production
 }
 
 populateAllData().catch(console.error); 

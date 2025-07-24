@@ -34,7 +34,7 @@ export function registerLegalRoutes(app: Express) {
       const acts = await query.orderBy(desc(legalActs.updatedAt));
       res.json(acts);
     } catch (error) {
-      console.error('Error fetching legal acts:', error);
+      // console.error removed for production
       res.status(500).json({ error: 'Failed to fetch legal acts' });
     }
   });
@@ -64,7 +64,7 @@ export function registerLegalRoutes(app: Express) {
         sections
       });
     } catch (error) {
-      console.error('Error fetching legal act:', error);
+      // console.error removed for production
       res.status(500).json({ error: 'Failed to fetch legal act' });
     }
   });
@@ -97,7 +97,7 @@ export function registerLegalRoutes(app: Express) {
       const sections = await query.orderBy(criminalCodeSections.sectionNumber);
       res.json(sections);
     } catch (error) {
-      console.error('Error fetching criminal code:', error);
+      // console.error removed for production
       res.status(500).json({ error: 'Failed to fetch criminal code' });
     }
   });
@@ -112,7 +112,7 @@ export function registerLegalRoutes(app: Express) {
       
       res.json(rights);
     } catch (error) {
-      console.error('Error fetching Charter rights:', error);
+      // console.error removed for production
       res.status(500).json({ error: 'Failed to fetch Charter rights' });
     }
   });
@@ -172,7 +172,7 @@ export function registerLegalRoutes(app: Express) {
 
       res.json(results);
     } catch (error) {
-      console.error('Error searching legal content:', error);
+      // console.error removed for production
       res.status(500).json({ error: 'Failed to search legal content' });
     }
   });
@@ -205,7 +205,7 @@ export function registerLegalRoutes(app: Express) {
         jurisdictionBreakdown: jurisdictionStats.rows
       });
     } catch (error) {
-      console.error('Error fetching legal stats:', error);
+      // console.error removed for production
       res.status(500).json({ error: 'Failed to fetch legal statistics' });
     }
   });

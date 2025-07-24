@@ -1,7 +1,6 @@
-import { storage } from "../storage.js";
-import { db } from "../db.js";
-import { petitions, petitionSignatures, userActivity } from "../../shared/schema.js";
-import { eq, desc } from "drizzle-orm";
+import { db } from '../db.js';
+import { petitions, petitionSignatures, users } from '../../shared/schema.js';
+import { eq, and, desc } from 'drizzle-orm';
 // JWT Auth middleware
 function jwtAuth(req, res, next) {
     const authHeader = req.headers.authorization;
@@ -22,166 +21,260 @@ function jwtAuth(req, res, next) {
         return res.status(401).json({ message: "Invalid or expired token" });
     }
 }
-export function registerPetitionsRoutes(app) {
+import { storage } from '../storage.js';
+export function registerPetitionRoutes(app) {
     // Get all petitions
-    app.get('/api/petitions', jwtAuth, async (req, res) => {
+    app.get('/api/petitions', async (req, res) => {
         try {
-            const userId = req.user?.id;
-            if (!userId) {
-                return res.status(401).json({ message: "Unauthorized" });
-            }
-            const { search, category, status, page = '1', limit = '20' } = req.query;
-            const offset = (parseInt(page) - 1) * parseInt(limit);
-            // Get petitions from database
-            let allPetitions = await db.select().from(petitions).orderBy(desc(petitions.createdAt));
-            // Apply filters in memory to avoid TypeScript issues
-            if (search) {
-                allPetitions = allPetitions.filter(petition => petition.title.toLowerCase().includes(search.toLowerCase()));
-            }
-            if (status && status !== 'all') {
-                allPetitions = allPetitions.filter(petition => petition.status === status);
-            }
-            // Get user's signatures
-            const userSignatures = await db.select()
-                .from(petitionSignatures)
-                .where(eq(petitionSignatures.userId, userId));
-            // Combine petitions with user's signature status
-            const petitionsWithSignatures = allPetitions.map(petition => {
-                const userSignature = userSignatures.find(sig => sig.petitionId === petition.id);
-                return {
-                    ...petition,
-                    hasSigned: !!userSignature,
-                    userSignature: userSignature || null
-                };
-            });
-            // Pagination
-            const total = petitionsWithSignatures.length;
-            const paginatedPetitions = petitionsWithSignatures.slice(offset, offset + parseInt(limit));
-            res.json({
-                petitions: paginatedPetitions,
-                pagination: {
-                    page: parseInt(page),
-                    limit: parseInt(limit),
-                    total,
-                    pages: Math.ceil(total / parseInt(limit))
+            const allPetitions = await db
+                .select({
+                id: petitions.id,
+                title: petitions.title,
+                description: petitions.description,
+                targetSignatures: petitions.targetSignatures,
+                currentSignatures: petitions.currentSignatures,
+                status: petitions.status,
+                deadlineDate: petitions.deadlineDate,
+                createdAt: petitions.createdAt,
+                updatedAt: petitions.updatedAt,
+                creatorId: petitions.creatorId,
+                creator: {
+                    firstName: users.firstName,
+                    lastName: users.lastName,
+                    email: users.email
                 }
-            });
+            })
+                .from(petitions)
+                .leftJoin(users, eq(petitions.creatorId, users.id))
+                .orderBy(desc(petitions.createdAt));
+            // Calculate days left and add mock data for missing fields
+            const enrichedPetitions = allPetitions.map(petition => ({
+                ...petition,
+                daysLeft: petition.deadlineDate ?
+                    Math.ceil((new Date(petition.deadlineDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)) : 30,
+                urgency: getUrgencyLevel(petition.currentSignatures || 0, petition.targetSignatures || 500),
+                verified: true,
+                category: "Civic Engagement",
+                region: "National",
+                image: "https://images.unsplash.com/photo-1559757148-5c350d0d3c56?w=800&h=400&fit=crop",
+                tags: ["Civic Engagement", "Democracy", "Citizen Action"],
+                supporters: [
+                    { name: "CivicOS Community", role: "Platform", location: "Canada" }
+                ]
+            }));
+            res.json(enrichedPetitions);
         }
         catch (error) {
-            console.error('Error fetching petitions:', error);
-            res.status(500).json({ error: 'Failed to fetch petitions' });
+            // console.error removed for production
+            res.status(500).json({ message: 'Failed to fetch petitions' });
         }
     });
-    // Create a new petition
-    app.post('/api/petitions', jwtAuth, async (req, res) => {
+    // Get single petition
+    app.get('/api/petitions/:id', async (req, res) => {
         try {
-            const userId = req.user?.id;
-            if (!userId) {
-                return res.status(401).json({ message: "Unauthorized" });
+            const petitionId = parseInt(req.params.id);
+            const [petition] = await db
+                .select({
+                id: petitions.id,
+                title: petitions.title,
+                description: petitions.description,
+                targetSignatures: petitions.targetSignatures,
+                currentSignatures: petitions.currentSignatures,
+                status: petitions.status,
+                deadlineDate: petitions.deadlineDate,
+                createdAt: petitions.createdAt,
+                updatedAt: petitions.updatedAt,
+                creatorId: petitions.creatorId,
+                creator: {
+                    firstName: users.firstName,
+                    lastName: users.lastName,
+                    email: users.email
+                }
+            })
+                .from(petitions)
+                .leftJoin(users, eq(petitions.creatorId, users.id))
+                .where(eq(petitions.id, petitionId));
+            if (!petition) {
+                return res.status(404).json({ message: 'Petition not found' });
             }
-            const { title, description, category, targetSignatures, deadline } = req.body;
-            if (!title || !description || !category || !targetSignatures) {
-                return res.status(400).json({ message: "Missing required fields" });
-            }
-            const newPetition = await storage.createPetition({
-                title,
-                description,
-                category,
-                targetSignatures: parseInt(targetSignatures),
-                currentSignatures: 0,
-                status: 'active',
-                createdBy: userId,
-                deadline: deadline ? new Date(deadline) : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days default
-                createdAt: new Date(),
-                updatedAt: new Date()
-            });
-            // Update user activity
-            await db.insert(userActivity).values({
-                userId,
-                activityType: 'petition_created',
-                entityId: newPetition.id,
-                entityType: 'petition',
-                details: { petitionId: newPetition.id, title: newPetition.title },
-                createdAt: new Date()
-            });
-            res.status(201).json({
-                message: "Petition created successfully",
-                petition: newPetition
-            });
+            // Add mock data for missing fields
+            const enrichedPetition = {
+                ...petition,
+                daysLeft: petition.deadlineDate ?
+                    Math.ceil((new Date(petition.deadlineDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)) : 30,
+                urgency: getUrgencyLevel(petition.currentSignatures || 0, petition.targetSignatures || 500),
+                verified: true,
+                category: "Civic Engagement",
+                region: "National",
+                image: "https://images.unsplash.com/photo-1559757148-5c350d0d3c56?w=800&h=400&fit=crop",
+                tags: ["Civic Engagement", "Democracy", "Citizen Action"],
+                supporters: [
+                    { name: "CivicOS Community", role: "Platform", location: "Canada" }
+                ]
+            };
+            res.json(enrichedPetition);
         }
         catch (error) {
-            console.error('Error creating petition:', error);
-            res.status(500).json({ error: 'Failed to create petition' });
+            // console.error removed for production
+            res.status(500).json({ message: 'Failed to fetch petition' });
         }
     });
-    // Sign a petition
-    app.post('/api/petitions/:petitionId/sign', jwtAuth, async (req, res) => {
+    // Sign petition
+    app.post('/api/petitions/:id/sign', jwtAuth, async (req, res) => {
         try {
-            const userId = req.user?.id;
-            if (!userId) {
-                return res.status(401).json({ message: "Unauthorized" });
-            }
-            const { petitionId } = req.params;
+            const petitionId = parseInt(req.params.id);
+            const userId = req.user.id;
             const { verificationId } = req.body;
             if (!verificationId) {
-                return res.status(400).json({ message: "Verification ID required" });
+                return res.status(400).json({ message: 'Verification ID is required' });
             }
-            // Check if already signed
-            const existingSignature = await storage.getPetitionSignature(parseInt(petitionId), userId);
-            if (existingSignature) {
-                return res.status(409).json({ message: "Already signed this petition" });
+            // Check if user already signed
+            const existingSignature = await db
+                .select()
+                .from(petitionSignatures)
+                .where(and(eq(petitionSignatures.petitionId, petitionId), eq(petitionSignatures.userId, userId)));
+            if (existingSignature.length > 0) {
+                return res.status(400).json({ message: 'You have already signed this petition' });
             }
             // Sign the petition
-            const signature = await storage.signPetition(parseInt(petitionId), userId, verificationId);
-            // Update user activity
-            await db.insert(userActivity).values({
-                userId,
-                activityType: 'petition_signed',
-                entityId: parseInt(petitionId),
-                entityType: 'petition',
-                details: { petitionId: parseInt(petitionId) },
-                createdAt: new Date()
-            });
+            const signature = await storage.signPetition(petitionId, userId, verificationId);
             res.json({
-                message: "Petition signed successfully",
-                signature
+                message: 'Petition signed successfully',
+                signature,
+                currentSignatures: signature.currentSignatures
             });
         }
         catch (error) {
-            console.error('Error signing petition:', error);
-            res.status(500).json({ error: 'Failed to sign petition' });
+            // console.error removed for production
+            res.status(500).json({ message: 'Failed to sign petition' });
         }
     });
-    // Get petition details
-    app.get('/api/petitions/:petitionId', jwtAuth, async (req, res) => {
+    // Create new petition
+    app.post('/api/petitions', jwtAuth, async (req, res) => {
         try {
-            const { petitionId } = req.params;
-            const userId = req.user?.id;
-            // Get petition from database
-            const petition = await db.select()
-                .from(petitions)
-                .where(eq(petitions.id, parseInt(petitionId)))
-                .limit(1);
-            if (!petition[0]) {
-                return res.status(404).json({ message: "Petition not found" });
+            const userId = req.user.id;
+            const { title, description, targetSignatures, deadlineDate } = req.body;
+            if (!title || !description) {
+                return res.status(400).json({ message: 'Title and description are required' });
             }
-            // Get signatures for this petition
-            const signatures = await db.select()
-                .from(petitionSignatures)
-                .where(eq(petitionSignatures.petitionId, parseInt(petitionId)))
-                .orderBy(desc(petitionSignatures.signedAt));
-            // Check if user signed
-            const userSignature = signatures.find(sig => sig.userId === userId);
-            res.json({
-                petition: petition[0],
-                signatures: signatures.length,
-                hasSigned: !!userSignature,
-                userSignature: userSignature || null
+            const newPetition = await db
+                .insert(petitions)
+                .values({
+                title,
+                description,
+                creatorId: userId,
+                targetSignatures: targetSignatures || 500,
+                currentSignatures: 0,
+                status: 'active',
+                deadlineDate: deadlineDate ? new Date(deadlineDate) : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days default
+            })
+                .returning();
+            res.status(201).json({
+                message: 'Petition created successfully',
+                petition: newPetition[0]
             });
         }
         catch (error) {
-            console.error('Error fetching petition details:', error);
-            res.status(500).json({ error: 'Failed to fetch petition details' });
+            // console.error removed for production
+            res.status(500).json({ message: 'Failed to create petition' });
         }
     });
+    // Get user's signed petitions
+    app.get('/api/petitions/user/signed', jwtAuth, async (req, res) => {
+        try {
+            const userId = req.user.id;
+            const signedPetitions = await db
+                .select({
+                id: petitionSignatures.id,
+                signedAt: petitionSignatures.signedAt,
+                petition: {
+                    id: petitions.id,
+                    title: petitions.title,
+                    description: petitions.description,
+                    currentSignatures: petitions.currentSignatures,
+                    targetSignatures: petitions.targetSignatures,
+                    status: petitions.status
+                }
+            })
+                .from(petitionSignatures)
+                .leftJoin(petitions, eq(petitionSignatures.petitionId, petitions.id))
+                .where(eq(petitionSignatures.userId, userId))
+                .orderBy(desc(petitionSignatures.signedAt));
+            res.json(signedPetitions);
+        }
+        catch (error) {
+            // console.error removed for production
+            res.status(500).json({ message: 'Failed to fetch user petitions' });
+        }
+    });
+    // Share petition
+    app.post('/api/petitions/:id/share', jwtAuth, async (req, res) => {
+        try {
+            const petitionId = parseInt(req.params.id);
+            const { platform } = req.body; // twitter, facebook, email, etc.
+            // Get petition details
+            const [petition] = await db
+                .select()
+                .from(petitions)
+                .where(eq(petitions.id, petitionId));
+            if (!petition) {
+                return res.status(404).json({ message: 'Petition not found' });
+            }
+            // Generate share URL
+            const shareUrl = `${process.env.FRONTEND_BASE_URL}/petitions/${petitionId}`;
+            const shareText = `I just signed "${petition.title}" on CivicOS. Join me in making our voices heard! 🇨🇦`;
+            let shareLink = '';
+            switch (platform) {
+                case 'twitter':
+                    shareLink = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(shareUrl)}`;
+                    break;
+                case 'facebook':
+                    shareLink = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`;
+                    break;
+                case 'email':
+                    shareLink = `mailto:?subject=${encodeURIComponent(`Sign this petition: ${petition.title}`)}&body=${encodeURIComponent(`${shareText}\n\n${shareUrl}`)}`;
+                    break;
+                default:
+                    shareLink = shareUrl;
+            }
+            res.json({
+                message: 'Share link generated',
+                shareLink,
+                shareText,
+                platform
+            });
+        }
+        catch (error) {
+            // console.error removed for production
+            res.status(500).json({ message: 'Failed to generate share link' });
+        }
+    });
+    // Save petition (bookmark)
+    app.post('/api/petitions/:id/save', jwtAuth, async (req, res) => {
+        try {
+            const petitionId = parseInt(req.params.id);
+            const userId = req.user.id;
+            // For now, just return success - in a real implementation, you'd have a saved_petitions table
+            res.json({
+                message: 'Petition saved successfully',
+                petitionId,
+                saved: true
+            });
+        }
+        catch (error) {
+            // console.error removed for production
+            res.status(500).json({ message: 'Failed to save petition' });
+        }
+    });
+}
+// Helper function to determine urgency level
+function getUrgencyLevel(current, target) {
+    const percentage = (current / target) * 100;
+    if (percentage >= 80)
+        return 'Critical';
+    if (percentage >= 60)
+        return 'High';
+    if (percentage >= 40)
+        return 'Medium';
+    return 'Low';
 }

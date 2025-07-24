@@ -4,14 +4,14 @@ const { exec } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 
-console.log('🚀 Initializing Ollama for CivicOS Production...');
+// console.log removed for production
 
 // Check if Ollama is installed
 function checkOllamaInstallation() {
   return new Promise((resolve) => {
     exec('ollama --version', (error, stdout, stderr) => {
       if (error) {
-        console.log('❌ Ollama not found. Installing...');
+        // console.log removed for production
         resolve(false);
       } else {
         console.log(`✅ Ollama found: ${stdout.trim()}`);
@@ -23,7 +23,7 @@ function checkOllamaInstallation() {
 
 // Install Ollama if not present
 async function installOllama() {
-  console.log('📦 Installing Ollama...');
+  // console.log removed for production
   
   return new Promise((resolve, reject) => {
     const installCommand = process.platform === 'win32' 
@@ -32,10 +32,10 @@ async function installOllama() {
     
     exec(installCommand, (error, stdout, stderr) => {
       if (error) {
-        console.error('❌ Failed to install Ollama:', error);
+        // console.error removed for production
         reject(error);
       } else {
-        console.log('✅ Ollama installed successfully');
+        // console.log removed for production
         resolve();
       }
     });
@@ -45,14 +45,14 @@ async function installOllama() {
 // Start Ollama service
 function startOllama() {
   return new Promise((resolve, reject) => {
-    console.log('🔄 Starting Ollama service...');
+    // console.log removed for production
     
     exec('ollama serve', (error, stdout, stderr) => {
       if (error) {
-        console.error('❌ Failed to start Ollama service:', error);
+        // console.error removed for production
         reject(error);
       } else {
-        console.log('✅ Ollama service started');
+        // console.log removed for production
         resolve();
       }
     });
@@ -62,14 +62,14 @@ function startOllama() {
 // Download Mistral model
 function downloadMistral() {
   return new Promise((resolve, reject) => {
-    console.log('📥 Downloading Mistral model...');
+    // console.log removed for production
     
     exec('ollama pull mistral:latest', (error, stdout, stderr) => {
       if (error) {
-        console.error('❌ Failed to download Mistral:', error);
+        // console.error removed for production
         reject(error);
       } else {
-        console.log('✅ Mistral model downloaded successfully');
+        // console.log removed for production
         resolve();
       }
     });
@@ -79,16 +79,16 @@ function downloadMistral() {
 // Test Mistral model
 function testMistral() {
   return new Promise((resolve, reject) => {
-    console.log('🧪 Testing Mistral model...');
+    // console.log removed for production
     
     const testPrompt = 'Hello, this is a test of the CivicOS AI system. Please respond with "CivicOS AI is ready!"';
     
     exec(`echo '${testPrompt}' | ollama run mistral:latest`, (error, stdout, stderr) => {
       if (error) {
-        console.error('❌ Mistral test failed:', error);
+        // console.error removed for production
         reject(error);
       } else {
-        console.log('✅ Mistral model test successful');
+        // console.log removed for production
         console.log('📝 Test response:', stdout.trim());
         resolve();
       }
@@ -101,15 +101,15 @@ function checkModelAvailability() {
   return new Promise((resolve) => {
     exec('ollama list', (error, stdout, stderr) => {
       if (error) {
-        console.error('❌ Failed to list models:', error);
+        // console.error removed for production
         resolve(false);
       } else {
         const models = stdout.split('\n').filter(line => line.includes('mistral'));
         if (models.length > 0) {
-          console.log('✅ Mistral model found:', models[0]);
+          // console.log removed for production
           resolve(true);
         } else {
-          console.log('❌ Mistral model not found');
+          // console.log removed for production
           resolve(false);
         }
       }
@@ -120,7 +120,7 @@ function checkModelAvailability() {
 // Main initialization function
 async function initializeOllama() {
   try {
-    console.log('🔍 Checking Ollama installation...');
+    // console.log removed for production
     const isInstalled = await checkOllamaInstallation();
     
     if (!isInstalled) {
@@ -128,10 +128,10 @@ async function initializeOllama() {
     }
     
     // Start Ollama service in background
-    console.log('🔄 Starting Ollama service...');
+    // console.log removed for production
     const ollamaProcess = exec('ollama serve', (error) => {
       if (error) {
-        console.error('❌ Ollama service error:', error);
+        // console.error removed for production
       }
     });
     
@@ -139,29 +139,29 @@ async function initializeOllama() {
     await new Promise(resolve => setTimeout(resolve, 3000));
     
     // Check if Mistral is available
-    console.log('🔍 Checking Mistral model availability...');
+    // console.log removed for production
     const modelAvailable = await checkModelAvailability();
     
     if (!modelAvailable) {
-      console.log('📥 Mistral model not found, downloading...');
+      // console.log removed for production
       await downloadMistral();
     }
     
     // Test the model
     await testMistral();
     
-    console.log('🎉 Ollama initialization complete!');
-    console.log('📋 CivicOS AI is ready for production use.');
+    // console.log removed for production
+    // console.log removed for production
     
     // Keep the process running
     process.on('SIGINT', () => {
-      console.log('🛑 Shutting down Ollama...');
+      // console.log removed for production
       ollamaProcess.kill();
       process.exit(0);
     });
     
   } catch (error) {
-    console.error('❌ Ollama initialization failed:', error);
+    // console.error removed for production
     process.exit(1);
   }
 }

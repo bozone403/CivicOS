@@ -47,16 +47,10 @@ export default function Dashboard() {
   const { data: stats, isLoading, error } = useQuery<DashboardStats>({
     queryKey: ['/api/dashboard/stats'],
     queryFn: async () => {
-      console.log('🔍 Dashboard API call starting...');
-      console.log('🔍 User:', user);
-      console.log('🔍 Token:', localStorage.getItem('civicos-jwt'));
-      
       try {
         const result = await apiRequest('/api/dashboard/stats', 'GET');
-        console.log('✅ Dashboard API call successful:', result);
         return result;
       } catch (error) {
-        console.error('❌ Dashboard API call failed:', error);
         throw error;
       }
     },
@@ -64,11 +58,7 @@ export default function Dashboard() {
     retry: 2,
   });
 
-  // Debug logging
-  console.log('Dashboard Debug:', { user, isLoading, error, stats });
-
   if (isLoading) {
-    console.log('Dashboard is loading...');
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <LoadingSpinner size="lg" />
@@ -77,7 +67,6 @@ export default function Dashboard() {
   }
 
   if (error) {
-    console.log('Dashboard error:', error);
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">

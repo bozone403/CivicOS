@@ -166,7 +166,7 @@ export function registerRightsRoutes(app) {
             res.json(charterRights);
         }
         catch (error) {
-            console.error("Charter rights error:", error);
+            // console.error removed for production
             res.status(500).json({ error: "Failed to fetch charter rights" });
         }
     });
@@ -183,7 +183,7 @@ export function registerRightsRoutes(app) {
             }
         }
         catch (error) {
-            console.error("Provincial rights error:", error);
+            // console.error removed for production
             res.status(500).json({ error: "Failed to fetch provincial rights" });
         }
     });
@@ -207,7 +207,7 @@ export function registerRightsRoutes(app) {
             res.json(results);
         }
         catch (error) {
-            console.error("Rights search error:", error);
+            // console.error removed for production
             res.status(500).json({ error: "Failed to search rights" });
         }
     });

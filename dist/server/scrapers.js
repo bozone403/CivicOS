@@ -54,7 +54,7 @@ export async function scrapeCurrentMPs() {
         return uniqueMPs;
     }
     catch (error) {
-        console.error("Error in comprehensive MP data collection:", error);
+        // console.error removed for production
         // Fallback to curated real data with verified information
         return await getCuratedRealMPData();
     }
@@ -415,7 +415,7 @@ export async function scrapeFederalBills() {
         return uniqueBills;
     }
     catch (error) {
-        console.error("Error in comprehensive bill collection:", error);
+        // console.error removed for production
         return await getCuratedRealBillData();
     }
 }
@@ -649,7 +649,7 @@ export async function populateRealData() {
         }
     }
     catch (error) {
-        console.error("Error populating database:", error);
+        // console.error removed for production
     }
 }
 /**

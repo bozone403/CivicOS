@@ -97,8 +97,6 @@ export function registerAuthRoutes(app: Express) {
   // Test endpoint to check database schema
   app.get("/api/auth/test-schema", async (req: Request, res: Response) => {
     try {
-      console.log('🔍 Testing database schema...');
-      
       // Test if we can create a user with all fields
       const testUserData = {
         id: 'test-schema-check',
@@ -128,13 +126,9 @@ export function registerAuthRoutes(app: Express) {
         createdAt: new Date(),
         updatedAt: new Date(),
       };
-
-      console.log('📝 Test user data:', testUserData);
       
       // Try to create the user (this will fail if fields don't exist)
       const user = await storage.createUser(testUserData);
-      
-      console.log('✅ Schema test successful - all fields available');
       
       // Clean up the test user
       await db.delete(users).where(eq(users.id, 'test-schema-check'));
@@ -145,7 +139,6 @@ export function registerAuthRoutes(app: Express) {
         timestamp: new Date().toISOString()
       });
     } catch (err) {
-      console.error('❌ Schema test failed:', err);
       res.status(500).json({ 
         status: 'error',
         message: 'Database schema test failed - missing fields',
@@ -158,13 +151,6 @@ export function registerAuthRoutes(app: Express) {
   // Registration endpoint
   app.post("/api/auth/register", async (req: Request, res: Response) => {
     try {
-      console.log('🔍 Registration request received:', {
-        body: req.body,
-        headers: req.headers,
-        method: req.method,
-        url: req.url
-      });
-
       const { 
         email, 
         password, 
@@ -183,39 +169,14 @@ export function registerAuthRoutes(app: Express) {
         communicationStyle
       } = req.body;
       
-      console.log('📝 Parsed registration data:', {
-        email: email ? 'provided' : 'missing',
-        password: password ? 'provided' : 'missing',
-        firstName: firstName ? 'provided' : 'missing',
-        lastName: lastName ? 'provided' : 'missing',
-        city: city ? 'provided' : 'missing',
-        province: province ? 'provided' : 'missing',
-        postalCode: postalCode ? 'provided' : 'missing',
-        phoneNumber: phoneNumber ? 'provided' : 'missing',
-        dateOfBirth: dateOfBirth ? 'provided' : 'missing',
-        federalRiding: federalRiding ? 'provided' : 'missing',
-        provincialRiding: provincialRiding ? 'provided' : 'missing',
-        municipalWard: municipalWard ? 'provided' : 'missing',
-        citizenshipStatus: citizenshipStatus ? 'provided' : 'missing',
-        voterRegistrationStatus: voterRegistrationStatus ? 'provided' : 'missing',
-        communicationStyle: communicationStyle ? 'provided' : 'missing'
-      });
-      
       // Required fields validation (only essentials)
       if (!email || !password || !firstName || !lastName) {
-        console.log('❌ Missing required fields:', {
-          email: !!email,
-          password: !!password,
-          firstName: !!firstName,
-          lastName: !!lastName
-        });
         return res.status(400).json({ message: "Required fields: email, password, firstName, lastName" });
       }
 
       // Check if user already exists
       const existingUser = await storage.getUserByEmail(email);
       if (existingUser) {
-        console.log('❌ User already exists:', email);
         return res.status(409).json({ message: "Email already registered" });
       }
 
@@ -254,19 +215,7 @@ export function registerAuthRoutes(app: Express) {
         updatedAt: now,
       };
 
-      console.log('👤 Creating user with data:', {
-        id: userData.id,
-        email: userData.email,
-        firstName: userData.firstName,
-        lastName: userData.lastName,
-        city: userData.city,
-        province: userData.province,
-        postalCode: userData.postalCode
-      });
-
       const user = await storage.createUser(userData);
-
-      console.log('✅ User created successfully:', user.id);
 
       // Generate token
       const token = generateToken(user);
@@ -286,7 +235,6 @@ export function registerAuthRoutes(app: Express) {
         }
       });
     } catch (err) {
-      console.error('❌ Registration error:', err);
       res.status(500).json({ message: (err as any)?.message || 'Registration failed' });
     }
   });
@@ -294,44 +242,23 @@ export function registerAuthRoutes(app: Express) {
   // Login endpoint
   app.post("/api/auth/login", async (req: Request, res: Response) => {
     try {
-      console.log('🔍 Login request received:', {
-        body: req.body,
-        headers: req.headers,
-        method: req.method,
-        url: req.url
-      });
-
       const { email, password } = req.body;
       
       if (!email || !password) {
-        console.log('❌ Missing login credentials:', {
-          email: !!email,
-          password: !!password
-        });
         return res.status(400).json({ message: "Email and password are required" });
       }
 
       // Find user by email
       const user = await storage.getUserByEmail(email);
       if (!user) {
-        console.log('❌ User not found for login:', email);
         return res.status(401).json({ message: "Invalid credentials" });
       }
-
-      console.log('👤 User found for login:', {
-        id: user.id,
-        email: user.email,
-        hasPassword: !!user.password
-      });
 
       // Verify password
       const isValidPassword = await bcrypt.compare(password, user.password || '');
       if (!isValidPassword) {
-        console.log('❌ Invalid password for user:', email);
         return res.status(401).json({ message: "Invalid credentials" });
       }
-
-      console.log('✅ Login successful for user:', email);
 
       // Generate token
       const token = generateToken(user);
@@ -347,7 +274,6 @@ export function registerAuthRoutes(app: Express) {
         }
       });
     } catch (err) {
-      console.error('❌ Login error:', (err as any)?.stack || err);
       res.status(500).json({ message: (err as any)?.message || 'Login failed' });
     }
   });
@@ -369,11 +295,9 @@ export function registerAuthRoutes(app: Express) {
           return res.status(404).json({ message: "User not found" });
         }
       } catch (dbError) {
-        console.error("[/api/auth/user] Database error:", dbError);
         return res.status(500).json({ message: "Internal server error" });
       }
     } catch (error) {
-      console.error("[/api/auth/user] Handler error:", error);
       res.status(500).json({ message: "Internal server error" });
     }
   });
@@ -408,13 +332,12 @@ export function registerAuthRoutes(app: Express) {
 
       res.json({ message: "Profile updated successfully" });
     } catch (error) {
-      console.error('Profile update error:', error);
-      res.status(500).json({ message: "Failed to update profile" });
+      res.status(500).json({ message: 'Profile update failed', error: (error as any)?.message || String(error) });
     }
   });
 
   // Profile picture upload route (JWT protected)
-  app.post('/api/auth/upload-profile-picture', jwtAuth, upload.single('profilePicture'), async (req: any, res: Response) => {
+  app.post('/api/auth/upload-profile-picture', jwtAuth, upload.single('profileImage'), async (req: Request, res: Response) => {
     try {
       if (!req.file) {
         return res.status(400).json({ message: "No file uploaded" });
@@ -430,8 +353,7 @@ export function registerAuthRoutes(app: Express) {
         .where(eq(users.id, userId));
       res.json({ message: "Profile picture updated successfully", profileImageUrl: base64Data });
     } catch (error) {
-      console.error('Error uploading profile picture:', error);
-      res.status(500).json({ message: "Failed to upload profile picture" });
+      res.status(500).json({ message: 'Profile picture upload failed', error: (error as any)?.message || String(error) });
     }
   });
 

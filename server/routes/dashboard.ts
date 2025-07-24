@@ -29,7 +29,7 @@ export function registerDashboardRoutes(app: Express) {
   app.get('/api/dashboard/stats', /* jwtAuth, */ async (req: Request, res: Response) => {
     try {
       const userId = (req as any).user?.id || 'test-user-id';
-      console.log('🔧 UPDATED DASHBOARD CODE - Dashboard stats requested for user:', userId);
+      // console.log removed for production
 
       // Get real political data from database
       const [
@@ -92,10 +92,10 @@ export function registerDashboardRoutes(app: Express) {
         }
       };
 
-      console.log('🔧 UPDATED DASHBOARD CODE - Dashboard stats response:', stats);
+      // console.log removed for production
       res.json(stats);
     } catch (error) {
-      console.error('Error fetching dashboard stats:', error);
+      // console.error removed for production
       res.status(500).json({ error: 'Failed to fetch dashboard stats', details: (error as Error).message });
     }
   });
@@ -134,7 +134,7 @@ export function registerDashboardRoutes(app: Express) {
 
       res.json(profile);
     } catch (error) {
-      console.error('Error fetching user profile:', error);
+      // console.error removed for production
       res.status(500).json({ error: 'Failed to fetch user profile' });
     }
   });
@@ -164,7 +164,7 @@ export function registerDashboardRoutes(app: Express) {
         user: updatedUser
       });
     } catch (error) {
-      console.error('Error updating user profile:', error);
+      // console.error removed for production
       res.status(500).json({ error: 'Failed to update user profile' });
     }
   });
@@ -185,7 +185,7 @@ export function registerDashboardRoutes(app: Express) {
 
       res.json(activity);
     } catch (error) {
-      console.error('Error fetching user activity:', error);
+      // console.error removed for production
       res.status(500).json({ error: 'Failed to fetch user activity' });
     }
   });

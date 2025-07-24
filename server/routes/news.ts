@@ -30,7 +30,7 @@ export function registerNewsRoutes(app: Express) {
       
       res.json(articles);
     } catch (error) {
-      console.error('Error fetching news articles:', error);
+      // console.error removed for production
       res.status(500).json({ error: 'Failed to fetch news articles' });
     }
   });
@@ -60,7 +60,7 @@ export function registerNewsRoutes(app: Express) {
         propagandaAnalysis: propaganda || null
       });
     } catch (error) {
-      console.error('Error fetching news article:', error);
+      // console.error removed for production
       res.status(500).json({ error: 'Failed to fetch news article' });
     }
   });
@@ -101,7 +101,7 @@ export function registerNewsRoutes(app: Express) {
 
       res.json(results);
     } catch (error) {
-      console.error('Error searching news:', error);
+      // console.error removed for production
       res.status(500).json({ error: 'Failed to search news' });
     }
   });
@@ -122,7 +122,7 @@ export function registerNewsRoutes(app: Express) {
 
       res.json(trending);
     } catch (error) {
-      console.error('Error fetching trending news:', error);
+      // console.error removed for production
       res.status(500).json({ error: 'Failed to fetch trending news' });
     }
   });
@@ -162,7 +162,7 @@ export function registerNewsRoutes(app: Express) {
         recentArticles
       });
     } catch (error) {
-      console.error('Error fetching news stats:', error);
+      // console.error removed for production
       res.status(500).json({ error: 'Failed to fetch news statistics' });
     }
   });
@@ -179,7 +179,7 @@ export function registerNewsRoutes(app: Express) {
 
       res.json(sources.rows);
     } catch (error) {
-      console.error('Error fetching news sources:', error);
+      // console.error removed for production
       res.status(500).json({ error: 'Failed to fetch news sources' });
     }
   });
@@ -200,7 +200,7 @@ export function registerNewsRoutes(app: Express) {
 
       res.json(propaganda);
     } catch (error) {
-      console.error('Error fetching propaganda analysis:', error);
+      // console.error removed for production
       res.status(500).json({ error: 'Failed to fetch propaganda analysis' });
     }
   });

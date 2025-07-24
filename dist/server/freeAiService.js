@@ -3,8 +3,9 @@ class FreeAiService {
     baseUrl;
     defaultModel;
     constructor() {
+        // For Render deployment, use the internal Ollama service
         this.baseUrl = process.env.OLLAMA_URL || 'http://localhost:11434';
-        this.defaultModel = process.env.OLLAMA_MODEL || 'llama3.2:3b';
+        this.defaultModel = process.env.OLLAMA_MODEL || 'mistral:latest';
     }
     /**
      * Generate AI response using Ollama
@@ -31,7 +32,7 @@ class FreeAiService {
             return response.data.response;
         }
         catch (error) {
-            console.error('Ollama API error:', error);
+            // console.error removed for production
             throw new Error('Failed to generate AI response');
         }
     }
@@ -92,7 +93,7 @@ ${newsContent}`;
             }
         }
         catch (error) {
-            console.error('Failed to parse JSON response:', error);
+            // console.error removed for production
         }
         // Fallback response if JSON parsing fails
         return {
@@ -133,7 +134,7 @@ ${policyContent}`;
             }
         }
         catch (error) {
-            console.error('Failed to parse JSON response:', error);
+            // console.error removed for production
         }
         return {
             summary: response.substring(0, 200) + '...',
@@ -166,7 +167,7 @@ ${JSON.stringify(data, null, 2)}`;
             }
         }
         catch (error) {
-            console.error('Failed to parse JSON response:', error);
+            // console.error removed for production
         }
         return {
             insights: ['Civic engagement patterns analyzed'],
@@ -185,7 +186,7 @@ ${JSON.stringify(data, null, 2)}`;
             return response.status === 200;
         }
         catch (error) {
-            console.error('Ollama health check failed:', error);
+            // console.error removed for production
             return false;
         }
     }
@@ -198,7 +199,7 @@ ${JSON.stringify(data, null, 2)}`;
             return response.data.models?.map((model) => model.name) || [];
         }
         catch (error) {
-            console.error('Failed to get available models:', error);
+            // console.error removed for production
             return [];
         }
     }

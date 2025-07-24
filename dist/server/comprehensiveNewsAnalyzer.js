@@ -549,7 +549,7 @@ export class ComprehensiveNewsAnalyzer {
                 await this.delay(2000);
             }
             catch (error) {
-                console.error(`Error scraping ${source.name}:`, error);
+                // console.error removed for production
             }
         }
         // Group articles by topic for comparison
@@ -618,7 +618,7 @@ export class ComprehensiveNewsAnalyzer {
             }
         }
         catch (error) {
-            console.error(`Error scraping ${source.name}:`, error);
+            // console.error removed for production
             return [];
         }
         return articles;
@@ -722,7 +722,7 @@ Focus on Canadian political context and identify:
             };
         }
         catch (error) {
-            console.error(`Error analyzing article ${article.title}:`, error);
+            // console.error removed for production
         }
         return article;
     }
@@ -779,7 +779,7 @@ Focus on Canadian political context and identify:
             }
         }
         catch (error) {
-            console.error('Error parsing analysis response:', error);
+            // console.error removed for production
         }
         return {
             propagandaTechniques: [],
@@ -887,7 +887,7 @@ Focus on:
             });
         }
         catch (error) {
-            console.error(`Error storing article ${article.title}:`, error);
+            // console.error removed for production
         }
     }
     /**
@@ -918,7 +918,7 @@ Focus on:
             });
         }
         catch (error) {
-            console.error(`Error storing topic comparison for ${topic}:`, error);
+            // console.error removed for production
         }
     }
     /**

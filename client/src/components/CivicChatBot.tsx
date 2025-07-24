@@ -104,7 +104,7 @@ export function CivicChatBot({ isOpen, onClose }: ChatbotProps) {
 
       setMessages(prev => [...prev, assistantMessage]);
     } catch (error: any) {
-      console.error('Chat error:', error);
+      // console.error removed for production
       
       const errorMessage: Message = {
         id: (Date.now() + 1).toString(),

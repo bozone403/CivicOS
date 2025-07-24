@@ -97,7 +97,7 @@ export class NewsComparisonService {
       };
 
     } catch (error) {
-      console.error('Cross-source analysis error:', error);
+      // console.error removed for production
       throw error;
     }
   }

@@ -24,7 +24,7 @@ export class DataEnhancementService {
             }
         }
         catch (error) {
-            // console.log("Statistics Canada enhancement available when API accessible");
+            // // console.log removed for production
         }
         return 0;
     }
@@ -40,7 +40,7 @@ export class DataEnhancementService {
             }
         }
         catch (error) {
-            // console.log("Open Government enhancement available when API accessible");
+            // // console.log removed for production
         }
         return 0;
     }
@@ -55,7 +55,7 @@ export class DataEnhancementService {
             }
         }
         catch (error) {
-            // console.log("Parliament enhancement available when official feeds accessible");
+            // // console.log removed for production
         }
         return 0;
     }

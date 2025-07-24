@@ -20,7 +20,7 @@ export class GovernmentAPIService {
             // No further logic for billsResponse yet
         }
         catch (error) {
-            console.error("Error fetching Parliament data:", error);
+            // console.error removed for production
         }
     }
     /**
@@ -34,7 +34,7 @@ export class GovernmentAPIService {
             // No further logic for popResponse yet
         }
         catch (error) {
-            console.error("Error fetching Statistics Canada data:", error);
+            // console.error removed for production
         }
     }
     /**
@@ -48,7 +48,7 @@ export class GovernmentAPIService {
             // No further logic for spendingResponse yet
         }
         catch (error) {
-            console.error("Error fetching Open Government data:", error);
+            // console.error removed for production
         }
     }
     /**
@@ -62,7 +62,7 @@ export class GovernmentAPIService {
             // No further logic for boundariesResponse yet
         }
         catch (error) {
-            console.error("Error fetching electoral data:", error);
+            // console.error removed for production
         }
     }
     /**
@@ -76,7 +76,7 @@ export class GovernmentAPIService {
             // Implementation would parse XML and insert verified data
         }
         catch (error) {
-            console.error("Error processing Parliament MP data:", error);
+            // console.error removed for production
         }
     }
     /**

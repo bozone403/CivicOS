@@ -108,7 +108,7 @@ export class StatisticsCanadaAPI {
         `);
       }
     } catch (error) {
-      // console.error("Error storing demographic data:", error);
+      // // console.error removed for production
     }
   }
 

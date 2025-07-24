@@ -105,7 +105,7 @@ export class PoliticianDataEnhancer {
         }
         catch (error) {
             const err = error;
-            console.error('❌ Error in politician enhancement:', err.message);
+            // console.error removed for production
             throw err;
         }
     }

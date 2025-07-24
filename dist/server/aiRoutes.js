@@ -22,7 +22,7 @@ router.get('/health', async (req, res) => {
         });
     }
 });
-// CivicOS Chatbot endpoint
+// CivicOS Chatbot endpoint (no auth required for public AI access)
 router.post('/chat', async (req, res) => {
     try {
         const { message, context } = req.body;
@@ -39,14 +39,14 @@ router.post('/chat', async (req, res) => {
         });
     }
     catch (error) {
-        console.error('Chat error:', error);
+        // console.error removed for production
         res.status(500).json({
             error: 'Failed to generate chat response',
             message: error instanceof Error ? error.message : 'Unknown error'
         });
     }
 });
-// News analysis endpoint
+// News analysis endpoint (no auth required for public AI access)
 router.post('/analyze-news', async (req, res) => {
     try {
         const { content, context } = req.body;
@@ -63,14 +63,14 @@ router.post('/analyze-news', async (req, res) => {
         });
     }
     catch (error) {
-        console.error('News analysis error:', error);
+        // console.error removed for production
         res.status(500).json({
             error: 'Failed to analyze news',
             message: error instanceof Error ? error.message : 'Unknown error'
         });
     }
 });
-// Policy analysis endpoint
+// Policy analysis endpoint (no auth required for public AI access)
 router.post('/analyze-policy', async (req, res) => {
     try {
         const { content, context } = req.body;
@@ -87,14 +87,14 @@ router.post('/analyze-policy', async (req, res) => {
         });
     }
     catch (error) {
-        console.error('Policy analysis error:', error);
+        // console.error removed for production
         res.status(500).json({
             error: 'Failed to analyze policy',
             message: error instanceof Error ? error.message : 'Unknown error'
         });
     }
 });
-// Civic insights endpoint
+// Civic insights endpoint (no auth required for public AI access)
 router.post('/civic-insights', async (req, res) => {
     try {
         const { data } = req.body;
@@ -111,7 +111,7 @@ router.post('/civic-insights', async (req, res) => {
         });
     }
     catch (error) {
-        console.error('Civic insights error:', error);
+        // console.error removed for production
         res.status(500).json({
             error: 'Failed to generate civic insights',
             message: error instanceof Error ? error.message : 'Unknown error'
@@ -129,7 +129,7 @@ router.get('/models', async (req, res) => {
         });
     }
     catch (error) {
-        console.error('Models error:', error);
+        // console.error removed for production
         res.status(500).json({
             error: 'Failed to get available models',
             message: error instanceof Error ? error.message : 'Unknown error'

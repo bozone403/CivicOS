@@ -2,6 +2,7 @@ import express from 'express';
 import { db } from '../db.js';
 import { bills, votes, electoralCandidates, electoralVotes } from '../../shared/schema.js';
 import { eq, and, desc, sql } from 'drizzle-orm';
+import { ElectionDataService } from '../electionDataService.js';
 const router = express.Router();
 // Get all bills for voting
 router.get('/bills', async (req, res) => {
@@ -10,7 +11,7 @@ router.get('/bills', async (req, res) => {
         res.json(allBills);
     }
     catch (error) {
-        console.error('Error fetching bills:', error);
+        // console.error removed for production
         res.status(500).json({ error: 'Failed to fetch bills' });
     }
 });
@@ -48,19 +49,59 @@ router.post('/bills/vote', async (req, res) => {
         res.json({ success: true, message: 'Vote recorded successfully' });
     }
     catch (error) {
-        console.error('Error recording vote:', error);
+        // console.error removed for production
         res.status(500).json({ error: 'Failed to record vote' });
     }
 });
 // Get electoral candidates
 router.get('/electoral/candidates', async (req, res) => {
     try {
-        const candidates = await db.select().from(electoralCandidates).orderBy(electoralCandidates.name);
+        // Populate candidates if they don't exist
+        await ElectionDataService.populateElectoralCandidates();
+        // Get candidates with voting statistics
+        const candidates = await ElectionDataService.getElectoralCandidatesWithStats();
         res.json(candidates);
     }
     catch (error) {
-        console.error('Error fetching electoral candidates:', error);
+        // console.error removed for production
         res.status(500).json({ error: 'Failed to fetch candidates' });
+    }
+});
+// Get electoral voting results
+router.get('/electoral/results', async (req, res) => {
+    try {
+        const results = await ElectionDataService.getElectoralResults();
+        res.json(results);
+    }
+    catch (error) {
+        // console.error removed for production
+        res.status(500).json({ error: 'Failed to fetch electoral results' });
+    }
+});
+// Get electoral voting trends
+router.get('/electoral/trends', async (req, res) => {
+    try {
+        const trends = await ElectionDataService.getElectoralTrends();
+        res.json(trends);
+    }
+    catch (error) {
+        // console.error removed for production
+        res.status(500).json({ error: 'Failed to fetch electoral trends' });
+    }
+});
+// Get user's electoral voting history
+router.get('/electoral/history', async (req, res) => {
+    try {
+        const userId = req.user?.id;
+        if (!userId) {
+            return res.status(401).json({ error: 'Authentication required' });
+        }
+        const history = await ElectionDataService.getUserElectoralHistory(userId);
+        res.json(history);
+    }
+    catch (error) {
+        // console.error removed for production
+        res.status(500).json({ error: 'Failed to fetch user electoral history' });
     }
 });
 // Vote on electoral candidate
@@ -96,7 +137,7 @@ router.post('/electoral/vote', async (req, res) => {
         res.json({ success: true, message: 'Electoral vote recorded successfully' });
     }
     catch (error) {
-        console.error('Error recording electoral vote:', error);
+        // console.error removed for production
         res.status(500).json({ error: 'Failed to record electoral vote' });
     }
 });
@@ -122,7 +163,7 @@ router.get('/electoral/results', async (req, res) => {
         res.json(results.rows);
     }
     catch (error) {
-        console.error('Error fetching electoral results:', error);
+        // console.error removed for production
         res.status(500).json({ error: 'Failed to fetch electoral results' });
     }
 });
@@ -144,7 +185,7 @@ router.get('/electoral/user-votes', async (req, res) => {
         res.json(userVotes);
     }
     catch (error) {
-        console.error('Error fetching user electoral votes:', error);
+        // console.error removed for production
         res.status(500).json({ error: 'Failed to fetch user votes' });
     }
 });
@@ -210,7 +251,7 @@ router.post('/electoral/initialize', async (req, res) => {
         res.json({ success: true, message: 'Electoral candidates initialized successfully' });
     }
     catch (error) {
-        console.error('Error initializing electoral candidates:', error);
+        // console.error removed for production
         res.status(500).json({ error: 'Failed to initialize candidates' });
     }
 });

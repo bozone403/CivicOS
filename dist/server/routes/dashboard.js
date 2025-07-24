@@ -27,7 +27,7 @@ export function registerDashboardRoutes(app) {
     app.get('/api/dashboard/stats', /* jwtAuth, */ async (req, res) => {
         try {
             const userId = req.user?.id || 'test-user-id';
-            console.log('🔧 UPDATED DASHBOARD CODE - Dashboard stats requested for user:', userId);
+            // console.log removed for production
             // Get real political data from database
             const [totalVotesResult, activeBillsResult, politiciansTrackedResult, petitionsSignedResult, userResult] = await Promise.allSettled([
                 // Get user's total votes
@@ -78,11 +78,11 @@ export function registerDashboardRoutes(app) {
                     deploymentId: "2025-07-23-23-05"
                 }
             };
-            console.log('🔧 UPDATED DASHBOARD CODE - Dashboard stats response:', stats);
+            // console.log removed for production
             res.json(stats);
         }
         catch (error) {
-            console.error('Error fetching dashboard stats:', error);
+            // console.error removed for production
             res.status(500).json({ error: 'Failed to fetch dashboard stats', details: error.message });
         }
     });
@@ -118,7 +118,7 @@ export function registerDashboardRoutes(app) {
             res.json(profile);
         }
         catch (error) {
-            console.error('Error fetching user profile:', error);
+            // console.error removed for production
             res.status(500).json({ error: 'Failed to fetch user profile' });
         }
     });
@@ -145,7 +145,7 @@ export function registerDashboardRoutes(app) {
             });
         }
         catch (error) {
-            console.error('Error updating user profile:', error);
+            // console.error removed for production
             res.status(500).json({ error: 'Failed to update user profile' });
         }
     });
@@ -164,7 +164,7 @@ export function registerDashboardRoutes(app) {
             res.json(activity);
         }
         catch (error) {
-            console.error('Error fetching user activity:', error);
+            // console.error removed for production
             res.status(500).json({ error: 'Failed to fetch user activity' });
         }
     });

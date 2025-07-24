@@ -84,7 +84,7 @@ router.get('/', async (req, res) => {
             });
         }
         catch (dbError) {
-            console.error('Database search error:', dbError);
+            // console.error removed for production
             // Return empty results if database search fails
         }
         // Sort by relevance
@@ -96,7 +96,7 @@ router.get('/', async (req, res) => {
         });
     }
     catch (error) {
-        console.error('Search error:', error);
+        // console.error removed for production
         res.status(500).json({
             error: 'Search failed',
             message: 'An error occurred while performing the search'

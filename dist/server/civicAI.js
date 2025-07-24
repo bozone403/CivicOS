@@ -119,7 +119,7 @@ User region: ${region || "Not specified"}`;
             };
         }
         catch (error) {
-            console.error("OpenAI error, using local analysis:", error);
+            // console.error removed for production
             // Fall back to local bullshit detection when OpenAI is unavailable
             return this.generateLocalBullshitAnalysis(query, region);
         }
@@ -284,7 +284,7 @@ Respond in JSON format with: {
             data.statements = await this.getPoliticianStatements(data.politicians);
         }
         catch (error) {
-            console.error("Error gathering data:", error);
+            // console.error removed for production
             // Continue with empty data to allow OpenAI to provide general analysis
         }
         return data;
@@ -351,7 +351,7 @@ Respond in JSON format with: {
                 .limit(20);
         }
         catch (error) {
-            console.error("Error fetching politician statements:", error);
+            // console.error removed for production
             return [];
         }
     }
@@ -469,7 +469,7 @@ Analyze this using the government data provided. Be direct and factual. If polit
             };
         }
         catch (error) {
-            console.error("Error getting basic context:", error);
+            // console.error removed for production
             return {
                 bills: [],
                 politicians: [],
@@ -518,7 +518,7 @@ Guidelines:
             };
         }
         catch (error) {
-            console.error("Error generating direct response:", error);
+            // console.error removed for production
             throw new Error("Failed to process civic AI query");
         }
     }

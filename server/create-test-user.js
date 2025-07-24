@@ -9,7 +9,7 @@ const DATABASE_URL = "postgresql://postgres.wmpsjclnykcxtqwxfffv:0QZpuL2bShMezo2
 
 async function createTestUser() {
   try {
-    console.log('Creating test user...');
+    // console.log removed for production
     const pool = new Pool({ 
       connectionString: DATABASE_URL,
       ssl: { 
@@ -28,27 +28,27 @@ async function createTestUser() {
     // Check if user already exists
     const existingUser = await pool.query('SELECT id FROM users WHERE email = $1', [testEmail]);
     if (existingUser.rows.length > 0) {
-      console.log('Test user already exists, updating password...');
+      // console.log removed for production
       await pool.query(
         'UPDATE users SET password = $1, updated_at = NOW() WHERE email = $2',
         [hashedPassword, testEmail]
       );
     } else {
-      console.log('Creating new test user...');
+      // console.log removed for production
       await pool.query(
         'INSERT INTO users (id, email, password, created_at, updated_at) VALUES ($1, $2, $3, NOW(), NOW())',
         [userId, testEmail, hashedPassword]
       );
     }
 
-    console.log(`✅ Test user created/updated:`);
-    console.log(`Email: ${testEmail}`);
-    console.log(`Password: ${testPassword}`);
-    console.log(`User ID: ${userId}`);
+    // console.log removed for production
+    // console.log removed for production
+    // console.log removed for production
+    // console.log removed for production
 
     await pool.end();
   } catch (error) {
-    console.error('Error:', error);
+    // console.error removed for production
   }
 }
 

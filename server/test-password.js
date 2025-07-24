@@ -8,7 +8,7 @@ const DATABASE_URL = "postgresql://postgres.wmpsjclnykcxtqwxfffv:0QZpuL2bShMezo2
 
 async function testPasswords() {
   try {
-    console.log('Testing passwords...');
+    // console.log removed for production
     const pool = new Pool({ 
       connectionString: DATABASE_URL,
       ssl: { 
@@ -20,13 +20,13 @@ async function testPasswords() {
     // Get password hash for first user
     const userResult = await pool.query('SELECT email, password FROM users LIMIT 1');
     if (userResult.rows.length === 0) {
-      console.log('No users found');
+      // console.log removed for production
       return;
     }
 
     const user = userResult.rows[0];
-    console.log(`Testing passwords for user: ${user.email}`);
-    console.log(`Password hash: ${user.password}`);
+    // console.log removed for production
+    // console.log removed for production
 
     // Common passwords to test
     const testPasswords = [
@@ -56,17 +56,17 @@ async function testPasswords() {
       try {
         const isValid = await bcrypt.compare(testPassword, user.password);
         if (isValid) {
-          console.log(`✅ Password found: "${testPassword}"`);
+          // console.log removed for production
           break;
         }
       } catch (error) {
-        console.log(`Error testing password "${testPassword}":`, error.message);
+        // console.log removed for production
       }
     }
 
     await pool.end();
   } catch (error) {
-    console.error('Error:', error);
+    // console.error removed for production
   }
 }
 

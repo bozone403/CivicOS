@@ -161,23 +161,13 @@ app.use(rateLimit({
   }
 })();
 
-// Paranoid logging for Node.js version and SSL config
-console.log('[Startup] Node.js version:', process.version);
-console.log('[Startup] NODE_TLS_REJECT_UNAUTHORIZED:', process.env.NODE_TLS_REJECT_UNAUTHORIZED);
-
 // Global error handler for unhandled promise rejections
 process.on('unhandledRejection', (reason, promise) => {
-  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+  logger.error('Unhandled Rejection at:', promise, 'reason:', reason);
 });
 process.on('uncaughtException', (err) => {
   logger.error({ msg: 'Uncaught Exception thrown', err });
   process.exit(1);
-});
-
-// Paranoid: Log every /api/* request
-app.use('/api', (req, res, next) => {
-  console.log('[API ROUTE]', req.method, req.originalUrl);
-  next();
 });
 
 // DB health check endpoint
@@ -211,7 +201,7 @@ app.get("/health", (_req, res) => {
   app.use((err: any, req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
     const message = err.message || "Internal Server Error";
-    console.error("[GLOBAL ERROR]", err);
+    // console.error removed for production
     if (req.path && req.path.startsWith("/api/")) {
       res.status(status).json({ message });
     } else {
@@ -242,21 +232,8 @@ app.get("/health", (_req, res) => {
   // Initialize automatic government data sync
   initializeDataSync();
   
-  // Run database migration if needed
-  if (process.env.NODE_ENV === 'production') {
-    setTimeout(async () => {
-      try {
-        console.log('🗄️  Database migrations handled by startup script');
-      } catch (error) {
-        console.error('Migration error:', error);
-      }
-    }, 2000); // Run after 2 seconds
-  }
-  
   // Initialize Ollama AI service for production (optional)
   if (process.env.NODE_ENV === 'production') {
-    console.log('🤖 Ollama AI service initialization (optional)...');
-    
     // Wait a bit for Ollama to be ready
     setTimeout(async () => {
       try {
@@ -271,8 +248,6 @@ app.get("/health", (_req, res) => {
         clearTimeout(timeoutId);
         
         if (response.ok) {
-          console.log('✅ Ollama AI service is ready');
-          
           // Test Mistral model with timeout
           try {
             const modelResponse = await fetch('http://127.0.0.1:11434/api/generate', {
@@ -286,19 +261,17 @@ app.get("/health", (_req, res) => {
               signal: controller.signal
             });
             
-            if (modelResponse.ok) {
-              console.log('✅ Mistral model is ready');
-            } else {
-              console.log('⚠️  Mistral model not available, using fallback');
+            if (!modelResponse.ok) {
+              logger.warn('Mistral model not available, using fallback');
             }
           } catch (error) {
-            console.log('⚠️  Mistral model test failed, using fallback');
+            logger.warn('Mistral model test failed, using fallback');
           }
         } else {
-          console.log('⚠️  Ollama not available, using fallback responses');
+          logger.warn('Ollama not available, using fallback responses');
         }
       } catch (error) {
-        console.log('⚠️  Ollama initialization failed, using fallback responses');
+        logger.warn('Ollama initialization failed, using fallback responses');
       }
     }, 2000); // Wait 2 seconds before trying
   }

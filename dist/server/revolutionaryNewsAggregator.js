@@ -53,7 +53,7 @@ export class RevolutionaryNewsAggregator {
                 await this.delay(2000); // Respectful delay
             }
             catch (error) {
-                console.error(`Error processing ${source.name}:`, error);
+                // console.error removed for production
             }
         }
     }
@@ -79,12 +79,12 @@ export class RevolutionaryNewsAggregator {
                     await this.delay(1000); // Rate limiting
                 }
                 catch (error) {
-                    console.error(`Error analyzing article from ${source.name}:`, error);
+                    // console.error removed for production
                 }
             }
         }
         catch (error) {
-            console.error(`Error scraping ${source.name}:`, error);
+            // console.error removed for production
         }
     }
     /**
@@ -151,7 +151,7 @@ Provide comprehensive analysis in JSON format with these fields:
             };
         }
         catch (error) {
-            console.error("Error with OpenAI analysis:", error);
+            // console.error removed for production
             // Fallback analysis without AI
             return {
                 title: article.title,
@@ -192,7 +192,7 @@ Provide comprehensive analysis in JSON format with these fields:
             });
         }
         catch (error) {
-            console.error("Error storing article:", error);
+            // console.error removed for production
         }
     }
     /**
@@ -213,7 +213,7 @@ Provide comprehensive analysis in JSON format with these fields:
             }));
         }
         catch (error) {
-            console.error("Error fetching latest news:", error);
+            // console.error removed for production
             return [];
         }
     }
@@ -282,7 +282,7 @@ Provide comprehensive analysis in JSON format with these fields:
             };
         }
         catch (error) {
-            console.error("Error getting news analytics:", error);
+            // console.error removed for production
             return {
                 totalArticles: 0,
                 averageCredibility: 0,

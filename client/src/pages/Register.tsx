@@ -203,7 +203,7 @@ export default function Register() {
         });
       }
     } catch (err: any) {
-      console.error("Registration error:", err);
+      // console.error removed for production
       const errorMessage = err.message || "Registration failed. Please try again.";
       toast({
         title: "Registration failed",

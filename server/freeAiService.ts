@@ -30,8 +30,9 @@ class FreeAiService {
   private defaultModel: string;
 
   constructor() {
+    // For Render deployment, use the internal Ollama service
     this.baseUrl = process.env.OLLAMA_URL || 'http://localhost:11434';
-    this.defaultModel = process.env.OLLAMA_MODEL || 'llama3.2:3b';
+    this.defaultModel = process.env.OLLAMA_MODEL || 'mistral:latest';
   }
 
   /**
@@ -68,7 +69,7 @@ class FreeAiService {
 
       return response.data.response;
     } catch (error) {
-      console.error('Ollama API error:', error);
+      // console.error removed for production
       throw new Error('Failed to generate AI response');
     }
   }
@@ -148,7 +149,7 @@ ${newsContent}`;
         return JSON.parse(jsonMatch[0]);
       }
     } catch (error) {
-      console.error('Failed to parse JSON response:', error);
+      // console.error removed for production
     }
 
     // Fallback response if JSON parsing fails
@@ -202,7 +203,7 @@ ${policyContent}`;
         return JSON.parse(jsonMatch[0]);
       }
     } catch (error) {
-      console.error('Failed to parse JSON response:', error);
+      // console.error removed for production
     }
 
     return {
@@ -246,7 +247,7 @@ ${JSON.stringify(data, null, 2)}`;
         return JSON.parse(jsonMatch[0]);
       }
     } catch (error) {
-      console.error('Failed to parse JSON response:', error);
+      // console.error removed for production
     }
 
     return {
@@ -266,7 +267,7 @@ ${JSON.stringify(data, null, 2)}`;
       });
       return response.status === 200;
     } catch (error) {
-      console.error('Ollama health check failed:', error);
+      // console.error removed for production
       return false;
     }
   }
@@ -279,7 +280,7 @@ ${JSON.stringify(data, null, 2)}`;
       const response = await axios.get(`${this.baseUrl}/api/tags`);
       return response.data.models?.map((model: any) => model.name) || [];
     } catch (error) {
-      console.error('Failed to get available models:', error);
+      // console.error removed for production
       return [];
     }
   }

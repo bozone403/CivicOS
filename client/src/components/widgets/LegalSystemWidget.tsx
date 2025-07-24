@@ -196,7 +196,7 @@ export function LegalSystemWidget({ liveData = true }: { liveData?: boolean }) {
         window.location.reload();
       }
     } catch (error) {
-      console.error("Failed to initialize legal system:", error);
+      // console.error removed for production
     } finally {
       setIsInitializing(false);
     }

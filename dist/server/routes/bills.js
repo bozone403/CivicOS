@@ -27,7 +27,7 @@ export function registerBillsRoutes(app) {
             res.json(billsData);
         }
         catch (error) {
-            console.error('Error fetching bills:', error);
+            // console.error removed for production
             res.status(500).json({ error: 'Failed to fetch bills' });
         }
     });
@@ -63,7 +63,7 @@ export function registerBillsRoutes(app) {
             });
         }
         catch (error) {
-            console.error('Error fetching bill:', error);
+            // console.error removed for production
             res.status(500).json({ error: 'Failed to fetch bill' });
         }
     });
@@ -92,7 +92,7 @@ export function registerBillsRoutes(app) {
             res.json(results);
         }
         catch (error) {
-            console.error('Error searching bills:', error);
+            // console.error removed for production
             res.status(500).json({ error: 'Failed to search bills' });
         }
     });
@@ -107,7 +107,7 @@ export function registerBillsRoutes(app) {
             res.json(activeBills);
         }
         catch (error) {
-            console.error('Error fetching active bills:', error);
+            // console.error removed for production
             res.status(500).json({ error: 'Failed to fetch active bills' });
         }
     });
@@ -143,7 +143,7 @@ export function registerBillsRoutes(app) {
             });
         }
         catch (error) {
-            console.error('Error fetching bill stats:', error);
+            // console.error removed for production
             res.status(500).json({ error: 'Failed to fetch bill statistics' });
         }
     });
@@ -159,7 +159,7 @@ export function registerBillsRoutes(app) {
             res.json(recentBills);
         }
         catch (error) {
-            console.error('Error fetching recent bills:', error);
+            // console.error removed for production
             res.status(500).json({ error: 'Failed to fetch recent bills' });
         }
     });
@@ -175,7 +175,7 @@ export function registerBillsRoutes(app) {
             res.json(sponsorBills);
         }
         catch (error) {
-            console.error('Error fetching bills by sponsor:', error);
+            // console.error removed for production
             res.status(500).json({ error: 'Failed to fetch bills by sponsor' });
         }
     });

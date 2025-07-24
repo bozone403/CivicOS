@@ -3,7 +3,7 @@ import * as cheerio from 'cheerio';
 
 // Simple test of the scraping logic without database dependencies
 async function testPoliticianScraping() {
-  console.log('Testing politician scraping logic...');
+  // console.log removed for production
   
   try {
     // Test Parliament of Canada website
@@ -34,21 +34,21 @@ async function testPoliticianScraping() {
         }
       });
       
-      console.log(`Found ${politicians.length} politicians from Parliament website`);
+      // console.log removed for production
       
       if (politicians.length > 0) {
-        console.log('Sample politician:', politicians[0]);
+        // console.log removed for production
       }
     } else {
-      console.log('Parliament website failed:', response.status);
+      // console.log removed for production
     }
   } catch (error) {
-    console.error('Politician scraping test failed:', error.message);
+    // console.error removed for production
   }
 }
 
 async function testBillScraping() {
-  console.log('Testing bill scraping logic...');
+  // console.log removed for production
   
   try {
     // Test Parliament of Canada bills page
@@ -77,21 +77,21 @@ async function testBillScraping() {
         }
       });
       
-      console.log(`Found ${bills.length} bills from Parliament bills page`);
+      // console.log removed for production
       
       if (bills.length > 0) {
-        console.log('Sample bill:', bills[0]);
+        // console.log removed for production
       }
     } else {
-      console.log('Parliament bills page failed:', response.status);
+      // console.log removed for production
     }
   } catch (error) {
-    console.error('Bill scraping test failed:', error.message);
+    // console.error removed for production
   }
 }
 
 async function testNewsScraping() {
-  console.log('Testing news scraping logic...');
+  // console.log removed for production
   
   try {
     // Test CBC News
@@ -120,29 +120,29 @@ async function testNewsScraping() {
         }
       });
       
-      console.log(`Found ${articles.length} articles from CBC News`);
+      // console.log removed for production
       
       if (articles.length > 0) {
-        console.log('Sample article:', articles[0]);
+        // console.log removed for production
       }
     } else {
-      console.log('CBC News failed:', response.status);
+      // console.log removed for production
     }
   } catch (error) {
-    console.error('News scraping test failed:', error.message);
+    // console.error removed for production
   }
 }
 
 async function runTests() {
-  console.log('=== Testing Scrapers ===\n');
+  // console.log removed for production
   
   await testPoliticianScraping();
-  console.log('');
+  // console.log removed for production
   await testBillScraping();
-  console.log('');
+  // console.log removed for production
   await testNewsScraping();
   
-  console.log('\n=== Test Complete ===');
+  // console.log removed for production
 }
 
 runTests(); 

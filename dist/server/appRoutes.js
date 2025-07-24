@@ -10,6 +10,11 @@ import fs from 'fs';
 // Import modular route registrations
 import { registerAuthRoutes, jwtAuth } from "./routes/auth.js";
 import { registerApiRoutes } from "./routes/api.js";
+import { registerUserRoutes } from "./routes/users.js";
+import { registerFriendRoutes } from "./routes/friends.js";
+import { registerPetitionRoutes } from "./routes/petitions.js";
+import { registerMessageRoutes } from "./routes/messages.js";
+import { registerSocialRoutes } from "./routes/social.js"; // Added
 import votingRouter from "./routes/voting.js";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -17,6 +22,11 @@ export async function registerRoutes(app) {
     // Register modular routes
     registerAuthRoutes(app);
     registerApiRoutes(app);
+    registerUserRoutes(app);
+    registerFriendRoutes(app);
+    registerPetitionRoutes(app);
+    registerMessageRoutes(app);
+    registerSocialRoutes(app); // Added
     // Simple notifications routes (no auth required)
     app.use("/api/notifications", simpleNotificationsRouter);
     // CivicSocial routes (JWT protected)
@@ -48,17 +58,17 @@ export async function registerRoutes(app) {
     });
     // Serve static files from the frontend build
     const publicPath = path.join(process.cwd(), 'dist/public');
-    console.log('🔍 Static file serving debug:');
+    // console.log removed for production
     console.log('  - process.cwd():', process.cwd());
-    console.log('  - publicPath:', publicPath);
-    console.log('  - __dirname:', __dirname);
+    // console.log removed for production
+    // console.log removed for production
     // Check if the directory exists
     if (fs.existsSync(publicPath)) {
-        console.log('  - ✅ Public path exists');
+        // console.log removed for production
         console.log('  - Files in public path:', fs.readdirSync(publicPath));
     }
     else {
-        console.log('  - ❌ Public path does not exist');
+        // console.log removed for production
         // Try alternative paths
         const altPaths = [
             path.join(__dirname, '../dist/public'),
@@ -69,10 +79,10 @@ export async function registerRoutes(app) {
         ];
         for (const altPath of altPaths) {
             if (fs.existsSync(altPath)) {
-                console.log('  - ✅ Found alternative path:', altPath);
+                // console.log removed for production
                 // Use the first found path
                 const actualPath = altPath;
-                console.log('  - Using path:', actualPath);
+                // console.log removed for production
                 app.use(express.static(actualPath));
                 // SPA fallback: serve index.html for all non-API routes
                 app.get('*', (req, res) => {
@@ -86,7 +96,7 @@ export async function registerRoutes(app) {
                 return;
             }
         }
-        console.log('  - ❌ No alternative paths found');
+        // console.log removed for production
     }
     app.use(express.static(publicPath));
     // SPA fallback: serve index.html for all non-API routes

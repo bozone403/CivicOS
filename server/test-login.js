@@ -10,7 +10,7 @@ const JWT_SECRET = "civicos-dev-session-secret-2024";
 
 async function testLogin() {
   try {
-    console.log('Testing database connection...');
+    // console.log removed for production
     const pool = new Pool({ 
       connectionString: DATABASE_URL,
       ssl: { 
@@ -21,26 +21,26 @@ async function testLogin() {
 
     // Test database connection
     const result = await pool.query('SELECT NOW() as now');
-    console.log('Database connection successful:', result.rows[0].now);
+    // console.log removed for production
 
     // Test users table
     const usersResult = await pool.query('SELECT COUNT(*) as count FROM users');
-    console.log('Users table accessible, count:', usersResult.rows[0].count);
+    // console.log removed for production
 
     // Test bcrypt
     const testPassword = 'test123';
     const hashedPassword = await bcrypt.hash(testPassword, 10);
-    console.log('Bcrypt working, hash length:', hashedPassword.length);
+    // console.log removed for production
 
     // Test JWT
     const testUser = { id: 'test', email: 'test@example.com' };
     const token = jwt.sign(testUser, JWT_SECRET, { expiresIn: "7d" });
-    console.log('JWT working, token length:', token.length);
+    // console.log removed for production
 
-    console.log('All tests passed!');
+    // console.log removed for production
     await pool.end();
   } catch (error) {
-    console.error('Test failed:', error);
+    // console.error removed for production
   }
 }
 

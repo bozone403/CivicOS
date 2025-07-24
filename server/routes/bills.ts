@@ -38,7 +38,7 @@ export function registerBillsRoutes(app: Express) {
       const billsData = await query.orderBy(desc(bills.createdAt));
       res.json(billsData);
     } catch (error) {
-      console.error('Error fetching bills:', error);
+      // console.error removed for production
       res.status(500).json({ error: 'Failed to fetch bills' });
     }
   });
@@ -78,7 +78,7 @@ export function registerBillsRoutes(app: Express) {
         }
       });
     } catch (error) {
-      console.error('Error fetching bill:', error);
+      // console.error removed for production
       res.status(500).json({ error: 'Failed to fetch bill' });
     }
   });
@@ -117,7 +117,7 @@ export function registerBillsRoutes(app: Express) {
 
       res.json(results);
     } catch (error) {
-      console.error('Error searching bills:', error);
+      // console.error removed for production
       res.status(500).json({ error: 'Failed to search bills' });
     }
   });
@@ -133,7 +133,7 @@ export function registerBillsRoutes(app: Express) {
 
       res.json(activeBills);
     } catch (error) {
-      console.error('Error fetching active bills:', error);
+      // console.error removed for production
       res.status(500).json({ error: 'Failed to fetch active bills' });
     }
   });
@@ -173,7 +173,7 @@ export function registerBillsRoutes(app: Express) {
         categoryBreakdown: categoryStats.rows
       });
     } catch (error) {
-      console.error('Error fetching bill stats:', error);
+      // console.error removed for production
       res.status(500).json({ error: 'Failed to fetch bill statistics' });
     }
   });
@@ -191,7 +191,7 @@ export function registerBillsRoutes(app: Express) {
 
       res.json(recentBills);
     } catch (error) {
-      console.error('Error fetching recent bills:', error);
+      // console.error removed for production
       res.status(500).json({ error: 'Failed to fetch recent bills' });
     }
   });
@@ -209,7 +209,7 @@ export function registerBillsRoutes(app: Express) {
 
       res.json(sponsorBills);
     } catch (error) {
-      console.error('Error fetching bills by sponsor:', error);
+      // console.error removed for production
       res.status(500).json({ error: 'Failed to fetch bills by sponsor' });
     }
   });

@@ -23,7 +23,7 @@ export function registerMemoryRoutes(app) {
             });
         }
         catch (error) {
-            console.error('Error fetching memory data:', error);
+            // console.error removed for production
             res.status(500).json({ error: 'Failed to fetch memory data' });
         }
     });

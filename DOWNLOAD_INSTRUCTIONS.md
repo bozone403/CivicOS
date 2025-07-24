@@ -52,7 +52,7 @@ NODE_ENV=development
 
 # Optional AI Features
 ANTHROPIC_API_KEY=your-key-here
-OPENAI_API_KEY=your-key-here
+# OpenAI removed - using Ollama with Mistral only
 ```
 
 ## Step 5: Install Dependencies and Run

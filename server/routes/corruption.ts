@@ -27,7 +27,7 @@ export function registerCorruptionRoutes(app: Express) {
         }
       });
     } catch (error) {
-      console.error('Error fetching corruption data:', error);
+      // console.error removed for production
       res.status(500).json({ error: 'Failed to fetch corruption data' });
     }
   });

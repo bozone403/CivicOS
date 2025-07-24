@@ -81,7 +81,6 @@ export function registerAuthRoutes(app) {
     // Test endpoint to check database schema
     app.get("/api/auth/test-schema", async (req, res) => {
         try {
-            console.log('🔍 Testing database schema...');
             // Test if we can create a user with all fields
             const testUserData = {
                 id: 'test-schema-check',
@@ -111,10 +110,8 @@ export function registerAuthRoutes(app) {
                 createdAt: new Date(),
                 updatedAt: new Date(),
             };
-            console.log('📝 Test user data:', testUserData);
             // Try to create the user (this will fail if fields don't exist)
             const user = await storage.createUser(testUserData);
-            console.log('✅ Schema test successful - all fields available');
             // Clean up the test user
             await db.delete(users).where(eq(users.id, 'test-schema-check'));
             res.json({
@@ -124,7 +121,6 @@ export function registerAuthRoutes(app) {
             });
         }
         catch (err) {
-            console.error('❌ Schema test failed:', err);
             res.status(500).json({
                 status: 'error',
                 message: 'Database schema test failed - missing fields',
@@ -136,44 +132,14 @@ export function registerAuthRoutes(app) {
     // Registration endpoint
     app.post("/api/auth/register", async (req, res) => {
         try {
-            console.log('🔍 Registration request received:', {
-                body: req.body,
-                headers: req.headers,
-                method: req.method,
-                url: req.url
-            });
             const { email, password, firstName, lastName, phoneNumber, dateOfBirth, city, province, postalCode, federalRiding, provincialRiding, municipalWard, citizenshipStatus, voterRegistrationStatus, communicationStyle } = req.body;
-            console.log('📝 Parsed registration data:', {
-                email: email ? 'provided' : 'missing',
-                password: password ? 'provided' : 'missing',
-                firstName: firstName ? 'provided' : 'missing',
-                lastName: lastName ? 'provided' : 'missing',
-                city: city ? 'provided' : 'missing',
-                province: province ? 'provided' : 'missing',
-                postalCode: postalCode ? 'provided' : 'missing',
-                phoneNumber: phoneNumber ? 'provided' : 'missing',
-                dateOfBirth: dateOfBirth ? 'provided' : 'missing',
-                federalRiding: federalRiding ? 'provided' : 'missing',
-                provincialRiding: provincialRiding ? 'provided' : 'missing',
-                municipalWard: municipalWard ? 'provided' : 'missing',
-                citizenshipStatus: citizenshipStatus ? 'provided' : 'missing',
-                voterRegistrationStatus: voterRegistrationStatus ? 'provided' : 'missing',
-                communicationStyle: communicationStyle ? 'provided' : 'missing'
-            });
             // Required fields validation (only essentials)
             if (!email || !password || !firstName || !lastName) {
-                console.log('❌ Missing required fields:', {
-                    email: !!email,
-                    password: !!password,
-                    firstName: !!firstName,
-                    lastName: !!lastName
-                });
                 return res.status(400).json({ message: "Required fields: email, password, firstName, lastName" });
             }
             // Check if user already exists
             const existingUser = await storage.getUserByEmail(email);
             if (existingUser) {
-                console.log('❌ User already exists:', email);
                 return res.status(409).json({ message: "Email already registered" });
             }
             // Hash password
@@ -209,17 +175,7 @@ export function registerAuthRoutes(app) {
                 createdAt: now,
                 updatedAt: now,
             };
-            console.log('👤 Creating user with data:', {
-                id: userData.id,
-                email: userData.email,
-                firstName: userData.firstName,
-                lastName: userData.lastName,
-                city: userData.city,
-                province: userData.province,
-                postalCode: userData.postalCode
-            });
             const user = await storage.createUser(userData);
-            console.log('✅ User created successfully:', user.id);
             // Generate token
             const token = generateToken(user);
             res.status(201).json({
@@ -238,45 +194,26 @@ export function registerAuthRoutes(app) {
             });
         }
         catch (err) {
-            console.error('❌ Registration error:', err);
             res.status(500).json({ message: err?.message || 'Registration failed' });
         }
     });
     // Login endpoint
     app.post("/api/auth/login", async (req, res) => {
         try {
-            console.log('🔍 Login request received:', {
-                body: req.body,
-                headers: req.headers,
-                method: req.method,
-                url: req.url
-            });
             const { email, password } = req.body;
             if (!email || !password) {
-                console.log('❌ Missing login credentials:', {
-                    email: !!email,
-                    password: !!password
-                });
                 return res.status(400).json({ message: "Email and password are required" });
             }
             // Find user by email
             const user = await storage.getUserByEmail(email);
             if (!user) {
-                console.log('❌ User not found for login:', email);
                 return res.status(401).json({ message: "Invalid credentials" });
             }
-            console.log('👤 User found for login:', {
-                id: user.id,
-                email: user.email,
-                hasPassword: !!user.password
-            });
             // Verify password
             const isValidPassword = await bcrypt.compare(password, user.password || '');
             if (!isValidPassword) {
-                console.log('❌ Invalid password for user:', email);
                 return res.status(401).json({ message: "Invalid credentials" });
             }
-            console.log('✅ Login successful for user:', email);
             // Generate token
             const token = generateToken(user);
             res.json({
@@ -291,7 +228,6 @@ export function registerAuthRoutes(app) {
             });
         }
         catch (err) {
-            console.error('❌ Login error:', err?.stack || err);
             res.status(500).json({ message: err?.message || 'Login failed' });
         }
     });
@@ -313,12 +249,10 @@ export function registerAuthRoutes(app) {
                 }
             }
             catch (dbError) {
-                console.error("[/api/auth/user] Database error:", dbError);
                 return res.status(500).json({ message: "Internal server error" });
             }
         }
         catch (error) {
-            console.error("[/api/auth/user] Handler error:", error);
             res.status(500).json({ message: "Internal server error" });
         }
     });
@@ -349,12 +283,11 @@ export function registerAuthRoutes(app) {
             res.json({ message: "Profile updated successfully" });
         }
         catch (error) {
-            console.error('Profile update error:', error);
-            res.status(500).json({ message: "Failed to update profile" });
+            res.status(500).json({ message: 'Profile update failed', error: error?.message || String(error) });
         }
     });
     // Profile picture upload route (JWT protected)
-    app.post('/api/auth/upload-profile-picture', jwtAuth, upload.single('profilePicture'), async (req, res) => {
+    app.post('/api/auth/upload-profile-picture', jwtAuth, upload.single('profileImage'), async (req, res) => {
         try {
             if (!req.file) {
                 return res.status(400).json({ message: "No file uploaded" });
@@ -371,8 +304,7 @@ export function registerAuthRoutes(app) {
             res.json({ message: "Profile picture updated successfully", profileImageUrl: base64Data });
         }
         catch (error) {
-            console.error('Error uploading profile picture:', error);
-            res.status(500).json({ message: "Failed to upload profile picture" });
+            res.status(500).json({ message: 'Profile picture upload failed', error: error?.message || String(error) });
         }
     });
     return { jwtAuth };

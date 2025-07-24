@@ -3,6 +3,7 @@ import { Router, Route, Switch, useLocation } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { FloatingChatButton } from "@/components/FloatingChatButton";
+import { FloatingMessageButton } from "@/components/FloatingMessageButton";
 import { Button } from "@/components/ui/button";
 import { Layout } from "@/components/Layout";
 import { FeatureTutorial } from "@/components/FeatureTutorial";
@@ -47,6 +48,8 @@ const CivicSocialProfile = lazy(() => import("@/pages/civicsocial-profile"));
 const CivicSocialFriends = lazy(() => import("@/pages/civicsocial-friends"));
 const CivicSocialDiscussions = lazy(() => import("@/pages/civicsocial-discussions"));
 const CivicSocialMessages = lazy(() => import("@/pages/civicsocial-messages"));
+const UserSearch = lazy(() => import("@/pages/user-search"));
+const Social = lazy(() => import("@/pages/social"));
 
 // Other pages
 const About = lazy(() => import("@/pages/about"));
@@ -89,7 +92,7 @@ class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { has
   }
   componentDidCatch(_error: any, _errorInfo: any) {
     // You can log error info here
-    // console.error(error, errorInfo);
+    // // console.error removed for production
   }
   render() {
     if (this.state.hasError) {
@@ -417,6 +420,22 @@ export default function App() {
                   </ProtectedRoute>
                 </Route>
                 
+                <Route path="/user-search">
+                  <ProtectedRoute>
+                    <Layout>
+                      <UserSearch />
+                    </Layout>
+                  </ProtectedRoute>
+                </Route>
+                
+                <Route path="/social">
+                  <ProtectedRoute>
+                    <Layout>
+                      <Social />
+                    </Layout>
+                  </ProtectedRoute>
+                </Route>
+                
                 <Route path="/civicsocial">
                   <ProtectedRoute>
                     <Layout>
@@ -440,6 +459,7 @@ export default function App() {
             
             {/* Global Components */}
             <FloatingChatButton />
+            <FloatingMessageButton />
             <Toaster />
             
             {/* Tutorial */}

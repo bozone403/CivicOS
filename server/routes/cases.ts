@@ -27,7 +27,7 @@ export function registerCasesRoutes(app: Express) {
         }
       });
     } catch (error) {
-      console.error('Error fetching cases data:', error);
+      // console.error removed for production
       res.status(500).json({ error: 'Failed to fetch cases data' });
     }
   });

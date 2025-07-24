@@ -600,7 +600,7 @@ export class ComprehensiveNewsAnalyzer {
         // Delay between sources to be respectful
         await this.delay(2000);
       } catch (error) {
-        console.error(`Error scraping ${source.name}:`, error);
+        // console.error removed for production
       }
     }
 
@@ -679,7 +679,7 @@ export class ComprehensiveNewsAnalyzer {
       }
 
     } catch (error) {
-      console.error(`Error scraping ${source.name}:`, error);
+      // console.error removed for production
       return [];
     }
 
@@ -793,7 +793,7 @@ Focus on Canadian political context and identify:
       };
 
     } catch (error) {
-      console.error(`Error analyzing article ${article.title}:`, error);
+      // console.error removed for production
     }
 
     return article;
@@ -857,7 +857,7 @@ Focus on Canadian political context and identify:
         return JSON.parse(jsonMatch[0]);
       }
     } catch (error) {
-      console.error('Error parsing analysis response:', error);
+      // console.error removed for production
     }
     
     return {
@@ -971,7 +971,7 @@ Focus on:
         }
       });
     } catch (error) {
-      console.error(`Error storing article ${article.title}:`, error);
+      // console.error removed for production
     }
   }
 
@@ -1002,7 +1002,7 @@ Focus on:
         }
       });
     } catch (error) {
-      console.error(`Error storing topic comparison for ${topic}:`, error);
+      // console.error removed for production
     }
   }
 

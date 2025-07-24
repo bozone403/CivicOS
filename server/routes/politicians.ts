@@ -60,7 +60,7 @@ export function registerPoliticiansRoutes(app: Express) {
       
       res.json(politiciansData);
     } catch (error) {
-      console.error('Error fetching politicians:', error);
+      // console.error removed for production
       res.status(500).json({ error: 'Failed to fetch politicians' });
     }
   });
@@ -110,7 +110,7 @@ export function registerPoliticiansRoutes(app: Express) {
         truthTracking: truthTracking || null
       });
     } catch (error) {
-      console.error('Error fetching politician:', error);
+      // console.error removed for production
       res.status(500).json({ error: 'Failed to fetch politician' });
     }
   });
@@ -131,7 +131,7 @@ export function registerPoliticiansRoutes(app: Express) {
 
       res.json(statements);
     } catch (error) {
-      console.error('Error fetching politician statements:', error);
+      // console.error removed for production
       res.status(500).json({ error: 'Failed to fetch statements' });
     }
   });
@@ -152,7 +152,7 @@ export function registerPoliticiansRoutes(app: Express) {
 
       res.json(positions);
     } catch (error) {
-      console.error('Error fetching politician positions:', error);
+      // console.error removed for production
       res.status(500).json({ error: 'Failed to fetch positions' });
     }
   });
@@ -170,7 +170,7 @@ export function registerPoliticiansRoutes(app: Express) {
 
       res.json(finance);
     } catch (error) {
-      console.error('Error fetching campaign finance:', error);
+      // console.error removed for production
       res.status(500).json({ error: 'Failed to fetch campaign finance' });
     }
   });
@@ -187,7 +187,7 @@ export function registerPoliticiansRoutes(app: Express) {
 
       res.json(truthTracking || {});
     } catch (error) {
-      console.error('Error fetching truth tracking:', error);
+      // console.error removed for production
       res.status(500).json({ error: 'Failed to fetch truth tracking' });
     }
   });
@@ -229,7 +229,7 @@ export function registerPoliticiansRoutes(app: Express) {
 
       res.json(results);
     } catch (error) {
-      console.error('Error searching politicians:', error);
+      // console.error removed for production
       res.status(500).json({ error: 'Failed to search politicians' });
     }
   });
@@ -276,7 +276,7 @@ export function registerPoliticiansRoutes(app: Express) {
         jurisdictionBreakdown: jurisdictionStats.rows
       });
     } catch (error) {
-      console.error('Error fetching politician stats:', error);
+      // console.error removed for production
       res.status(500).json({ error: 'Failed to fetch statistics' });
     }
   });
@@ -300,7 +300,7 @@ export function registerPoliticiansRoutes(app: Express) {
 
       res.json(newStatement);
     } catch (error) {
-      console.error('Error adding politician statement:', error);
+      // console.error removed for production
       res.status(500).json({ error: 'Failed to add statement' });
     }
   });
@@ -326,7 +326,7 @@ export function registerPoliticiansRoutes(app: Express) {
 
       res.json(updatedPolitician);
     } catch (error) {
-      console.error('Error updating politician:', error);
+      // console.error removed for production
       res.status(500).json({ error: 'Failed to update politician' });
     }
   });
