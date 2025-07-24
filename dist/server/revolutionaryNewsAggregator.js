@@ -3,7 +3,7 @@ import { newsArticles } from "../shared/schema.js";
 import { desc } from "drizzle-orm";
 import * as cheerio from "cheerio";
 import fetch from 'node-fetch';
-import aiService from './utils/aiService.js';
+import { aiService } from './utils/aiService.js';
 /**
  * Revolutionary news aggregator using OpenAI for Canadian political intelligence
  */

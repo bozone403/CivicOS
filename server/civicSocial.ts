@@ -3,7 +3,7 @@ import { Router, Request, Response } from "express";
 import { db } from "./db.js";
 import { socialPosts, socialComments, socialLikes, userFriends, users, notifications, userMessages } from "../shared/schema.js";
 import { eq, desc, and, isNull, or, inArray } from "drizzle-orm";
-import aiService from "./utils/aiService.js";
+import { aiService } from "./utils/aiService.js";
 import pino from "pino";
 
 const logger = pino();

@@ -4,6 +4,7 @@ import simpleNotificationsRouter from "./simpleNotifications.js";
 import civicSocialRouter from "./civicSocial.js";
 import aiRoutes from "./aiRoutes.js";
 import searchRouter from "./routes/search.js";
+import dashboardRouter from "./routes/dashboard.js";
 import path from "path";
 import { fileURLToPath } from 'url';
 import fs from 'fs';
@@ -31,6 +32,8 @@ export async function registerRoutes(app) {
     app.use("/api/notifications", simpleNotificationsRouter);
     // CivicSocial routes (JWT protected)
     app.use("/api/social", jwtAuth, civicSocialRouter);
+    // Dashboard routes (no auth required for demo)
+    app.use("/api/dashboard", dashboardRouter);
     // AI routes (free AI service using Ollama)
     app.use("/api/ai", aiRoutes);
     // Voting routes (JWT protected)

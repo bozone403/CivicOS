@@ -4,7 +4,7 @@ services:
     env: node
     plan: starter
     buildCommand: |
-      # Install system dependencies
+      # Install system dependencies (no AI dependencies)
       apt-get update && apt-get install -y curl wget tar
       
       # Build the application
@@ -20,11 +20,11 @@ services:
       - key: JWT_SECRET
         value: civicos-jwt-secret-key-2024
       - key: CORS_ORIGIN
-        value: https://afterhourshvac.me
+        value: https://civicos.ca
       - key: BASE_URL
-        value: https://afterhourshvac.me
+        value: https://civicos.ca
       - key: FRONTEND_BASE_URL
-        value: https://afterhourshvac.me
+        value: https://civicos.ca
       - key: DATABASE_URL
         value: postgresql://postgres.wmpsjclnykcxtqwxfffv:0QZpuL2bShMezo2S@aws-0-us-east-2.pooler.supabase.com:6543/postgres
       - key: SUPABASE_URL
@@ -51,21 +51,16 @@ services:
         value: Jordan@iron-Oak.Ca
       - key: ENABLE_STRIPE_PAYMENTS
         value: "true"
-      - key: ENABLE_OPENAI_INTEGRATION
-        value: "true"
       - key: ENABLE_SUPABASE_AUTH
         value: "true"
-      - key: ENABLE_OLLAMA
-        value: true
-      - key: OLLAMA_HOST
-        value: 0.0.0.0:11434
-      - key: OLLAMA_BASE_URL
-        value: http://localhost:11434
-      - key: OLLAMA_URL
-        value: http://localhost:11434
-      - key: OLLAMA_MODEL
-        value: mistral:latest
+      # AI DISABLED - All AI features removed
+      - key: ENABLE_AI_FEATURES
+        value: "false"
       - key: AI_SERVICE_ENABLED
-        value: true
+        value: "false"
+      - key: OLLAMA_ENABLED
+        value: "false"
       - key: MISTRAL_ENABLED
-        value: true 
+        value: "false"
+      - key: OPENAI_ENABLED
+        value: "false" 

@@ -1,43 +1,111 @@
-import { registerLeaksRoutes } from "./leaks.js";
-import { registerMemoryRoutes } from "./memory.js";
-import { registerCorruptionRoutes } from "./corruption.js";
-import { registerCasesRoutes } from "./cases.js";
-import { registerDashboardRoutes } from "./dashboard.js";
-import { registerVotingRoutes } from "./voting.js";
-import { registerPetitionRoutes } from "./petitions.js";
-import { registerRightsRoutes } from "./rights.js";
-import { registerPoliticiansRoutes } from "./politicians.js";
-import { registerLegalRoutes } from "./legal.js";
-import { registerNewsRoutes } from "./news.js";
-import { registerBillsRoutes } from "./bills.js";
-import { registerElectionsRoutes } from "./elections.js";
-import { registerContactsRoutes } from "./contacts.js";
-import { registerFinanceRoutes } from "./finance.js";
-import { registerProcurementRoutes } from "./procurement.js";
-import { registerTrustRoutes } from "./trust.js";
-import { registerMapsRoutes } from "./maps.js";
-import { registerLobbyistsRoutes } from "./lobbyists.js";
-import { registerLedgerRoutes } from "./ledger.js";
+import { ResponseFormatter } from "../utils/responseFormatter.js";
+import { comprehensiveDataService } from "../utils/comprehensiveDataService.js";
 export function registerApiRoutes(app) {
-    registerLeaksRoutes(app);
-    registerMemoryRoutes(app);
-    registerCorruptionRoutes(app);
-    registerCasesRoutes(app);
-    registerDashboardRoutes(app);
-    registerVotingRoutes(app);
-    registerPetitionRoutes(app);
-    registerRightsRoutes(app);
-    registerPoliticiansRoutes(app);
-    registerLegalRoutes(app);
-    registerNewsRoutes(app);
-    registerBillsRoutes(app);
-    registerElectionsRoutes(app);
-    registerContactsRoutes(app);
-    registerFinanceRoutes(app);
-    registerProcurementRoutes(app);
-    registerTrustRoutes(app);
-    registerMapsRoutes(app);
-    registerLobbyistsRoutes(app);
-    registerLedgerRoutes(app);
-    // Removed old AI routes - using aiRoutes.ts instead
+    // Comprehensive politicians endpoint (using our data service)
+    app.get('/api/politicians/comprehensive', async (req, res) => {
+        try {
+            const { party, level, riding } = req.query;
+            const filters = {};
+            if (party && party !== 'all')
+                filters.party = party;
+            if (level && level !== 'all')
+                filters.level = level;
+            if (riding)
+                filters.riding = riding;
+            const politicians = comprehensiveDataService.getPoliticians(filters);
+            return ResponseFormatter.success(res, politicians, "Politicians retrieved successfully", 200, politicians.length);
+        }
+        catch (error) {
+            console.error('Politicians API error:', error);
+            return ResponseFormatter.databaseError(res, `Failed to fetch politicians: ${error.message}`);
+        }
+    });
+    // Get single politician by ID
+    app.get('/api/politicians/:id', async (req, res) => {
+        try {
+            const politicianId = parseInt(req.params.id);
+            if (isNaN(politicianId)) {
+                return ResponseFormatter.badRequest(res, "Invalid politician ID");
+            }
+            const politician = comprehensiveDataService.getPoliticianById(politicianId);
+            if (!politician) {
+                return ResponseFormatter.notFound(res, "Politician not found");
+            }
+            return ResponseFormatter.success(res, politician, "Politician retrieved successfully");
+        }
+        catch (error) {
+            console.error('Politician detail API error:', error);
+            return ResponseFormatter.databaseError(res, `Failed to fetch politician: ${error.message}`);
+        }
+    });
+    // Bills endpoint using comprehensive data service
+    app.get('/api/bills/comprehensive', async (req, res) => {
+        try {
+            const { status, sponsor } = req.query;
+            const filters = {};
+            if (status && status !== 'all')
+                filters.status = status;
+            if (sponsor)
+                filters.sponsor = sponsor;
+            const bills = comprehensiveDataService.getBills(filters);
+            return ResponseFormatter.success(res, bills, "Bills retrieved successfully", 200, bills.length);
+        }
+        catch (error) {
+            console.error('Bills API error:', error);
+            return ResponseFormatter.databaseError(res, `Failed to fetch bills: ${error.message}`);
+        }
+    });
+    // Economic data endpoint
+    app.get('/api/economic/comprehensive', async (req, res) => {
+        try {
+            const economicData = comprehensiveDataService.getEconomicData();
+            return ResponseFormatter.success(res, economicData, "Economic data retrieved successfully");
+        }
+        catch (error) {
+            console.error('Economic data API error:', error);
+            return ResponseFormatter.databaseError(res, `Failed to fetch economic data: ${error.message}`);
+        }
+    });
+    // News endpoint using comprehensive data service
+    app.get('/api/news/comprehensive', async (req, res) => {
+        try {
+            const { category, limit } = req.query;
+            const filters = {};
+            if (category && category !== 'all')
+                filters.category = category;
+            if (limit)
+                filters.limit = parseInt(limit);
+            const news = comprehensiveDataService.getNews(filters);
+            return ResponseFormatter.success(res, news, "News retrieved successfully", 200, news.length);
+        }
+        catch (error) {
+            console.error('News API error:', error);
+            return ResponseFormatter.databaseError(res, `Failed to fetch news: ${error.message}`);
+        }
+    });
+    // Financial data endpoint
+    app.get('/api/finance/comprehensive', async (req, res) => {
+        try {
+            const financialData = comprehensiveDataService.getFinancialData();
+            return ResponseFormatter.success(res, financialData, "Financial data retrieved successfully");
+        }
+        catch (error) {
+            console.error('Financial data API error:', error);
+            return ResponseFormatter.databaseError(res, `Failed to fetch financial data: ${error.message}`);
+        }
+    });
+    // Health check endpoint
+    app.get('/api/health', (req, res) => {
+        res.json({
+            status: 'healthy',
+            timestamp: new Date().toISOString(),
+            environment: process.env.NODE_ENV || 'development',
+            service: 'CivicOS API',
+            features: {
+                mockAI: true,
+                ollama: false,
+                comprehensiveData: true
+            }
+        });
+    });
 }

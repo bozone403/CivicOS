@@ -1,314 +1,208 @@
-import { Express, Request, Response } from "express";
-import aiService from "../utils/aiService.js";
-import enhancedAiService from "../utils/enhancedAiService.js";
-import { ResponseFormatter } from "../utils/responseFormatter.js";
-import jwt from "jsonwebtoken";
+import { Router } from 'express';
+import { aiService } from '../utils/aiService.js';
 
-// JWT Auth middleware
-function jwtAuth(req: any, res: any, next: any) {
-  const authHeader = req.headers.authorization;
-  if (!authHeader || !authHeader.startsWith("Bearer ")) {
-    return ResponseFormatter.unauthorized(res, "Missing or invalid token");
-  }
+const router = Router();
+
+// Health check endpoint
+router.get('/health', async (req, res) => {
   try {
-    const token = authHeader.split(" ")[1];
-    const secret = process.env.SESSION_SECRET;
-    if (!secret) {
-      return ResponseFormatter.unauthorized(res, "Server configuration error");
-    }
-    const decoded = jwt.verify(token, secret);
-    req.user = decoded;
-    next();
-  } catch (err) {
-    return ResponseFormatter.unauthorized(res, "Invalid or expired token");
+    const health = await aiService.healthCheck();
+    res.json({
+      status: 'healthy',
+      service: health.service ? 'operational' : 'offline',
+      models: health.model ? ['active'] : [],
+      message: health.message,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    res.status(500).json({
+      status: 'error',
+      service: 'offline',
+      models: [],
+      message: 'AI service health check failed',
+      timestamp: new Date().toISOString()
+    });
   }
-}
+});
 
-export function registerAIRoutes(app: Express) {
-  // AI Health Check
-  app.get('/api/ai/health', async (req: Request, res: Response) => {
-    try {
-      const isHealthy = await aiService.isServiceHealthy();
-      const status = aiService.getServiceStatus();
-      
-      res.json({
-        status: isHealthy ? 'healthy' : 'unavailable',
-        details: isHealthy ? 'Ollama is running and ready' : 'Ollama is not available',
-        timestamp: new Date().toISOString(),
-        service: 'CivicOS Free AI Service',
-        serviceStatus: status
-      });
-    } catch (error) {
-      // console.error removed for production
-      res.status(500).json({ 
-        status: 'error',
-        details: 'Failed to check AI service health',
-        error: error instanceof Error ? error.message : String(error)
+// General chat endpoint
+router.post('/chat', async (req, res) => {
+  try {
+    const { message, context } = req.body;
+    
+    if (!message || typeof message !== 'string') {
+      return res.status(400).json({
+        error: 'Message is required and must be a string'
       });
     }
-  });
 
-  // AI Chat
-  app.post('/api/ai/chat', jwtAuth, async (req: Request, res: Response) => {
-    try {
-      const { message, context } = req.body;
-      
-      if (!message) {
-        return res.status(400).json({ message: 'Message is required' });
-      }
+    const response = await aiService.generateResponse(message, context);
+    
+    res.json({
+      response,
+      timestamp: new Date().toISOString(),
+      context: context || {}
+    });
+  } catch (error) {
+    console.error('AI chat error:', error);
+    res.status(500).json({
+      error: 'Failed to generate AI response',
+      fallback: 'AI chat is temporarily unavailable. Please try again later.',
+      timestamp: new Date().toISOString()
+    });
+  }
+});
 
-      const prompt = `You are CivicOS, a sophisticated Canadian civic intelligence assistant. You specialize in Canadian politics, legislation analysis, politician tracking, and civic engagement.
-
-Your expertise includes:
-- Canadian federal, provincial, and municipal government structures
-- Parliamentary procedures and legislative processes
-- Political parties and their platforms
-- Civic rights and responsibilities
-- Voting procedures and electoral systems
-- How to contact and engage with elected officials
-- Canadian democratic institutions and processes
-
-Context: ${context || 'General civic engagement'}
-
-User message: ${message}
-
-Provide a comprehensive, accurate, and actionable response focused on Canadian civic engagement. Include specific resources, contact information, and next steps when relevant. Be informative, professional, and empowering.`;
-
-      const response = await aiService.generateResponse(prompt);
-      
-      res.json({
-        response,
-        timestamp: new Date().toISOString(),
-        model: process.env.OLLAMA_MODEL || 'mistral:latest'
-      });
-    } catch (error) {
-      // console.error removed for production
-      res.status(500).json({ 
-        error: 'Failed to process chat message',
-        details: error instanceof Error ? error.message : String(error)
+// Politician analysis endpoint
+router.post('/analyze/politician', async (req, res) => {
+  try {
+    const { politicianId, name } = req.body;
+    
+    if (!politicianId && !name) {
+      return res.status(400).json({
+        error: 'Politician ID or name is required'
       });
     }
-  });
 
-  // Enhanced AI: Policy Analysis
-  app.post('/api/ai/analyze-policy', jwtAuth, async (req: Request, res: Response) => {
-    try {
-      const { policyText, context } = req.body;
-      
-      if (!policyText) {
-        return res.status(400).json({ message: 'Policy text is required' });
-      }
+    const prompt = `Analyze politician: ${name || politicianId}. Provide comprehensive analysis including voting patterns, policy positions, and political alignment.`;
+    const response = await aiService.generateResponse(prompt);
+    
+    res.json({
+      politicianId: politicianId || name,
+      analysis: response,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Politician analysis error:', error);
+    res.status(500).json({
+      error: 'Failed to analyze politician',
+      fallback: 'Politician analysis is temporarily unavailable. Please check the Politicians section for detailed information.',
+      timestamp: new Date().toISOString()
+    });
+  }
+});
 
-      const analysis = await enhancedAiService.analyzePolicy(policyText, context);
-      
-      res.json({
-        analysis,
-        timestamp: new Date().toISOString(),
-        model: process.env.OLLAMA_MODEL || 'mistral:latest'
-      });
-    } catch (error) {
-      // console.error removed for production
-      res.status(500).json({ 
-        error: 'Failed to analyze policy',
-        details: error instanceof Error ? error.message : String(error)
-      });
-    }
-  });
-
-  // Enhanced AI: Political Insights
-  app.post('/api/ai/political-insights', jwtAuth, async (req: Request, res: Response) => {
-    try {
-      const { data } = req.body;
-      
-      const insights = await enhancedAiService.generatePoliticalInsights(data || {});
-      
-      res.json({
-        insights,
-        timestamp: new Date().toISOString(),
-        model: process.env.OLLAMA_MODEL || 'mistral:latest'
-      });
-    } catch (error) {
-      // console.error removed for production
-      res.status(500).json({ 
-        error: 'Failed to generate political insights',
-        details: error instanceof Error ? error.message : String(error)
+// Bill analysis endpoint
+router.post('/analyze/bill', async (req, res) => {
+  try {
+    const { billId, title, content } = req.body;
+    
+    if (!billId && !title) {
+      return res.status(400).json({
+        error: 'Bill ID or title is required'
       });
     }
-  });
 
-  // Enhanced AI: Civic Recommendations
-  app.post('/api/ai/civic-recommendations', jwtAuth, async (req: Request, res: Response) => {
-    try {
-      const { userProfile } = req.body;
-      
-      if (!userProfile) {
-        return res.status(400).json({ message: 'User profile is required' });
-      }
+    const prompt = `Analyze Canadian bill: ${title || billId}. ${content ? `Content: ${content}` : ''} Provide summary, key provisions, and impact assessment.`;
+    const response = await aiService.generateResponse(prompt);
+    
+    res.json({
+      billId: billId || title,
+      analysis: response,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Bill analysis error:', error);
+    res.status(500).json({
+      error: 'Failed to analyze bill',
+      fallback: 'Bill analysis is temporarily unavailable. Please check the Bills & Voting section for detailed information.',
+      timestamp: new Date().toISOString()
+    });
+  }
+});
 
-      const recommendations = await enhancedAiService.generateCivicRecommendations(userProfile);
-      
-      res.json({
-        recommendations,
-        timestamp: new Date().toISOString(),
-        model: process.env.OLLAMA_MODEL || 'mistral:latest'
-      });
-    } catch (error) {
-      // console.error removed for production
-      res.status(500).json({ 
-        error: 'Failed to generate civic recommendations',
-        details: error instanceof Error ? error.message : String(error)
-      });
-    }
-  });
-
-  // Enhanced AI: News Bias Analysis
-  app.post('/api/ai/analyze-news-bias', jwtAuth, async (req: Request, res: Response) => {
-    try {
-      const { newsContent, source } = req.body;
-      
-      if (!newsContent) {
-        return res.status(400).json({ message: 'News content is required' });
-      }
-
-      const analysis = await enhancedAiService.analyzeNewsBias(newsContent, source);
-      
-      res.json({
-        analysis,
-        timestamp: new Date().toISOString(),
-        model: process.env.OLLAMA_MODEL || 'mistral:latest'
-      });
-    } catch (error) {
-      // console.error removed for production
-      res.status(500).json({ 
-        error: 'Failed to analyze news bias',
-        details: error instanceof Error ? error.message : String(error)
+// News fact-checking endpoint
+router.post('/factcheck', async (req, res) => {
+  try {
+    const { claim, topic, content } = req.body;
+    
+    if (!claim && !content) {
+      return res.status(400).json({
+        error: 'Claim or content is required for fact-checking'
       });
     }
-  });
 
-  // Enhanced AI: Legislative Summary
-  app.post('/api/ai/legislative-summary', jwtAuth, async (req: Request, res: Response) => {
-    try {
-      const { billContent, context } = req.body;
-      
-      if (!billContent) {
-        return res.status(400).json({ message: 'Bill content is required' });
-      }
+    const prompt = `Fact check: ${claim || content}. ${topic ? `Topic: ${topic}` : ''} Provide verdict, evidence, and sources.`;
+    const response = await aiService.generateResponse(prompt);
+    
+    res.json({
+      claim: claim || content.substring(0, 100),
+      factCheck: response,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Fact check error:', error);
+    res.status(500).json({
+      error: 'Failed to fact-check claim',
+      fallback: 'Fact-checking is temporarily unavailable. Please consult reliable news sources for verification.',
+      timestamp: new Date().toISOString()
+    });
+  }
+});
 
-      const summary = await enhancedAiService.generateLegislativeSummary(billContent, context);
-      
-      res.json({
-        summary,
-        timestamp: new Date().toISOString(),
-        model: process.env.OLLAMA_MODEL || 'mistral:latest'
-      });
-    } catch (error) {
-      // console.error removed for production
-      res.status(500).json({ 
-        error: 'Failed to generate legislative summary',
-        details: error instanceof Error ? error.message : String(error)
-      });
-    }
-  });
-
-  // Enhanced AI: Civic Intelligence Report
-  app.post('/api/ai/civic-intelligence-report', jwtAuth, async (req: Request, res: Response) => {
-    try {
-      const { data } = req.body;
-      
-      const report = await enhancedAiService.generateCivicIntelligenceReport(data || {});
-      
-      res.json({
-        report,
-        timestamp: new Date().toISOString(),
-        model: process.env.OLLAMA_MODEL || 'mistral:latest'
-      });
-    } catch (error) {
-      // console.error removed for production
-      res.status(500).json({ 
-        error: 'Failed to generate civic intelligence report',
-        details: error instanceof Error ? error.message : String(error)
+// Civic guidance endpoint
+router.post('/civic-guide', async (req, res) => {
+  try {
+    const { question, topic, location } = req.body;
+    
+    if (!question) {
+      return res.status(400).json({
+        error: 'Question is required'
       });
     }
-  });
 
-  // News Analysis
-  app.post('/api/ai/analyze-news', jwtAuth, async (req: Request, res: Response) => {
-    try {
-      const { title, content, source } = req.body;
-      
-      if (!title || !content) {
-        return res.status(400).json({ message: 'Title and content are required' });
-      }
+    const prompt = `Civic guidance question: ${question}. ${topic ? `Topic: ${topic}` : ''} ${location ? `Location: ${location}` : ''} Provide helpful civic information and guidance.`;
+    const response = await aiService.generateResponse(prompt);
+    
+    res.json({
+      question,
+      guidance: response,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Civic guidance error:', error);
+    res.status(500).json({
+      error: 'Failed to provide civic guidance',
+      fallback: 'Civic guidance is temporarily unavailable. Please visit canada.ca or contact your local government office.',
+      timestamp: new Date().toISOString()
+    });
+  }
+});
 
-      const prompt = `Analyze this Canadian news article for bias, credibility, and civic impact. You are an expert media analyst specializing in Canadian political journalism.
+// AI service status endpoint
+router.get('/status', async (req, res) => {
+  try {
+    const health = await aiService.healthCheck();
+    
+    res.json({
+      service: 'CivicOS AI',
+      status: health.service ? 'operational' : 'degraded',
+      features: {
+        chat: true,
+        politicianAnalysis: true,
+        billAnalysis: true,
+        factChecking: true,
+        civicGuidance: true
+      },
+      dataSource: process.env.USE_MOCK_AI === 'true' ? 'mock_comprehensive' : 'ollama',
+      message: health.message,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    res.status(500).json({
+      service: 'CivicOS AI',
+      status: 'offline',
+      features: {
+        chat: false,
+        politicianAnalysis: false,
+        billAnalysis: false,
+        factChecking: false,
+        civicGuidance: false
+      },
+      message: 'AI service is currently unavailable',
+      timestamp: new Date().toISOString()
+    });
+  }
+});
 
-Article Title: ${title}
-Source: ${source || 'Unknown'}
-Content: ${content}
-
-Please provide:
-1. A brief summary of the key points
-2. Assessment of factual accuracy and bias
-3. Analysis of the civic impact and relevance
-4. Identification of any propaganda techniques or misleading information
-5. Recommendations for how citizens should interpret this information
-6. Related civic actions or engagement opportunities
-
-Focus on Canadian political context and civic engagement implications.`;
-
-      const response = await aiService.generateResponse(prompt);
-      
-      res.json({
-        analysis: response,
-        timestamp: new Date().toISOString(),
-        model: process.env.OLLAMA_MODEL || 'mistral:latest'
-      });
-    } catch (error) {
-      // console.error removed for production
-      res.status(500).json({ 
-        error: 'Failed to analyze news',
-        details: error instanceof Error ? error.message : String(error)
-      });
-    }
-  });
-
-  // Civic Insights
-  app.post('/api/ai/civic-insights', jwtAuth, async (req: Request, res: Response) => {
-    try {
-      const { topic, context } = req.body;
-      
-      if (!topic) {
-        return res.status(400).json({ message: 'Topic is required' });
-      }
-
-      const prompt = `Generate civic insights about this Canadian topic: ${topic}
-
-Context: ${context || 'General civic engagement'}
-
-Please provide:
-1. Key civic implications and impacts
-2. How this affects different groups of citizens
-3. Opportunities for civic engagement and participation
-4. Relevant government processes or procedures
-5. Contact information for relevant officials or organizations
-6. Recommended next steps for concerned citizens
-
-Focus on practical, actionable information for Canadian civic engagement.`;
-
-      const response = await aiService.generateResponse(prompt);
-      
-      res.json({
-        insights: response,
-        timestamp: new Date().toISOString(),
-        model: process.env.OLLAMA_MODEL || 'mistral:latest'
-      });
-    } catch (error) {
-      // console.error removed for production
-      res.status(500).json({ 
-        error: 'Failed to generate civic insights',
-        details: error instanceof Error ? error.message : String(error)
-      });
-    }
-  });
-} 
+export default router; 

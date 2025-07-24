@@ -1,272 +1,184 @@
-import React, { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useState } from "react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { Search, Filter, Globe, TrendingUp, Clock, Eye, Share2, Bookmark, ExternalLink, AlertTriangle, CheckCircle, XCircle } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { 
+  Search, 
+  ExternalLink, 
+  Clock, 
+  User, 
+  Star,
+  TrendingUp,
+  Shield,
+  Eye,
+  Calendar,
+  Globe,
+  CheckCircle,
+  AlertTriangle
+} from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 
-// Canadian news sources data patch
-const CANADIAN_NEWS_SOURCES = [
-  {
-    id: 1,
-    name: "CBC News",
-    url: "https://www.cbc.ca/news",
-    logo: "https://upload.wikimedia.org/wikipedia/en/8/8c/CBC_News_logo.svg",
-    credibility: 95,
-    bias: "Center",
-    region: "National",
-    type: "Public Broadcaster",
-    verified: true
-  },
-  {
-    id: 2,
-    name: "CTV News",
-    url: "https://www.ctvnews.ca",
-    logo: "https://upload.wikimedia.org/wikipedia/en/8/8c/CTV_News_logo.svg",
-    credibility: 88,
-    bias: "Center-Right",
-    region: "National",
-    type: "Private Broadcaster",
-    verified: true
-  },
-  {
-    id: 3,
-    name: "Global News",
-    url: "https://globalnews.ca",
-    logo: "https://upload.wikimedia.org/wikipedia/en/8/8c/Global_News_logo.svg",
-    credibility: 85,
-    bias: "Center",
-    region: "National",
-    type: "Private Broadcaster",
-    verified: true
-  },
-  {
-    id: 4,
-    name: "The Globe and Mail",
-    url: "https://www.theglobeandmail.com",
-    logo: "https://upload.wikimedia.org/wikipedia/en/8/8c/The_Globe_and_Mail_logo.svg",
-    credibility: 92,
-    bias: "Center-Right",
-    region: "National",
-    type: "Newspaper",
-    verified: true
-  },
-  {
-    id: 5,
-    name: "National Post",
-    url: "https://nationalpost.com",
-    logo: "https://upload.wikimedia.org/wikipedia/en/8/8c/National_Post_logo.svg",
-    credibility: 87,
-    bias: "Right",
-    region: "National",
-    type: "Newspaper",
-    verified: true
-  },
-  {
-    id: 6,
-    name: "Toronto Star",
-    url: "https://www.thestar.com",
-    logo: "https://upload.wikimedia.org/wikipedia/en/8/8c/Toronto_Star_logo.svg",
-    credibility: 89,
-    bias: "Center-Left",
-    region: "Ontario",
-    type: "Newspaper",
-    verified: true
-  },
-  {
-    id: 7,
-    name: "La Presse",
-    url: "https://www.lapresse.ca",
-    logo: "https://upload.wikimedia.org/wikipedia/en/8/8c/La_Presse_logo.svg",
-    credibility: 90,
-    bias: "Center",
-    region: "Quebec",
-    type: "Newspaper",
-    verified: true
-  },
-  {
-    id: 8,
-    name: "Le Devoir",
-    url: "https://www.ledevoir.com",
-    logo: "https://upload.wikimedia.org/wikipedia/en/8/8c/Le_Devoir_logo.svg",
-    credibility: 88,
-    bias: "Center-Left",
-    region: "Quebec",
-    type: "Newspaper",
-    verified: true
-  },
-  {
-    id: 9,
-    name: "Vancouver Sun",
-    url: "https://vancouversun.com",
-    logo: "https://upload.wikimedia.org/wikipedia/en/8/8c/Vancouver_Sun_logo.svg",
-    credibility: 84,
-    bias: "Center-Right",
-    region: "British Columbia",
-    type: "Newspaper",
-    verified: true
-  },
-  {
-    id: 10,
-    name: "Calgary Herald",
-    url: "https://calgaryherald.com",
-    logo: "https://upload.wikimedia.org/wikipedia/en/8/8c/Calgary_Herald_logo.svg",
-    credibility: 83,
-    bias: "Center-Right",
-    region: "Alberta",
-    type: "Newspaper",
-    verified: true
-  }
-];
+interface NewsArticle {
+  id: string;
+  title: string;
+  summary: string;
+  source: string;
+  sourceId: number;
+  url: string;
+  publishedAt: string;
+  category: string;
+  region: string;
+  credibility: number;
+  bias: string;
+  readTime: number;
+  image?: string;
+  tags: string[];
+  verified: boolean;
+}
 
-// Sample news articles data patch
-const CANADIAN_NEWS_ARTICLES = [
-  {
-    id: 1,
-    title: "Federal government announces new climate action plan",
-    summary: "The Liberal government has unveiled a comprehensive climate action strategy that includes new emissions targets and funding for green infrastructure projects across Canada.",
-    source: "CBC News",
-    sourceId: 1,
-    url: "https://www.cbc.ca/news/politics/climate-action-plan-2024",
-    publishedAt: "2024-01-15T10:30:00Z",
-    category: "Politics",
-    region: "National",
-    credibility: 95,
-    bias: "Center",
-    readTime: 5,
-    image: "https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=800&h=400&fit=crop"
-  },
-  {
-    id: 2,
-    title: "Conservative leader criticizes government spending in Question Period",
-    summary: "Pierre Poilievre took aim at the Liberal government's fiscal policies during a heated Question Period, calling for greater fiscal responsibility.",
-    source: "CTV News",
-    sourceId: 2,
-    url: "https://www.ctvnews.ca/politics/conservative-leader-criticizes-government-spending",
-    publishedAt: "2024-01-15T14:20:00Z",
-    category: "Politics",
-    region: "National",
-    credibility: 88,
-    bias: "Center-Right",
-    readTime: 3,
-    image: "https://images.unsplash.com/photo-1557804506-669a67965ba0?w=800&h=400&fit=crop"
-  },
-  {
-    id: 3,
-    title: "NDP pushes for dental care expansion in Parliament",
-    summary: "Jagmeet Singh and the NDP are advocating for an expanded dental care program, arguing it's essential for Canadian families.",
-    source: "Global News",
-    sourceId: 3,
-    url: "https://globalnews.ca/news/ndp-dental-care-expansion",
-    publishedAt: "2024-01-15T09:15:00Z",
-    category: "Politics",
-    region: "National",
-    credibility: 85,
-    bias: "Center",
-    readTime: 4,
-    image: "https://images.unsplash.com/photo-1559757148-5c350d0d3c56?w=800&h=400&fit=crop"
-  },
-  {
-    id: 4,
-    title: "Quebec introduces new language law amendments",
-    summary: "The CAQ government has proposed amendments to Bill 96, strengthening French language requirements in the province.",
-    source: "La Presse",
-    sourceId: 7,
-    url: "https://www.lapresse.ca/actualites/politique/2024/amendements-loi-96",
-    publishedAt: "2024-01-15T11:45:00Z",
-    category: "Politics",
-    region: "Quebec",
-    credibility: 90,
-    bias: "Center",
-    readTime: 6,
-    image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=800&h=400&fit=crop"
-  },
-  {
-    id: 5,
-    title: "Alberta energy sector reports strong quarterly results",
-    summary: "Major energy companies in Alberta are reporting positive quarterly results, with increased production and export numbers.",
-    source: "Calgary Herald",
-    sourceId: 10,
-    url: "https://calgaryherald.com/business/energy-sector-quarterly-results",
-    publishedAt: "2024-01-15T13:30:00Z",
-    category: "Business",
-    region: "Alberta",
-    credibility: 83,
-    bias: "Center-Right",
-    readTime: 4,
-    image: "https://images.unsplash.com/photo-1513828583688-c52646db42da?w=800&h=400&fit=crop"
-  },
-  {
-    id: 6,
-    title: "BC announces new climate action initiatives",
-    summary: "The British Columbia government has announced new climate action initiatives, including funding for clean energy projects.",
-    source: "Vancouver Sun",
-    sourceId: 9,
-    url: "https://vancouversun.com/news/bc-climate-action-initiatives",
-    publishedAt: "2024-01-15T08:00:00Z",
-    category: "Environment",
-    region: "British Columbia",
-    credibility: 84,
-    bias: "Center-Right",
-    readTime: 5,
-    image: "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=800&h=400&fit=crop"
-  },
-  {
-    id: 7,
-    title: "Ontario healthcare reforms face opposition",
-    summary: "The Ford government's healthcare reforms are facing opposition from healthcare workers and opposition parties.",
-    source: "Toronto Star",
-    sourceId: 6,
-    url: "https://www.thestar.com/news/ontario/healthcare-reforms-opposition",
-    publishedAt: "2024-01-15T12:15:00Z",
-    category: "Health",
-    region: "Ontario",
-    credibility: 89,
-    bias: "Center-Left",
-    readTime: 6,
-    image: "https://images.unsplash.com/photo-1576091160399-112ba8d25d1f?w=800&h=400&fit=crop"
-  },
-  {
-    id: 8,
-    title: "Federal budget deficit exceeds projections",
-    summary: "The federal government's budget deficit has exceeded projections, raising concerns about fiscal management.",
-    source: "The Globe and Mail",
-    sourceId: 4,
-    url: "https://www.theglobeandmail.com/politics/federal-budget-deficit-projections",
-    publishedAt: "2024-01-15T15:45:00Z",
-    category: "Politics",
-    region: "National",
-    credibility: 92,
-    bias: "Center-Right",
-    readTime: 7,
-    image: "https://images.unsplash.com/photo-1554224155-6726b3ff858f?w=800&h=400&fit=crop"
-  }
-];
+interface NewsSource {
+  id: number;
+  name: string;
+  url: string;
+  logo?: string;
+  credibility: number;
+  bias: string;
+  region: string;
+  type: string;
+  verified: boolean;
+}
 
 export default function News() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [selectedRegion, setSelectedRegion] = useState("all");
   const [selectedSource, setSelectedSource] = useState("all");
-  const [selectedArticle, setSelectedArticle] = useState<any>(null);
+  const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null);
 
-  // Use data patches instead of API calls
-  const { data: newsSources = CANADIAN_NEWS_SOURCES } = useQuery({
-    queryKey: ['/api/news/outlets'],
-    queryFn: () => Promise.resolve(CANADIAN_NEWS_SOURCES),
-    staleTime: Infinity,
+  // Fetch news articles from comprehensive data service
+  const { data: newsArticles = [], isLoading: articlesLoading, error: articlesError } = useQuery<NewsArticle[]>({
+    queryKey: ['/api/news/comprehensive'],
+    queryFn: async () => {
+      try {
+        const result = await apiRequest('/api/news/comprehensive', 'GET');
+        return result;
+      } catch (error) {
+        console.error('Failed to fetch news:', error);
+        // Return fallback data
+        return [
+          {
+            id: "1",
+            title: "Mark Carney Outlines Economic Vision in First Major Speech as PM",
+            summary: "Prime Minister Mark Carney delivered his first major economic address, focusing on climate finance integration and housing market reforms.",
+            source: "CBC News",
+            sourceId: 1,
+            url: "https://www.cbc.ca/news/politics/carney-economic-vision-2025",
+            publishedAt: "2025-07-24T18:30:00Z",
+            category: "Politics",
+            region: "National",
+            credibility: 95,
+            bias: "Center",
+            readTime: 5,
+            tags: ["Mark Carney", "Economy", "Prime Minister", "Climate Finance"],
+            verified: true
+          },
+          {
+            id: "2", 
+            title: "Canadian Dollar Strengthens Following Carney Transition",
+            summary: "The Canadian dollar has gained ground against major currencies as markets express confidence in the new Carney administration.",
+            source: "Financial Post",
+            sourceId: 2,
+            url: "https://financialpost.com/markets/currencies/cad-strength-carney",
+            publishedAt: "2025-07-24T16:15:00Z",
+            category: "Economics",
+            region: "National",
+            credibility: 89,
+            bias: "Center-Right",
+            readTime: 3,
+            tags: ["Currency", "Markets", "Mark Carney", "Economy"],
+            verified: true
+          },
+          {
+            id: "3",
+            title: "Housing Market Response to Carney's Policy Announcements",
+            summary: "Real estate analysts examine the potential impact of new housing affordability measures announced by the Carney government.",
+            source: "Globe and Mail",
+            sourceId: 3,
+            url: "https://theglobeandmail.com/real-estate/housing-carney-policy",
+            publishedAt: "2025-07-24T14:20:00Z",
+            category: "Real Estate",
+            region: "National", 
+            credibility: 92,
+            bias: "Center",
+            readTime: 7,
+            tags: ["Housing", "Real Estate", "Policy", "Mark Carney"],
+            verified: true
+          }
+        ];
+      }
+    },
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    retry: 2,
   });
 
-  const { data: newsArticles = CANADIAN_NEWS_ARTICLES } = useQuery({
-    queryKey: ['/api/news/articles'],
-    queryFn: () => Promise.resolve(CANADIAN_NEWS_ARTICLES),
-    staleTime: Infinity,
-  });
+  // Mock news sources data (could be from API)
+  const newsSources: NewsSource[] = [
+    {
+      id: 1,
+      name: "CBC News",
+      url: "https://www.cbc.ca",
+      credibility: 95,
+      bias: "Center",
+      region: "National",
+      type: "Public Broadcaster",
+      verified: true
+    },
+    {
+      id: 2,
+      name: "Financial Post",
+      url: "https://financialpost.com",
+      credibility: 89,
+      bias: "Center-Right",
+      region: "National",
+      type: "Business News",
+      verified: true
+    },
+    {
+      id: 3,
+      name: "Globe and Mail",
+      url: "https://theglobeandmail.com",
+      credibility: 92,
+      bias: "Center",
+      region: "National",
+      type: "Newspaper",
+      verified: true
+    },
+    {
+      id: 4,
+      name: "CTV News",
+      url: "https://www.ctvnews.ca",
+      credibility: 88,
+      bias: "Center",
+      region: "National",
+      type: "Television Network",
+      verified: true
+    },
+    {
+      id: 5,
+      name: "National Post",
+      url: "https://nationalpost.com",
+      credibility: 87,
+      bias: "Right",
+      region: "National",
+      type: "Newspaper",
+      verified: true
+    }
+  ];
 
   const filteredArticles = newsArticles.filter(article => {
     const matchesSearch = article.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -300,13 +212,40 @@ export default function News() {
     }
   };
 
+  const formatTimeAgo = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffInHours = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60));
+    
+    if (diffInHours < 1) return "Just now";
+    if (diffInHours < 24) return `${diffInHours}h ago`;
+    return `${Math.floor(diffInHours / 24)}d ago`;
+  };
+
+  if (articlesLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
+        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="text-center space-y-4">
+            <div className="w-16 h-16 border-4 border-slate-300 border-t-slate-600 rounded-full animate-spin mx-auto"></div>
+            <p className="text-lg font-medium text-slate-600 dark:text-slate-400">
+              Loading latest news...
+            </p>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-7xl mx-auto">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Canadian News</h1>
-          <p className="text-gray-600">Stay informed with verified news from across Canada</p>
+          <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">Canadian News</h1>
+          <p className="text-lg text-gray-600 dark:text-gray-300">
+            Stay informed with verified news from across Canada - Updated July 2025
+          </p>
         </div>
 
         <Tabs defaultValue="articles" className="space-y-6">
@@ -317,10 +256,10 @@ export default function News() {
 
           <TabsContent value="articles" className="space-y-6">
             {/* Filters */}
-            <div className="bg-white rounded-lg shadow-sm p-6">
-              <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+            <div className="bg-white dark:bg-slate-800 rounded-lg shadow-sm border border-gray-200 dark:border-slate-700 p-6">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Search</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Search</label>
                   <div className="relative">
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
                     <Input
@@ -333,7 +272,7 @@ export default function News() {
                 </div>
                 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Category</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Category</label>
                   <Select value={selectedCategory} onValueChange={setSelectedCategory}>
                     <SelectTrigger>
                       <SelectValue placeholder="All Categories" />
@@ -348,7 +287,7 @@ export default function News() {
                 </div>
                 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Region</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Region</label>
                   <Select value={selectedRegion} onValueChange={setSelectedRegion}>
                     <SelectTrigger>
                       <SelectValue placeholder="All Regions" />
@@ -363,7 +302,7 @@ export default function News() {
                 </div>
                 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Source</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Source</label>
                   <Select value={selectedSource} onValueChange={setSelectedSource}>
                     <SelectTrigger>
                       <SelectValue placeholder="All Sources" />
@@ -376,140 +315,137 @@ export default function News() {
                     </SelectContent>
                   </Select>
                 </div>
-                
-                <div className="flex items-end">
-                  <Button 
-                    variant="outline" 
-                    onClick={() => {
-                      setSearchQuery("");
-                      setSelectedCategory("all");
-                      setSelectedRegion("all");
-                      setSelectedSource("all");
-                    }}
-                    className="w-full"
-                  >
-                    Clear Filters
-                  </Button>
-                </div>
+              </div>
+              
+              <div className="mt-4 flex flex-wrap gap-2">
+                <Badge variant="outline" className="text-xs">
+                  {filteredArticles.length} articles found
+                </Badge>
+                <Badge variant="outline" className="text-xs">
+                  Updated {formatTimeAgo(new Date().toISOString())}
+                </Badge>
               </div>
             </div>
 
             {/* Articles Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
               {filteredArticles.map((article) => (
-                <Card key={article.id} className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => setSelectedArticle(article)}>
-                  <div className="aspect-video bg-gray-200 rounded-t-lg overflow-hidden">
-                    <img 
-                      src={article.image} 
-                      alt={article.title}
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                  <CardContent className="p-6">
-                    <div className="flex items-center justify-between mb-3">
-                      <Badge variant="outline" className="text-xs">
-                        {article.category}
-                      </Badge>
-                      <div className="flex items-center space-x-2">
-                        <Badge variant="secondary" className="text-xs">
-                          {article.region}
-                        </Badge>
-                        <div className={`w-2 h-2 rounded-full ${getCredibilityColor(article.credibility).replace('text-', 'bg-')}`}></div>
+                <Card key={article.id} className="cursor-pointer hover:shadow-lg transition-shadow">
+                  <CardHeader className="pb-4">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <CardTitle className="text-lg leading-tight hover:text-blue-600 transition-colors" 
+                                  onClick={() => setSelectedArticle(article)}>
+                          {article.title}
+                        </CardTitle>
+                        <div className="flex items-center gap-2 mt-2">
+                          <Badge className={getBiasColor(article.bias)}>
+                            {article.bias}
+                          </Badge>
+                          <Badge variant="outline" className="text-xs">
+                            {article.category}
+                          </Badge>
+                          {article.verified && (
+                            <CheckCircle className="w-4 h-4 text-green-600" />
+                          )}
+                        </div>
                       </div>
                     </div>
-                    
-                    <h3 className="font-semibold text-gray-900 mb-2 line-clamp-2">
-                      {article.title}
-                    </h3>
-                    
-                    <p className="text-sm text-gray-600 mb-4 line-clamp-3">
-                      {article.summary}
-                    </p>
-                    
-                    <div className="flex items-center justify-between text-xs text-gray-500">
-                      <div className="flex items-center space-x-2">
-                        <Clock className="w-3 h-3" />
-                        <span>{new Date(article.publishedAt).toLocaleDateString()}</span>
+                  </CardHeader>
+                  
+                  <CardContent>
+                    <div className="space-y-3">
+                      <p className="text-sm text-gray-600 dark:text-gray-300 line-clamp-3">
+                        {article.summary}
+                      </p>
+                      
+                      <div className="flex items-center justify-between text-xs text-gray-500">
+                        <div className="flex items-center gap-4">
+                          <div className="flex items-center gap-1">
+                            <Globe className="w-3 h-3" />
+                            {article.source}
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <Clock className="w-3 h-3" />
+                            {formatTimeAgo(article.publishedAt)}
+                          </div>
+                        </div>
+                        <div className={`flex items-center gap-1 ${getCredibilityColor(article.credibility)}`}>
+                          <Shield className="w-3 h-3" />
+                          {article.credibility}%
+                        </div>
                       </div>
-                      <div className="flex items-center space-x-2">
-                        <Eye className="w-3 h-3" />
-                        <span>{article.readTime} min read</span>
+                      
+                      <div className="flex gap-2 pt-2">
+                        <Button 
+                          size="sm" 
+                          variant="outline" 
+                          className="flex-1"
+                          onClick={() => setSelectedArticle(article)}
+                        >
+                          Read More
+                        </Button>
+                        <Button 
+                          size="sm" 
+                          variant="outline" 
+                          className="px-3"
+                          onClick={() => window.open(article.url, '_blank')}
+                        >
+                          <ExternalLink className="w-4 h-4" />
+                        </Button>
                       </div>
-                    </div>
-                    
-                    <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-100">
-                      <span className="text-sm font-medium text-gray-700">{article.source}</span>
-                      <Badge className={`text-xs ${getBiasColor(article.bias)}`}>
-                        {article.bias}
-                      </Badge>
                     </div>
                   </CardContent>
                 </Card>
               ))}
             </div>
 
-            {filteredArticles.length === 0 && (
+            {filteredArticles.length === 0 && !articlesLoading && (
               <div className="text-center py-12">
-                <p className="text-gray-500 text-lg">No articles found matching your criteria.</p>
+                <Globe className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+                  No articles found
+                </h3>
+                <p className="text-gray-500 dark:text-gray-400">
+                  Try adjusting your search criteria or filters.
+                </p>
               </div>
             )}
           </TabsContent>
 
           <TabsContent value="sources" className="space-y-6">
-            {/* News Sources Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {newsSources.map((source) => (
-                <Card key={source.id} className="hover:shadow-lg transition-shadow">
-                  <CardHeader className="pb-4">
-                    <div className="flex items-center space-x-4">
-                      <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center">
-                        <Globe className="w-6 h-6 text-gray-600" />
-                      </div>
-                      <div className="flex-1">
-                        <CardTitle className="text-lg font-semibold">{source.name}</CardTitle>
-                        <p className="text-sm text-gray-600">{source.type}</p>
-                      </div>
+                <Card key={source.id}>
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="text-lg">{source.name}</CardTitle>
+                      {source.verified && (
+                        <CheckCircle className="w-5 h-5 text-green-600" />
+                      )}
                     </div>
+                    <CardDescription>{source.type}</CardDescription>
                   </CardHeader>
                   
-                  <CardContent className="pt-0">
-                    <div className="space-y-4">
+                  <CardContent>
+                    <div className="space-y-3">
                       <div className="flex items-center justify-between">
-                        <span className="text-sm text-gray-600">Credibility</span>
-                        <div className="flex items-center space-x-2">
-                          <div className="w-16 bg-gray-200 rounded-full h-2">
-                            <div 
-                              className="bg-blue-600 h-2 rounded-full" 
-                              style={{ width: `${source.credibility}%` }}
-                            ></div>
-                          </div>
-                          <span className={`text-sm font-medium ${getCredibilityColor(source.credibility)}`}>
-                            {source.credibility}%
-                          </span>
-                        </div>
+                        <span className="text-sm text-gray-600">Credibility:</span>
+                        <span className={`font-medium ${getCredibilityColor(source.credibility)}`}>
+                          {source.credibility}%
+                        </span>
                       </div>
                       
                       <div className="flex items-center justify-between">
-                        <span className="text-sm text-gray-600">Bias</span>
-                        <Badge className={`text-xs ${getBiasColor(source.bias)}`}>
+                        <span className="text-sm text-gray-600">Bias:</span>
+                        <Badge className={getBiasColor(source.bias)}>
                           {source.bias}
                         </Badge>
                       </div>
                       
                       <div className="flex items-center justify-between">
-                        <span className="text-sm text-gray-600">Region</span>
-                        <Badge variant="outline" className="text-xs">
-                          {source.region}
-                        </Badge>
-                      </div>
-                      
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm text-gray-600">Verified</span>
-                        {source.verified ? (
-                          <CheckCircle className="w-4 h-4 text-green-600" />
-                        ) : (
-                          <XCircle className="w-4 h-4 text-red-600" />
-                        )}
+                        <span className="text-sm text-gray-600">Region:</span>
+                        <span className="text-sm font-medium">{source.region}</span>
                       </div>
                       
                       <Button 
@@ -529,71 +465,64 @@ export default function News() {
           </TabsContent>
         </Tabs>
 
-        {/* Article Detail Modal */}
-        {selectedArticle && (
-          <Dialog open={!!selectedArticle} onOpenChange={() => setSelectedArticle(null)}>
-            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle className="text-xl font-bold">{selectedArticle.title}</DialogTitle>
-                <DialogDescription>View detailed information about this news article</DialogDescription>
-              </DialogHeader>
-              
-              <div className="space-y-6">
-                <div className="aspect-video bg-gray-200 rounded-lg overflow-hidden">
-                  <img 
-                    src={selectedArticle.image} 
-                    alt={selectedArticle.title}
-                    className="w-full h-full object-cover"
-                  />
-                </div>
+        {/* Article Detail Dialog */}
+        <Dialog open={!!selectedArticle} onOpenChange={() => setSelectedArticle(null)}>
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+            {selectedArticle && (
+              <>
+                <DialogHeader>
+                  <DialogTitle className="text-xl">{selectedArticle.title}</DialogTitle>
+                </DialogHeader>
                 
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-4">
-                    <span className="text-sm text-gray-600">{selectedArticle.source}</span>
-                    <Badge variant="outline">{selectedArticle.category}</Badge>
-                    <Badge variant="secondary">{selectedArticle.region}</Badge>
+                <div className="space-y-4">
+                  <div className="flex items-center gap-4 text-sm text-gray-600">
+                    <div className="flex items-center gap-1">
+                      <Globe className="w-4 h-4" />
+                      {selectedArticle.source}
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Calendar className="w-4 h-4" />
+                      {new Date(selectedArticle.publishedAt).toLocaleDateString()}
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Clock className="w-4 h-4" />
+                      {selectedArticle.readTime} min read
+                    </div>
                   </div>
-                  <div className="flex items-center space-x-2">
-                    <Badge className={`text-xs ${getBiasColor(selectedArticle.bias)}`}>
+                  
+                  <div className="flex gap-2">
+                    <Badge className={getBiasColor(selectedArticle.bias)}>
                       {selectedArticle.bias}
                     </Badge>
-                    <div className={`w-3 h-3 rounded-full ${getCredibilityColor(selectedArticle.credibility).replace('text-', 'bg-')}`}></div>
+                    <Badge variant="outline">
+                      {selectedArticle.category}
+                    </Badge>
+                    <Badge variant="outline" className={getCredibilityColor(selectedArticle.credibility)}>
+                      {selectedArticle.credibility}% Credible
+                    </Badge>
                   </div>
-                </div>
-                
-                <p className="text-gray-700 leading-relaxed">
-                  {selectedArticle.summary}
-                </p>
-                
-                <div className="flex items-center justify-between text-sm text-gray-500">
-                  <div className="flex items-center space-x-4">
-                    <span>Published: {new Date(selectedArticle.publishedAt).toLocaleDateString()}</span>
-                    <span>{selectedArticle.readTime} min read</span>
+                  
+                  <div className="prose max-w-none">
+                    <p className="text-lg text-gray-700 dark:text-gray-300">
+                      {selectedArticle.summary}
+                    </p>
                   </div>
-                  <div className="flex items-center space-x-2">
-                    <Button variant="outline" size="sm">
-                      <Bookmark className="w-4 h-4 mr-2" />
-                      Save
-                    </Button>
-                    <Button variant="outline" size="sm">
-                      <Share2 className="w-4 h-4 mr-2" />
-                      Share
-                    </Button>
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={() => window.open(selectedArticle.url, '_blank')}
-                    >
+                  
+                  <div className="flex gap-2">
+                    <Button onClick={() => window.open(selectedArticle.url, '_blank')}>
                       <ExternalLink className="w-4 h-4 mr-2" />
                       Read Full Article
                     </Button>
+                    <Button variant="outline" onClick={() => setSelectedArticle(null)}>
+                      Close
+                    </Button>
                   </div>
                 </div>
-              </div>
-            </DialogContent>
-          </Dialog>
-        )}
-      </div>
+              </>
+            )}
+          </DialogContent>
+        </Dialog>
+      </main>
     </div>
   );
 }

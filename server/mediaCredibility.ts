@@ -2,7 +2,7 @@ import fetch from 'node-fetch';
 import pino from "pino";
 const logger = pino();
 
-import aiService from './utils/aiService.js';
+import { aiService } from './utils/aiService.js';
 
 interface MediaOutlet {
   id: string;

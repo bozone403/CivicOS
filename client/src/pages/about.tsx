@@ -300,7 +300,7 @@ export default function About() {
                 <ul className="text-gray-600 space-y-2">
                   <li className="flex items-start space-x-2">
                     <CheckCircle className="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" />
-                    <span>Local Ollama AI for content analysis and summarization</span>
+                    <span>Mock AI for content analysis and summarization</span>
                   </li>
                   <li className="flex items-start space-x-2">
                     <CheckCircle className="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" />

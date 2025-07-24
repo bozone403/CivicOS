@@ -5,7 +5,7 @@ import { storage } from './storage';
 import { db } from './db.js';
 import { bills, politicians, votes, politicianStatements } from '../shared/schema.js';
 import { eq, and, sql, desc, like } from 'drizzle-orm';
-import aiService from './utils/aiService.js';
+import { aiService } from './utils/aiService.js';
 
 interface AIRequest {
   query: string;

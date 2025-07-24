@@ -4,7 +4,7 @@ import { db } from './db.js';
 import * as schema from '../shared/schema.js';
 import { eq } from 'drizzle-orm';
 import pino from "pino";
-import aiService from './utils/aiService.js';
+import { aiService } from './utils/aiService.js';
 const logger = pino();
 
 interface NewsSource {

@@ -1,4 +1,4 @@
-import aiService from './aiService.js';
+import { aiService } from './aiService.js';
 
 interface CivicInsight {
   type: 'policy' | 'political' | 'engagement' | 'recommendation';

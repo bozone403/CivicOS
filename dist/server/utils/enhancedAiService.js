@@ -1,4 +1,4 @@
-import aiService from './aiService.js';
+import { aiService } from './aiService.js';
 class EnhancedAIService {
     async analyzePolicy(policyText, context) {
         const prompt = `

@@ -3,7 +3,7 @@ import { db } from './db.js';
 import { newsArticles } from '../shared/schema.js';
 import { eq, and, gte, desc } from 'drizzle-orm';
 
-import aiService from './utils/aiService.js';
+import { aiService } from './utils/aiService.js';
 
 interface CrossSourceAnalysis {
   sourceComparison: Array<{

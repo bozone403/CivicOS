@@ -11,13 +11,12 @@
     "build:full": "npm run build && npm run build:client",
     "start": "./start.sh",
     "start:render": "bash start-render.sh",
-    "postinstall": "echo 'Ollama will be installed during build process'",
+    "postinstall": "echo 'Mock AI mode - no external AI dependencies'",
     "check": "tsc",
     "db:push": "drizzle-kit push",
     "deploy": "vercel --prod",
     "test:backend": "vitest run",
     "test:frontend:e2e": "playwright test",
-    "init:ollama": "node server/initOllama.js",
     "deploy:render": "bash deploy-render.sh"
   },
   "vitest": {
@@ -29,7 +28,6 @@
     "testDir": "tests/e2e"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.37.0",
     "@hookform/resolvers": "^3.10.0",
     "@jridgewell/trace-mapping": "^0.3.25",
     "@neondatabase/serverless": "^0.10.4",

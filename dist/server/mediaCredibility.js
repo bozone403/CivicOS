@@ -1,6 +1,6 @@
 import pino from "pino";
 const logger = pino();
-import aiService from './utils/aiService.js';
+import { aiService } from './utils/aiService.js';
 export const canadianMediaOutlets = [
     {
         id: "cbc",

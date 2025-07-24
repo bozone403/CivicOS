@@ -13,6 +13,9 @@ import jwt from "jsonwebtoken";
 import pino from "pino";
 import { existsSync } from 'fs';
 
+// Import AI routes (updated)
+import aiRoutes from './routes/ai.js';
+
 // Security configuration - production-safe
 if (process.env.NODE_ENV === 'development') {
   process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
@@ -201,6 +204,9 @@ app.get('/api/monitoring/health', (req, res) => {
 app.get("/health", (_req, res) => {
   res.status(200).json({ status: "ok" });
 });
+
+// Mount updated AI routes
+app.use('/api/ai', aiRoutes);
 
 // Register all API routes before static serving and SPA fallback
 (async () => {

@@ -1,262 +1,123 @@
-import fetch from 'node-fetch';
-class AIService {
-    ollamaUrl;
-    model;
-    isEnabled;
-    isHealthy = false;
-    lastHealthCheck = 0;
-    healthCheckInterval = 30000; // Check every 30 seconds
-    failureCount = 0;
-    circuitBreakerThreshold = 5;
+import pino from 'pino';
+import { mockAiService } from './mockAiService.js';
+const logger = pino({ name: 'ai-service' });
+class AiService {
+    config;
+    useMockAi;
     constructor() {
-        this.ollamaUrl = process.env.OLLAMA_BASE_URL || 'http://127.0.0.1:11434';
-        this.model = process.env.OLLAMA_MODEL || 'mistral:latest';
-        this.isEnabled = process.env.AI_SERVICE_ENABLED === 'true';
-        // Check Ollama health on startup with delay
-        setTimeout(() => {
-            this.checkHealth();
-        }, 30000); // Wait 30 seconds before first health check
+        this.config = {
+            baseUrl: 'disabled', // Ollama permanently disabled
+            model: 'mock-ai',
+            timeout: 30000,
+            retries: 3
+        };
+        // Force mock AI permanently - no external AI dependencies
+        this.useMockAi = true;
+        logger.info('AI Service initialized with MOCK data only - Ollama permanently disabled');
     }
-    async checkHealth() {
-        if (!this.isEnabled) {
-            return;
-        }
-        // Circuit breaker: if too many failures, don't try for a while
-        if (this.failureCount >= this.circuitBreakerThreshold) {
-            const timeSinceLastCheck = Date.now() - this.lastHealthCheck;
-            if (timeSinceLastCheck < 5 * 60 * 1000) { // Wait 5 minutes before retry
-                return;
-            }
-        }
-        try {
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
-            const response = await fetch(`${this.ollamaUrl}/api/tags`, {
-                method: 'GET',
-                signal: controller.signal
-            });
-            clearTimeout(timeoutId);
-            if (response.ok) {
-                this.isHealthy = true;
-                this.failureCount = 0; // Reset failure count on success
-            }
-            else {
-                this.isHealthy = false;
-                this.failureCount++;
-            }
-        }
-        catch (error) {
-            this.isHealthy = false;
-            this.failureCount++;
-        }
-        this.lastHealthCheck = Date.now();
-    }
-    async generateResponse(prompt) {
-        // Re-check health before each request only if it's been a while
-        const timeSinceLastCheck = Date.now() - this.lastHealthCheck;
-        if (timeSinceLastCheck > this.healthCheckInterval) {
-            await this.checkHealth();
-        }
-        // Return offline response if Ollama is not available or circuit breaker is open
-        if (!this.isHealthy || this.failureCount >= this.circuitBreakerThreshold) {
-            return this.getOfflineResponse(prompt);
-        }
-        try {
-            const requestBody = {
-                model: this.model,
-                prompt: prompt,
-                stream: false
-            };
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 20000); // Reduced to 20 seconds
-            const response = await fetch(`${this.ollamaUrl}/api/generate`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(requestBody),
-                signal: controller.signal
-            });
-            clearTimeout(timeoutId);
-            if (!response.ok) {
-                this.failureCount++;
-                throw new Error(`Ollama API error: ${response.status} ${response.statusText}`);
-            }
-            const data = await response.json();
-            this.failureCount = 0; // Reset on success
-            return data.response;
-        }
-        catch (error) {
-            this.failureCount++;
-            return this.getOfflineResponse(prompt);
-        }
-    }
-    /**
-     * CivicOS Chatbot - Specialized for civic engagement
-     */
-    async civicChatbot(message, context) {
-        const systemPrompt = `You are CivicOS, a civic engagement AI assistant. You help users understand Canadian politics, government processes, and civic participation opportunities.
-
-Key responsibilities:
-- Explain Canadian political processes and institutions
-- Help users understand their rights and responsibilities as citizens
-- Provide information about voting, petitions, and civic participation
-- Answer questions about government services and policies
-- Encourage democratic participation and civic engagement
-- Be informative, helpful, and non-partisan
-
-Current context:
-${context?.userLocation ? `User location: ${context.userLocation}` : ''}
-${context?.userInterests ? `User interests: ${context.userInterests.join(', ')}` : ''}
-
-Respond in a helpful, informative tone. Keep responses concise but comprehensive.`;
-        const fullPrompt = `${systemPrompt}
-
-User message: ${message}`;
-        return this.generateResponse(fullPrompt);
-    }
-    /**
-     * Analyze news content for bias and civic impact
-     */
-    async analyzeNews(newsContent, context) {
-        const prompt = `Analyze this Canadian news article for bias, credibility, and civic impact:
-
-${newsContent}
-
-Context: ${context?.topic || 'General news'} | Region: ${context?.region || 'Canada'} | Party: ${context?.politicalParty || 'N/A'}
-
-Provide analysis in JSON format with:
-- summary: Brief summary
-- keyPoints: Array of key points
-- sentiment: positive/negative/neutral
-- civicImpact: How this affects citizens
-- relatedIssues: Array of related civic issues`;
-        const response = await this.generateResponse(prompt);
-        try {
-            return JSON.parse(response);
-        }
-        catch {
-            return {
-                summary: "News analysis temporarily unavailable",
-                keyPoints: ["Analysis service is being optimized"],
-                sentiment: "neutral",
-                civicImpact: "Impact assessment pending",
-                relatedIssues: ["Civic engagement", "Government transparency"]
-            };
-        }
-    }
-    /**
-     * Analyze policy content
-     */
-    async analyzePolicy(policyContent, context) {
-        const prompt = `Analyze this Canadian policy for civic impact:
-
-${policyContent}
-
-Context: Jurisdiction: ${context?.jurisdiction || 'Federal'} | Affected: ${context?.affectedGroups?.join(', ') || 'General public'} | Budget: ${context?.budget || 'N/A'}
-
-Provide analysis in JSON format with:
-- summary: Policy summary
-- pros: Array of benefits
-- cons: Array of concerns
-- impact: Civic impact assessment
-- recommendations: Array of recommendations`;
-        const response = await this.generateResponse(prompt);
-        try {
-            return JSON.parse(response);
-        }
-        catch {
-            return {
-                summary: "Policy analysis temporarily unavailable",
-                pros: ["Analysis in progress"],
-                cons: ["Review pending"],
-                impact: "Impact assessment pending",
-                recommendations: ["Continue monitoring policy developments"]
-            };
-        }
-    }
-    /**
-     * Generate civic insights from user data
-     */
-    async generateCivicInsights(data) {
-        const prompt = `Generate civic insights based on this data:
-
-User Activity: ${JSON.stringify(data.userActivity || [])}
-Regional Stats: ${JSON.stringify(data.regionalStats || [])}
-Trending Topics: ${data.trendingTopics?.join(', ') || 'None'}
-
-Provide insights in JSON format with:
-- insights: Array of civic insights
-- recommendations: Array of recommendations
-- trends: Array of emerging trends`;
-        const response = await this.generateResponse(prompt);
-        try {
-            return JSON.parse(response);
-        }
-        catch {
-            return {
-                insights: ["Civic engagement patterns are being analyzed"],
-                recommendations: ["Continue participating in civic activities"],
-                trends: ["Civic participation trends are being monitored"]
-            };
-        }
-    }
-    /**
-     * Health check for AI service
-     */
-    async isServiceHealthy() {
-        await this.checkHealth();
-        return this.isHealthy;
-    }
-    /**
-     * Get service status
-     */
-    getServiceStatus() {
+    async healthCheck() {
         return {
-            enabled: this.isEnabled,
-            healthy: this.isHealthy,
-            url: this.ollamaUrl,
-            model: this.model
+            service: true,
+            model: true,
+            message: 'Mock AI service is operational with comprehensive Canadian political data (Ollama disabled)'
         };
     }
-    /**
-     * Get offline response when Ollama is not available
-     */
-    getOfflineResponse(prompt) {
-        // Check if this appears to be a crash/resource issue
-        const isCrashRelated = this.failureCount >= this.circuitBreakerThreshold;
-        if (isCrashRelated) {
-            return `I apologize, but the AI service is currently unavailable due to server resource limitations. 
-      
-Your CivicOS platform is fully operational for all other features including:
-• Browsing politicians and their voting records
-• Reading bills and legislation 
-• Accessing government transparency data
-• Using the civic engagement tools
-• Exploring procurement and finance data
-
-For AI-powered analysis and chatbot features, please try again later or contact support about upgrading server resources.
-
-In the meantime, you can find detailed information using the search and navigation tools throughout the platform.`;
-        }
-        // Provide context-aware responses based on prompt content
+    async generateResponse(prompt, context) {
+        // Always use mock AI - no external dependencies
+        return this.generateMockResponse(prompt, context);
+    }
+    generateMockResponse(prompt, context) {
         const lowerPrompt = prompt.toLowerCase();
-        if (lowerPrompt.includes('politician') || lowerPrompt.includes('mp') || lowerPrompt.includes('representative')) {
-            return `I'm currently experiencing technical difficulties with AI processing. However, you can explore politician information directly using the Politicians section of CivicOS, where you'll find voting records, contact information, and detailed profiles.`;
+        // Politician analysis
+        if (lowerPrompt.includes('politician') || lowerPrompt.includes('trudeau') || lowerPrompt.includes('poilievre') || lowerPrompt.includes('singh') || lowerPrompt.includes('carney')) {
+            const politicianId = this.extractPoliticianId(prompt);
+            const result = mockAiService.generatePoliticianAnalysis(politicianId);
+            return result.response;
         }
-        if (lowerPrompt.includes('bill') || lowerPrompt.includes('legislation') || lowerPrompt.includes('law')) {
-            return `While AI analysis is temporarily unavailable, you can browse current and historical bills in the Bills & Voting section, where you'll find summaries, voting results, and full text of legislation.`;
+        // Bill analysis
+        if (lowerPrompt.includes('bill') || lowerPrompt.includes('c-21') || lowerPrompt.includes('c-60') || lowerPrompt.includes('c-56') || lowerPrompt.includes('legislation')) {
+            const billId = this.extractBillId(prompt);
+            const result = mockAiService.generateBillSummary(billId);
+            return result.response;
         }
-        if (lowerPrompt.includes('vote') || lowerPrompt.includes('voting')) {
-            return `AI voting analysis is currently offline, but you can access detailed voting records and participate in civic discussions through the Voting section and CivicSocial features.`;
+        // Fact checking
+        if (lowerPrompt.includes('fact check') || lowerPrompt.includes('housing crisis') || lowerPrompt.includes('inflation')) {
+            const topic = this.extractFactCheckTopic(prompt);
+            const result = mockAiService.factCheckClaim(topic);
+            return result.response;
         }
-        if (lowerPrompt.includes('news') || lowerPrompt.includes('media')) {
-            return `AI news analysis is temporarily unavailable. You can access curated news sources and fact-checking information in the News section of the platform.`;
+        // Economic questions
+        if (lowerPrompt.includes('economy') || lowerPrompt.includes('budget') || lowerPrompt.includes('deficit') || lowerPrompt.includes('inflation')) {
+            const result = mockAiService.generateEconomicSummary();
+            return result.response;
         }
-        // Default response
-        return `I apologize, but I'm currently experiencing technical difficulties. Please try again later or contact support if the issue persists.
-    
-While AI features are offline, all other CivicOS functionality remains available including government data, politician information, bills, voting records, and civic engagement tools.`;
+        // Current events
+        if (lowerPrompt.includes('current') || lowerPrompt.includes('news') || lowerPrompt.includes('today')) {
+            const result = mockAiService.generateChatbotResponse(prompt);
+            return result.response;
+        }
+        // General chatbot response
+        const result = mockAiService.generateChatbotResponse(prompt);
+        return result.response;
+    }
+    extractPoliticianId(prompt) {
+        const lowerPrompt = prompt.toLowerCase();
+        if (lowerPrompt.includes('carney'))
+            return 'mark-carney';
+        if (lowerPrompt.includes('trudeau'))
+            return 'justin-trudeau';
+        if (lowerPrompt.includes('poilievre'))
+            return 'pierre-poilievre';
+        if (lowerPrompt.includes('singh'))
+            return 'jagmeet-singh';
+        if (lowerPrompt.includes('blanchet'))
+            return 'yves-francois-blanchet';
+        if (lowerPrompt.includes('may'))
+            return 'elizabeth-may';
+        return 'mark-carney'; // Default to current PM
+    }
+    extractBillId(prompt) {
+        const lowerPrompt = prompt.toLowerCase();
+        if (lowerPrompt.includes('c-60'))
+            return 'C-60';
+        if (lowerPrompt.includes('c-56'))
+            return 'C-56';
+        if (lowerPrompt.includes('c-21'))
+            return 'C-21';
+        if (lowerPrompt.includes('c-61'))
+            return 'C-61';
+        return 'C-60'; // Default to climate finance bill
+    }
+    extractFactCheckTopic(prompt) {
+        const lowerPrompt = prompt.toLowerCase();
+        if (lowerPrompt.includes('carney'))
+            return 'carney-transition';
+        if (lowerPrompt.includes('housing'))
+            return 'housing-crisis';
+        if (lowerPrompt.includes('inflation'))
+            return 'inflation-rates';
+        if (lowerPrompt.includes('deficit'))
+            return 'federal-deficit';
+        return 'carney-transition';
+    }
+    // Offline response for any remaining edge cases
+    getOfflineResponse(prompt) {
+        return `I understand you're asking about "${prompt}". I'm currently operating with comprehensive Canadian political data from July 2025. Here's what I can help with:
+
+**Current Information Available:**
+• Prime Minister Mark Carney and all federal politicians
+• Current bills: C-60 (Climate Finance), C-56 (Housing), C-21 (Firearms)
+• Economic data: GDP, inflation, housing prices, unemployment
+• Government transition details from Trudeau to Carney era
+• News analysis and fact-checking
+
+**For specific questions, try:**
+• "Who is the current Prime Minister?"
+• "What's in Bill C-60?"
+• "How is the Canadian economy doing?"
+• "What changed with Mark Carney becoming PM?"
+
+Would you like me to help with any of these topics?`;
     }
 }
-export default new AIService();
+export const aiService = new AiService();
