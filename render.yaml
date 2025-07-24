@@ -7,6 +7,9 @@ services:
       # Install system dependencies
       apt-get update && apt-get install -y curl wget
       
+      # Install Ollama during build
+      curl -fsSL https://ollama.ai/install.sh | sh
+      
       # Build the application
       npm install
       npm run build
