@@ -88,7 +88,6 @@ export async function registerRoutes(app: Express): Promise<void> {
 
   // Donations routes (no auth required for donations)
   app.use("/api/donations", donationsRouter);
-  app.use("/api/create-payment-intent", donationsRouter);
 
   // Health check endpoint
   app.get('/api/health', async (req, res) => {
