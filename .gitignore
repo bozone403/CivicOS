@@ -98,3 +98,6 @@ test-db.js
 check-tables.js 
 .vercel
 .env
+
+# Keep ollama-bundle in git for Render deployment
+# ollama-bundle/

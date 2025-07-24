@@ -1,0 +1,2 @@
+# This file ensures the ollama-bundle directory is tracked by git
+# Ollama binary and Mistral model will be downloaded during Render build process 

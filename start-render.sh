@@ -16,102 +16,91 @@ check_ollama() {
     fi
 }
 
-# Function to install Ollama
-install_ollama() {
-    echo "🤖 Installing Ollama..."
+# Function to use bundled Ollama
+use_bundled_ollama() {
+    echo "🤖 Using bundled Ollama..."
     
-    # Download and install Ollama
-    curl -fsSL https://ollama.ai/install.sh | sh
-    
-    # Add Ollama to PATH
-    export PATH=$PATH:/usr/local/bin
-    
-    # Verify installation
-    if command -v ollama &> /dev/null; then
-        echo "✅ Ollama installed successfully"
+    # Check if bundled Ollama exists
+    if [ -f "./ollama-bundle/ollama" ]; then
+        echo "✅ Bundled Ollama found"
+        
+        # Make sure it's executable
+        chmod +x ./ollama-bundle/ollama
+        
+        # Set Ollama to use our bundle
+        export OLLAMA_HOST=0.0.0.0:11434
+        export OLLAMA_ORIGINS=*
+        
         return 0
     else
-        echo "❌ Ollama installation failed"
+        echo "❌ Bundled Ollama not found"
         return 1
     fi
 }
 
-# Function to start Ollama
-start_ollama() {
-    echo "🤖 Starting Ollama service..."
+# Function to start bundled Ollama
+start_bundled_ollama() {
+    echo "🤖 Starting bundled Ollama service..."
     
     # Kill any existing Ollama processes
     pkill -f ollama 2>/dev/null || true
     sleep 2
     
-    # Start Ollama with proper configuration for Render
-    OLLAMA_HOST=0.0.0.0:11434 OLLAMA_ORIGINS=* ollama serve > /dev/null 2>&1 &
+    # Start bundled Ollama
+    cd ollama-bundle
+    ./ollama serve > /dev/null 2>&1 &
     OLLAMA_PID=$!
+    cd ..
     
     # Wait for Ollama to start
-    echo "⏳ Waiting for Ollama to be ready..."
+    echo "⏳ Waiting for bundled Ollama to be ready..."
     for i in {1..30}; do
         if check_ollama; then
-            echo "✅ Ollama is running successfully"
+            echo "✅ Bundled Ollama is running successfully"
             return 0
         fi
-        echo "⏳ Attempt $i/30 - Waiting for Ollama..."
+        echo "⏳ Attempt $i/30 - Waiting for bundled Ollama..."
         sleep 2
     done
     
-    echo "❌ Ollama failed to start after 60 seconds"
+    echo "❌ Bundled Ollama failed to start after 60 seconds"
     return 1
 }
 
-# Function to ensure Mistral model is available
-ensure_mistral() {
-    echo "📥 Ensuring Mistral model is available..."
+# Function to ensure bundled Mistral model is available
+ensure_bundled_mistral() {
+    echo "📥 Ensuring bundled Mistral model is available..."
     
-    # Check if Mistral is already available
-    if ollama list | grep -q "mistral"; then
-        echo "✅ Mistral model already available"
-        return 0
-    fi
-    
-    # Pull Mistral model
-    echo "📥 Downloading Mistral model (this may take a few minutes)..."
-    ollama pull mistral:latest
-    
-    if [ $? -eq 0 ]; then
-        echo "✅ Mistral model downloaded successfully"
+    # Check if bundled Mistral is available
+    if [ -d "./ollama-bundle/models/mistral" ]; then
+        echo "✅ Bundled Mistral model already available"
         return 0
     else
-        echo "❌ Failed to download Mistral model"
+        echo "❌ Bundled Mistral model not found"
+        echo "⚠️  Please run ./bundle-ollama.sh first to download the model"
         return 1
     fi
 }
 
 # Main startup sequence
-echo "🔧 Starting CivicOS with AI service..."
+echo "🔧 Starting CivicOS with bundled AI service..."
 
-# Step 1: Install Ollama if not available
-if ! command -v ollama &> /dev/null; then
-    if ! install_ollama; then
-        echo "⚠️  Ollama installation failed, continuing without AI service"
-    fi
-fi
-
-# Step 2: Start Ollama
-if command -v ollama &> /dev/null; then
-    if start_ollama; then
-        # Step 3: Ensure Mistral is available
-        if ensure_mistral; then
-            echo "🎉 AI service is ready!"
-            echo "📋 Available models:"
-            ollama list
+# Step 1: Use bundled Ollama
+if use_bundled_ollama; then
+    # Step 2: Start bundled Ollama
+    if start_bundled_ollama; then
+        # Step 3: Ensure bundled Mistral is available
+        if ensure_bundled_mistral; then
+            echo "🎉 Bundled AI service is ready!"
+            echo "📋 Using bundled Mistral model"
         else
-            echo "⚠️  Mistral model not available, AI service will use fallbacks"
+            echo "⚠️  Bundled Mistral model not available, AI service will use fallbacks"
         fi
     else
-        echo "⚠️  Ollama failed to start, AI service will use fallbacks"
+        echo "⚠️  Bundled Ollama failed to start, AI service will use fallbacks"
     fi
 else
-    echo "⚠️  Ollama not available, AI service will use fallbacks"
+    echo "⚠️  Bundled Ollama not available, AI service will use fallbacks"
 fi
 
 # Step 4: Start the main application
