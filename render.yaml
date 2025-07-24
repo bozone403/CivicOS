@@ -46,7 +46,7 @@ services:
       - key: STRIPE_SECRET_KEY
         value: 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
       - key: PORT
-        value: "5001"
+        value: "10000"
       - key: ADMIN_EMAIL
         value: Jordan@iron-Oak.Ca
       - key: ENABLE_STRIPE_PAYMENTS

@@ -29,7 +29,21 @@ download_ollama() {
     for i in {1..3}; do
         if curl -L --max-time 300 https://github.com/ollama/ollama/releases/download/v0.9.6/ollama-linux-amd64.tgz -o ollama-linux-amd64.tgz; then
             echo "✅ Ollama binary downloaded"
-            break
+            
+            # Verify download
+            if [ -f "ollama-linux-amd64.tgz" ] && [ -s "ollama-linux-amd64.tgz" ]; then
+                echo "📦 Download verified, extracting..."
+                break
+            else
+                echo "❌ Download verification failed"
+                rm -f ollama-linux-amd64.tgz
+                if [ $i -eq 3 ]; then
+                    cd ..
+                    return 1
+                fi
+                sleep 10
+                continue
+            fi
         else
             echo "❌ Download attempt $i failed"
             if [ $i -eq 3 ]; then
@@ -40,14 +54,43 @@ download_ollama() {
         fi
     done
     
-    # Extract the binary
+    # Extract the binary with better error handling
     echo "📦 Extracting Ollama binary..."
     if tar -xzf ollama-linux-amd64.tgz; then
+        echo "📋 Contents after extraction:"
+        ls -la
+        
+        # Find the actual ollama binary
+        if [ -f "ollama" ]; then
+            echo "✅ Found ollama binary"
+        elif [ -f "bin/ollama" ]; then
+            echo "✅ Found ollama in bin/ directory"
+            mv bin/ollama ./ollama
+        elif [ -f "*/ollama" ]; then
+            echo "✅ Found ollama in subdirectory"
+            find . -name "ollama" -type f -exec mv {} ./ollama \;
+        else
+            echo "❌ Ollama binary not found after extraction"
+            echo "📋 Directory contents:"
+            find . -type f -name "*ollama*"
+            cd ..
+            return 1
+        fi
+        
         # Make it executable
         chmod +x ollama
         
+        # Verify it's executable
+        if [ -x "ollama" ]; then
+            echo "✅ Ollama binary is executable"
+        else
+            echo "❌ Failed to make ollama executable"
+            cd ..
+            return 1
+        fi
+        
         # Clean up
-        rm ollama-linux-amd64.tgz
+        rm -f ollama-linux-amd64.tgz
         
         echo "✅ Ollama binary ready"
         cd ..
@@ -140,25 +183,31 @@ if [ ! -f "./ollama-bundle/ollama" ]; then
     if download_ollama; then
         echo "✅ Ollama downloaded successfully"
     else
-        echo "❌ Failed to download Ollama"
+        echo "❌ Failed to download Ollama - continuing without AI service"
     fi
 else
     echo "✅ Ollama already exists"
 fi
 
-# Step 2: Start Ollama if available
+# Step 2: Start Ollama if available (non-blocking)
 if [ -f "./ollama-bundle/ollama" ]; then
+    echo "🚀 Attempting to start Ollama..."
     if start_ollama; then
-        # Step 3: Ensure Mistral is available
-        if ensure_mistral; then
-            echo "🎉 AI service is ready!"
-            echo "📋 Available models:"
-            cd ollama-bundle
-            ./ollama list
-            cd ..
-        else
-            echo "⚠️  Mistral model not available, AI service will use fallbacks"
-        fi
+        echo "🎉 Ollama started successfully!"
+        
+        # Step 3: Ensure Mistral is available (background process)
+        (
+            echo "📥 Checking Mistral model availability..."
+            if ensure_mistral; then
+                echo "🎉 AI service is fully ready!"
+                echo "📋 Available models:"
+                cd ollama-bundle
+                ./ollama list
+                cd ..
+            else
+                echo "⚠️  Mistral model not available, AI service will use fallbacks"
+            fi
+        ) &
     else
         echo "⚠️  Ollama failed to start, AI service will use fallbacks"
     fi
@@ -166,13 +215,19 @@ else
     echo "⚠️  Ollama not available, AI service will use fallbacks"
 fi
 
-# Step 4: Start the main application
+# Step 4: Start the main application (always proceed)
 echo "🚀 Starting CivicOS application on Render..."
 echo "🌐 Frontend: https://civicos.onrender.com"
 echo "🔧 Backend: https://civicos.onrender.com/api"
 echo "🤖 AI Service: https://civicos.onrender.com/api/ai"
 
-# Start the Node.js application
+# Add environment variables for AI service
+export AI_SERVICE_ENABLED=true
+export OLLAMA_BASE_URL=http://localhost:11434
+export OLLAMA_MODEL=mistral:latest
+
+# Start the Node.js application (never fail)
 export NODE_ENV=production
 export RENDER=true
+echo "🚀 Executing: node dist/server/index.js"
 exec node dist/server/index.js 
