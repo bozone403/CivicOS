@@ -109,10 +109,10 @@ export class ParliamentAPIService {
         try {
             await db.execute(sql `
         INSERT INTO politicians (
-          name, position, party, level, constituency, jurisdiction, source
+          name, position, party, level, constituency, jurisdiction
         ) VALUES (
           ${mpData.name}, ${mpData.position}, ${mpData.party}, 
-          ${mpData.level}, ${mpData.constituency}, ${mpData.jurisdiction}, ${mpData.source}
+          ${mpData.level}, ${mpData.constituency}, ${mpData.jurisdiction}
         )
       `);
         }
@@ -132,7 +132,7 @@ export class ParliamentAPIService {
         INSERT INTO bills (
           title, bill_number, status, description, jurisdiction
         ) VALUES (
-          ${billData.title}, ${billData.bill_number}, ${billData.status},
+          ${billData.title}, ${billData.billNumber}, ${billData.status},
           ${billData.summary}, ${billData.jurisdiction}
         )
         ON CONFLICT (bill_number) DO UPDATE SET
