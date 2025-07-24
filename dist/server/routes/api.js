@@ -10,7 +10,6 @@ import { registerPoliticiansRoutes } from "./politicians.js";
 import { registerLegalRoutes } from "./legal.js";
 import { registerNewsRoutes } from "./news.js";
 import { registerBillsRoutes } from "./bills.js";
-import { registerAIRoutes } from "./ai.js";
 export function registerApiRoutes(app) {
     registerLeaksRoutes(app);
     registerMemoryRoutes(app);
@@ -24,5 +23,5 @@ export function registerApiRoutes(app) {
     registerLegalRoutes(app);
     registerNewsRoutes(app);
     registerBillsRoutes(app);
-    registerAIRoutes(app);
+    // Removed old AI routes - using aiRoutes.ts instead
 }

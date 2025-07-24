@@ -17,8 +17,9 @@ if (process.env.NODE_ENV === 'development') {
     console.warn('[SECURITY] SSL verification disabled in development mode');
 }
 else {
-    // Production: use proper SSL but allow Supabase connections
-    process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0'; // Allow Supabase SSL
+    // Production: use proper SSL verification
+    process.env.NODE_TLS_REJECT_UNAUTHORIZED = '1';
+    console.log('[SECURITY] SSL verification enabled in production mode');
 }
 const logger = pino();
 // Enforce SESSION_SECRET is set before anything else
@@ -186,11 +187,11 @@ app.get("/health", (_req, res) => {
         res.status(404).json({ message: 'API route not found', path: req.originalUrl });
     });
     // Patch static file serving to use ESM-compatible __dirname
-    const distPath = path.resolve(__dirname, "../public");
+    const distPath = path.resolve(__dirname, "../dist/public");
     app.use(express.static(distPath));
     // Ensure SPA fallback for all non-API routes
     app.get(/^\/(?!api\/).*/, (req, res) => {
-        res.sendFile(path.join(__dirname, '../public/index.html'));
+        res.sendFile(path.join(__dirname, '../dist/public/index.html'));
     });
     // ALWAYS serve the app on the correct port for Render
     // Render uses PORT environment variable
