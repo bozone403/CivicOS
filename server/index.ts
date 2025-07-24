@@ -216,11 +216,11 @@ app.get("/health", (_req, res) => {
   });
 
   // Patch static file serving to use ESM-compatible __dirname
-  const distPath = path.resolve(__dirname, "../public");
+  const distPath = path.resolve(__dirname, "../dist/public");
   app.use(express.static(distPath));
   // Ensure SPA fallback for all non-API routes
   app.get(/^\/(?!api\/).*/, (req, res) => {
-    res.sendFile(path.join(__dirname, '../public/index.html'));
+    res.sendFile(path.join(__dirname, '../dist/public/index.html'));
   });
 
   // ALWAYS serve the app on the correct port for Render
