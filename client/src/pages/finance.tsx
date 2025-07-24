@@ -99,17 +99,17 @@ export default function FinancePage() {
             donations: {
               individual: 2100000,
               corporate: 620000,
-              union: 120000,
-              other: 360000
+              union: 150000,
+              other: 330000
             },
             expenses: {
               advertising: 1200000,
               events: 580000,
-              staff: 780000,
+              staff: 720000,
               travel: 180000,
-              office: 110000
+              office: 170000
             },
-            complianceScore: 94,
+            complianceScore: 95,
             filingStatus: "On Time",
             lastUpdated: "2025-07-24"
           },
@@ -122,71 +122,71 @@ export default function FinancePage() {
             totalRaised: 1850000,
             totalSpent: 1620000,
             donations: {
-              individual: 980000,
+              individual: 1200000,
               corporate: 180000,
-              union: 560000,
-              other: 130000
+              union: 350000,
+              other: 120000
             },
             expenses: {
               advertising: 680000,
               events: 320000,
               staff: 420000,
-              travel: 125000,
-              office: 75000
+              travel: 120000,
+              office: 80000
             },
-            complianceScore: 96,
+            complianceScore: 97,
             filingStatus: "On Time",
             lastUpdated: "2025-07-24"
           },
           {
-            id: "ford-2025",
-            politician: "Doug Ford",
-            party: "Progressive Conservative",
-            jurisdiction: "Ontario",
+            id: "blanchet-2025",
+            politician: "Yves-François Blanchet",
+            party: "Bloc Québécois",
+            jurisdiction: "Federal",
             year: "2025",
-            totalRaised: 4200000,
-            totalSpent: 3850000,
+            totalRaised: 980000,
+            totalSpent: 850000,
             donations: {
-              individual: 2850000,
-              corporate: 950000,
+              individual: 650000,
+              corporate: 120000,
               union: 150000,
-              other: 250000
+              other: 60000
             },
             expenses: {
-              advertising: 1850000,
-              events: 780000,
-              staff: 920000,
-              travel: 180000,
-              office: 120000
+              advertising: 380000,
+              events: 180000,
+              staff: 220000,
+              travel: 45000,
+              office: 25000
             },
-            complianceScore: 91,
-            filingStatus: "Late",
-            lastUpdated: "2025-07-20"
+            complianceScore: 94,
+            filingStatus: "On Time",
+            lastUpdated: "2025-07-24"
           },
           {
-            id: "legault-2025",
-            politician: "François Legault",
-            party: "Coalition Avenir Québec",
-            jurisdiction: "Quebec",
+            id: "may-2025",
+            politician: "Elizabeth May",
+            party: "Green",
+            jurisdiction: "Federal",
             year: "2025",
-            totalRaised: 3800000,
-            totalSpent: 3420000,
+            totalRaised: 720000,
+            totalSpent: 680000,
             donations: {
-              individual: 2680000,
-              corporate: 780000,
-              union: 220000,
-              other: 120000
+              individual: 520000,
+              corporate: 80000,
+              union: 60000,
+              other: 60000
             },
             expenses: {
-              advertising: 1620000,
-              events: 680000,
-              staff: 850000,
-              travel: 150000,
-              office: 120000
+              advertising: 280000,
+              events: 150000,
+              staff: 180000,
+              travel: 35000,
+              office: 35000
             },
-            complianceScore: 97,
+            complianceScore: 99,
             filingStatus: "On Time",
-            lastUpdated: "2025-07-23"
+            lastUpdated: "2025-07-24"
           }
         ];
       }

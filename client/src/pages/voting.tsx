@@ -101,130 +101,158 @@ export default function Voting() {
             introducedDate: "2025-07-25",
             sponsor: "Mark Carney",
             sponsorParty: "Liberal",
-            summary: "This landmark legislation establishes Canada as a global leader in climate finance, creating new mechanisms for green investment and infrastructure development. The bill includes provisions for green bonds, climate risk assessment, and sustainable finance standards.",
-            keyProvisions: [
-              "Establishment of Canadian Climate Finance Corporation",
-              "$50 billion green infrastructure fund over 5 years",
-              "Mandatory climate risk disclosure for major corporations",
-              "Tax incentives for clean technology investments",
-              "Green bond framework for municipal infrastructure"
-            ],
-            timeline: "Expected to pass by September 2025",
-            estimatedCost: 75000000000,
-            estimatedRevenue: 25000000000,
-            publicSupport: { yes: 67, no: 23, neutral: 10 },
-            parliamentVotes: {
-              liberal: "Supporting",
-              conservative: "Opposing", 
-              ndp: "Supporting",
-              bloc: "Supporting with amendments",
-              green: "Strongly supporting"
+            summary: "Establishes a $50 billion climate finance fund and mandates green infrastructure standards",
+            keyProvisions: ["Climate Finance Fund", "Green Infrastructure Standards", "Carbon Pricing Integration"],
+            timeline: "Expected Royal Assent: December 2025",
+            estimatedCost: 50000000000,
+            estimatedRevenue: 15000000000,
+            publicSupport: {
+              yes: 68,
+              no: 22,
+              neutral: 10
             },
-            totalVotes: 42847,
+            parliamentVotes: {
+              liberal: "Support",
+              conservative: "Oppose",
+              ndp: "Support",
+              bloc: "Support",
+              green: "Support"
+            },
+            totalVotes: 156,
             readingStage: 2,
             nextVoteDate: "2025-08-15"
           },
           {
-            id: "C-56",
-            billNumber: "C-56",
-            title: "Affordable Housing and Groceries Act (Enhanced)",
-            description: "Enhanced legislation to address housing affordability crisis and grocery price stabilization across Canada",
-            status: "Active",
-            stage: "Committee Review",
-            jurisdiction: "Federal",
-            category: "Housing",
-            introducedDate: "2025-07-26",
-            sponsor: "Sean Fraser",
-            sponsorParty: "Liberal",
-            summary: "Building on previous housing legislation, this enhanced bill introduces stronger measures to tackle housing affordability and includes new provisions for grocery price monitoring and competition enhancement.",
-            keyProvisions: [
-              "Foreign buyer tax increased to 25%",
-              "First-time buyer credit up to $40,000",
-              "Rent increase caps at 2% annually",
-              "Grocery competition enforcement measures",
-              "Municipal housing development incentives"
-            ],
-            timeline: "Committee review until August 2025",
-            estimatedCost: 12000000000,
-            publicSupport: { yes: 74, no: 18, neutral: 8 },
-            parliamentVotes: {
-              liberal: "Supporting",
-              conservative: "Partially supporting",
-              ndp: "Demanding stronger measures",
-              bloc: "Supporting Quebec provisions",
-              green: "Supporting"
-            },
-            totalVotes: 38241,
-            readingStage: 2,
-            nextVoteDate: "2025-08-20"
-          },
-          {
-            id: "C-21",
-            billNumber: "C-21", 
-            title: "An Act to amend the Criminal Code and the Firearms Act",
-            description: "Comprehensive firearms legislation to enhance public safety and regulate firearm ownership",
-            status: "Passed",
-            stage: "Royal Assent",
-            jurisdiction: "Federal",
-            category: "Justice",
-            introducedDate: "2025-02-15",
-            sponsor: "Arif Virani",
-            sponsorParty: "Liberal",
-            summary: "This legislation strengthens Canada's firearms laws with enhanced background checks, mandatory training requirements, and stricter regulations on certain firearm types while respecting lawful ownership rights.",
-            keyProvisions: [
-              "Enhanced background check system",
-              "Mandatory safety training certification",
-              "Buyback program for prohibited firearms",
-              "Increased penalties for illegal firearms trafficking",
-              "Mental health screening requirements"
-            ],
-            timeline: "Received Royal Assent July 2025",
-            estimatedCost: 2500000000,
-            publicSupport: { yes: 58, no: 31, neutral: 11 },
-            parliamentVotes: {
-              liberal: "Supported",
-              conservative: "Opposed",
-              ndp: "Supported",
-              bloc: "Supported",
-              green: "Supported"
-            },
-            totalVotes: 51923,
-            readingStage: 3,
-            nextVoteDate: undefined
-          },
-          {
             id: "C-61",
             billNumber: "C-61",
-            title: "Digital Services and AI Governance Act",
+            title: "Digital Services and Artificial Intelligence Regulation Act",
             description: "Comprehensive framework for regulating digital services and artificial intelligence in Canada",
             status: "Active",
             stage: "First Reading",
-            jurisdiction: "Federal", 
+            jurisdiction: "Federal",
             category: "Technology",
-            introducedDate: "2025-07-28",
+            introducedDate: "2025-07-20",
             sponsor: "François-Philippe Champagne",
             sponsorParty: "Liberal",
-            summary: "This forward-looking legislation establishes Canada's framework for AI governance, digital rights protection, and platform accountability, positioning Canada as a leader in responsible technology regulation.",
-            keyProvisions: [
-              "AI transparency and accountability requirements",
-              "Digital rights charter for Canadians",
-              "Platform liability for harmful content",
-              "Data portability and privacy protections",
-              "Innovation sandbox for AI development"
-            ],
-            timeline: "First reading scheduled for August 2025",
-            estimatedCost: 800000000,
-            publicSupport: { yes: 71, no: 19, neutral: 10 },
-            parliamentVotes: {
-              liberal: "Supporting",
-              conservative: "Reviewing", 
-              ndp: "Supporting with privacy amendments",
-              bloc: "Supporting Quebec tech provisions",
-              green: "Supporting"
+            summary: "Regulates AI development and digital services to protect Canadians",
+            keyProvisions: ["AI Safety Standards", "Digital Privacy Protection", "Algorithm Transparency"],
+            timeline: "Expected Royal Assent: March 2026",
+            estimatedCost: 2500000000,
+            estimatedRevenue: 500000000,
+            publicSupport: {
+              yes: 72,
+              no: 18,
+              neutral: 10
             },
-            totalVotes: 29184,
+            parliamentVotes: {
+              liberal: "Support",
+              conservative: "Oppose",
+              ndp: "Support",
+              bloc: "Support",
+              green: "Support"
+            },
+            totalVotes: 142,
             readingStage: 1,
-            nextVoteDate: "2025-08-05"
+            nextVoteDate: "2025-08-20"
+          },
+          {
+            id: "C-62",
+            billNumber: "C-62",
+            title: "Housing Affordability and Supply Act",
+            description: "An Act to increase housing supply and improve affordability across Canada",
+            status: "Active",
+            stage: "Third Reading",
+            jurisdiction: "Federal",
+            category: "Housing",
+            introducedDate: "2025-06-15",
+            sponsor: "Sean Fraser",
+            sponsorParty: "Liberal",
+            summary: "Increases housing supply through federal incentives and regulatory changes",
+            keyProvisions: ["Federal Housing Fund", "Zoning Reform Incentives", "First-Time Buyer Support"],
+            timeline: "Expected Royal Assent: September 2025",
+            estimatedCost: 15000000000,
+            estimatedRevenue: 3000000000,
+            publicSupport: {
+              yes: 75,
+              no: 15,
+              neutral: 10
+            },
+            parliamentVotes: {
+              liberal: "Support",
+              conservative: "Support",
+              ndp: "Support",
+              bloc: "Support",
+              green: "Support"
+            },
+            totalVotes: 178,
+            readingStage: 3,
+            nextVoteDate: "2025-08-10"
+          },
+          {
+            id: "C-63",
+            billNumber: "C-63",
+            title: "Firearms and Public Safety Act",
+            description: "Comprehensive firearms legislation to enhance public safety and regulate firearm ownership",
+            status: "Active",
+            stage: "Second Reading",
+            jurisdiction: "Federal",
+            category: "Public Safety",
+            introducedDate: "2025-07-10",
+            sponsor: "Marco Mendicino",
+            sponsorParty: "Liberal",
+            summary: "Strengthens firearm regulations and enhances public safety measures",
+            keyProvisions: ["Assault Weapon Ban", "Enhanced Background Checks", "Safe Storage Requirements"],
+            timeline: "Expected Royal Assent: November 2025",
+            estimatedCost: 800000000,
+            estimatedRevenue: 50000000,
+            publicSupport: {
+              yes: 65,
+              no: 25,
+              neutral: 10
+            },
+            parliamentVotes: {
+              liberal: "Support",
+              conservative: "Oppose",
+              ndp: "Support",
+              bloc: "Support",
+              green: "Support"
+            },
+            totalVotes: 134,
+            readingStage: 2,
+            nextVoteDate: "2025-08-25"
+          },
+          {
+            id: "C-64",
+            billNumber: "C-64",
+            title: "Universal Pharmacare Act",
+            description: "An Act to establish universal pharmacare coverage for all Canadians",
+            status: "Active",
+            stage: "First Reading",
+            jurisdiction: "Federal",
+            category: "Healthcare",
+            introducedDate: "2025-07-05",
+            sponsor: "Jean-Yves Duclos",
+            sponsorParty: "Liberal",
+            summary: "Provides universal prescription drug coverage for all Canadians",
+            keyProvisions: ["Universal Coverage", "Drug Price Negotiation", "Formulary Management"],
+            timeline: "Expected Royal Assent: December 2026",
+            estimatedCost: 25000000000,
+            estimatedRevenue: 5000000000,
+            publicSupport: {
+              yes: 82,
+              no: 12,
+              neutral: 6
+            },
+            parliamentVotes: {
+              liberal: "Support",
+              conservative: "Oppose",
+              ndp: "Support",
+              bloc: "Support",
+              green: "Support"
+            },
+            totalVotes: 145,
+            readingStage: 1,
+            nextVoteDate: "2025-08-30"
           }
         ];
       }
