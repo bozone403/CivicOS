@@ -18,8 +18,9 @@ if (process.env.NODE_ENV === 'development') {
   process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
   console.warn('[SECURITY] SSL verification disabled in development mode');
 } else {
-  // Production: use proper SSL but allow Supabase connections
-  process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0'; // Allow Supabase SSL
+  // Production: use proper SSL verification
+  process.env.NODE_TLS_REJECT_UNAUTHORIZED = '1';
+  console.log('[SECURITY] SSL verification enabled in production mode');
 }
 
 const logger = pino();
