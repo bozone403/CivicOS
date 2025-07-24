@@ -107,6 +107,7 @@ export class ParliamentAPIService {
      */
     async storeMPData(mpData) {
         try {
+            // Simple INSERT without ON CONFLICT to avoid constraint issues
             await db.execute(sql `
         INSERT INTO politicians (
           name, position, party, jurisdiction, constituency, level
@@ -114,12 +115,6 @@ export class ParliamentAPIService {
           ${mpData.name}, ${mpData.position}, ${mpData.party}, 
           ${mpData.jurisdiction}, ${mpData.constituency}, ${mpData.level}
         )
-        ON CONFLICT (name, jurisdiction) DO UPDATE SET
-          position = EXCLUDED.position,
-          party = EXCLUDED.party,
-          constituency = EXCLUDED.constituency,
-          level = EXCLUDED.level,
-          updated_at = NOW()
       `);
             logger.info({
                 msg: "Stored politician",
@@ -129,7 +124,18 @@ export class ParliamentAPIService {
             });
         }
         catch (error) {
-            logger.error({ msg: 'Error storing MP data', error });
+            // Handle duplicate key errors gracefully
+            if (error?.code === '23505') {
+                // Duplicate key - politician already exists, skip
+                logger.debug({
+                    msg: "Politician already exists, skipping",
+                    name: mpData.name,
+                    jurisdiction: mpData.jurisdiction
+                });
+            }
+            else {
+                logger.error({ msg: 'Error storing MP data', error });
+            }
         }
     }
     /**
@@ -137,6 +143,7 @@ export class ParliamentAPIService {
      */
     async storeBillData(billData) {
         try {
+            // Simple INSERT without ON CONFLICT to avoid constraint issues
             await db.execute(sql `
         INSERT INTO bills (
           title, "billNumber", status, description, jurisdiction
@@ -144,10 +151,6 @@ export class ParliamentAPIService {
           ${billData.title}, ${billData.billNumber}, ${billData.status},
           ${billData.summary}, ${billData.jurisdiction}
         )
-        ON CONFLICT ("billNumber") DO UPDATE SET
-          status = EXCLUDED.status,
-          description = EXCLUDED.description,
-          updated_at = NOW()
       `);
             logger.info({
                 msg: "Stored bill",
@@ -156,7 +159,17 @@ export class ParliamentAPIService {
             });
         }
         catch (error) {
-            logger.error({ msg: 'Error storing bill data', error });
+            // Handle duplicate key errors gracefully
+            if (error?.code === '23505') {
+                // Duplicate key - bill already exists, skip
+                logger.debug({
+                    msg: "Bill already exists, skipping",
+                    billNumber: billData.billNumber
+                });
+            }
+            else {
+                logger.error({ msg: 'Error storing bill data', error });
+            }
         }
     }
     /**
