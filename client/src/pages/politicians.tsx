@@ -80,7 +80,11 @@ export default function Politicians() {
     queryFn: async () => {
       try {
         const result = await apiRequest('/api/politicians', 'GET');
-        // Ensure we always return an array
+        // Handle wrapped API response format
+        if (result && typeof result === 'object' && 'data' in result) {
+          return Array.isArray(result.data) ? result.data : [];
+        }
+        // Fallback for direct array response
         return Array.isArray(result) ? result : [];
       } catch (error) {
         console.error('Failed to fetch politicians:', error);

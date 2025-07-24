@@ -83,11 +83,15 @@ export default function Voting() {
     queryFn: async () => {
       try {
         const result = await apiRequest('/api/bills', 'GET');
-        // Ensure we always return an array
+        // Handle wrapped API response format
+        if (result && typeof result === 'object' && 'data' in result) {
+          return Array.isArray(result.data) ? result.data : [];
+        }
+        // Fallback for direct array response
         return Array.isArray(result) ? result : [];
       } catch (error) {
         console.error('Failed to fetch bills:', error);
-        // Return comprehensive fallback data
+        // Return comprehensive fallback data if API fails
         return [
           {
             id: "C-60",

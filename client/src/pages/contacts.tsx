@@ -117,15 +117,21 @@ export default function ContactsPage() {
   const [selectedContact, setSelectedContact] = useState<ContactInfo | null>(null);
   const [selectedService, setSelectedService] = useState<GovernmentService | null>(null);
 
-  const { data: contacts = [], isLoading } = useQuery<ContactInfo[]>({
+  // Fetch government officials from comprehensive data service
+  const { data: officials = [], isLoading, error } = useQuery<ContactInfo[]>({
     queryKey: ["/api/contacts/officials"],
     queryFn: async () => {
       try {
         const result = await apiRequest('/api/contacts/officials', 'GET');
-        // Ensure we always return an array
+        // Handle wrapped API response format
+        if (result && typeof result === 'object' && 'data' in result) {
+          return Array.isArray(result.data) ? result.data : [];
+        }
+        // Fallback for direct array response
         return Array.isArray(result) ? result : [];
       } catch (error) {
-        console.error('Failed to fetch contacts:', error);
+        console.error('Failed to fetch government officials:', error);
+        // Return comprehensive fallback data if API fails
         return [
           {
             id: 1,
@@ -623,7 +629,7 @@ export default function ContactsPage() {
     return matchesSearch && matchesCategory;
   });
 
-  const filteredContacts = contacts.filter(contact => {
+  const filteredContacts = officials.filter(contact => {
     const matchesSearch = contact.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          contact.position.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          contact.constituency?.toLowerCase().includes(searchTerm.toLowerCase());

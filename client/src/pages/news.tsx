@@ -61,16 +61,20 @@ export default function News() {
   const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null);
 
   // Fetch news articles from comprehensive data service
-  const { data: newsArticles = [], isLoading: articlesLoading, error: articlesError } = useQuery<NewsArticle[]>({
+  const { data: articles = [], isLoading, error } = useQuery<NewsArticle[]>({
     queryKey: ['/api/news'],
     queryFn: async () => {
       try {
         const result = await apiRequest('/api/news', 'GET');
-        // Ensure we always return an array
+        // Handle wrapped API response format
+        if (result && typeof result === 'object' && 'data' in result) {
+          return Array.isArray(result.data) ? result.data : [];
+        }
+        // Fallback for direct array response
         return Array.isArray(result) ? result : [];
       } catch (error) {
-        console.error('Failed to fetch news:', error);
-        // Return fallback data
+        console.error('Failed to fetch news articles:', error);
+        // Return comprehensive fallback data if API fails
         return [
           {
             id: "1",
@@ -261,7 +265,7 @@ export default function News() {
     }
   ];
 
-  const filteredArticles = newsArticles.filter(article => {
+  const filteredArticles = articles.filter(article => {
     const matchesSearch = article.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          article.summary.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesCategory = selectedCategory === "all" || article.category === selectedCategory;
@@ -272,9 +276,9 @@ export default function News() {
   });
 
   // Extract unique values for filters
-  const categories = Array.from(new Set(newsArticles.map(a => a.category)));
-  const regions = Array.from(new Set(newsArticles.map(a => a.region)));
-  const sources = Array.from(new Set(newsArticles.map(a => a.source)));
+  const categories = Array.from(new Set(articles.map(a => a.category)));
+  const regions = Array.from(new Set(articles.map(a => a.region)));
+  const sources = Array.from(new Set(articles.map(a => a.source)));
 
   const getCredibilityColor = (score: number) => {
     if (score >= 90) return "text-green-600";
@@ -303,7 +307,7 @@ export default function News() {
     return `${Math.floor(diffInHours / 24)}d ago`;
   };
 
-  if (articlesLoading) {
+  if (isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -481,7 +485,7 @@ export default function News() {
               ))}
             </div>
 
-            {filteredArticles.length === 0 && !articlesLoading && (
+            {filteredArticles.length === 0 && !isLoading && (
               <div className="text-center py-12">
                 <Globe className="w-16 h-16 text-gray-400 mx-auto mb-4" />
                 <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">

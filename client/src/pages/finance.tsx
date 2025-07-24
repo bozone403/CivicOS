@@ -52,16 +52,21 @@ export default function FinancePage() {
   const [filterJurisdiction, setFilterJurisdiction] = useState("all");
   const [selectedRecord, setSelectedRecord] = useState<CampaignFinance | null>(null);
 
+  // Fetch finance data from comprehensive data service
   const { data: financeData = [], isLoading, error } = useQuery<CampaignFinance[]>({
     queryKey: ["/api/finance"],
     queryFn: async () => {
       try {
         const result = await apiRequest('/api/finance', 'GET');
-        // Ensure we always return an array
+        // Handle wrapped API response format
+        if (result && typeof result === 'object' && 'data' in result) {
+          return Array.isArray(result.data) ? result.data : [];
+        }
+        // Fallback for direct array response
         return Array.isArray(result) ? result : [];
       } catch (error) {
         console.error('Failed to fetch finance data:', error);
-        // Return comprehensive fallback data
+        // Return comprehensive fallback data if API fails
         return [
           {
             id: "carney-2025",
