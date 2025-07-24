@@ -149,11 +149,17 @@ export class ParliamentAPIService {
     try {
       await db.execute(sql`
         INSERT INTO politicians (
-          name, position, party, level, constituency, jurisdiction
+          name, position, party, jurisdiction, constituency, level
         ) VALUES (
           ${mpData.name}, ${mpData.position}, ${mpData.party}, 
-          ${mpData.level}, ${mpData.constituency}, ${mpData.jurisdiction}
+          ${mpData.jurisdiction}, ${mpData.constituency}, ${mpData.level}
         )
+        ON CONFLICT (name, jurisdiction) DO UPDATE SET
+          position = EXCLUDED.position,
+          party = EXCLUDED.party,
+          constituency = EXCLUDED.constituency,
+          level = EXCLUDED.level,
+          updated_at = NOW()
       `);
     } catch (error) {
       // Ignore duplicate entries to prevent conflicts
@@ -170,12 +176,12 @@ export class ParliamentAPIService {
     try {
       await db.execute(sql`
         INSERT INTO bills (
-          title, bill_number, status, description, jurisdiction
+          title, "billNumber", status, description, jurisdiction
         ) VALUES (
           ${billData.title}, ${billData.billNumber}, ${billData.status},
           ${billData.summary}, ${billData.jurisdiction}
         )
-        ON CONFLICT (bill_number) DO UPDATE SET
+        ON CONFLICT ("billNumber") DO UPDATE SET
           status = EXCLUDED.status,
           description = EXCLUDED.description,
           updated_at = NOW()
