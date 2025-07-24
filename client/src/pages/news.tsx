@@ -213,55 +213,55 @@ export default function News() {
 
   // Mock news sources data (could be from API)
   const newsSources: NewsSource[] = [
-    {
-      id: 1,
-      name: "CBC News",
+  {
+    id: 1,
+    name: "CBC News",
       url: "https://www.cbc.ca",
-      credibility: 95,
-      bias: "Center",
-      region: "National",
-      type: "Public Broadcaster",
-      verified: true
-    },
-    {
-      id: 2,
+    credibility: 95,
+    bias: "Center",
+    region: "National",
+    type: "Public Broadcaster",
+    verified: true
+  },
+  {
+    id: 2,
       name: "Financial Post",
       url: "https://financialpost.com",
       credibility: 89,
-      bias: "Center-Right",
-      region: "National",
+    bias: "Center-Right",
+    region: "National",
       type: "Business News",
-      verified: true
-    },
-    {
-      id: 3,
+    verified: true
+  },
+  {
+    id: 3,
       name: "Globe and Mail",
       url: "https://theglobeandmail.com",
       credibility: 92,
-      bias: "Center",
-      region: "National",
+    bias: "Center",
+    region: "National",
       type: "Newspaper",
-      verified: true
-    },
-    {
-      id: 4,
+    verified: true
+  },
+  {
+    id: 4,
       name: "CTV News",
       url: "https://www.ctvnews.ca",
       credibility: 88,
       bias: "Center",
-      region: "National",
+    region: "National",
       type: "Television Network",
-      verified: true
-    },
-    {
-      id: 5,
-      name: "National Post",
-      url: "https://nationalpost.com",
-      credibility: 87,
-      bias: "Right",
-      region: "National",
-      type: "Newspaper",
-      verified: true
+    verified: true
+  },
+  {
+    id: 5,
+    name: "National Post",
+    url: "https://nationalpost.com",
+    credibility: 87,
+    bias: "Right",
+    region: "National",
+    type: "Newspaper",
+    verified: true
     }
   ];
 
@@ -400,8 +400,8 @@ export default function News() {
                     </SelectContent>
                   </Select>
                 </div>
-              </div>
-              
+                </div>
+                
               <div className="mt-4 flex flex-wrap gap-2">
                 <Badge variant="outline" className="text-xs">
                   {filteredArticles.length} articles found
@@ -427,9 +427,9 @@ export default function News() {
                           <Badge className={getBiasColor(article.bias)}>
                             {article.bias}
                           </Badge>
-                          <Badge variant="outline" className="text-xs">
-                            {article.category}
-                          </Badge>
+                      <Badge variant="outline" className="text-xs">
+                        {article.category}
+                      </Badge>
                           {article.verified && (
                             <CheckCircle className="w-4 h-4 text-green-600" />
                           )}
@@ -441,17 +441,17 @@ export default function News() {
                   <CardContent>
                     <div className="space-y-3">
                       <p className="text-sm text-gray-600 dark:text-gray-300 line-clamp-3">
-                        {article.summary}
-                      </p>
-                      
-                      <div className="flex items-center justify-between text-xs text-gray-500">
+                      {article.summary}
+                    </p>
+                    
+                    <div className="flex items-center justify-between text-xs text-gray-500">
                         <div className="flex items-center gap-4">
                           <div className="flex items-center gap-1">
                             <Globe className="w-3 h-3" />
                             {article.source}
                           </div>
                           <div className="flex items-center gap-1">
-                            <Clock className="w-3 h-3" />
+                        <Clock className="w-3 h-3" />
                             {formatTimeAgo(article.publishedAt)}
                           </div>
                         </div>
@@ -517,8 +517,8 @@ export default function News() {
                       <div className="flex items-center justify-between">
                         <span className="text-sm text-gray-600">Credibility:</span>
                         <span className={`font-medium ${getCredibilityColor(source.credibility)}`}>
-                          {source.credibility}%
-                        </span>
+                            {source.credibility}%
+                          </span>
                       </div>
                       
                       <div className="flex items-center justify-between">
@@ -551,13 +551,13 @@ export default function News() {
         </Tabs>
 
         {/* Article Detail Dialog */}
-        <Dialog open={!!selectedArticle} onOpenChange={() => setSelectedArticle(null)}>
-          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <Dialog open={!!selectedArticle} onOpenChange={() => setSelectedArticle(null)}>
+            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
             {selectedArticle && (
               <>
-                <DialogHeader>
+              <DialogHeader>
                   <DialogTitle className="text-xl">{selectedArticle.title}</DialogTitle>
-                </DialogHeader>
+              </DialogHeader>
                 
                 <div className="space-y-4">
                   <div className="flex items-center gap-4 text-sm text-gray-600">
@@ -585,12 +585,12 @@ export default function News() {
                     <Badge variant="outline" className={getCredibilityColor(selectedArticle.credibility)}>
                       {selectedArticle.credibility}% Credible
                     </Badge>
-                  </div>
-                  
+                </div>
+                
                   <div className="prose max-w-none">
                     <p className="text-lg text-gray-700 dark:text-gray-300">
-                      {selectedArticle.summary}
-                    </p>
+                  {selectedArticle.summary}
+                </p>
                   </div>
                   
                   <div className="flex gap-2">
@@ -605,8 +605,8 @@ export default function News() {
                 </div>
               </>
             )}
-          </DialogContent>
-        </Dialog>
+            </DialogContent>
+          </Dialog>
       </main>
     </div>
   );

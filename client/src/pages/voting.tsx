@@ -7,18 +7,18 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import {
-  Vote,
-  Clock,
+import { 
+  Vote, 
+  Clock, 
   Calendar,
-  Users,
+  Users, 
   TrendingUp,
   FileText,
   Scale,
   DollarSign,
   AlertTriangle,
-  CheckCircle,
-  XCircle,
+  CheckCircle, 
+  XCircle, 
   Search,
   Filter,
   Building,
@@ -76,7 +76,7 @@ export default function Voting() {
   const { isAuthenticated } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-
+  
   // Fetch bills from comprehensive data service
   const { data: bills = [], isLoading, error } = useQuery<Bill[]>({
     queryKey: ['/api/bills'],
@@ -344,7 +344,7 @@ export default function Voting() {
             <p className="text-lg font-medium text-slate-600 dark:text-slate-400">
               Loading bills and voting data...
             </p>
-          </div>
+        </div>
         </main>
       </div>
     );
@@ -366,31 +366,31 @@ export default function Voting() {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Search</label>
-              <div className="relative">
+                  <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <Input
-                  placeholder="Search bills..."
+                    <Input
+                      placeholder="Search bills..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-            </div>
+                      className="pl-10"
+                    />
+                  </div>
+                </div>
             
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Status</label>
               <Select value={statusFilter} onValueChange={setStatusFilter}>
                 <SelectTrigger>
                   <SelectValue placeholder="All Statuses" />
-                </SelectTrigger>
-                <SelectContent>
+                    </SelectTrigger>
+                    <SelectContent>
                   <SelectItem value="all">All Statuses</SelectItem>
                   <SelectItem value="Active">Active</SelectItem>
                   <SelectItem value="Passed">Passed</SelectItem>
                   <SelectItem value="Failed">Failed</SelectItem>
                   <SelectItem value="Withdrawn">Withdrawn</SelectItem>
-                </SelectContent>
-              </Select>
+                    </SelectContent>
+                  </Select>
             </div>
             
             <div>
@@ -398,8 +398,8 @@ export default function Voting() {
               <Select value={categoryFilter} onValueChange={setCategoryFilter}>
                 <SelectTrigger>
                   <SelectValue placeholder="All Categories" />
-                </SelectTrigger>
-                <SelectContent>
+                    </SelectTrigger>
+                    <SelectContent>
                   <SelectItem value="all">All Categories</SelectItem>
                   <SelectItem value="Environment">Environment</SelectItem>
                   <SelectItem value="Housing">Housing</SelectItem>
@@ -407,9 +407,9 @@ export default function Voting() {
                   <SelectItem value="Technology">Technology</SelectItem>
                   <SelectItem value="Health">Health</SelectItem>
                   <SelectItem value="Economy">Economy</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+                    </SelectContent>
+                  </Select>
+              </div>
 
             <div className="flex items-end">
               <div className="w-full space-y-2">
@@ -419,24 +419,24 @@ export default function Voting() {
                 </Badge>
               </div>
             </div>
-          </div>
-        </div>
+              </div>
+            </div>
 
-        {/* Bills Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Bills Grid */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {filteredBills.map((bill) => (
             <Card key={bill.id} className="cursor-pointer hover:shadow-lg transition-shadow">
               <CardHeader className="pb-4">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
                     <div className="flex items-center gap-2 mb-2">
                       <Badge variant="outline" className="font-mono">
                         {bill.billNumber}
-                      </Badge>
+                            </Badge>
                       <Badge className={getStatusColor(bill.status)}>
-                        {bill.status}
-                      </Badge>
-                    </div>
+                              {bill.status}
+                            </Badge>
+                          </div>
                     <CardTitle className="text-lg leading-tight">
                       {bill.title}
                     </CardTitle>
@@ -447,12 +447,12 @@ export default function Voting() {
                   <div className="flex items-center gap-1">
                     {getStageIcon(bill.stage)}
                     <span className="text-xs text-gray-500">{bill.stage}</span>
-                  </div>
-                </div>
-              </CardHeader>
-              
-              <CardContent>
-                <div className="space-y-4">
+                        </div>
+                      </div>
+                    </CardHeader>
+
+                    <CardContent>
+                      <div className="space-y-4">
                   <p className="text-sm text-gray-600 dark:text-gray-300 line-clamp-3">
                     {bill.summary}
                   </p>
@@ -462,12 +462,12 @@ export default function Voting() {
                     <div className="flex items-center justify-between text-xs">
                       <span className="text-gray-600">Public Support</span>
                       <span className="font-medium">{bill.publicSupport?.yes || 0}% in favor</span>
-                    </div>
+                          </div>
                     <Progress 
                       value={bill.publicSupport?.yes || 0} 
                       className="h-2" 
                     />
-                  </div>
+                          </div>
 
                   {/* Cost/Revenue */}
                   {(bill.estimatedCost || bill.estimatedRevenue) && (
@@ -476,7 +476,7 @@ export default function Voting() {
                         <div className="flex items-center gap-1">
                           <DollarSign className="w-3 h-3 text-red-500" />
                           Cost: {formatCurrency(bill.estimatedCost)}
-                        </div>
+                          </div>
                       )}
                       {bill.estimatedRevenue && (
                         <div className="flex items-center gap-1">
@@ -588,13 +588,13 @@ export default function Voting() {
                       <div>
                         <h3 className="font-semibold mb-2">Summary</h3>
                         <p className="text-gray-700 dark:text-gray-300">{selectedBill.summary}</p>
-                      </div>
-                      
+                        </div>
+
                       <div>
                         <h3 className="font-semibold mb-2">Description</h3>
                         <p className="text-gray-700 dark:text-gray-300">{selectedBill.description}</p>
-                      </div>
-
+                          </div>
+                          
                       {(selectedBill.estimatedCost || selectedBill.estimatedRevenue) && (
                         <div className="bg-gray-50 dark:bg-slate-700 p-4 rounded-lg">
                           <h3 className="font-semibold mb-2">Financial Impact</h3>
@@ -631,7 +631,7 @@ export default function Voting() {
                             </li>
                           ))}
                         </ul>
-                      </div>
+                            </div>
                     </TabsContent>
                     
                     <TabsContent value="voting" className="space-y-4">
@@ -641,10 +641,10 @@ export default function Voting() {
                           <div className="flex justify-between text-sm">
                             <span>Support</span>
                             <span>{selectedBill.publicSupport?.yes || 0}%</span>
-                          </div>
+                              </div>
                           <Progress value={selectedBill.publicSupport?.yes || 0} className="h-2" />
-                        </div>
-                      </div>
+                              </div>
+                            </div>
 
                       {selectedBill.parliamentVotes && (
                         <div>
@@ -666,7 +666,7 @@ export default function Voting() {
                         <div className="border-t pt-4">
                           <h3 className="font-semibold mb-3">Cast Your Vote</h3>
                           <div className="flex gap-2">
-                            <Button 
+                            <Button
                               onClick={() => handleVote(selectedBill.id, "yes")}
                               disabled={voteMutation.isPending}
                               className="flex-1"
@@ -674,7 +674,7 @@ export default function Voting() {
                               <ThumbsUp className="w-4 h-4 mr-2" />
                               Support
                             </Button>
-                            <Button 
+                            <Button
                               variant="outline"
                               onClick={() => handleVote(selectedBill.id, "no")}
                               disabled={voteMutation.isPending}
@@ -684,10 +684,10 @@ export default function Voting() {
                               Oppose
                             </Button>
                           </div>
-                        </div>
-                      )}
-                    </TabsContent>
-                    
+              </div>
+            )}
+          </TabsContent>
+
                     <TabsContent value="timeline" className="space-y-4">
                       <div>
                         <h3 className="font-semibold mb-3">Legislative Timeline</h3>
@@ -698,29 +698,29 @@ export default function Voting() {
                               <div className="font-medium">Introduced</div>
                               <div className="text-sm text-gray-600">
                                 {new Date(selectedBill.introducedDate).toLocaleDateString()}
-                              </div>
-                            </div>
-                          </div>
+                    </div>
+                    </div>
+              </div>
                           
                           <div className="flex items-center gap-3">
                             <div className={`w-2 h-2 rounded-full ${selectedBill.readingStage >= 1 ? 'bg-green-500' : 'bg-gray-300'}`}></div>
                             <div>
                               <div className="font-medium">First Reading</div>
                               <div className="text-sm text-gray-600">Reading and formal introduction</div>
-                            </div>
-                          </div>
+                      </div>
+                    </div>
                           
                           <div className="flex items-center gap-3">
                             <div className={`w-2 h-2 rounded-full ${selectedBill.readingStage >= 2 ? 'bg-green-500' : 'bg-gray-300'}`}></div>
                             <div>
                               <div className="font-medium">Second Reading</div>
                               <div className="text-sm text-gray-600">Debate on principle and referral to committee</div>
-                            </div>
-                          </div>
-                          
+                        </div>
+                      </div>
+
                           <div className="flex items-center gap-3">
                             <div className={`w-2 h-2 rounded-full ${selectedBill.readingStage >= 3 ? 'bg-green-500' : 'bg-gray-300'}`}></div>
-                            <div>
+                      <div>
                               <div className="font-medium">Third Reading</div>
                               <div className="text-sm text-gray-600">Final debate and voting</div>
                             </div>
@@ -744,13 +744,13 @@ export default function Voting() {
                   <div className="flex gap-2 pt-4 border-t">
                     <Button onClick={() => setSelectedBill(null)}>
                       Close
-                    </Button>
+                          </Button>
                     <Button variant="outline">
                       <Share2 className="w-4 h-4 mr-2" />
                       Share Bill
-                    </Button>
-                  </div>
-                </div>
+                          </Button>
+                        </div>
+                      </div>
               </>
             )}
           </DialogContent>

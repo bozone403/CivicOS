@@ -182,7 +182,9 @@ export const politicians = pgTable("politicians", {
     profileImageUrl: varchar("profile_image_url"),
     createdAt: timestamp("created_at").defaultNow(),
     updatedAt: timestamp("updated_at").defaultNow(),
-});
+}, (table) => ({
+    uniqueNameJurisdiction: unique().on(table.name, table.jurisdiction),
+}));
 // Politician statements for tracking consistency
 export const politicianStatements = pgTable("politician_statements", {
     id: serial("id").primaryKey(),
