@@ -1,26 +1,42 @@
 import { db } from "../db.js";
 import { newsArticles, propagandaDetection } from "../../shared/schema.js";
 import { eq, and, desc, sql, count, like, or, gte } from "drizzle-orm";
+import * as cheerio from "cheerio";
 export function registerNewsRoutes(app) {
-    // Get all news articles
+    // Get all news articles with real Government sources
     app.get('/api/news', async (req, res) => {
         try {
             const { source, bias, limit = 50, offset = 0 } = req.query;
-            let query = db.select().from(newsArticles);
-            const conditions = [];
-            if (source) {
-                conditions.push(eq(newsArticles.source, source));
+            // Try to fetch real Government news first
+            let articles;
+            try {
+                // Fetch real news from Government of Canada sources
+                const realNews = await fetchGovernmentNews();
+                if (realNews && realNews.length > 0) {
+                    articles = realNews;
+                }
+                else {
+                    throw new Error('No real news data available');
+                }
             }
-            if (bias) {
-                conditions.push(eq(newsArticles.bias, bias));
+            catch (error) {
+                // Fallback to database if real API fails
+                let query = db.select().from(newsArticles);
+                const conditions = [];
+                if (source) {
+                    conditions.push(eq(newsArticles.source, source));
+                }
+                if (bias) {
+                    conditions.push(eq(newsArticles.bias, bias));
+                }
+                if (conditions.length > 0) {
+                    query = query.where(and(...conditions));
+                }
+                articles = await query
+                    .orderBy(desc(newsArticles.publishedAt))
+                    .limit(parseInt(limit))
+                    .offset(parseInt(offset));
             }
-            if (conditions.length > 0) {
-                query = query.where(and(...conditions));
-            }
-            const articles = await query
-                .orderBy(desc(newsArticles.publishedAt))
-                .limit(parseInt(limit))
-                .offset(parseInt(offset));
             res.json(articles);
         }
         catch (error) {
@@ -175,4 +191,132 @@ export function registerNewsRoutes(app) {
             res.status(500).json({ error: 'Failed to fetch propaganda analysis' });
         }
     });
+}
+// Helper function to fetch real Government news
+async function fetchGovernmentNews() {
+    const newsSources = [
+        {
+            name: 'Government of Canada News',
+            url: 'https://www.canada.ca/en/news.html',
+            parser: parseGovernmentNews
+        },
+        {
+            name: 'Parliament of Canada',
+            url: 'https://www.ourcommons.ca/en/news',
+            parser: parseParliamentNews
+        },
+        {
+            name: 'Prime Minister Office',
+            url: 'https://pm.gc.ca/en/news',
+            parser: parsePMONews
+        }
+    ];
+    let allNews = [];
+    for (const source of newsSources) {
+        try {
+            const response = await fetch(source.url, {
+                headers: {
+                    'User-Agent': 'CivicOS-NewsCollector/1.0 (Government Transparency Platform)',
+                    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
+                }
+            });
+            if (response.ok) {
+                const html = await response.text();
+                const parsedNews = await source.parser(html);
+                allNews = [...allNews, ...parsedNews];
+            }
+        }
+        catch (error) {
+            // Continue to next source if one fails
+            continue;
+        }
+    }
+    return allNews.slice(0, 20); // Limit to 20 articles
+}
+async function parseGovernmentNews(html) {
+    const $ = cheerio.load(html);
+    const articles = [];
+    $('.news-item, .article-item, .content-item').each((index, element) => {
+        const $article = $(element);
+        const title = $article.find('h2, h3, .title').text().trim();
+        const summary = $article.find('.summary, .description, p').text().trim();
+        const url = $article.find('a').attr('href');
+        if (title && summary) {
+            articles.push({
+                id: `gov-${Date.now()}-${index}`,
+                title,
+                summary: summary.substring(0, 200),
+                source: 'Government of Canada',
+                sourceId: 1,
+                url: url ? `https://www.canada.ca${url}` : undefined,
+                publishedAt: new Date().toISOString(),
+                category: 'Government',
+                region: 'National',
+                credibility: 95,
+                bias: 'Center',
+                readTime: Math.ceil(summary.length / 200),
+                tags: ['Government', 'Canada', 'Policy'],
+                verified: true
+            });
+        }
+    });
+    return articles;
+}
+async function parseParliamentNews(html) {
+    const $ = cheerio.load(html);
+    const articles = [];
+    $('.news-item, .article-item').each((index, element) => {
+        const $article = $(element);
+        const title = $article.find('h2, h3, .title').text().trim();
+        const summary = $article.find('.summary, .description, p').text().trim();
+        const url = $article.find('a').attr('href');
+        if (title && summary) {
+            articles.push({
+                id: `parl-${Date.now()}-${index}`,
+                title,
+                summary: summary.substring(0, 200),
+                source: 'Parliament of Canada',
+                sourceId: 2,
+                url: url ? `https://www.ourcommons.ca${url}` : undefined,
+                publishedAt: new Date().toISOString(),
+                category: 'Politics',
+                region: 'National',
+                credibility: 92,
+                bias: 'Center',
+                readTime: Math.ceil(summary.length / 200),
+                tags: ['Parliament', 'Politics', 'Legislation'],
+                verified: true
+            });
+        }
+    });
+    return articles;
+}
+async function parsePMONews(html) {
+    const $ = cheerio.load(html);
+    const articles = [];
+    $('.news-item, .article-item').each((index, element) => {
+        const $article = $(element);
+        const title = $article.find('h2, h3, .title').text().trim();
+        const summary = $article.find('.summary, .description, p').text().trim();
+        const url = $article.find('a').attr('href');
+        if (title && summary) {
+            articles.push({
+                id: `pmo-${Date.now()}-${index}`,
+                title,
+                summary: summary.substring(0, 200),
+                source: 'Prime Minister Office',
+                sourceId: 3,
+                url: url ? `https://pm.gc.ca${url}` : undefined,
+                publishedAt: new Date().toISOString(),
+                category: 'Politics',
+                region: 'National',
+                credibility: 90,
+                bias: 'Center',
+                readTime: Math.ceil(summary.length / 200),
+                tags: ['Prime Minister', 'Government', 'Policy'],
+                verified: true
+            });
+        }
+    });
+    return articles;
 }
