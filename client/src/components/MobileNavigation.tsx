@@ -76,19 +76,18 @@ export function MobileNavigation() {
   });
   const unreadCount = notifications.filter((n) => !n.read).length;
 
-  // Primary mobile navigation items (most important)
+  // Primary mobile navigation items (matching desktop top bar)
   const primaryNavItems = [
-    { title: "Dashboard", href: "/dashboard", icon: Home },
-    { title: "Feed", href: "/civicsocial/feed", icon: MessageSquare },
-    { title: "Vote", href: "/voting", icon: Vote },
-    { title: "Politicians", href: "/politicians", icon: Users },
+    { title: "Feed", href: "/civicsocial/feed", icon: Home },
+    { title: "Profile", href: "/civicsocial/profile", icon: User },
+    { title: "Friends", href: "/civicsocial/friends", icon: UserPlus },
+    { title: "News", href: "/news", icon: FileText },
   ];
 
-  // CivicSocial navigation items
+  // CivicSocial navigation items (additional items not in primary nav)
   const civicsocialItems = [
-    { title: "Profile", href: "/civicsocial/profile", icon: User, description: "Your social profile" },
-    { title: "Friends", href: "/civicsocial/friends", icon: UserPlus, description: "Manage friends" },
     { title: "Discussions", href: "/civicsocial/discussions", icon: MessageSquare, description: "Public discussions" },
+    { title: "Petitions", href: "/petitions", icon: FileSignature, description: "Sign petitions" },
   ];
 
   // Democracy section items
