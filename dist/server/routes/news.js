@@ -2,6 +2,7 @@ import { db } from "../db.js";
 import { newsArticles, propagandaDetection } from "../../shared/schema.js";
 import { eq, and, desc, sql, count, like, or, gte } from "drizzle-orm";
 import * as cheerio from "cheerio";
+import { ResponseFormatter } from "../utils/responseFormatter.js";
 export function registerNewsRoutes(app) {
     // Get all news articles with real Government sources
     app.get('/api/news', async (req, res) => {
@@ -16,32 +17,33 @@ export function registerNewsRoutes(app) {
                     articles = realNews;
                 }
                 else {
-                    throw new Error('No real news data available');
+                    // Fallback to database news
+                    const dbArticles = await db.select().from(newsArticles).orderBy(desc(newsArticles.publishedAt));
+                    articles = dbArticles;
                 }
             }
             catch (error) {
-                // Fallback to database if real API fails
-                let query = db.select().from(newsArticles);
-                const conditions = [];
-                if (source) {
-                    conditions.push(eq(newsArticles.source, source));
-                }
-                if (bias) {
-                    conditions.push(eq(newsArticles.bias, bias));
-                }
-                if (conditions.length > 0) {
-                    query = query.where(and(...conditions));
-                }
-                articles = await query
-                    .orderBy(desc(newsArticles.publishedAt))
-                    .limit(parseInt(limit))
-                    .offset(parseInt(offset));
+                console.error('Error fetching real news:', error);
+                // Fallback to database news
+                const dbArticles = await db.select().from(newsArticles).orderBy(desc(newsArticles.publishedAt));
+                articles = dbArticles;
             }
-            res.json(articles);
+            // Apply filters
+            if (source) {
+                articles = articles.filter((article) => article.source === source);
+            }
+            if (bias) {
+                articles = articles.filter((article) => article.bias === bias);
+            }
+            // Apply pagination
+            const startIndex = parseInt(offset) || 0;
+            const endIndex = startIndex + (parseInt(limit) || 50);
+            articles = articles.slice(startIndex, endIndex);
+            return ResponseFormatter.success(res, articles, "News articles retrieved successfully");
         }
         catch (error) {
-            // console.error removed for production
-            res.status(500).json({ error: 'Failed to fetch news articles' });
+            console.error('Error fetching news:', error);
+            return ResponseFormatter.error(res, "Failed to fetch news articles", 500);
         }
     });
     // Get news article by ID

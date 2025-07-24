@@ -3,6 +3,7 @@ import { db } from "../db.js";
 import { bills, votes } from "../../shared/schema.js";
 import { eq, and, desc, sql, count, like, or } from "drizzle-orm";
 import { ParliamentAPIService } from "../parliamentAPI.js";
+import { ResponseFormatter } from "../utils/responseFormatter.js";
 
 export function registerBillsRoutes(app: Express) {
   const parliamentAPI = new ParliamentAPIService();
@@ -20,80 +21,42 @@ export function registerBillsRoutes(app: Express) {
         const realBills = await parliamentAPI.fetchFederalBills();
         
         if (realBills && realBills.length > 0) {
-          // Transform real Parliament data to our format
-          billsData = realBills.map(bill => ({
-            id: Math.floor(Math.random() * 10000), // Generate ID for real data
-            billNumber: bill.billNumber,
-            title: bill.title,
-            description: bill.summary || 'Bill description from Parliament of Canada',
-            status: bill.status,
-            stage: bill.status === 'active' ? 'Second Reading' : 'First Reading',
-            jurisdiction: 'Federal',
-            category: 'Government',
-            introducedDate: new Date().toISOString().split('T')[0],
-            sponsor: bill.sponsor || 'Government of Canada',
-            sponsorParty: 'Liberal', // Default for government bills
-            summary: bill.summary || 'Bill summary from Parliament of Canada',
-            keyProvisions: ['Government Accountability', 'Public Service', 'Transparency'],
-            timeline: 'Expected Royal Assent: TBD',
-            estimatedCost: Math.floor(Math.random() * 10000000) + 1000000,
-            estimatedRevenue: Math.floor(Math.random() * 5000000) + 500000,
-            publicSupport: {
-              yes: Math.floor(Math.random() * 60) + 30,
-              no: Math.floor(Math.random() * 30) + 10,
-              neutral: Math.floor(Math.random() * 20) + 5
-            },
-            parliamentVotes: {
-              liberal: 'Support',
-              conservative: 'Oppose',
-              ndp: 'Support',
-              bloc: 'Support',
-              green: 'Support'
-            },
-            totalVotes: Math.floor(Math.random() * 200) + 100,
-            readingStage: bill.status === 'active' ? 2 : 1,
-            nextVoteDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-            createdAt: new Date(),
-            updatedAt: new Date()
-          }));
+          billsData = realBills;
         } else {
-          throw new Error('No real bill data available');
+          // Fallback to database bills
+          const dbBills = await db.select().from(bills).orderBy(desc(bills.createdAt));
+          billsData = dbBills;
         }
       } catch (error) {
-        // Fallback to database if real API fails
-        let query = db.select().from(bills);
-        const conditions: any[] = [];
-
-        if (status) {
-          conditions.push(eq(bills.status, status as string));
-        }
-        if (jurisdiction) {
-          conditions.push(eq(bills.jurisdiction, jurisdiction as string));
-        }
-        if (category) {
-          conditions.push(eq(bills.category, category as string));
-        }
-        if (search) {
-          conditions.push(
-            or(
-              like(bills.title, `%${search}%`),
-              like(bills.description, `%${search}%`),
-              like(bills.billNumber, `%${search}%`)
-            )
-          );
-        }
-
-        if (conditions.length > 0) {
-          (query as any) = query.where(and(...conditions));
-        }
-
-        billsData = await query.orderBy(desc(bills.createdAt));
+        console.error('Error fetching real bills:', error);
+        // Fallback to database bills
+        const dbBills = await db.select().from(bills).orderBy(desc(bills.createdAt));
+        billsData = dbBills;
       }
-      
-      res.json(billsData);
+
+      // Apply filters
+      if (status) {
+        billsData = billsData.filter((bill: any) => bill.status === status);
+      }
+      if (jurisdiction) {
+        billsData = billsData.filter((bill: any) => bill.jurisdiction === jurisdiction);
+      }
+      if (category) {
+        billsData = billsData.filter((bill: any) => bill.category === category);
+      }
+      if (search) {
+        const searchTerm = search.toString().toLowerCase();
+        billsData = billsData.filter((bill: any) => 
+          bill.title?.toLowerCase().includes(searchTerm) ||
+          bill.description?.toLowerCase().includes(searchTerm) ||
+          bill.billNumber?.toLowerCase().includes(searchTerm)
+        );
+      }
+
+      return ResponseFormatter.success(res, billsData, "Bills retrieved successfully");
     } catch (error) {
-      // console.error removed for production
-      res.status(500).json({ error: 'Failed to fetch bills' });
+      console.error('Error fetching bills:', error);
+      return ResponseFormatter.error(res, "Failed to fetch bills", 500);
     }
   });
 
