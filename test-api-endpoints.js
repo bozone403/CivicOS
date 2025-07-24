@@ -9,7 +9,7 @@ import https from 'https';
 import http from 'http';
 
 // Configuration
-const BASE_URL = process.env.API_BASE_URL || 'https://civicos.ca';
+const BASE_URL = process.env.API_BASE_URL || 'https://civicos.onrender.com';
 const TEST_TOKEN = process.env.TEST_TOKEN || 'test-token';
 
 // Test results

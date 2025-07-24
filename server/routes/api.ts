@@ -17,6 +17,8 @@ import { registerFinanceRoutes } from "./finance.js";
 import { registerProcurementRoutes } from "./procurement.js";
 import { registerTrustRoutes } from "./trust.js";
 import { registerMapsRoutes } from "./maps.js";
+import { registerLobbyistsRoutes } from "./lobbyists.js";
+import { registerLedgerRoutes } from "./ledger.js";
 export function registerApiRoutes(app: Express) {
   registerLeaksRoutes(app);
   registerMemoryRoutes(app);
@@ -36,5 +38,7 @@ export function registerApiRoutes(app: Express) {
   registerProcurementRoutes(app);
   registerTrustRoutes(app);
   registerMapsRoutes(app);
+  registerLobbyistsRoutes(app);
+  registerLedgerRoutes(app);
   // Removed old AI routes - using aiRoutes.ts instead
 } 
