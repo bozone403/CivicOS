@@ -253,35 +253,42 @@ export default function Settings() {
               <CardDescription>Update your personal information</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid gap-4 md:grid-cols-2">
-                <div className="space-y-2">
-                  <Label htmlFor="firstName">First Name</Label>
-                  <Input
-                    id="firstName"
-                    defaultValue={(user as any)?.firstName || ''}
-                    placeholder="Enter your first name"
-                  />
+              <form onSubmit={(e) => { e.preventDefault(); updateProfileMutation.mutate({ firstName: (e.target as any).firstName?.value, lastName: (e.target as any).lastName?.value, email: (e.target as any).email?.value }); }} className="space-y-4">
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="profileFirstName">First Name</Label>
+                    <Input
+                      id="profileFirstName"
+                      name="firstName"
+                      defaultValue={(user as any)?.firstName || ''}
+                      placeholder="Enter your first name"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="profileLastName">Last Name</Label>
+                    <Input
+                      id="profileLastName"
+                      name="lastName"
+                      defaultValue={(user as any)?.lastName || ''}
+                      placeholder="Enter your last name"
+                    />
+                  </div>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="lastName">Last Name</Label>
+                  <Label htmlFor="profileEmail">Email Address</Label>
                   <Input
-                    id="lastName"
-                    defaultValue={(user as any)?.lastName || ''}
-                    placeholder="Enter your last name"
+                    id="profileEmail"
+                    name="email"
+                    type="email"
+                    defaultValue={(user as any)?.email || ''}
+                    placeholder="Enter your email"
+                    autoComplete="username"
                   />
                 </div>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="email">Email Address</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  defaultValue={(user as any)?.email || ''}
-                  placeholder="Enter your email"
-                  autoComplete="username"
-                />
-              </div>
-              <Button>Save Changes</Button>
+                <Button type="submit" disabled={updateProfileMutation.isPending}>
+                  {updateProfileMutation.isPending ? 'Saving...' : 'Save Changes'}
+                </Button>
+              </form>
             </CardContent>
           </Card>
 

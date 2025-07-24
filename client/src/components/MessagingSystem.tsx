@@ -6,7 +6,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { 
   X, 
   Send, 
@@ -19,7 +19,7 @@ import {
   CheckCheck
 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { apiRequest } from '@/lib/queryClient';
+import { authRequest } from '@/lib/queryClient';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { formatDistanceToNow } from 'date-fns';
@@ -64,21 +64,21 @@ export function MessagingSystem({ isOpen, onClose }: MessagingSystemProps) {
   // Fetch conversations
   const { data: conversations = [], isLoading: conversationsLoading } = useQuery<Conversation[]>({
     queryKey: ['/api/messages/conversations'],
-    queryFn: () => apiRequest('/api/messages/conversations', 'GET'),
+    queryFn: () => authRequest('/api/messages/conversations', 'GET'),
     enabled: isOpen && !!user,
   });
 
   // Fetch messages for selected conversation
   const { data: messages = [], isLoading: messagesLoading } = useQuery<Message[]>({
     queryKey: ['/api/messages', selectedConversation?.id],
-    queryFn: () => apiRequest(`/api/messages/${selectedConversation?.id}`, 'GET'),
+    queryFn: () => authRequest(`/api/messages/${selectedConversation?.id}`, 'GET'),
     enabled: isOpen && !!selectedConversation,
   });
 
   // Send message mutation
   const sendMessageMutation = useMutation({
     mutationFn: async (content: string) => {
-      return apiRequest('/api/messages', 'POST', {
+      return authRequest('/api/messages', 'POST', {
         recipientId: selectedConversation?.id,
         content,
       });
@@ -145,6 +145,9 @@ export function MessagingSystem({ isOpen, onClose }: MessagingSystemProps) {
                   </Badge>
                 )}
               </DialogTitle>
+              <DialogDescription>
+                Send and receive messages with other CivicOS users
+              </DialogDescription>
             </DialogHeader>
 
             {/* Search */}
