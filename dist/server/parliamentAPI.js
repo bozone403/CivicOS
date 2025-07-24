@@ -1,5 +1,5 @@
 import { db } from "./db.js";
-import { sql } from "drizzle-orm";
+import { politicians, bills } from "../shared/schema.js";
 import * as cheerio from "cheerio";
 import pino from "pino";
 const logger = pino();
@@ -76,18 +76,16 @@ export class ParliamentAPIService {
             $('.bill-item').each((index, element) => {
                 const $bill = $(element);
                 const title = $bill.find('.bill-title').text().trim();
-                const number = $bill.find('.bill-number').text().trim();
+                const billNumber = $bill.find('.bill-number').text().trim();
                 const status = $bill.find('.bill-status').text().trim();
                 const summary = $bill.find('.bill-summary').text().trim();
-                if (title && number) {
+                if (title && billNumber) {
                     bills.push({
                         title,
-                        billNumber: number,
-                        status: status.toLowerCase(),
-                        sponsor: 'Unknown', // Default sponsor since not available in scraping
-                        summary,
-                        jurisdiction: 'federal',
-                        source: 'LEGISinfo Official'
+                        billNumber,
+                        status: status || 'Introduced',
+                        summary: summary || '',
+                        jurisdiction: 'Federal'
                     });
                 }
             });
@@ -107,15 +105,18 @@ export class ParliamentAPIService {
      */
     async storeMPData(mpData) {
         try {
-            // Simple INSERT without ON CONFLICT to avoid constraint issues
-            await db.execute(sql `
-        INSERT INTO politicians (
-          name, position, party, jurisdiction, constituency, level
-        ) VALUES (
-          ${mpData.name}, ${mpData.position}, ${mpData.party}, 
-          ${mpData.jurisdiction}, ${mpData.constituency}, ${mpData.level}
-        )
-      `);
+            // Use Drizzle ORM with proper conflict handling
+            await db.insert(politicians).values({
+                name: mpData.name,
+                position: mpData.position,
+                party: mpData.party,
+                jurisdiction: mpData.jurisdiction,
+                constituency: mpData.constituency,
+                level: mpData.level,
+                email: mpData.email,
+                phone: mpData.phone,
+                website: mpData.website
+            }).onConflictDoNothing();
             logger.info({
                 msg: "Stored politician",
                 name: mpData.name,
@@ -124,18 +125,7 @@ export class ParliamentAPIService {
             });
         }
         catch (error) {
-            // Handle duplicate key errors gracefully
-            if (error?.code === '23505') {
-                // Duplicate key - politician already exists, skip
-                logger.debug({
-                    msg: "Politician already exists, skipping",
-                    name: mpData.name,
-                    jurisdiction: mpData.jurisdiction
-                });
-            }
-            else {
-                logger.error({ msg: 'Error storing MP data', error });
-            }
+            logger.error({ msg: 'Error storing MP data', error });
         }
     }
     /**
@@ -143,15 +133,14 @@ export class ParliamentAPIService {
      */
     async storeBillData(billData) {
         try {
-            // Simple INSERT without ON CONFLICT to avoid constraint issues
-            await db.execute(sql `
-        INSERT INTO bills (
-          title, "billNumber", status, description, jurisdiction
-        ) VALUES (
-          ${billData.title}, ${billData.billNumber}, ${billData.status},
-          ${billData.summary}, ${billData.jurisdiction}
-        )
-      `);
+            // Use Drizzle ORM with proper conflict handling
+            await db.insert(bills).values({
+                title: billData.title,
+                billNumber: billData.billNumber,
+                status: billData.status,
+                description: billData.summary,
+                jurisdiction: billData.jurisdiction
+            }).onConflictDoNothing();
             logger.info({
                 msg: "Stored bill",
                 billNumber: billData.billNumber,
@@ -159,17 +148,7 @@ export class ParliamentAPIService {
             });
         }
         catch (error) {
-            // Handle duplicate key errors gracefully
-            if (error?.code === '23505') {
-                // Duplicate key - bill already exists, skip
-                logger.debug({
-                    msg: "Bill already exists, skipping",
-                    billNumber: billData.billNumber
-                });
-            }
-            else {
-                logger.error({ msg: 'Error storing bill data', error });
-            }
+            logger.error({ msg: 'Error storing bill data', error });
         }
     }
     /**

@@ -157,9 +157,26 @@ export class DatabaseStorage {
         return bill;
     }
     async createBill(bill) {
-        // console.log removed for production
-        const [newBill] = await db.insert(bills).values(bill).returning();
-        return newBill;
+        try {
+            // Use onConflictDoNothing to handle duplicate bills gracefully
+            const [newBill] = await db.insert(bills)
+                .values(bill)
+                .onConflictDoNothing()
+                .returning();
+            // If no bill was inserted (due to conflict), try to get the existing one
+            if (!newBill) {
+                const [existingBill] = await db.select()
+                    .from(bills)
+                    .where(eq(bills.billNumber, bill.billNumber));
+                return existingBill;
+            }
+            return newBill;
+        }
+        catch (error) {
+            // Log the error but don't throw to prevent cascading failures
+            console.error('Error creating bill:', error);
+            throw error;
+        }
     }
     async updateBillSummary(id, summary) {
         await db
@@ -217,9 +234,26 @@ export class DatabaseStorage {
         return politician;
     }
     async createPolitician(politician) {
-        // console.log removed for production
-        const [newPolitician] = await db.insert(politicians).values(politician).returning();
-        return newPolitician;
+        try {
+            // Use onConflictDoNothing to handle duplicate politicians gracefully
+            const [newPolitician] = await db.insert(politicians)
+                .values(politician)
+                .onConflictDoNothing()
+                .returning();
+            // If no politician was inserted (due to conflict), try to get the existing one
+            if (!newPolitician) {
+                const [existingPolitician] = await db.select()
+                    .from(politicians)
+                    .where(and(eq(politicians.name, politician.name), eq(politicians.jurisdiction, politician.jurisdiction)));
+                return existingPolitician;
+            }
+            return newPolitician;
+        }
+        catch (error) {
+            // Log the error but don't throw to prevent cascading failures
+            console.error('Error creating politician:', error);
+            throw error;
+        }
     }
     async updatePoliticianTrustScore(id, score) {
         await db
