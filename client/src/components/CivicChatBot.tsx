@@ -6,7 +6,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { X, Send, Bot, User, Loader2, Sparkles, Shield, TrendingUp } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
-import { apiRequest } from "@/lib/queryClient";
+import { aiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
 interface Message {
@@ -76,7 +76,7 @@ export function CivicChatBot({ isOpen, onClose }: ChatbotProps) {
     setIsLoading(true);
 
     try {
-      const response = await apiRequest('/api/ai/chat', 'POST', {
+      const response = await aiRequest('/api/ai/chat', 'POST', {
         message: input.trim(),
         context: {
           userLocation: (user as any)?.city ? `${(user as any).city}, ${(user as any).province}` : undefined,

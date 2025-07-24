@@ -4,7 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { MessageCircle } from 'lucide-react';
 import { MessagingSystem } from './MessagingSystem';
 import { useQuery } from '@tanstack/react-query';
-import { apiRequest } from '@/lib/queryClient';
+import { authRequest } from '@/lib/queryClient';
 import { useAuth } from '@/hooks/useAuth';
 
 export function FloatingMessageButton() {
@@ -14,7 +14,7 @@ export function FloatingMessageButton() {
   // Fetch unread message count
   const { data: unreadData } = useQuery({
     queryKey: ['/api/messages/unread/count'],
-    queryFn: () => apiRequest('/api/messages/unread/count', 'GET'),
+    queryFn: () => authRequest('/api/messages/unread/count', 'GET'),
     enabled: isAuthenticated,
     refetchInterval: 30000, // Check every 30 seconds
   });

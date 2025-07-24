@@ -5,7 +5,7 @@ import { Button } from "./ui/button";
 import { Card } from "./ui/card";
 import { Badge } from "./ui/badge";
 import { useAuth } from "../hooks/useAuth";
-import { apiRequest } from "../lib/queryClient";
+import { authRequest } from "../lib/queryClient";
 import { useLocation } from "wouter";
 
 interface Notification {
@@ -27,13 +27,14 @@ export default function NotificationBell() {
   const [open, setOpen] = useState(false);
   const { data: notifications = [] } = useQuery<Notification[]>({
     queryKey: ["/api/notifications"],
+    queryFn: () => authRequest('/api/notifications', 'GET'),
     enabled: !!user,
   });
   const unread = notifications.filter((n) => !n.read);
 
   const markAsReadMutation = useMutation({
     mutationFn: async (id: number) => {
-      await apiRequest(`/api/notifications/${id}/read`, "POST");
+      await authRequest(`/api/notifications/${id}/read`, "POST");
       return id;
     },
     onSuccess: () => {
