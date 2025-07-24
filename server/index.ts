@@ -331,16 +331,19 @@ app.get("/health", (_req, res) => {
     }
   }
   
-  initializeConfirmedAPIs();
-  initializePoliticianEnhancement();
-  
   // Initialize daily news analysis and propaganda detection
-  initializeNewsAnalysis();
+  try {
+    initializeNewsAnalysis();
+  } catch (error) {
+    logger.error({ msg: "Failed to initialize news analysis", error });
+  }
   
-  // Start comprehensive Canadian news analysis
-  comprehensiveNewsAnalyzer.performComprehensiveAnalysis().catch(error => {
-    logger.error({ msg: "Error in comprehensive news analysis", error });
-  });
+  // Start comprehensive Canadian news analysis (non-blocking)
+  setTimeout(() => {
+    comprehensiveNewsAnalyzer.performComprehensiveAnalysis().catch(error => {
+      logger.error({ msg: "Error in comprehensive news analysis", error });
+    });
+  }, 30000); // 30 second delay
 
   // Schedule regular comprehensive news analysis (every 2 hours)
   setInterval(() => {
@@ -349,9 +352,15 @@ app.get("/health", (_req, res) => {
     });
   }, 2 * 60 * 60 * 1000); // 2 hours
   
-  // Start real-time platform monitoring
-  realTimeMonitoring.startMonitoring();
-  
+  // Start real-time platform monitoring (non-blocking)
+  setTimeout(() => {
+    try {
+      realTimeMonitoring.startMonitoring();
+    } catch (error) {
+      logger.error({ msg: "Failed to start real-time monitoring", error });
+    }
+  }, 15000); // 15 second delay
+
   // Initialize comprehensive legal database
   setTimeout(() => {
     // Legal data populator removed during cleanup
