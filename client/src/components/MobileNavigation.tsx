@@ -88,7 +88,6 @@ export function MobileNavigation() {
   const civicsocialItems = [
     { title: "Profile", href: "/civicsocial/profile", icon: User, description: "Your social profile" },
     { title: "Friends", href: "/civicsocial/friends", icon: UserPlus, description: "Manage friends" },
-    { title: "Messages", href: "/civicsocial/messages", icon: MessageSquare, description: "Private messages" },
     { title: "Discussions", href: "/civicsocial/discussions", icon: MessageSquare, description: "Public discussions" },
   ];
 

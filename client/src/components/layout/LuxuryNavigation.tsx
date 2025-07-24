@@ -70,7 +70,6 @@ const civicsocialNavItems = [
   { title: "Feed", href: "/civicsocial/feed", icon: Home },
   { title: "Profile", href: "/civicsocial/profile", icon: User },
   { title: "Friends", href: "/civicsocial/friends", icon: UserPlus },
-  { title: "Messages", href: "/civicsocial/messages", icon: MessageCircle },
   { title: "News", href: "/news", icon: Newspaper },
   { title: "Petitions", href: "/petitions", icon: FileSignature },
 ];
