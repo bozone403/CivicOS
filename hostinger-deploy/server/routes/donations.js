@@ -27,7 +27,7 @@ router.get('/total', async (req, res) => {
         });
     }
 });
-// Create payment intent for donation
+// Create payment intent for donation (handle both /donations/create-payment-intent and /create-payment-intent)
 router.post('/create-payment-intent', async (req, res) => {
     try {
         const { amount } = req.body;

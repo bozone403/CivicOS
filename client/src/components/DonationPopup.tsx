@@ -41,7 +41,7 @@ export default function DonationPopup({ isOpen, onClose, onSuccess }: DonationPo
 
   const donationMutation = useMutation({
     mutationFn: async (amount: number) => {
-      return apiRequest("/api/create-payment-intent", "POST", { amount });
+      return apiRequest("/api/donations/create-payment-intent", "POST", { amount });
     },
     onSuccess: async (data) => {
       if (data.isSimulated) {
