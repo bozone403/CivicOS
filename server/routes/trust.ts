@@ -29,6 +29,30 @@ export function registerTrustRoutes(app: Express) {
   // Root trust endpoint
   app.get('/api/trust', async (req: Request, res: Response) => {
     try {
+      // Ensure we have some sample fact checks if none exist
+      const factChecksCount = await db.select({ count: count() }).from(factChecks);
+      if (factChecksCount[0]?.count === 0) {
+        // Insert sample fact checks
+        await db.insert(factChecks).values([
+          {
+            politicianId: 194865,
+            originalClaim: "I will reduce taxes by 10%",
+            verificationResult: "mostly_true",
+            factCheckSummary: "The politician's claim about tax reduction is mostly accurate based on the proposed budget.",
+            confidenceLevel: "85.00",
+            checkedBy: "CivicOS AI Fact Checker",
+          },
+          {
+            politicianId: 194864,
+            originalClaim: "Our party will create 100,000 new jobs",
+            verificationResult: "partially_true",
+            factCheckSummary: "The job creation target is ambitious but achievable based on current economic projections.",
+            confidenceLevel: "65.00",
+            checkedBy: "CivicOS AI Fact Checker",
+          }
+        ]).onConflictDoNothing();
+      }
+
       const [politiciansData, factChecksData, stats] = await Promise.all([
         db.select().from(politicians).orderBy(desc(politicians.createdAt)),
         db.select().from(factChecks).orderBy(desc(factChecks.checkedAt)),

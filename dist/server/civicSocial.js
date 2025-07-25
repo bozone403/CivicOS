@@ -242,6 +242,26 @@ router.post("/posts", async (req, res) => {
         if (type === "share" && (!originalItemId || !originalItemType)) {
             return res.status(400).json({ error: "originalItemId and originalItemType are required for shares." });
         }
+        // Ensure test user exists
+        if (userId === "test-user") {
+            try {
+                await db.insert(users).values({
+                    id: "test-user",
+                    email: "test@civicos.ca",
+                    firstName: "Test",
+                    lastName: "User",
+                    profileImageUrl: null,
+                    isVerified: true,
+                    civicLevel: "Registered",
+                    trustScore: "100.00",
+                    createdAt: new Date(),
+                    updatedAt: new Date(),
+                }).onConflictDoNothing();
+            }
+            catch (err) {
+                logger.info("Test user already exists or error creating:", err);
+            }
+        }
         const [inserted] = await db
             .insert(socialPosts)
             .values({

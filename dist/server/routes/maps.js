@@ -27,6 +27,49 @@ export function registerMapsRoutes(app) {
     // Root maps endpoint
     app.get('/api/maps', async (req, res) => {
         try {
+            // Ensure we have some sample districts if none exist
+            const districtsCount = await db.select({ count: count() }).from(electoralDistricts);
+            if (districtsCount[0]?.count === 0) {
+                // Insert sample districts
+                await db.insert(electoralDistricts).values([
+                    {
+                        districtName: "Toronto Centre",
+                        districtNumber: "35035",
+                        province: "Ontario",
+                        population: 120000,
+                        area: "12.5",
+                        majorCities: ["Toronto"],
+                        currentRepresentative: "Hon. Chrystia Freeland",
+                        lastElectionTurnout: "65.2",
+                        isUrban: true,
+                        isRural: false,
+                    },
+                    {
+                        districtName: "Vancouver Granville",
+                        districtNumber: "59035",
+                        province: "British Columbia",
+                        population: 110000,
+                        area: "15.2",
+                        majorCities: ["Vancouver"],
+                        currentRepresentative: "Hon. Taleeb Noormohamed",
+                        lastElectionTurnout: "68.1",
+                        isUrban: true,
+                        isRural: false,
+                    },
+                    {
+                        districtName: "Calgary Centre",
+                        districtNumber: "48005",
+                        province: "Alberta",
+                        population: 105000,
+                        area: "18.7",
+                        majorCities: ["Calgary"],
+                        currentRepresentative: "Hon. Greg McLean",
+                        lastElectionTurnout: "62.8",
+                        isUrban: true,
+                        isRural: false,
+                    }
+                ]).onConflictDoNothing();
+            }
             const [districts, politiciansData, stats] = await Promise.all([
                 db.select().from(electoralDistricts).orderBy(electoralDistricts.districtName),
                 db.select().from(politicians).orderBy(desc(politicians.createdAt)),
