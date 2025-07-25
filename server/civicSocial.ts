@@ -288,6 +288,15 @@ router.post("/posts", async (req: Request, res: Response) => {
       }
     }
 
+    // Test database connection first
+    try {
+      const testResult = await db.select().from(socialPosts).limit(1);
+      logger.info("Database connection test successful, existing posts:", testResult.length);
+    } catch (dbError) {
+      logger.error("Database connection test failed:", dbError);
+      return res.status(500).json({ error: "Database connection failed" });
+    }
+
     const [inserted] = await db
       .insert(socialPosts)
       .values({
