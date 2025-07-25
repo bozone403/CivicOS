@@ -15,7 +15,6 @@ import { registerUserRoutes } from "./routes/users.js";
 import { registerFriendRoutes } from "./routes/friends.js";
 import { registerPetitionRoutes } from "./routes/petitions.js";
 import { registerMessageRoutes } from "./routes/messages.js";
-import { registerSocialRoutes } from "./routes/social.js";
 import { registerPoliticiansRoutes } from "./routes/politicians.js";
 import { registerBillsRoutes } from "./routes/bills.js";
 import { registerNewsRoutes } from "./routes/news.js";
@@ -45,7 +44,6 @@ export async function registerRoutes(app) {
     registerFriendRoutes(app);
     registerPetitionRoutes(app);
     registerMessageRoutes(app);
-    registerSocialRoutes(app);
     registerPoliticiansRoutes(app);
     registerBillsRoutes(app);
     registerNewsRoutes(app);
