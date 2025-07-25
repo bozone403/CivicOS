@@ -51,38 +51,50 @@ router.post('/create-payment-intent', async (req, res) => {
                 success: true,
                 isSimulated: true,
                 amount: amount,
-                clientSecret: null,
+                url: null,
+                sessionId: null,
                 message: 'Payment simulation mode - Stripe not configured'
             });
         }
-        // Create Stripe payment intent
-        const paymentIntent = await stripe.paymentIntents.create({
-            amount: Math.round(amount * 100), // Convert to cents
-            currency: 'cad',
+        // Create Stripe Checkout session
+        const session = await stripe.checkout.sessions.create({
+            payment_method_types: ['card'],
+            line_items: [
+                {
+                    price_data: {
+                        currency: 'cad',
+                        product_data: {
+                            name: 'CivicOS Platform Donation',
+                            description: `Support government transparency and platform operations`,
+                        },
+                        unit_amount: Math.round(amount * 100), // Convert to cents
+                    },
+                    quantity: 1,
+                },
+            ],
+            mode: 'payment',
+            success_url: `${process.env.FRONTEND_BASE_URL || 'https://civicos.ca'}/donation-success?session_id={CHECKOUT_SESSION_ID}`,
+            cancel_url: `${process.env.FRONTEND_BASE_URL || 'https://civicos.ca'}/donation-cancelled`,
             metadata: {
                 type: 'donation',
                 platform: 'civicos',
-                description: `CivicOS Platform Donation - $${amount} CAD`
-            },
-            description: `CivicOS Platform Donation - $${amount} CAD`,
-            automatic_payment_methods: {
-                enabled: true,
+                amount: amount.toString(),
             },
         });
-        logger.info('Created payment intent for donation', {
+        logger.info('Created checkout session for donation', {
             amount: amount,
-            paymentIntentId: paymentIntent.id
+            sessionId: session.id
         });
         res.json({
             success: true,
             isSimulated: false,
             amount: amount,
-            clientSecret: paymentIntent.client_secret,
-            paymentIntentId: paymentIntent.id
+            url: session.url,
+            sessionId: session.id
         });
     }
     catch (error) {
-        logger.error('Error creating payment intent:', error);
+        logger.error('Error creating checkout session:', error);
         if (error instanceof Stripe.errors.StripeError) {
             res.status(400).json({
                 success: false,
@@ -92,7 +104,7 @@ router.post('/create-payment-intent', async (req, res) => {
         else {
             res.status(500).json({
                 success: false,
-                error: 'Failed to create payment intent'
+                error: 'Failed to create checkout session'
             });
         }
     }
