@@ -160,6 +160,20 @@ const provincialRights = [
     }
 ];
 export function registerRightsRoutes(app) {
+    // Root rights endpoint
+    app.get('/api/rights', async (req, res) => {
+        try {
+            res.json({
+                charterRights: charterRights.slice(0, 5),
+                totalRights: charterRights.length,
+                categories: ["fundamental", "democratic", "mobility", "legal", "equality", "language"],
+                message: "Rights data retrieved successfully"
+            });
+        }
+        catch (error) {
+            res.status(500).json({ error: 'Failed to fetch rights data' });
+        }
+    });
     // GET /api/rights/charter - Get Charter of Rights and Freedoms
     app.get("/api/rights/charter", async (req, res) => {
         try {

@@ -24,6 +24,25 @@ function jwtAuth(req, res, next) {
     }
 }
 export function registerMapsRoutes(app) {
+    // Root maps endpoint
+    app.get('/api/maps', async (req, res) => {
+        try {
+            const [districts, politiciansData, stats] = await Promise.all([
+                db.select().from(electoralDistricts).orderBy(electoralDistricts.districtName),
+                db.select().from(politicians).orderBy(desc(politicians.createdAt)),
+                db.select({ count: count() }).from(electoralDistricts)
+            ]);
+            res.json({
+                districts: districts.slice(0, 10),
+                politicians: politiciansData.slice(0, 20),
+                totalDistricts: stats[0]?.count || 0,
+                message: "Maps data retrieved successfully"
+            });
+        }
+        catch (error) {
+            res.status(500).json({ error: 'Failed to fetch maps data' });
+        }
+    });
     // Get electoral districts for mapping
     app.get('/api/maps/districts', async (req, res) => {
         try {

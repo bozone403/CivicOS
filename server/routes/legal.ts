@@ -4,6 +4,26 @@ import { legalActs, legalCases, criminalCodeSections, legalSections, charterRigh
 import { eq, and, desc, sql, count, like, or } from "drizzle-orm";
 
 export function registerLegalRoutes(app: Express) {
+  // Root legal endpoint
+  app.get('/api/legal', async (req: Request, res: Response) => {
+    try {
+      const [acts, cases, sections] = await Promise.all([
+        db.select().from(legalActs).orderBy(desc(legalActs.updatedAt)).limit(10),
+        db.select().from(legalCases).orderBy(desc(legalCases.createdAt)).limit(5),
+        db.select().from(criminalCodeSections).orderBy(criminalCodeSections.sectionNumber).limit(10)
+      ]);
+      
+      res.json({
+        acts: acts,
+        cases: cases,
+        sections: sections,
+        message: "Legal data retrieved successfully"
+      });
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to fetch legal data' });
+    }
+  });
+
   // Get all legal acts
   app.get('/api/legal/acts', async (req: Request, res: Response) => {
     try {

@@ -26,6 +26,26 @@ function jwtAuth(req: any, res: any, next: any) {
 }
 
 export function registerTrustRoutes(app: Express) {
+  // Root trust endpoint
+  app.get('/api/trust', async (req: Request, res: Response) => {
+    try {
+      const [politiciansData, factChecksData, stats] = await Promise.all([
+        db.select().from(politicians).orderBy(desc(politicians.createdAt)),
+        db.select().from(factChecks).orderBy(desc(factChecks.checkedAt)),
+        db.select({ count: count() }).from(politicians)
+      ]);
+      
+      res.json({
+        politicians: politiciansData.slice(0, 10),
+        factChecks: factChecksData.slice(0, 5),
+        totalPoliticians: stats[0]?.count || 0,
+        message: "Trust data retrieved successfully"
+      });
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to fetch trust data' });
+    }
+  });
+
   // Get trust metrics for politicians
   app.get('/api/trust/politicians', async (req: Request, res: Response) => {
     try {
