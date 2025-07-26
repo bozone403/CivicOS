@@ -170,6 +170,52 @@ export function registerLegalRoutes(app: Express) {
     ]
   };
 
+  // Root legal endpoint
+  app.get('/api/legal', async (req: Request, res: Response) => {
+    try {
+      const legalData = {
+        acts: canadianLaws.federalActs,
+        cases: [
+          {
+            id: 1,
+            title: "R. v. Oakes",
+            year: 1986,
+            summary: "Landmark case establishing the Oakes test for reasonable limits on Charter rights",
+            category: "Constitutional Law",
+            impact: "Established framework for analyzing Charter violations"
+          },
+          {
+            id: 2,
+            title: "R. v. Jordan",
+            year: 2016,
+            summary: "Established the Jordan framework for unreasonable delay in criminal proceedings",
+            category: "Criminal Law",
+            impact: "Set 18-month presumptive ceiling for provincial court proceedings"
+          },
+          {
+            id: 3,
+            title: "R. v. Morgentaler",
+            year: 1988,
+            summary: "Struck down Canada's abortion law as unconstitutional",
+            category: "Constitutional Law",
+            impact: "Decriminalized abortion in Canada"
+          }
+        ],
+        sections: canadianLaws.criminalCode,
+        message: "Legal data retrieved successfully"
+      };
+      
+      return ResponseFormatter.success(
+        res,
+        legalData,
+        "Legal data retrieved successfully",
+        200
+      );
+    } catch (error) {
+      return ResponseFormatter.databaseError(res, `Failed to fetch legal data: ${(error as Error).message}`);
+    }
+  });
+
   // Get legal database
   app.get('/api/legal/database', async (req: Request, res: Response) => {
     try {
