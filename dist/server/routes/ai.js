@@ -40,7 +40,7 @@ router.post('/chat', async (req, res) => {
         });
     }
     catch (error) {
-        console.error('AI chat error:', error);
+        // console.error removed for production
         res.status(500).json({
             error: 'Failed to generate AI response',
             fallback: 'AI chat is temporarily unavailable. Please try again later.',
@@ -66,7 +66,7 @@ router.post('/analyze/politician', async (req, res) => {
         });
     }
     catch (error) {
-        console.error('Politician analysis error:', error);
+        // console.error removed for production
         res.status(500).json({
             error: 'Failed to analyze politician',
             fallback: 'Politician analysis is temporarily unavailable. Please check the Politicians section for detailed information.',
@@ -92,7 +92,7 @@ router.post('/analyze/bill', async (req, res) => {
         });
     }
     catch (error) {
-        console.error('Bill analysis error:', error);
+        // console.error removed for production
         res.status(500).json({
             error: 'Failed to analyze bill',
             fallback: 'Bill analysis is temporarily unavailable. Please check the Bills & Voting section for detailed information.',
@@ -118,7 +118,7 @@ router.post('/factcheck', async (req, res) => {
         });
     }
     catch (error) {
-        console.error('Fact check error:', error);
+        // console.error removed for production
         res.status(500).json({
             error: 'Failed to fact-check claim',
             fallback: 'Fact-checking is temporarily unavailable. Please consult reliable news sources for verification.',
@@ -144,7 +144,7 @@ router.post('/civic-guide', async (req, res) => {
         });
     }
     catch (error) {
-        console.error('Civic guidance error:', error);
+        // console.error removed for production
         res.status(500).json({
             error: 'Failed to provide civic guidance',
             fallback: 'Civic guidance is temporarily unavailable. Please visit canada.ca or contact your local government office.',

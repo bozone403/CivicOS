@@ -1,6 +1,6 @@
 import { spawn } from 'child_process';
 
-console.log('Testing server startup...');
+// console.log removed for production
 
 // Test with minimal environment variables
 const env = {
@@ -30,13 +30,13 @@ child.stderr.on('data', (data) => {
 });
 
 child.on('close', (code) => {
-  console.log(`Child process exited with code ${code}`);
-  console.log('Final output:', output);
-  console.log('Final error output:', errorOutput);
+  // console.log removed for production
+  // console.log removed for production
+  // console.log removed for production
 });
 
 // Kill the process after 30 seconds
 setTimeout(() => {
   child.kill();
-  console.log('Test completed');
+  // console.log removed for production
 }, 30000); 

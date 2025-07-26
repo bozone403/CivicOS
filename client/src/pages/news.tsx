@@ -73,7 +73,7 @@ export default function News() {
         // Fallback for direct array response
         return Array.isArray(result) ? result : [];
       } catch (error) {
-        console.error('Failed to fetch news articles:', error);
+        // console.error removed for production
         // Return comprehensive fallback data if API fails
         return [
           {

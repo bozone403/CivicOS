@@ -65,7 +65,7 @@ export function registerFinanceRoutes(app: Express) {
       }
       return [];
     } catch (error) {
-      console.error('Error fetching Government finance data:', error);
+      // console.error removed for production
       return [];
     }
   }
@@ -218,7 +218,7 @@ export function registerFinanceRoutes(app: Express) {
           financeData = sampleFinanceData;
         }
       } catch (error) {
-        console.error('Error fetching real finance data:', error);
+        // console.error removed for production
         // Use sample data as fallback
         financeData = sampleFinanceData;
       }

@@ -118,7 +118,7 @@ router.get('/stats', async (req, res) => {
 
     res.json(stats);
   } catch (error) {
-    console.error('Dashboard stats error:', error);
+    // console.error removed for production
     res.status(500).json({
       error: 'Failed to fetch dashboard statistics',
       fallback: {
@@ -171,7 +171,7 @@ router.get('/profile', async (req, res) => {
 
     res.json(profileData);
   } catch (error) {
-    console.error('Profile data error:', error);
+    // console.error removed for production
     res.status(500).json({
       error: 'Failed to fetch profile data'
     });
@@ -245,7 +245,7 @@ router.get('/recommendations', async (req, res) => {
 
     res.json(recommendations);
   } catch (error) {
-    console.error('Recommendations error:', error);
+    // console.error removed for production
     res.status(500).json({
       error: 'Failed to fetch recommendations'
     });

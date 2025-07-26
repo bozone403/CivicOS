@@ -23,7 +23,7 @@ export function registerNewsRoutes(app) {
                 }
             }
             catch (error) {
-                console.error('Error fetching real news:', error);
+                // console.error removed for production
                 // Fallback to database news
                 const dbArticles = await db.select().from(newsArticles).orderBy(desc(newsArticles.publishedAt));
                 articles = dbArticles;
@@ -42,7 +42,7 @@ export function registerNewsRoutes(app) {
             return ResponseFormatter.success(res, articles, "News articles retrieved successfully");
         }
         catch (error) {
-            console.error('Error fetching news:', error);
+            // console.error removed for production
             return ResponseFormatter.error(res, "Failed to fetch news articles", 500);
         }
     });

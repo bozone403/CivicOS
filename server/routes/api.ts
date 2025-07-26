@@ -23,7 +23,7 @@ export function registerApiRoutes(app: Express) {
         politicians.length
       );
     } catch (error) {
-      console.error('Politicians API error:', error);
+      // console.error removed for production
       return ResponseFormatter.databaseError(res, `Failed to fetch politicians: ${(error as Error).message}`);
     }
   });
@@ -48,7 +48,7 @@ export function registerApiRoutes(app: Express) {
         "Politician retrieved successfully"
       );
     } catch (error) {
-      console.error('Politician detail API error:', error);
+      // console.error removed for production
       return ResponseFormatter.databaseError(res, `Failed to fetch politician: ${(error as Error).message}`);
     }
   });
@@ -72,7 +72,7 @@ export function registerApiRoutes(app: Express) {
         bills.length
       );
     } catch (error) {
-      console.error('Bills API error:', error);
+      // console.error removed for production
       return ResponseFormatter.databaseError(res, `Failed to fetch bills: ${(error as Error).message}`);
     }
   });
@@ -88,7 +88,7 @@ export function registerApiRoutes(app: Express) {
         "Economic data retrieved successfully"
       );
     } catch (error) {
-      console.error('Economic data API error:', error);
+      // console.error removed for production
       return ResponseFormatter.databaseError(res, `Failed to fetch economic data: ${(error as Error).message}`);
     }
   });
@@ -112,7 +112,7 @@ export function registerApiRoutes(app: Express) {
         news.length
       );
     } catch (error) {
-      console.error('News API error:', error);
+      // console.error removed for production
       return ResponseFormatter.databaseError(res, `Failed to fetch news: ${(error as Error).message}`);
     }
   });
@@ -128,7 +128,7 @@ export function registerApiRoutes(app: Express) {
         "Financial data retrieved successfully"
       );
     } catch (error) {
-      console.error('Financial data API error:', error);
+      // console.error removed for production
       return ResponseFormatter.databaseError(res, `Failed to fetch financial data: ${(error as Error).message}`);
     }
   });

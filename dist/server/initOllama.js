@@ -255,7 +255,7 @@ async function main() {
                 process.exit(pullResult ? 0 : 1);
                 break;
             default:
-                console.log('Usage: node initOllama.js [init|health|pull]');
+                // console.log removed for production
                 process.exit(1);
         }
     }

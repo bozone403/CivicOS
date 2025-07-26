@@ -7,7 +7,7 @@ import { FloatingMessageButton } from "@/components/FloatingMessageButton";
 import { Button } from "@/components/ui/button";
 import { Layout } from "@/components/Layout";
 import { FeatureTutorial } from "@/components/FeatureTutorial";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth, AuthProvider } from "@/hooks/useAuth";
 import { CanadianCoatOfArms } from "@/components/CanadianCoatOfArms";
 import canadianCrest from "@/assets/ChatGPT Image Jun 20, 2025, 06_03_54 PM_1750464244456.png";
 
@@ -71,29 +71,31 @@ const queryClient = new QueryClient({
   },
 });
 
-// Loading component
 const PageLoader = () => (
-  <div className="min-h-screen flex items-center justify-center">
+  <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-blue-50 to-slate-100">
     <div className="text-center">
-      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-      <p className="text-gray-600">Loading...</p>
+      <CanadianCoatOfArms className="w-16 h-16 mx-auto mb-4 animate-pulse" />
+      <div className="text-lg font-semibold text-gray-700 mb-2">Loading CivicOS...</div>
+      <div className="text-sm text-gray-500">Building a better democracy</div>
     </div>
   </div>
 );
 
-// Add a simple error boundary
 class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { hasError: boolean; error: any }> {
   constructor(props: { children: React.ReactNode }) {
     super(props);
     this.state = { hasError: false, error: null };
   }
+
   static getDerivedStateFromError(error: any) {
     return { hasError: true, error };
   }
+
   componentDidCatch(_error: any, _errorInfo: any) {
-    // You can log error info here
-    // // console.error removed for production
+    // Log error to console in development
+    // console.error removed for production
   }
+
   render() {
     if (this.state.hasError) {
       return (
@@ -155,327 +157,305 @@ export default function App() {
   return (
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
-        <Router>
-          <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-slate-100">
-            <Suspense fallback={<PageLoader />}>
-              <Switch>
-                {/* Public Routes */}
-                <Route path="/" component={Landing} />
-                <Route path="/auth" component={Auth} />
-                <Route path="/register" component={Register} />
-                <Route path="/about" component={About} />
-                <Route path="/contact" component={Contact} />
-                <Route path="/privacy" component={Privacy} />
-                <Route path="/terms" component={Terms} />
-                <Route path="/accessibility" component={Accessibility} />
-                <Route path="/support" component={Support} />
-                
-                {/* Protected Routes */}
-                <Route path="/dashboard">
-                  <ProtectedRoute>
-                    <Layout>
-                      <Dashboard />
-                    </Layout>
-                  </ProtectedRoute>
-                </Route>
-                
-                <Route path="/profile">
-                  <ProtectedRoute>
-                    <Layout>
-                      <Profile />
-                    </Layout>
-                  </ProtectedRoute>
-                </Route>
-                
-                <Route path="/settings">
-                  <ProtectedRoute>
-                    <Layout>
-                      <Settings />
-                    </Layout>
-                  </ProtectedRoute>
-                </Route>
-                
-                <Route path="/news">
-                  <ProtectedRoute>
-                    <Layout>
-                      <News />
-                    </Layout>
-                  </ProtectedRoute>
-                </Route>
-                
-                <Route path="/politicians">
-                  <ProtectedRoute>
-                    <Layout>
-                      <Politicians />
-                    </Layout>
-                  </ProtectedRoute>
-                </Route>
-                
-                <Route path="/petitions">
-                  <ProtectedRoute>
-                    <Layout>
-                      <Petitions />
-                    </Layout>
-                  </ProtectedRoute>
-                </Route>
-                
-                <Route path="/voting">
-                  <ProtectedRoute>
-                    <Layout>
-                      <Voting />
-                    </Layout>
-                  </ProtectedRoute>
-                </Route>
-                
-                <Route path="/elections">
-                  <ProtectedRoute>
-                    <Layout>
-                      <Elections />
-                    </Layout>
-                  </ProtectedRoute>
-                </Route>
-                
-                <Route path="/contacts">
-                  <ProtectedRoute>
-                    <Layout>
-                      <Contacts />
-                    </Layout>
-                  </ProtectedRoute>
-                </Route>
-                
-                <Route path="/finance">
-                  <ProtectedRoute>
-                    <Layout>
-                      <Finance />
-                    </Layout>
-                  </ProtectedRoute>
-                </Route>
-                
-                <Route path="/legal">
-                  <ProtectedRoute>
-                    <Layout>
-                      <Legal />
-                    </Layout>
-                  </ProtectedRoute>
-                </Route>
-                
-                <Route path="/rights">
-                  <ProtectedRoute>
-                    <Layout>
-                      <Rights />
-                    </Layout>
-                  </ProtectedRoute>
-                </Route>
-                
-                <Route path="/cases">
-                  <ProtectedRoute>
-                    <Layout>
-                      <Cases />
-                    </Layout>
-                  </ProtectedRoute>
-                </Route>
-                
-                <Route path="/legal-search">
-                  <ProtectedRoute>
-                    <Layout>
-                      <LegalSearch />
-                    </Layout>
-                  </ProtectedRoute>
-                </Route>
-                
-                <Route path="/finance">
-                  <ProtectedRoute>
-                    <Layout>
-                      <Finance />
-                    </Layout>
-                  </ProtectedRoute>
-                </Route>
-                
-                <Route path="/lobbyists">
-                  <ProtectedRoute>
-                    <Layout>
-                      <Lobbyists />
-                    </Layout>
-                  </ProtectedRoute>
-                </Route>
-                
-                <Route path="/procurement">
-                  <ProtectedRoute>
-                    <Layout>
-                      <Procurement />
-                    </Layout>
-                  </ProtectedRoute>
-                </Route>
-                
-                <Route path="/leaks">
-                  <ProtectedRoute>
-                    <Layout>
-                      <Leaks />
-                    </Layout>
-                  </ProtectedRoute>
-                </Route>
-                
-                <Route path="/foi">
-                  <ProtectedRoute>
-                    <Layout>
-                      <FOI />
-                    </Layout>
-                  </ProtectedRoute>
-                </Route>
-                
-                <Route path="/whistleblower">
-                  <ProtectedRoute>
-                    <Layout>
-                      <Whistleblower />
-                    </Layout>
-                  </ProtectedRoute>
-                </Route>
-                
-                <Route path="/corruption">
-                  <ProtectedRoute>
-                    <Layout>
-                      <Corruption />
-                    </Layout>
-                  </ProtectedRoute>
-                </Route>
-                
-                <Route path="/memory">
-                  <ProtectedRoute>
-                    <Layout>
-                      <Memory />
-                    </Layout>
-                  </ProtectedRoute>
-                </Route>
-                
-                <Route path="/pulse">
-                  <ProtectedRoute>
-                    <Layout>
-                      <Pulse />
-                    </Layout>
-                  </ProtectedRoute>
-                </Route>
-                
-                <Route path="/trust">
-                  <ProtectedRoute>
-                    <Layout>
-                      <Trust />
-                    </Layout>
-                  </ProtectedRoute>
-                </Route>
-                
-                <Route path="/maps">
-                  <ProtectedRoute>
-                    <Layout>
-                      <Maps />
-                    </Layout>
-                  </ProtectedRoute>
-                </Route>
-                
-                <Route path="/ledger">
-                  <ProtectedRoute>
-                    <Layout>
-                      <Ledger />
-                    </Layout>
-                  </ProtectedRoute>
-                </Route>
-                
-                <Route path="/search">
-                  <ProtectedRoute>
-                    <Layout>
-                      <Search />
-                    </Layout>
-                  </ProtectedRoute>
-                </Route>
-                
-                {/* CivicSocial Routes */}
-                <Route path="/civicsocial/feed">
-                  <ProtectedRoute>
-                    <Layout>
-                      <CivicSocialFeed />
-                    </Layout>
-                  </ProtectedRoute>
-                </Route>
-                
-                <Route path="/civicsocial/profile">
-                  <ProtectedRoute>
-                    <Layout>
-                      <CivicSocialProfile />
-                    </Layout>
-                  </ProtectedRoute>
-                </Route>
-                
-                <Route path="/civicsocial/friends">
-                  <ProtectedRoute>
-                    <Layout>
-                      <CivicSocialFriends />
-                    </Layout>
-                  </ProtectedRoute>
-                </Route>
-                
-                <Route path="/civicsocial/discussions">
-                  <ProtectedRoute>
-                    <Layout>
-                      <CivicSocialDiscussions />
-                    </Layout>
-                  </ProtectedRoute>
-                </Route>
-                
-                <Route path="/civicsocial/messages">
-                  <ProtectedRoute>
-                    <Layout>
-                      <CivicSocialMessages />
-                    </Layout>
-                  </ProtectedRoute>
-                </Route>
-                
-                <Route path="/user-search">
-                  <ProtectedRoute>
-                    <Layout>
-                      <UserSearch />
-                    </Layout>
-                  </ProtectedRoute>
-                </Route>
-                
-                <Route path="/social">
-                  <ProtectedRoute>
-                    <Layout>
-                      <Social />
-                    </Layout>
-                  </ProtectedRoute>
-                </Route>
-                
-                <Route path="/civicsocial">
-                  <ProtectedRoute>
-                    <Layout>
-                      <CivicSocialFeed />
-                    </Layout>
-                  </ProtectedRoute>
-                </Route>
-                
-                <Route path="/notifications">
-                  <ProtectedRoute>
-                    <Layout>
-                      <Notifications />
-                    </Layout>
-                  </ProtectedRoute>
-                </Route>
-                
-                {/* 404 Route */}
-                <Route component={NotFound} />
-              </Switch>
-            </Suspense>
-            
-            {/* Global Components */}
-            <FloatingChatButton />
-            <FloatingMessageButton />
-            <Toaster />
-            
-            {/* Tutorial */}
-            {showTutorial && (
-              <FeatureTutorial onComplete={handleTutorialComplete} />
-            )}
-          </div>
-        </Router>
+        <AuthProvider>
+          <Router>
+            <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-slate-100">
+              <Suspense fallback={<PageLoader />}>
+                <Switch>
+                  {/* Public Routes */}
+                  <Route path="/" component={Landing} />
+                  <Route path="/auth" component={Auth} />
+                  <Route path="/register" component={Register} />
+                  <Route path="/about" component={About} />
+                  <Route path="/contact" component={Contact} />
+                  <Route path="/privacy" component={Privacy} />
+                  <Route path="/terms" component={Terms} />
+                  <Route path="/accessibility" component={Accessibility} />
+                  <Route path="/support" component={Support} />
+                  
+                  {/* Protected Routes */}
+                  <Route path="/dashboard">
+                    <ProtectedRoute>
+                      <Layout>
+                        <Dashboard />
+                      </Layout>
+                    </ProtectedRoute>
+                  </Route>
+                  
+                  <Route path="/profile">
+                    <ProtectedRoute>
+                      <Layout>
+                        <Profile />
+                      </Layout>
+                    </ProtectedRoute>
+                  </Route>
+                  
+                  <Route path="/settings">
+                    <ProtectedRoute>
+                      <Layout>
+                        <Settings />
+                      </Layout>
+                    </ProtectedRoute>
+                  </Route>
+                  
+                  <Route path="/news">
+                    <ProtectedRoute>
+                      <Layout>
+                        <News />
+                      </Layout>
+                    </ProtectedRoute>
+                  </Route>
+                  
+                  <Route path="/politicians">
+                    <ProtectedRoute>
+                      <Layout>
+                        <Politicians />
+                      </Layout>
+                    </ProtectedRoute>
+                  </Route>
+                  
+                  <Route path="/petitions">
+                    <ProtectedRoute>
+                      <Layout>
+                        <Petitions />
+                      </Layout>
+                    </ProtectedRoute>
+                  </Route>
+                  
+                  <Route path="/voting">
+                    <ProtectedRoute>
+                      <Layout>
+                        <Voting />
+                      </Layout>
+                    </ProtectedRoute>
+                  </Route>
+                  
+                  <Route path="/elections">
+                    <ProtectedRoute>
+                      <Layout>
+                        <Elections />
+                      </Layout>
+                    </ProtectedRoute>
+                  </Route>
+                  
+                  <Route path="/contacts">
+                    <ProtectedRoute>
+                      <Layout>
+                        <Contacts />
+                      </Layout>
+                    </ProtectedRoute>
+                  </Route>
+                  
+                  <Route path="/legal">
+                    <ProtectedRoute>
+                      <Layout>
+                        <Legal />
+                      </Layout>
+                    </ProtectedRoute>
+                  </Route>
+                  
+                  <Route path="/rights">
+                    <ProtectedRoute>
+                      <Layout>
+                        <Rights />
+                      </Layout>
+                    </ProtectedRoute>
+                  </Route>
+                  
+                  <Route path="/cases">
+                    <ProtectedRoute>
+                      <Layout>
+                        <Cases />
+                      </Layout>
+                    </ProtectedRoute>
+                  </Route>
+                  
+                  <Route path="/legal-search">
+                    <ProtectedRoute>
+                      <Layout>
+                        <LegalSearch />
+                      </Layout>
+                    </ProtectedRoute>
+                  </Route>
+                  
+                  <Route path="/finance">
+                    <ProtectedRoute>
+                      <Layout>
+                        <Finance />
+                      </Layout>
+                    </ProtectedRoute>
+                  </Route>
+                  
+                  <Route path="/lobbyists">
+                    <ProtectedRoute>
+                      <Layout>
+                        <Lobbyists />
+                      </Layout>
+                    </ProtectedRoute>
+                  </Route>
+                  
+                  <Route path="/procurement">
+                    <ProtectedRoute>
+                      <Layout>
+                        <Procurement />
+                      </Layout>
+                    </ProtectedRoute>
+                  </Route>
+                  
+                  <Route path="/leaks">
+                    <ProtectedRoute>
+                      <Layout>
+                        <Leaks />
+                      </Layout>
+                    </ProtectedRoute>
+                  </Route>
+                  
+                  <Route path="/foi">
+                    <ProtectedRoute>
+                      <Layout>
+                        <FOI />
+                      </Layout>
+                    </ProtectedRoute>
+                  </Route>
+                  
+                  <Route path="/whistleblower">
+                    <ProtectedRoute>
+                      <Layout>
+                        <Whistleblower />
+                      </Layout>
+                    </ProtectedRoute>
+                  </Route>
+                  
+                  <Route path="/corruption">
+                    <ProtectedRoute>
+                      <Layout>
+                        <Corruption />
+                      </Layout>
+                    </ProtectedRoute>
+                  </Route>
+                  
+                  <Route path="/memory">
+                    <ProtectedRoute>
+                      <Layout>
+                        <Memory />
+                      </Layout>
+                    </ProtectedRoute>
+                  </Route>
+                  
+                  <Route path="/pulse">
+                    <ProtectedRoute>
+                      <Layout>
+                        <Pulse />
+                      </Layout>
+                    </ProtectedRoute>
+                  </Route>
+                  
+                  <Route path="/trust">
+                    <ProtectedRoute>
+                      <Layout>
+                        <Trust />
+                      </Layout>
+                    </ProtectedRoute>
+                  </Route>
+                  
+                  <Route path="/maps">
+                    <ProtectedRoute>
+                      <Layout>
+                        <Maps />
+                      </Layout>
+                    </ProtectedRoute>
+                  </Route>
+                  
+                  <Route path="/ledger">
+                    <ProtectedRoute>
+                      <Layout>
+                        <Ledger />
+                      </Layout>
+                    </ProtectedRoute>
+                  </Route>
+                  
+                  <Route path="/search">
+                    <ProtectedRoute>
+                      <Layout>
+                        <Search />
+                      </Layout>
+                    </ProtectedRoute>
+                  </Route>
+                  
+                  {/* CivicSocial Routes */}
+                  <Route path="/civicsocial/feed">
+                    <ProtectedRoute>
+                      <Layout>
+                        <CivicSocialFeed />
+                      </Layout>
+                    </ProtectedRoute>
+                  </Route>
+                  
+                  <Route path="/civicsocial/profile">
+                    <ProtectedRoute>
+                      <Layout>
+                        <CivicSocialProfile />
+                      </Layout>
+                    </ProtectedRoute>
+                  </Route>
+                  
+                  <Route path="/civicsocial/friends">
+                    <ProtectedRoute>
+                      <Layout>
+                        <CivicSocialFriends />
+                      </Layout>
+                    </ProtectedRoute>
+                  </Route>
+                  
+                  <Route path="/civicsocial/discussions">
+                    <ProtectedRoute>
+                      <Layout>
+                        <CivicSocialDiscussions />
+                      </Layout>
+                    </ProtectedRoute>
+                  </Route>
+                  
+                  <Route path="/civicsocial/messages">
+                    <ProtectedRoute>
+                      <Layout>
+                        <CivicSocialMessages />
+                      </Layout>
+                    </ProtectedRoute>
+                  </Route>
+                  
+                  <Route path="/user-search">
+                    <ProtectedRoute>
+                      <Layout>
+                        <UserSearch />
+                      </Layout>
+                    </ProtectedRoute>
+                  </Route>
+                  
+                  <Route path="/social">
+                    <ProtectedRoute>
+                      <Layout>
+                        <Social />
+                      </Layout>
+                    </ProtectedRoute>
+                  </Route>
+                  
+                  {/* 404 Route */}
+                  <Route path="*" component={NotFound} />
+                </Switch>
+              </Suspense>
+              
+              {/* Global Components */}
+              <FloatingChatButton />
+              <FloatingMessageButton />
+              <Toaster />
+              
+              {/* Tutorial */}
+              {showTutorial && (
+                <FeatureTutorial onComplete={handleTutorialComplete} />
+              )}
+            </div>
+          </Router>
+        </AuthProvider>
       </QueryClientProvider>
     </ErrorBoundary>
   );

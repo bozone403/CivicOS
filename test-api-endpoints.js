@@ -72,7 +72,7 @@ function makeRequest(url, options = {}) {
 // Test function
 async function testEndpoint(name, url, expectedStatus = 200, options = {}) {
   try {
-    console.log(`Testing ${name}...`);
+    // console.log removed for production
     const response = await makeRequest(url, options);
     
     // Check status code
@@ -106,11 +106,11 @@ async function testEndpoint(name, url, expectedStatus = 200, options = {}) {
       }
     }
     
-    console.log(`✅ ${name} - PASSED`);
+    // console.log removed for production
     results.passed++;
     return true;
   } catch (error) {
-    console.log(`❌ ${name} - FAILED: ${error.message}`);
+    // console.log removed for production
     results.failed++;
     results.errors.push({ endpoint: name, error: error.message });
     return false;
@@ -119,7 +119,7 @@ async function testEndpoint(name, url, expectedStatus = 200, options = {}) {
 
 // Test suites
 async function testCoreEndpoints() {
-  console.log('\n🔍 Testing Core Endpoints...');
+  // console.log removed for production
   
   await testEndpoint('Health Check', `${BASE_URL}/api/health`);
   await testEndpoint('Database Health', `${BASE_URL}/api/monitoring/db`);
@@ -129,7 +129,7 @@ async function testCoreEndpoints() {
 }
 
 async function testDemocracyEndpoints() {
-  console.log('\n🗳️ Testing Democracy Endpoints...');
+  // console.log removed for production
   
   await testEndpoint('Elections', `${BASE_URL}/api/elections`);
   await testEndpoint('Elections Stats', `${BASE_URL}/api/elections/stats`);
@@ -141,7 +141,7 @@ async function testDemocracyEndpoints() {
 }
 
 async function testLegalEndpoints() {
-  console.log('\n⚖️ Testing Legal Endpoints...');
+  // console.log removed for production
   
   await testEndpoint('Legal Acts', `${BASE_URL}/api/legal/acts`);
   await testEndpoint('Legal Stats', `${BASE_URL}/api/legal/stats`);
@@ -151,7 +151,7 @@ async function testLegalEndpoints() {
 }
 
 async function testTransparencyEndpoints() {
-  console.log('\n🔍 Testing Transparency Endpoints...');
+  // console.log removed for production
   
   await testEndpoint('Finance', `${BASE_URL}/api/finance`);
   await testEndpoint('Finance Stats', `${BASE_URL}/api/finance/stats`);
@@ -165,7 +165,7 @@ async function testTransparencyEndpoints() {
 }
 
 async function testAnalysisEndpoints() {
-  console.log('\n📊 Testing Analysis Endpoints...');
+  // console.log removed for production
   
   await testEndpoint('Memory', `${BASE_URL}/api/memory`);
   await testEndpoint('Pulse', `${BASE_URL}/api/pulse`);
@@ -177,7 +177,7 @@ async function testAnalysisEndpoints() {
 }
 
 async function testSocialEndpoints() {
-  console.log('\n👥 Testing Social Endpoints...');
+  // console.log removed for production
   
   await testEndpoint('Social Posts (Unauthorized)', `${BASE_URL}/api/social/posts`, 401);
   await testEndpoint('Friends (Unauthorized)', `${BASE_URL}/api/friends`, 401);
@@ -187,7 +187,7 @@ async function testSocialEndpoints() {
 }
 
 async function testNewsEndpoints() {
-  console.log('\n📰 Testing News Endpoints...');
+  // console.log removed for production
   
   await testEndpoint('News', `${BASE_URL}/api/news`);
   await testEndpoint('News Stats', `${BASE_URL}/api/news/stats`);
@@ -197,8 +197,8 @@ async function testNewsEndpoints() {
 
 // Main test runner
 async function runTests() {
-  console.log('🚀 Starting API Endpoint Audit...');
-  console.log(`📍 Testing against: ${BASE_URL}`);
+  // console.log removed for production
+  // console.log removed for production
   console.log('='.repeat(50));
   
   const startTime = Date.now();
@@ -212,36 +212,36 @@ async function runTests() {
     await testSocialEndpoints();
     await testNewsEndpoints();
   } catch (error) {
-    console.error('❌ Test suite failed:', error.message);
+    // console.error removed for production
   }
   
   const duration = Date.now() - startTime;
   
   // Print results
   console.log('\n' + '='.repeat(50));
-  console.log('📊 TEST RESULTS');
+  // console.log removed for production
   console.log('='.repeat(50));
-  console.log(`✅ Passed: ${results.passed}`);
-  console.log(`❌ Failed: ${results.failed}`);
+  // console.log removed for production
+  // console.log removed for production
   console.log(`📈 Success Rate: ${((results.passed / (results.passed + results.failed)) * 100).toFixed(1)}%`);
-  console.log(`⏱️ Duration: ${duration}ms`);
+  // console.log removed for production
   
   if (results.errors.length > 0) {
-    console.log('\n❌ ERRORS:');
+    // console.log removed for production
     results.errors.forEach(error => {
-      console.log(`  - ${error.endpoint}: ${error.error}`);
+      // console.log removed for production
     });
   }
   
-  console.log('\n🎯 RECOMMENDATIONS:');
+  // console.log removed for production
   if (results.failed === 0) {
-    console.log('✅ All endpoints are working correctly!');
+    // console.log removed for production
   } else {
-    console.log('🔧 Some endpoints need attention:');
-    console.log('  - Check authentication on protected routes');
-    console.log('  - Verify database connectivity');
-    console.log('  - Ensure proper error handling');
-    console.log('  - Standardize response formats');
+    // console.log removed for production
+    // console.log removed for production
+    // console.log removed for production
+    // console.log removed for production
+    // console.log removed for production
   }
   
   process.exit(results.failed === 0 ? 0 : 1);

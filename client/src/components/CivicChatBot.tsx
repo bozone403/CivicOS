@@ -72,7 +72,7 @@ export function CivicChatBot({ isOpen, onClose }: ChatbotProps) {
           timestamp: new Date(msg.timestamp)
         })));
       } catch (error) {
-        console.error('Failed to load saved messages:', error);
+        // console.error removed for production
       }
     }
   }, []);

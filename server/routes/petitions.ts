@@ -30,7 +30,7 @@ export function registerPetitionRoutes(app: Express) {
   // Sample petition data with real current petitions
   const samplePetitions = [
     {
-      id: 1,
+      id: 101,
       title: "Independence for Alberta",
       description: "Petition for Alberta to become an independent nation, separate from Canada. This petition calls for a referendum on Alberta's independence and the establishment of a sovereign Alberta nation with its own constitution, currency, and international relations.",
       creator: "Alberta Independence Movement",
@@ -53,7 +53,7 @@ export function registerPetitionRoutes(app: Express) {
       deadlineDate: "2025-09-15"
     },
     {
-      id: 2,
+      id: 102,
       title: "Universal Pharmacare Now",
       description: "Petition calling for the immediate implementation of universal pharmacare coverage for all Canadians. This would provide prescription drug coverage to every Canadian regardless of income or employment status.",
       creator: "Canadian Health Coalition",
@@ -76,7 +76,7 @@ export function registerPetitionRoutes(app: Express) {
       deadlineDate: "2025-08-10"
     },
     {
-      id: 3,
+      id: 103,
       title: "Climate Emergency Declaration",
       description: "Petition demanding the federal government declare a climate emergency and implement immediate, aggressive climate action policies including carbon pricing, renewable energy transition, and fossil fuel divestment.",
       creator: "Climate Action Network Canada",
@@ -99,7 +99,7 @@ export function registerPetitionRoutes(app: Express) {
       deadlineDate: "2025-07-25"
     },
     {
-      id: 4,
+      id: 104,
       title: "Repeal Bill C-11 (Online Streaming Act)",
       description: "Petition to repeal Bill C-11, the Online Streaming Act, which critics argue gives the CRTC excessive control over internet content and threatens freedom of expression online.",
       creator: "Digital Rights Coalition",
@@ -122,7 +122,7 @@ export function registerPetitionRoutes(app: Express) {
       deadlineDate: "2025-10-20"
     },
     {
-      id: 5,
+      id: 105,
       title: "Housing as a Human Right",
       description: "Petition calling for housing to be recognized as a fundamental human right in Canada, with immediate action to address the housing crisis through rent controls, social housing, and tenant protections.",
       creator: "Housing Rights Coalition",
@@ -145,7 +145,7 @@ export function registerPetitionRoutes(app: Express) {
       deadlineDate: "2025-07-08"
     },
     {
-      id: 6,
+      id: 106,
       title: "Reform First Past the Post Voting",
       description: "Petition to replace Canada's first-past-the-post voting system with proportional representation to ensure every vote counts and better represent the diversity of Canadian political views.",
       creator: "Fair Vote Canada",
@@ -168,7 +168,7 @@ export function registerPetitionRoutes(app: Express) {
       deadlineDate: "2025-11-12"
     },
     {
-      id: 7,
+      id: 107,
       title: "Protect Indigenous Languages",
       description: "Petition calling for increased funding and support for Indigenous language preservation and revitalization programs across Canada, including mandatory Indigenous language education in schools.",
       creator: "Indigenous Language Alliance",
@@ -191,7 +191,7 @@ export function registerPetitionRoutes(app: Express) {
       deadlineDate: "2025-12-18"
     },
     {
-      id: 8,
+      id: 108,
       title: "Ban Single-Use Plastics Nationwide",
       description: "Petition to implement a comprehensive nationwide ban on single-use plastics including bags, straws, cutlery, and packaging, with immediate implementation and strict enforcement.",
       creator: "Plastic Free Canada",

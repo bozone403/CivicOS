@@ -309,7 +309,7 @@ async function main(): Promise<void> {
         break;
         
       default:
-        console.log('Usage: node initOllama.js [init|health|pull]');
+        // console.log removed for production
         process.exit(1);
     }
   } catch (error: any) {

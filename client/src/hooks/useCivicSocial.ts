@@ -27,13 +27,13 @@ export function useCivicSocialFeed() {
       });
       if (!res.ok) throw new Error("Failed to fetch feed");
       const data = await res.json();
-      // Assume backend returns comments and counts
-      return data.feed;
+      // Backend returns { feed: [...] }
+      return data.feed || [];
     },
   });
 }
 
-// Stub: create post
+// Create post
 export function useCivicSocialPost() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -54,7 +54,7 @@ export function useCivicSocialPost() {
   });
 }
 
-// Stub: add comment
+// Add comment
 export function useCivicSocialComment() {
   return useMutation({
     mutationFn: async ({ postId, ...comment }: any) => {
@@ -92,7 +92,7 @@ export function useCivicSocialLike() {
   });
 }
 
-// Stub: friends
+// Friends
 export function useCivicSocialFriends() {
   return useQuery({
     queryKey: ["civicSocialFriends"],
@@ -108,7 +108,6 @@ export function useCivicSocialFriends() {
 }
 
 // Add friend mutation
-// Usage: const addFriend = useCivicSocialAddFriend(token); addFriend.mutate({ friendId: 2 })
 export function useCivicSocialAddFriend() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -120,7 +119,7 @@ export function useCivicSocialAddFriend() {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ friendId }),
+        body: JSON.stringify({ friendId, action: "send" }),
       });
       if (!res.ok) throw new Error("Failed to send friend request");
       return res.json();
@@ -168,6 +167,61 @@ export function useCivicSocialRemoveFriend() {
       return res.json();
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["civicSocialFriends"] }),
+  });
+}
+
+// Conversations
+export function useCivicSocialConversations() {
+  return useQuery({
+    queryKey: ["civicSocialConversations"],
+    queryFn: async () => {
+      const token = getToken();
+      const res = await fetch(`${API_BASE}/api/social/conversations`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error("Failed to fetch conversations");
+      return res.json();
+    },
+  });
+}
+
+// Messages for a conversation
+export function useCivicSocialMessages(conversationId: string) {
+  return useQuery({
+    queryKey: ["civicSocialMessages", conversationId],
+    queryFn: async () => {
+      const token = getToken();
+      const res = await fetch(`${API_BASE}/api/social/messages/${conversationId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error("Failed to fetch messages");
+      return res.json();
+    },
+    enabled: !!conversationId,
+  });
+}
+
+// Send message
+export function useCivicSocialSendMessage() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ content, receiverId }: { content: string; receiverId: string }) => {
+      const token = getToken();
+      const res = await fetch(`${API_BASE}/api/social/messages`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ content, receiverId }),
+      });
+      if (!res.ok) throw new Error("Failed to send message");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["civicSocialConversations"] });
+      queryClient.invalidateQueries({ queryKey: ["civicSocialMessages"] });
+    },
   });
 }
 

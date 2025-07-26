@@ -174,7 +174,7 @@ export class DatabaseStorage {
         }
         catch (error) {
             // Log the error but don't throw to prevent cascading failures
-            console.error('Error creating bill:', error);
+            // console.error removed for production
             throw error;
         }
     }
@@ -251,7 +251,7 @@ export class DatabaseStorage {
         }
         catch (error) {
             // Log the error but don't throw to prevent cascading failures
-            console.error('Error creating politician:', error);
+            // console.error removed for production
             throw error;
         }
     }

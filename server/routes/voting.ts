@@ -18,6 +18,40 @@ router.get('/bills', async (req, res) => {
   }
 });
 
+// Get user's votes for bills
+router.get('/user-votes', async (req, res) => {
+  try {
+    const userId = (req as any).user?.id;
+    if (!userId) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+
+    const userVotes = await db.select({
+      itemId: votes.itemId,
+      itemType: votes.itemType,
+      voteValue: votes.voteValue,
+      reasoning: votes.reasoning,
+      timestamp: votes.timestamp
+    }).from(votes)
+    .where(and(
+      eq(votes.userId, userId),
+      eq(votes.itemType, 'bill')
+    ))
+    .orderBy(desc(votes.timestamp));
+
+    // Convert to object format for easier lookup
+    const votesObject: Record<string, string> = {};
+    userVotes.forEach(vote => {
+      votesObject[vote.itemId.toString()] = vote.voteValue === 1 ? 'yes' : vote.voteValue === -1 ? 'no' : 'abstain';
+    });
+
+    res.json(votesObject);
+  } catch (error) {
+    // console.error removed for production
+    res.status(500).json({ error: 'Failed to fetch user votes' });
+  }
+});
+
 // Vote on a bill
 router.post('/bills/vote', async (req, res) => {
   try {
@@ -36,7 +70,7 @@ router.post('/bills/vote', async (req, res) => {
     const existingVote = await db.select().from(votes)
       .where(and(
         eq(votes.userId, userId),
-        eq(votes.itemId, billId),
+        eq(votes.itemId, parseInt(billId)),
         eq(votes.itemType, 'bill')
       ));
 
@@ -51,7 +85,7 @@ router.post('/bills/vote', async (req, res) => {
     // Insert vote
     await db.insert(votes).values({
       userId,
-      itemId: billId,
+      itemId: parseInt(billId),
       itemType: 'bill',
       voteValue: vote === 'yes' ? 1 : vote === 'no' ? -1 : 0,
       reasoning: req.body.reasoning || null,
@@ -64,6 +98,86 @@ router.post('/bills/vote', async (req, res) => {
   } catch (error) {
     // console.error removed for production
     res.status(500).json({ error: 'Failed to record vote' });
+  }
+});
+
+// Get bill with vote statistics
+router.get('/bills/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = (req as any).user?.id;
+    
+    const [bill] = await db
+      .select()
+      .from(bills)
+      .where(eq(bills.id, parseInt(id)));
+
+    if (!bill) {
+      return res.status(404).json({ message: 'Bill not found' });
+    }
+
+    // Get vote statistics for this bill
+    const voteStats = await db.execute(sql`
+      SELECT 
+        COUNT(*) as total_votes,
+        COUNT(CASE WHEN vote_value = 1 THEN 1 END) as yes_votes,
+        COUNT(CASE WHEN vote_value = -1 THEN 1 END) as no_votes,
+        COUNT(CASE WHEN vote_value = 0 THEN 1 END) as abstentions
+      FROM votes 
+      WHERE item_id = ${parseInt(id)} AND item_type = 'bill'
+    `);
+
+    // Get user's vote if authenticated
+    let userVote: string | null = null;
+    if (userId) {
+      const [userVoteResult] = await db
+        .select({ voteValue: votes.voteValue })
+        .from(votes)
+        .where(and(
+          eq(votes.userId, userId),
+          eq(votes.itemId, parseInt(id)),
+          eq(votes.itemType, 'bill')
+        ));
+      
+      if (userVoteResult) {
+        userVote = userVoteResult.voteValue === 1 ? 'yes' : userVoteResult.voteValue === -1 ? 'no' : 'abstain';
+      }
+    }
+
+    // Generate government URLs based on bill number
+    const governmentUrl = `https://www.parl.ca/DocumentViewer/en/44-1/bill/${bill.billNumber}`;
+    const legiscanUrl = `https://legiscan.com/CA/bill/${bill.billNumber}/2025`;
+    const fullTextUrl = `https://www.parl.ca/DocumentViewer/en/44-1/bill/${bill.billNumber}/first-reading`;
+
+    res.json({
+      ...bill,
+      voteStats: voteStats.rows[0] || {
+        total_votes: 0,
+        yes_votes: 0,
+        no_votes: 0,
+        abstentions: 0
+      },
+      userVote,
+      governmentUrl,
+      legiscanUrl,
+      fullTextUrl,
+      // Add mock data for enhanced bill details
+      keyProvisions: [
+        "Establishes new regulatory framework",
+        "Increases funding for affected programs",
+        "Creates oversight mechanisms",
+        "Implements reporting requirements"
+      ],
+      amendments: [
+        "Amendment 1: Increased funding allocation",
+        "Amendment 2: Enhanced oversight provisions"
+      ],
+      fiscalNote: "Estimated $2.5B over 5 years with $1.8B in revenue",
+      regulatoryImpact: "New compliance requirements for affected industries"
+    });
+  } catch (error) {
+    // console.error removed for production
+    res.status(500).json({ error: 'Failed to fetch bill' });
   }
 });
 

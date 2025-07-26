@@ -14,11 +14,11 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-console.log('🔍 CivicOS Configuration Verification');
-console.log('=====================================\n');
+// console.log removed for production
+// console.log removed for production
 
 // Check 1: Environment Variables
-console.log('1. Environment Variables Check:');
+// console.log removed for production
 const requiredEnvVars = [
   'DATABASE_URL',
   'SESSION_SECRET',
@@ -36,7 +36,7 @@ let envIssues = 0;
 
 requiredEnvVars.forEach(varName => {
   if (!process.env[varName]) {
-    console.log(`   ❌ Missing required: ${varName}`);
+    // console.log removed for production
     envIssues++;
   } else {
     console.log(`   ✅ ${varName}: ${varName.includes('SECRET') ? '[HIDDEN]' : 'Set'}`);
@@ -45,14 +45,14 @@ requiredEnvVars.forEach(varName => {
 
 optionalEnvVars.forEach(varName => {
   if (process.env[varName]) {
-    console.log(`   ✅ ${varName}: Set`);
+    // console.log removed for production
   } else {
     console.log(`   ⚠️  ${varName}: Not set (optional)`);
   }
 });
 
 // Check 2: Route Files Exist
-console.log('\n2. Route Files Check:');
+// console.log removed for production
 const routeFiles = [
   'server/routes/auth.ts',
   'server/routes/users.ts',
@@ -88,15 +88,15 @@ let routeIssues = 0;
 routeFiles.forEach(routeFile => {
   const fullPath = path.join(__dirname, routeFile);
   if (fs.existsSync(fullPath)) {
-    console.log(`   ✅ ${routeFile}`);
+    // console.log removed for production
   } else {
-    console.log(`   ❌ Missing: ${routeFile}`);
+    // console.log removed for production
     routeIssues++;
   }
 });
 
 // Check 3: App Routes Registration
-console.log('\n3. App Routes Registration Check:');
+// console.log removed for production
 const appRoutesPath = path.join(__dirname, 'server/appRoutes.ts');
 let registrationIssues = 0;
 
@@ -133,23 +133,23 @@ if (fs.existsSync(appRoutesPath)) {
   
   routeRegistrations.forEach(registration => {
     if (appRoutesContent.includes(registration)) {
-      console.log(`   ✅ ${registration}`);
+      // console.log removed for production
     } else {
-      console.log(`   ❌ Missing: ${registration}`);
+      // console.log removed for production
       registrationIssues++;
     }
   });
   
   if (registrationIssues === 0) {
-    console.log('   ✅ All route registrations found');
+    // console.log removed for production
   }
 } else {
-  console.log('   ❌ appRoutes.ts not found');
+  // console.log removed for production
   registrationIssues = 1;
 }
 
 // Check 4: Database Schema
-console.log('\n4. Database Schema Check:');
+// console.log removed for production
 const schemaPath = path.join(__dirname, 'shared/schema.ts');
 let schemaIssues = 0;
 
@@ -171,61 +171,61 @@ if (fs.existsSync(schemaPath)) {
   
   requiredTables.forEach(table => {
     if (schemaContent.includes(`export const ${table}`)) {
-      console.log(`   ✅ Table: ${table}`);
+      // console.log removed for production
     } else {
-      console.log(`   ❌ Missing table: ${table}`);
+      // console.log removed for production
       schemaIssues++;
     }
   });
   
   if (schemaIssues === 0) {
-    console.log('   ✅ All required tables defined');
+    // console.log removed for production
   }
 } else {
-  console.log('   ❌ schema.ts not found');
+  // console.log removed for production
   schemaIssues = 1;
 }
 
 // Check 5: Frontend Configuration
-console.log('\n5. Frontend Configuration Check:');
+// console.log removed for production
 const configPath = path.join(__dirname, 'client/src/lib/config.ts');
 if (fs.existsSync(configPath)) {
-  console.log('   ✅ config.ts exists');
+  // console.log removed for production
   const configContent = fs.readFileSync(configPath, 'utf8');
   if (configContent.includes('civicos.onrender.com')) {
-    console.log('   ✅ Production API URL configured');
+    // console.log removed for production
   } else {
-    console.log('   ⚠️  Production API URL not found');
+    // console.log removed for production
   }
 } else {
-  console.log('   ❌ config.ts not found');
+  // console.log removed for production
 }
 
 // Check 6: Build Output
-console.log('\n6. Build Output Check:');
+// console.log removed for production
 const distPath = path.join(__dirname, 'dist');
 if (fs.existsSync(distPath)) {
-  console.log('   ✅ dist/ directory exists');
+  // console.log removed for production
   
   const publicPath = path.join(distPath, 'public');
   if (fs.existsSync(publicPath)) {
-    console.log('   ✅ dist/public/ directory exists');
+    // console.log removed for production
     
     const indexHtmlPath = path.join(publicPath, 'index.html');
     if (fs.existsSync(indexHtmlPath)) {
-      console.log('   ✅ index.html exists');
+      // console.log removed for production
     } else {
-      console.log('   ❌ index.html missing');
+      // console.log removed for production
     }
   } else {
-    console.log('   ❌ dist/public/ directory missing');
+    // console.log removed for production
   }
 } else {
-  console.log('   ❌ dist/ directory missing - run npm run build:full');
+  // console.log removed for production
 }
 
 // Check 7: Package.json Scripts
-console.log('\n7. Package.json Scripts Check:');
+// console.log removed for production
 const packagePath = path.join(__dirname, 'package.json');
 let scriptIssues = 0;
 
@@ -235,31 +235,31 @@ if (fs.existsSync(packagePath)) {
   
   requiredScripts.forEach(script => {
     if (packageContent.scripts && packageContent.scripts[script]) {
-      console.log(`   ✅ Script: ${script}`);
+      // console.log removed for production
     } else {
-      console.log(`   ❌ Missing script: ${script}`);
+      // console.log removed for production
       scriptIssues++;
     }
   });
   
   if (scriptIssues === 0) {
-    console.log('   ✅ All required scripts present');
+    // console.log removed for production
   }
 } else {
-  console.log('   ❌ package.json not found');
+  // console.log removed for production
   scriptIssues = 1;
 }
 
 // Summary
-console.log('\n📊 Summary:');
+// console.log removed for production
 const totalIssues = envIssues + routeIssues + registrationIssues + schemaIssues + scriptIssues;
 
 if (totalIssues === 0) {
-  console.log('   🎉 All configuration checks passed!');
-  console.log('   ✅ CivicOS is properly configured and ready for deployment.');
+  // console.log removed for production
+  // console.log removed for production
 } else {
-  console.log(`   ⚠️  Found ${totalIssues} configuration issues that need to be addressed.`);
-  console.log('   🔧 Please fix the issues above before deploying.');
+  // console.log removed for production
+  // console.log removed for production
 }
 
-console.log('\n🚀 Configuration verification complete!'); 
+// console.log removed for production 

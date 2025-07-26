@@ -16,7 +16,7 @@ export function registerApiRoutes(app) {
             return ResponseFormatter.success(res, politicians, "Politicians retrieved successfully", 200, politicians.length);
         }
         catch (error) {
-            console.error('Politicians API error:', error);
+            // console.error removed for production
             return ResponseFormatter.databaseError(res, `Failed to fetch politicians: ${error.message}`);
         }
     });
@@ -34,7 +34,7 @@ export function registerApiRoutes(app) {
             return ResponseFormatter.success(res, politician, "Politician retrieved successfully");
         }
         catch (error) {
-            console.error('Politician detail API error:', error);
+            // console.error removed for production
             return ResponseFormatter.databaseError(res, `Failed to fetch politician: ${error.message}`);
         }
     });
@@ -51,7 +51,7 @@ export function registerApiRoutes(app) {
             return ResponseFormatter.success(res, bills, "Bills retrieved successfully", 200, bills.length);
         }
         catch (error) {
-            console.error('Bills API error:', error);
+            // console.error removed for production
             return ResponseFormatter.databaseError(res, `Failed to fetch bills: ${error.message}`);
         }
     });
@@ -62,7 +62,7 @@ export function registerApiRoutes(app) {
             return ResponseFormatter.success(res, economicData, "Economic data retrieved successfully");
         }
         catch (error) {
-            console.error('Economic data API error:', error);
+            // console.error removed for production
             return ResponseFormatter.databaseError(res, `Failed to fetch economic data: ${error.message}`);
         }
     });
@@ -79,7 +79,7 @@ export function registerApiRoutes(app) {
             return ResponseFormatter.success(res, news, "News retrieved successfully", 200, news.length);
         }
         catch (error) {
-            console.error('News API error:', error);
+            // console.error removed for production
             return ResponseFormatter.databaseError(res, `Failed to fetch news: ${error.message}`);
         }
     });
@@ -90,7 +90,7 @@ export function registerApiRoutes(app) {
             return ResponseFormatter.success(res, financialData, "Financial data retrieved successfully");
         }
         catch (error) {
-            console.error('Financial data API error:', error);
+            // console.error removed for production
             return ResponseFormatter.databaseError(res, `Failed to fetch financial data: ${error.message}`);
         }
     });

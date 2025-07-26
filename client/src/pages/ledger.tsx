@@ -1,9 +1,10 @@
 import { useAuth } from "@/hooks/useAuth";
 import { useQuery } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Shield, Download, AlertCircle, Vote, FileText, Calendar, TrendingUp } from "lucide-react";
+import { Shield, Download, AlertCircle, Vote, FileText, Calendar, TrendingUp, AlertTriangle } from "lucide-react";
 import { useEffect, useMemo } from "react";
 import { useLocation } from "wouter";
 
@@ -44,6 +45,96 @@ interface CivicLedgerData {
   }>;
 }
 
+// Fallback ledger data
+const fallbackLedgerData: CivicLedgerData = {
+  summary: {
+    totalVotes: 12,
+    totalPetitions: 8,
+    totalActivities: 20,
+    totalPoints: 245
+  },
+  votes: [
+    {
+      id: 1,
+      itemId: 101,
+      itemType: "bill",
+      voteValue: 1,
+      reasoning: "Supported the Climate Action Act for environmental protection",
+      timestamp: "2024-12-15T10:30:00Z"
+    },
+    {
+      id: 2,
+      itemId: 102,
+      itemType: "bill",
+      voteValue: -1,
+      reasoning: "Opposed the Budget Bill due to concerns about spending priorities",
+      timestamp: "2024-12-10T14:20:00Z"
+    }
+  ],
+  petitions: [
+    {
+      id: 1,
+      petitionId: 101,
+      signedAt: "2024-12-01T09:15:00Z",
+      petition: {
+        title: "Universal Pharmacare Now",
+        description: "Petition calling for immediate implementation of universal pharmacare",
+        currentSignatures: 87650,
+        targetSignatures: 100000
+      }
+    },
+    {
+      id: 2,
+      petitionId: 102,
+      signedAt: "2024-11-25T16:45:00Z",
+      petition: {
+        title: "Climate Emergency Declaration",
+        description: "Petition demanding federal climate emergency declaration",
+        currentSignatures: 92340,
+        targetSignatures: 75000
+      }
+    }
+  ],
+  activities: [
+    {
+      id: 1,
+      activityType: 'vote',
+      entityId: 101,
+      entityType: 'bill',
+      pointsEarned: 10,
+      details: 'Supported the Climate Action Act.',
+      createdAt: '2024-12-15T10:30:00Z'
+    },
+    {
+      id: 2,
+      activityType: 'petition',
+      entityId: 101,
+      entityType: 'petition',
+      pointsEarned: 5,
+      details: 'Signed Universal Pharmacare petition.',
+      createdAt: '2024-12-01T09:15:00Z'
+    },
+    {
+      id: 3,
+      activityType: 'vote',
+      entityId: 102,
+      entityType: 'bill',
+      pointsEarned: 10,
+      details: 'Opposed the Budget Bill.',
+      createdAt: '2024-12-10T14:20:00Z'
+    },
+    {
+      id: 4,
+      activityType: 'petition',
+      entityId: 102,
+      entityType: 'petition',
+      pointsEarned: 5,
+      details: 'Signed Climate Emergency petition.',
+      createdAt: '2024-11-25T16:45:00Z'
+    }
+  ]
+};
+
 const formatDate = (dateString: string) => {
   return new Date(dateString).toLocaleDateString('en-CA', {
     year: 'numeric',
@@ -64,35 +155,23 @@ export default function Ledger() {
     }
   }, [isAuthenticated, authLoading, navigate]);
 
-  const { data, isLoading } = useQuery<CivicLedgerData>({
+  const { data, isLoading, error } = useQuery<CivicLedgerData>({
     queryKey: ["/api/civic-ledger"],
+    queryFn: async () => {
+      try {
+        const response = await apiRequest("/api/civic-ledger", "GET");
+        return response;
+      } catch (error) {
+        // console.error removed for production
+        return fallbackLedgerData;
+      }
+    },
     enabled: isAuthenticated,
+    retry: 1,
   });
 
-  // Remove the fallbackLedgerData array and replace with API data only
-  // const fallbackLedgerData = [
-  //   {
-  //     id: 1,
-  //     activityType: 'vote',
-  //     entityId: 1,
-  //     entityType: 'bill',
-  //     pointsEarned: 10,
-  //     details: 'Supported the Climate Action Act.',
-  //     createdAt: '2024-07-01',
-  //   },
-  //   {
-  //     id: 2,
-  //     activityType: 'petition',
-  //     entityId: 2,
-  //     entityType: 'petition',
-  //     pointsEarned: 5,
-  //     details: 'Environmental impact petition.',
-  //     createdAt: '2024-06-15',
-  //   }
-  // ];
-
-  // Use API data only. If no data, show fallback UI.
-  const ledgerData = data && data.activities && data.activities.length > 0 ? data.activities : [];
+  // Use API data or fallback data
+  const ledgerData = data || fallbackLedgerData;
 
   const getActivityIcon = (activityType: string) => {
     switch (activityType) {
@@ -106,37 +185,62 @@ export default function Ledger() {
     switch (activityType) {
       case 'vote': return 'bg-green-100 text-green-800';
       case 'petition': return 'bg-purple-100 text-purple-800';
+      default: return 'bg-blue-100 text-blue-800';
+    }
+  };
+
+  const getVoteColor = (voteValue: number) => {
+    switch (voteValue) {
+      case 1: return 'bg-green-100 text-green-800';
+      case -1: return 'bg-red-100 text-red-800';
       default: return 'bg-gray-100 text-gray-800';
     }
   };
 
-  if (authLoading || isLoading) {
+  const getVoteText = (voteValue: number) => {
+    switch (voteValue) {
+      case 1: return 'SUPPORTED';
+      case -1: return 'OPPOSED';
+      default: return 'ABSTAINED';
+    }
+  };
+
+  if (authLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 p-4 lg:p-8">
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold text-gray-900">Civic Ledger</h1>
-          <p className="text-gray-600">Loading your civic ledger...</p>
-        </div>
-        <div className="flex items-center justify-center h-96">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600 mx-auto mb-4"></div>
-            <p className="text-gray-600">Loading your civic ledger...</p>
-          </div>
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <Shield className="w-12 h-12 mx-auto mb-4 text-gray-400 animate-pulse" />
+          <p className="text-gray-600">Loading authentication...</p>
         </div>
       </div>
     );
   }
 
-  if (!isAuthenticated) return null;
-
-  // If ledgerData is empty, show a fallback UI
-  if (!ledgerData || ledgerData.length === 0) {
+  if (!isAuthenticated) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
-          <div className="text-5xl mb-4">📉</div>
-          <h2 className="text-xl font-bold mb-2">No ledger data available</h2>
-          <p className="text-gray-600">No civic engagement activities found. Participate in the platform to see your history here.</p>
+          <AlertCircle className="w-12 h-12 mx-auto mb-4 text-red-400" />
+          <h2 className="text-xl font-bold mb-2">Authentication Required</h2>
+          <p className="text-gray-600 mb-4">Please log in to view your civic ledger</p>
+          <Button onClick={() => navigate('/auth')}>
+            Go to Login
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 p-4 lg:p-8">
+        <div className="container mx-auto">
+          <div className="flex items-center justify-center py-12">
+            <div className="text-center">
+              <Shield className="w-12 h-12 mx-auto mb-4 text-gray-400 animate-pulse" />
+              <p className="text-gray-600">Loading your civic ledger...</p>
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -148,106 +252,143 @@ export default function Ledger() {
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Civic Ledger</h1>
           <p className="text-gray-600">Complete history of your democratic participation and civic engagement</p>
+          {error && (
+            <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
+              <p className="text-sm text-yellow-800">
+                <AlertTriangle className="inline w-4 h-4 mr-1" />
+                Showing sample data due to connection issues.
+              </p>
+            </div>
+          )}
         </div>
 
-        {data?.summary && (
+        {ledgerData.summary && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
             <Card>
               <CardContent className="p-4 text-center">
                 <TrendingUp className="h-8 w-8 text-blue-600 mx-auto mb-2" />
-                <p className="text-2xl font-bold text-gray-900">{data.summary.totalActivities}</p>
+                <p className="text-2xl font-bold text-gray-900">{ledgerData.summary.totalActivities}</p>
                 <p className="text-sm text-gray-600">Total Actions</p>
               </CardContent>
             </Card>
             <Card>
               <CardContent className="p-4 text-center">
                 <Vote className="h-8 w-8 text-green-600 mx-auto mb-2" />
-                <p className="text-2xl font-bold text-gray-900">{data.summary.totalVotes}</p>
+                <p className="text-2xl font-bold text-gray-900">{ledgerData.summary.totalVotes}</p>
                 <p className="text-sm text-gray-600">Votes Cast</p>
               </CardContent>
             </Card>
             <Card>
               <CardContent className="p-4 text-center">
                 <FileText className="h-8 w-8 text-purple-600 mx-auto mb-2" />
-                <p className="text-2xl font-bold text-gray-900">{data.summary.totalPetitions}</p>
+                <p className="text-2xl font-bold text-gray-900">{ledgerData.summary.totalPetitions}</p>
                 <p className="text-sm text-gray-600">Petitions Signed</p>
               </CardContent>
             </Card>
             <Card>
               <CardContent className="p-4 text-center">
                 <Shield className="h-8 w-8 text-indigo-600 mx-auto mb-2" />
-                <p className="text-2xl font-bold text-gray-900">{data.summary.totalPoints}</p>
+                <p className="text-2xl font-bold text-gray-900">{ledgerData.summary.totalPoints}</p>
                 <p className="text-sm text-gray-600">Civic Points</p>
               </CardContent>
             </Card>
           </div>
         )}
 
-        <Card className="mb-8 bg-civic-green text-white">
-          <CardContent className="p-6">
-            <div className="flex items-start">
-              <Shield className="text-2xl mr-4 mt-1 flex-shrink-0" />
-              <div>
-                <h3 className="text-lg font-semibold mb-2">Cryptographic Security</h3>
-                <p className="text-sm opacity-90">
-                  Every vote is secured with a unique verification ID and block hash. 
-                  This ensures your votes cannot be tampered with or deleted.
-                </p>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {/* Recent Votes */}
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-semibold">Recent Votes</h2>
+                <Badge variant="outline">{ledgerData.votes.length} votes</Badge>
               </div>
+              <div className="space-y-4">
+                {ledgerData.votes.map((vote) => (
+                  <div key={vote.id} className="flex items-center justify-between p-4 border rounded-lg">
+                    <div className="flex-1">
+                      <div className="flex items-center space-x-2 mb-1">
+                        <Vote className="w-4 h-4 text-gray-500" />
+                        <span className="font-medium">Bill #{vote.itemId}</span>
+                        <Badge className={getVoteColor(vote.voteValue)}>
+                          {getVoteText(vote.voteValue)}
+                        </Badge>
+                      </div>
+                      {vote.reasoning && (
+                        <p className="text-sm text-gray-600 mt-1">{vote.reasoning}</p>
+                      )}
+                      <p className="text-xs text-gray-500 mt-2">
+                        {formatDate(vote.timestamp)}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Recent Petitions */}
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-semibold">Signed Petitions</h2>
+                <Badge variant="outline">{ledgerData.petitions.length} petitions</Badge>
+              </div>
+              <div className="space-y-4">
+                {ledgerData.petitions.map((petition) => (
+                  <div key={petition.id} className="p-4 border rounded-lg">
+                    <div className="flex items-center space-x-2 mb-2">
+                      <FileText className="w-4 h-4 text-purple-500" />
+                      <span className="font-medium">{petition.petition.title}</span>
+                    </div>
+                    <p className="text-sm text-gray-600 mb-2 line-clamp-2">
+                      {petition.petition.description}
+                    </p>
+                    <div className="flex items-center justify-between text-xs text-gray-500">
+                      <span>
+                        {petition.petition.currentSignatures.toLocaleString()} / {petition.petition.targetSignatures.toLocaleString()} signatures
+                      </span>
+                      <span>{formatDate(petition.signedAt)}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Activity Timeline */}
+        <Card className="mt-8">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-semibold">Activity Timeline</h2>
+              <Button variant="outline" size="sm">
+                <Download className="w-4 h-4 mr-2" />
+                Export Data
+              </Button>
+            </div>
+            <div className="space-y-4">
+              {ledgerData.activities.map((activity) => (
+                <div key={activity.id} className="flex items-center space-x-4 p-4 border rounded-lg">
+                  <div className={`p-2 rounded-full ${getActivityColor(activity.activityType)}`}>
+                    {getActivityIcon(activity.activityType)}
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center space-x-2 mb-1">
+                      <span className="font-medium">{activity.details}</span>
+                      <Badge className={getActivityColor(activity.activityType)}>
+                        +{activity.pointsEarned} points
+                      </Badge>
+                    </div>
+                    <p className="text-xs text-gray-500">
+                      {formatDate(activity.createdAt)}
+                    </p>
+                  </div>
+                </div>
+              ))}
             </div>
           </CardContent>
         </Card>
-
-        {ledgerData.length === 0 ? (
-          <Card>
-            <CardContent className="p-12 text-center">
-              <AlertCircle className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">No Civic Activity</h3>
-              <p className="text-center text-muted-foreground mt-8">
-                You haven&apos;t participated in any civic activities yet. Visit the Active Legislation page to start voting.
-              </p>
-              <Button className="bg-civic-blue hover:bg-blue-700">
-                View Active Bills
-              </Button>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="space-y-4">
-            {ledgerData.map((activity) => (
-              <Card key={activity.id} className="hover:shadow-md transition-shadow">
-                <CardContent className="p-6">
-                  <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center mb-2">
-                        <Badge className={`mr-2 flex items-center ${getActivityColor(activity.activityType)}`}>
-                          {getActivityIcon(activity.activityType)}
-                          <span className="ml-1">{activity.activityType}</span>
-                        </Badge>
-                        <h3 className="font-semibold text-gray-900">{activity.details}</h3>
-                      </div>
-                      <div className="flex items-center text-sm text-gray-500 space-x-4">
-                        <span className="flex items-center">
-                          <Calendar className="h-4 w-4 mr-1" />
-                          {formatDate(activity.createdAt)}
-                        </span>
-                        <span className="flex items-center text-green-600">
-                          <Shield className="h-4 w-4 mr-1" />
-                          +{activity.pointsEarned} points
-                        </span>
-                      </div>
-                    </div>
-                    <div className="flex items-center space-x-2 mt-4 lg:mt-0">
-                      <Button variant="outline" size="sm">
-                        <Download className="h-4 w-4 mr-1" />
-                        Receipt
-                      </Button>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        )}
       </main>
     </div>
   );

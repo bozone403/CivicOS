@@ -21,7 +21,7 @@ if (process.env.NODE_ENV === 'development') {
 else {
     // Production: use proper SSL verification
     process.env.NODE_TLS_REJECT_UNAUTHORIZED = '1';
-    console.log('[SECURITY] SSL verification enabled in production mode');
+    // console.log removed for production
 }
 const logger = pino();
 // Enforce SESSION_SECRET is set before anything else
