@@ -122,6 +122,11 @@ export default function DebugAuth() {
     window.location.href = '/auth';
   };
 
+  const forceRefresh = () => {
+    // Force a hard refresh to clear any cached JavaScript
+    window.location.reload();
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 p-4">
       <div className="max-w-4xl mx-auto space-y-6">
@@ -146,27 +151,31 @@ export default function DebugAuth() {
                 </div>
               </div>
               
-              <div>
-                <h3 className="font-semibold mb-2">Configuration</h3>
-                <div className="space-y-2 text-sm">
-                  <div><strong>API URL:</strong> {config.apiUrl}</div>
-                  <div><strong>Environment:</strong> {config.environment}</div>
-                  <div><strong>Token Length:</strong> {token?.length || 0}</div>
-                </div>
-              </div>
+                             <div>
+                 <h3 className="font-semibold mb-2">Configuration</h3>
+                 <div className="space-y-2 text-sm">
+                   <div><strong>API URL:</strong> {config.apiUrl}</div>
+                   <div><strong>Environment:</strong> {config.environment}</div>
+                   <div><strong>Version:</strong> {config.version}</div>
+                   <div><strong>Token Length:</strong> {token?.length || 0}</div>
+                 </div>
+               </div>
             </div>
 
-            <div className="flex gap-2">
-              <Button onClick={runTests} disabled={isTesting}>
-                {isTesting ? 'Running Tests...' : 'Run Diagnostic Tests'}
-              </Button>
-              <Button onClick={clearToken} variant="outline">
-                Clear Token
-              </Button>
-              <Button onClick={goToAuth} variant="outline">
-                Go to Auth
-              </Button>
-            </div>
+                         <div className="flex gap-2">
+               <Button onClick={runTests} disabled={isTesting}>
+                 {isTesting ? 'Running Tests...' : 'Run Diagnostic Tests'}
+               </Button>
+               <Button onClick={clearToken} variant="outline">
+                 Clear Token
+               </Button>
+               <Button onClick={goToAuth} variant="outline">
+                 Go to Auth
+               </Button>
+               <Button onClick={forceRefresh} variant="outline" className="bg-yellow-100 text-yellow-800">
+                 Force Refresh
+               </Button>
+             </div>
           </CardContent>
         </Card>
 

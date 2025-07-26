@@ -2,6 +2,7 @@
 interface Config {
   apiUrl: string;
   environment: 'production';
+  version: string;
 }
 
 const getConfig = (): Config => {
@@ -9,13 +10,15 @@ const getConfig = (): Config => {
   if (envApiUrl) {
     return {
       apiUrl: envApiUrl,
-      environment: 'production'
+      environment: 'production',
+      version: '1.0.1' // Cache busting version
     };
   }
   // API calls should go to the Render backend
   return {
     apiUrl: 'https://civicos.onrender.com',
-    environment: 'production'
+    environment: 'production',
+    version: '1.0.1' // Cache busting version
   };
 };
 
