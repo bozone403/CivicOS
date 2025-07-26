@@ -74,7 +74,7 @@ export function SocialFeed() {
 
   // Fetch social posts
   const { data: posts = [], isLoading } = useQuery<SocialPost[]>({
-    queryKey: ["/api/social/feed"],
+    queryKey: ["civicSocialFeed"],
     queryFn: async () => {
       const response = await apiRequest("/api/social/feed", "GET");
       return response?.feed || [];
@@ -98,7 +98,7 @@ export function SocialFeed() {
       return apiRequest("/api/social/posts", "POST", data);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/social/feed"] });
+      queryClient.invalidateQueries({ queryKey: ["civicSocialFeed"] });
       setNewPostContent("");
       setImageUrl("");
       setIsCreatePostOpen(false);
@@ -122,7 +122,7 @@ export function SocialFeed() {
       return apiRequest(`/api/social/posts/${postId}`, "PUT", data);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/social/feed"] });
+      queryClient.invalidateQueries({ queryKey: ["civicSocialFeed"] });
       setEditingPost(null);
       toast({
         title: "Post updated!",
@@ -144,7 +144,7 @@ export function SocialFeed() {
       return apiRequest(`/api/social/posts/${postId}`, "DELETE");
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/social/feed"] });
+      queryClient.invalidateQueries({ queryKey: ["civicSocialFeed"] });
       toast({
         title: "Post deleted!",
         description: "Your post has been deleted successfully.",
@@ -231,7 +231,7 @@ export function SocialFeed() {
       return apiRequest("/api/social/like", "POST", { postId, commentId });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/social/feed"] });
+      queryClient.invalidateQueries({ queryKey: ["civicSocialFeed"] });
       if (selectedPost) {
         queryClient.invalidateQueries({ queryKey: ["/api/social/posts", selectedPost.id, "comments"] });
       }
