@@ -142,6 +142,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 function DebugAuth() {
   const { user, isAuthenticated, isLoading } = useAuth();
   const token = localStorage.getItem('civicos-jwt');
+  const [showDebugPanel, setShowDebugPanel] = useState(false);
   
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -160,6 +161,37 @@ function DebugAuth() {
           <div>
             <strong>User:</strong> {user ? JSON.stringify(user, null, 2) : 'None'}
           </div>
+          
+          {/* Debug Panel Toggle */}
+          <div className="pt-4">
+            <button 
+              onClick={() => setShowDebugPanel(!showDebugPanel)}
+              className="bg-blue-600 text-white px-4 py-2 rounded mr-2"
+            >
+              {showDebugPanel ? 'Hide' : 'Show'} Debug Logs
+            </button>
+          </div>
+          
+          {/* Debug Logs Panel */}
+          {showDebugPanel && (
+            <div className="mt-4 p-4 bg-gray-100 rounded max-h-64 overflow-y-auto">
+              <h3 className="font-bold mb-2">Authentication Debug Logs:</h3>
+              <pre className="text-xs">
+                {window.authDebug ? window.authDebug.map((log, i) => (
+                  <div key={i} className="mb-1">
+                    <span className="text-gray-500">{log.timestamp}</span>
+                    <span className="text-blue-600"> {log.message}</span>
+                    {log.data && (
+                      <div className="ml-4 text-gray-700">
+                        {JSON.stringify(log.data, null, 2)}
+                      </div>
+                    )}
+                  </div>
+                )).reverse() : 'No debug logs yet'}
+              </pre>
+            </div>
+          )}
+          
           <div className="pt-4">
             <button 
               onClick={() => localStorage.removeItem('civicos-jwt')}
