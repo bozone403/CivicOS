@@ -218,8 +218,10 @@ export function registerPetitionRoutes(app: Express) {
   // Get all petitions
   app.get('/api/petitions', async (req: Request, res: Response) => {
     try {
-      // Try to get petitions from database first
-      let allPetitions: any[] = [];
+      // Use sample data as primary source
+      let allPetitions: any[] = samplePetitions;
+
+      // Try to get additional petitions from database if needed
       try {
         const dbPetitions = await db
           .select({
@@ -243,14 +245,12 @@ export function registerPetitionRoutes(app: Express) {
           .leftJoin(users, eq(petitions.creatorId, users.id))
           .orderBy(desc(petitions.createdAt));
         
-        allPetitions = dbPetitions;
+        // Only add database petitions if they don't conflict with sample data
+        const sampleIds = new Set(samplePetitions.map(p => p.id));
+        const uniqueDbPetitions = dbPetitions.filter(p => !sampleIds.has(p.id));
+        allPetitions = [...samplePetitions, ...uniqueDbPetitions];
       } catch (dbError) {
-        // If database fails, use sample data
-        allPetitions = [];
-      }
-
-      // If no database petitions, use sample data
-      if (!allPetitions || allPetitions.length === 0) {
+        // If database fails, just use sample data
         allPetitions = samplePetitions;
       }
 

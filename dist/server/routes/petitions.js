@@ -215,8 +215,9 @@ export function registerPetitionRoutes(app) {
     // Get all petitions
     app.get('/api/petitions', async (req, res) => {
         try {
-            // Try to get petitions from database first
-            let allPetitions = [];
+            // Use sample data as primary source
+            let allPetitions = samplePetitions;
+            // Try to get additional petitions from database if needed
             try {
                 const dbPetitions = await db
                     .select({
@@ -239,14 +240,13 @@ export function registerPetitionRoutes(app) {
                     .from(petitions)
                     .leftJoin(users, eq(petitions.creatorId, users.id))
                     .orderBy(desc(petitions.createdAt));
-                allPetitions = dbPetitions;
+                // Only add database petitions if they don't conflict with sample data
+                const sampleIds = new Set(samplePetitions.map(p => p.id));
+                const uniqueDbPetitions = dbPetitions.filter(p => !sampleIds.has(p.id));
+                allPetitions = [...samplePetitions, ...uniqueDbPetitions];
             }
             catch (dbError) {
-                // If database fails, use sample data
-                allPetitions = [];
-            }
-            // If no database petitions, use sample data
-            if (!allPetitions || allPetitions.length === 0) {
+                // If database fails, just use sample data
                 allPetitions = samplePetitions;
             }
             // Calculate days left and add mock data for missing fields
