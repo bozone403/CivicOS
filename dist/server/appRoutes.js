@@ -118,21 +118,12 @@ export async function registerRoutes(app) {
                 // Use the first found path
                 const actualPath = altPath;
                 app.use(express.static(actualPath));
-                // SPA fallback: serve index.html for all non-API routes
-                app.get('*', (req, res) => {
-                    // Skip API routes
-                    if (req.path.startsWith('/api/')) {
-                        return res.status(404).json({ message: 'API endpoint not found' });
-                    }
-                    // Serve index.html for all other routes (SPA routing)
-                    res.sendFile(path.join(actualPath, 'index.html'));
-                });
-                return;
+                break;
             }
         }
     }
     app.use(express.static(publicPath));
-    // SPA fallback: serve index.html for all non-API routes
+    // SPA fallback: serve index.html for all non-API routes (must be last)
     app.get('*', (req, res) => {
         // Skip API routes - let them be handled by their respective routers
         if (req.path.startsWith('/api/')) {
