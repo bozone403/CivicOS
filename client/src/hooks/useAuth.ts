@@ -47,6 +47,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const validateToken = async () => {
     try {
       // console.log removed for production
+      const token = localStorage.getItem('civicos-jwt');
+      // console.log removed for production
       const response = await apiRequest('/api/auth/user', 'GET');
       // console.log removed for production
       if (response && response.user) {
@@ -93,15 +95,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const login = async (email: string, password: string) => {
     try {
+      // console.log removed for production
       const response = await apiRequest('/api/auth/login', 'POST', { email, password });
+      // console.log removed for production
       if (response.token) {
+        // console.log removed for production
         localStorage.setItem('civicos-jwt', response.token);
         if (response.user) {
+          // console.log removed for production
           setUser(response.user);
           await ensureUserProfile(response.user);
         }
+      } else {
+        // console.log removed for production
       }
     } catch (error) {
+      // console.log removed for production
       // console.error removed for production
       throw error;
     }
@@ -170,9 +179,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(null);
   };
 
+  const isAuthenticated = !!user;
+  
+  // Debug authentication state
+  // console.log removed for production
+
   const value = {
     user,
-    isAuthenticated: !!user,
+    isAuthenticated,
     isLoading,
     login,
     register,
