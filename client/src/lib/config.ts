@@ -12,7 +12,7 @@ const getConfig = (): Config => {
       environment: 'production'
     };
   }
-  // Fallback to Render backend if no environment variable is set
+  // API calls should go to the Render backend
   return {
     apiUrl: 'https://civicos.onrender.com',
     environment: 'production'

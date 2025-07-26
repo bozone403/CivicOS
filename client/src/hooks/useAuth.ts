@@ -46,21 +46,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const validateToken = async () => {
     try {
+      // console.log removed for production
       const response = await apiRequest('/api/auth/user', 'GET');
+      // console.log removed for production
       if (response && response.user) {
+        // console.log removed for production
         setUser(response.user);
         await ensureUserProfile(response.user);
       } else {
+        // console.log removed for production
         // Clear invalid token
         localStorage.removeItem('civicos-jwt');
         setUser(null);
       }
     } catch (error) {
+      // console.log removed for production
       // console.error removed for production
       // Clear invalid token on any error
       localStorage.removeItem('civicos-jwt');
       setUser(null);
     } finally {
+      // console.log removed for production
       setIsLoading(false);
     }
   };
