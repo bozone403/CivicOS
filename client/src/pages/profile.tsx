@@ -148,7 +148,7 @@ export default function Profile() {
                   <h1 className="text-3xl font-bold text-gray-900">
                     {user?.firstName && user?.lastName 
                       ? `${user.firstName} ${user.lastName}`
-                      : user?.email?.split('@')[0] || 'User'
+                      : (user?.email?.split('@')[0] || 'User')
                     }
                   </h1>
                   <Dialog open={editOpen} onOpenChange={setEditOpen}>

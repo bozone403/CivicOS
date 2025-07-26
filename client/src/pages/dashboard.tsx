@@ -95,7 +95,7 @@ export default function Dashboard() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold">
-              Welcome back, {user?.firstName || 'Citizen'}!
+              Welcome back, {(user?.firstName || user?.lastName || user?.email || 'Citizen')}!
             </h1>
             <p className="text-blue-100 mt-2">
               Stay engaged with Canadian democracy. Your voice matters.
