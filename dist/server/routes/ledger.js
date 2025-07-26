@@ -65,6 +65,68 @@ export function registerLedgerRoutes(app) {
             return ResponseFormatter.databaseError(res, `Failed to fetch ledger data: ${error.message}`);
         }
     });
+    // Get civic ledger entries (frontend compatibility)
+    app.get('/api/civic-ledger', async (req, res) => {
+        const startTime = Date.now();
+        try {
+            // Sample civic ledger data for demonstration
+            const civicLedgerData = {
+                summary: {
+                    totalVotes: 12,
+                    totalPetitions: 5,
+                    totalActivities: 23,
+                    totalPoints: 450
+                },
+                votes: [
+                    {
+                        id: 1,
+                        itemId: 101,
+                        itemType: "bill",
+                        voteValue: 1,
+                        reasoning: "Supporting this bill as it aligns with democratic values",
+                        timestamp: "2024-01-15T10:30:00Z"
+                    },
+                    {
+                        id: 2,
+                        itemId: 102,
+                        itemType: "bill",
+                        voteValue: -1,
+                        reasoning: "Opposing this bill due to privacy concerns",
+                        timestamp: "2024-01-14T14:20:00Z"
+                    }
+                ],
+                petitions: [
+                    {
+                        id: 1,
+                        petitionId: 201,
+                        signedAt: "2024-01-10T09:15:00Z",
+                        petition: {
+                            title: "Support Electoral Reform",
+                            description: "Petition to implement proportional representation",
+                            currentSignatures: 15420,
+                            targetSignatures: 10000
+                        }
+                    }
+                ],
+                activities: [
+                    {
+                        id: 1,
+                        activityType: "vote",
+                        entityId: 101,
+                        entityType: "bill",
+                        pointsEarned: 10,
+                        details: { billTitle: "Democratic Reform Act" },
+                        createdAt: "2024-01-15T10:30:00Z"
+                    }
+                ]
+            };
+            const processingTime = Date.now() - startTime;
+            return ResponseFormatter.success(res, civicLedgerData, "Civic ledger data retrieved successfully", 200, undefined, undefined, processingTime);
+        }
+        catch (error) {
+            return ResponseFormatter.databaseError(res, `Failed to fetch civic ledger data: ${error.message}`);
+        }
+    });
     // Get ledger statistics
     app.get('/api/ledger/stats', async (req, res) => {
         const startTime = Date.now();

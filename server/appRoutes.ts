@@ -37,6 +37,7 @@ import { registerElectionsRoutes } from "./routes/elections.js";
 import { registerRightsRoutes } from "./routes/rights.js";
 import votingRouter from "./routes/voting.js";
 import donationsRouter from "./routes/donations.js";
+import foiRouter from "./routes/foi.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -67,6 +68,9 @@ export async function registerRoutes(app: Express): Promise<void> {
   registerCorruptionRoutes(app);
   registerElectionsRoutes(app);
   registerRightsRoutes(app);
+
+  // FOI routes (no auth required)
+  app.use("/api/foi", foiRouter);
 
   // Simple notifications routes (no auth required)
   app.use("/api/notifications", simpleNotificationsRouter);

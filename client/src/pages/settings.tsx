@@ -203,7 +203,7 @@ export default function Settings() {
                 <Avatar className="w-24 h-24">
                   <AvatarImage src={imagePreview || (user as any)?.profileImageUrl} />
                   <AvatarFallback className="text-2xl">
-                    {(user as any)?.firstName?.[0] || 'U'}
+                    {typeof (user as any)?.firstName === 'string' ? (user as any)?.firstName?.[0] : 'U'}
                   </AvatarFallback>
                 </Avatar>
                 
