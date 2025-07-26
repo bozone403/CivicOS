@@ -55,7 +55,10 @@ export default function Auth() {
         title: "Welcome to CivicOS",
         description: "You have successfully logged in",
       });
-      navigate("/dashboard");
+      // Wait a bit for the auth state to update before navigating
+      setTimeout(() => {
+        navigate("/dashboard");
+      }, 500);
     },
     onError: (error: any) => {
       setErrors(prev => ({ ...prev, login: error.message || "Invalid email or password" }));
@@ -77,7 +80,10 @@ export default function Auth() {
         title: "Welcome to CivicOS",
         description: "Your account has been created successfully",
       });
-      navigate("/profile?welcome=1");
+      // Wait a bit for the auth state to update before navigating
+      setTimeout(() => {
+        navigate("/profile?welcome=1");
+      }, 500);
     },
     onError: (error: any) => {
       let message = error.message || "Registration failed";

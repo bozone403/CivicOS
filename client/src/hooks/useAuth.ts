@@ -59,10 +59,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    debugLog('AuthProvider useEffect triggered');
     const token = localStorage.getItem('civicos-jwt');
+    debugLog('Token from localStorage:', token ? 'exists' : 'missing');
     if (token) {
       validateToken();
     } else {
+      debugLog('No token found, setting loading to false');
       setIsLoading(false);
     }
   }, []);
@@ -129,6 +132,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setUser(response.user);
           await ensureUserProfile(response.user);
         }
+        // Force a re-validation to ensure state is consistent
+        setTimeout(() => {
+          debugLog('Forcing token re-validation after login');
+          validateToken();
+        }, 100);
       } else {
         debugLog('No token in login response!');
       }
@@ -202,7 +210,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(null);
   };
 
-  const isAuthenticated = !!user;
+  const isAuthenticated = !!user && !isLoading;
   
   // Debug authentication state
   debugLog('Authentication state:', { user, isAuthenticated, isLoading });

@@ -114,22 +114,46 @@ class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { has
 }
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, user } = useAuth();
   const [location] = useLocation();
+  const token = localStorage.getItem('civicos-jwt');
+  
+  // Additional debug logging
+  console.log('[ProtectedRoute]', {
+    isAuthenticated,
+    isLoading,
+    hasUser: !!user,
+    hasToken: !!token,
+    location
+  });
   
   if (isLoading) {
     return <PageLoader />;
   }
   
-  if (!isAuthenticated) {
+  if (!isAuthenticated || !user) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
           <h1 className="text-2xl font-bold text-gray-900 mb-4">Authentication Required</h1>
           <p className="text-gray-600 mb-6">Please log in to access this page.</p>
+          <div className="space-y-2 text-sm text-gray-500 mb-4">
+            <div>Debug: Token exists: {token ? 'Yes' : 'No'}</div>
+            <div>Debug: User exists: {user ? 'Yes' : 'No'}</div>
+            <div>Debug: Loading: {isLoading ? 'Yes' : 'No'}</div>
+          </div>
           <Button onClick={() => window.location.href = '/auth'}>
             Go to Login
           </Button>
+          <div className="mt-4">
+            <Button 
+              variant="outline" 
+              onClick={() => window.location.href = '/debug-auth'}
+              className="text-sm"
+            >
+              Debug Authentication
+            </Button>
+          </div>
         </div>
       </div>
     );
@@ -138,79 +162,8 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
-// Debug component for authentication testing
-function DebugAuth() {
-  const { user, isAuthenticated, isLoading } = useAuth();
-  const token = localStorage.getItem('civicos-jwt');
-  const [showDebugPanel, setShowDebugPanel] = useState(false);
-  
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <div className="max-w-md w-full bg-white shadow-lg rounded-lg p-8">
-        <h1 className="text-2xl font-bold text-gray-900 mb-4">Authentication Debug</h1>
-        <div className="space-y-4 text-sm">
-          <div>
-            <strong>Loading:</strong> {isLoading ? 'Yes' : 'No'}
-          </div>
-          <div>
-            <strong>Authenticated:</strong> {isAuthenticated ? 'Yes' : 'No'}
-          </div>
-          <div>
-            <strong>Token exists:</strong> {token ? 'Yes' : 'No'}
-          </div>
-          <div>
-            <strong>User:</strong> {user ? JSON.stringify(user, null, 2) : 'None'}
-          </div>
-          
-          {/* Debug Panel Toggle */}
-          <div className="pt-4">
-            <button 
-              onClick={() => setShowDebugPanel(!showDebugPanel)}
-              className="bg-blue-600 text-white px-4 py-2 rounded mr-2"
-            >
-              {showDebugPanel ? 'Hide' : 'Show'} Debug Logs
-            </button>
-          </div>
-          
-          {/* Debug Logs Panel */}
-          {showDebugPanel && (
-            <div className="mt-4 p-4 bg-gray-100 rounded max-h-64 overflow-y-auto">
-              <h3 className="font-bold mb-2">Authentication Debug Logs:</h3>
-              <pre className="text-xs">
-                {window.authDebug ? window.authDebug.map((log, i) => (
-                  <div key={i} className="mb-1">
-                    <span className="text-gray-500">{log.timestamp}</span>
-                    <span className="text-blue-600"> {log.message}</span>
-                    {log.data && (
-                      <div className="ml-4 text-gray-700">
-                        {JSON.stringify(log.data, null, 2)}
-                      </div>
-                    )}
-                  </div>
-                )).reverse() : 'No debug logs yet'}
-              </pre>
-            </div>
-          )}
-          
-          <div className="pt-4">
-            <button 
-              onClick={() => localStorage.removeItem('civicos-jwt')}
-              className="bg-red-600 text-white px-4 py-2 rounded mr-2"
-            >
-              Clear Token
-            </button>
-            <button 
-              onClick={() => window.location.href = '/auth'}
-              className="bg-blue-600 text-white px-4 py-2 rounded"
-            >
-              Go to Auth
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
+// Import the debug page
+const DebugAuthPage = lazy(() => import("@/pages/debug-auth"));
 
 export default function App() {
   const [showTutorial, setShowTutorial] = useState(false);
@@ -250,7 +203,7 @@ export default function App() {
                   
                   {/* Debug route for testing auth */}
                   <Route path="/debug-auth">
-                    <DebugAuth />
+                    <DebugAuthPage />
                   </Route>
                   
                   {/* Protected Routes */}
