@@ -213,7 +213,7 @@ export default function CivicSocialFriends() {
                     <p className="font-medium">
                       {request.user?.firstName && request.user?.lastName 
                         ? `${request.user.firstName} ${request.user.lastName}` 
-                        : request.user?.firstName || request.user?.lastName || request.user?.email || 'Unknown User'}
+                        : (request.user?.firstName || request.user?.lastName || request.user?.email || 'Unknown User')}
                     </p>
                     <p className="text-sm text-gray-500">{request.user?.email || 'No email'}</p>
                   </div>
@@ -262,7 +262,7 @@ export default function CivicSocialFriends() {
                     <p className="font-medium">
                       {request.friend?.firstName && request.friend?.lastName 
                         ? `${request.friend.firstName} ${request.friend.lastName}` 
-                        : request.friend?.firstName || request.friend?.lastName || request.friend?.email || 'Unknown User'}
+                        : (request.friend?.firstName || request.friend?.lastName || request.friend?.email || 'Unknown User')}
                     </p>
                     <p className="text-sm text-gray-500">{request.friend?.email || 'No email'}</p>
                   </div>
@@ -305,7 +305,7 @@ export default function CivicSocialFriends() {
                     <p className="font-medium">
                       {friend.firstName && friend.lastName 
                         ? `${friend.firstName} ${friend.lastName}` 
-                        : friend.firstName || friend.lastName || friend.email || 'Unknown User'}
+                        : (friend.firstName || friend.lastName || friend.email || 'Unknown User')}
                     </p>
                     <p className="text-sm text-gray-500">{friend.email || 'No email'}</p>
                     {friend.civicPoints && (
