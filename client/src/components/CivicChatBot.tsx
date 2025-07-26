@@ -56,7 +56,31 @@ export function CivicChatBot({ isOpen, onClose }: ChatbotProps) {
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
     if (scrollAreaRef.current) {
-      scrollAreaRef.current.scrollTop = scrollAreaRef.current.scrollHeight;
+      const scrollArea = scrollAreaRef.current;
+      scrollArea.scrollTop = scrollArea.scrollHeight;
+    }
+  }, [messages]);
+
+  // Persist messages in localStorage
+  useEffect(() => {
+    const savedMessages = localStorage.getItem('civicos-chat-messages');
+    if (savedMessages) {
+      try {
+        const parsed = JSON.parse(savedMessages);
+        setMessages(parsed.map((msg: any) => ({
+          ...msg,
+          timestamp: new Date(msg.timestamp)
+        })));
+      } catch (error) {
+        console.error('Failed to load saved messages:', error);
+      }
+    }
+  }, []);
+
+  // Save messages to localStorage whenever they change
+  useEffect(() => {
+    if (messages.length > 1) { // Don't save just the initial message
+      localStorage.setItem('civicos-chat-messages', JSON.stringify(messages));
     }
   }, [messages]);
 
@@ -162,8 +186,12 @@ export function CivicChatBot({ isOpen, onClose }: ChatbotProps) {
           </Button>
         </CardHeader>
 
-        <CardContent className="flex-1 flex flex-col space-y-4">
-          <ScrollArea ref={scrollAreaRef} className="flex-1 pr-4">
+        <CardContent className="p-0">
+          <ScrollArea 
+            ref={scrollAreaRef}
+            className="h-[400px] w-full p-4"
+            style={{ scrollBehavior: 'smooth' }}
+          >
             <div className="space-y-4">
               {messages.map((message) => (
                 <div
@@ -174,87 +202,61 @@ export function CivicChatBot({ isOpen, onClose }: ChatbotProps) {
                     className={`max-w-[80%] rounded-lg p-3 ${
                       message.role === 'user'
                         ? 'bg-blue-600 text-white'
-                        : 'bg-gray-100 text-gray-900'
+                        : 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100'
                     }`}
                   >
-                    <div className="flex items-start space-x-2">
+                    <div className="flex items-start gap-2">
                       {message.role === 'assistant' && (
-                        <Bot className="h-4 w-4 mt-1 text-blue-600 flex-shrink-0" />
-                      )}
-                      {message.role === 'user' && (
-                        <User className="h-4 w-4 mt-1 text-white flex-shrink-0" />
+                        <Bot className="w-4 h-4 mt-0.5 flex-shrink-0" />
                       )}
                       <div className="flex-1">
-                        <p className="text-sm">{message.content}</p>
-                        
-                        {message.role === 'assistant' && (
-                          <div className="mt-2 space-y-1">
-                            {message.confidence && (
-                              <div className="flex items-center space-x-2 text-xs">
-                                <span className="text-gray-500">Confidence:</span>
-                                <div className={`w-2 h-2 rounded-full ${getConfidenceColor(message.confidence)}`}></div>
-                                <span>{(message.confidence * 100).toFixed(0)}%</span>
-                              </div>
-                            )}
-                            
-                            {message.propagandaRisk && (
-                              <div className="flex items-center space-x-2 text-xs">
-                                <Shield className="h-3 w-3 text-gray-500" />
-                                <span className="text-gray-500">Propaganda Risk:</span>
-                                <Badge variant="outline" className={`text-xs ${getPropagandaColor(message.propagandaRisk)}`}>
-                                  {message.propagandaRisk}
-                                </Badge>
-                              </div>
-                            )}
-                            
-                            {message.truthScore && (
-                              <div className="flex items-center space-x-2 text-xs">
-                                <TrendingUp className="h-3 w-3 text-gray-500" />
-                                <span className="text-gray-500">Truth Score:</span>
-                                <span>{(message.truthScore * 100).toFixed(0)}%</span>
-                              </div>
-                            )}
+                        <div className="whitespace-pre-wrap text-sm">{message.content}</div>
+                        {message.followUpSuggestions && message.followUpSuggestions.length > 0 && (
+                          <div className="mt-3 space-y-2">
+                            <div className="text-xs text-gray-500 dark:text-gray-400">
+                              Suggested follow-ups:
+                            </div>
+                            <div className="flex flex-wrap gap-2">
+                              {message.followUpSuggestions.slice(0, 3).map((suggestion, index) => (
+                                <Button
+                                  key={index}
+                                  size="sm"
+                                  variant="outline"
+                                  className="text-xs h-6 px-2"
+                                  onClick={() => setInput(suggestion)}
+                                >
+                                  {suggestion}
+                                </Button>
+                              ))}
+                            </div>
                           </div>
                         )}
                       </div>
+                      {message.role === 'user' && (
+                        <User className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                      )}
+                    </div>
+                    <div className="text-xs opacity-70 mt-1">
+                      {message.timestamp.toLocaleTimeString()}
                     </div>
                   </div>
                 </div>
               ))}
-              
               {isLoading && (
                 <div className="flex justify-start">
-                  <div className="bg-gray-100 rounded-lg p-3">
-                    <div className="flex items-center space-x-2">
-                      <Bot className="h-4 w-4 text-blue-600" />
-                      <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
-                      <span className="text-sm text-gray-600">Analyzing...</span>
+                  <div className="bg-gray-100 dark:bg-gray-800 rounded-lg p-3">
+                    <div className="flex items-center gap-2">
+                      <Bot className="w-4 h-4" />
+                      <div className="flex items-center gap-1">
+                        <Loader2 className="w-3 h-3 animate-spin" />
+                        <span className="text-sm">Thinking...</span>
+                      </div>
                     </div>
                   </div>
                 </div>
               )}
             </div>
           </ScrollArea>
-
-          {messages.length > 1 && messages[messages.length - 1].role === 'assistant' && 
-           messages[messages.length - 1].followUpSuggestions && (
-            <div className="border-t pt-4">
-              <p className="text-xs text-gray-500 mb-2">Suggested follow-ups:</p>
-              <div className="flex flex-wrap gap-2">
-                {messages[messages.length - 1].followUpSuggestions?.slice(0, 3).map((suggestion, index) => (
-                  <Button
-                    key={index}
-                    variant="outline"
-                    size="sm"
-                    className="text-xs"
-                    onClick={() => setInput(suggestion)}
-                  >
-                    {suggestion}
-                  </Button>
-                ))}
-              </div>
-            </div>
-          )}
 
           <form onSubmit={handleSubmit} className="flex space-x-2">
             <Input

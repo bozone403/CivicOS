@@ -495,40 +495,48 @@ export default function Voting() {
                     </div>
                   )}
 
-                  {/* Actions */}
-                  <div className="flex gap-2 pt-2">
-                    <Button 
-                      size="sm" 
-                      variant="outline" 
-                      className="flex-1"
-                      onClick={() => setSelectedBill(bill)}
-                    >
-                      <FileText className="w-4 h-4 mr-1" />
-                      Details
-                    </Button>
+                  {/* Voting Buttons */}
+                  <div className="flex items-center justify-between pt-4 border-t border-gray-200 dark:border-gray-700">
+                    <div className="flex items-center space-x-2">
+                      <span className="text-xs text-gray-500">Your vote:</span>
+                      <div className="flex items-center space-x-3">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-8 px-3 text-xs"
+                          onClick={() => handleVote(bill.id, 'for')}
+                          disabled={voteMutation.isPending}
+                        >
+                          <ThumbsUp className="w-3 h-3 mr-1" />
+                          Support
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-8 px-3 text-xs"
+                          onClick={() => handleVote(bill.id, 'against')}
+                          disabled={voteMutation.isPending}
+                        >
+                          <ThumbsDown className="w-3 h-3 mr-1" />
+                          Oppose
+                        </Button>
+                      </div>
+                    </div>
                     
-                    {bill.status === "Active" && isAuthenticated && (
-                      <>
-                        <Button 
-                          size="sm" 
-                          variant="outline"
-                          className="px-3"
-                          onClick={() => handleVote(bill.id, "yes")}
-                          disabled={voteMutation.isPending}
-                        >
-                          <ThumbsUp className="w-4 h-4" />
-                        </Button>
-                        <Button 
-                          size="sm" 
-                          variant="outline"
-                          className="px-3"
-                          onClick={() => handleVote(bill.id, "no")}
-                          disabled={voteMutation.isPending}
-                        >
-                          <ThumbsDown className="w-4 h-4" />
-                        </Button>
-                      </>
-                    )}
+                    <div className="flex items-center space-x-4">
+                      <div className="text-right">
+                        <div className="text-xs text-gray-500">Next vote</div>
+                        <div className="text-xs font-medium">{bill.nextVoteDate}</div>
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-8 px-3 text-xs"
+                      >
+                        <Share2 className="w-3 h-3 mr-1" />
+                        Share
+                      </Button>
+                    </div>
                   </div>
                 </div>
               </CardContent>
