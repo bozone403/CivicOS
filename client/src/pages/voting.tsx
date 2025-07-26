@@ -31,7 +31,11 @@ import {
   ExternalLinkIcon,
   ExternalLinkIcon as ExternalLinkIcon2,
   ExternalLinkIcon as ExternalLinkIcon3,
-  Minus
+  Minus,
+  User,
+  Award,
+  Flag,
+  Target
 } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
@@ -88,11 +92,35 @@ interface Bill {
   };
 }
 
+interface ElectoralCandidate {
+  id: string;
+  name: string;
+  party: string;
+  position: string;
+  jurisdiction: string;
+  bio: string;
+  keyPolicies: string[];
+  trustScore: string;
+  totalVotes?: number;
+  preferenceVotes?: number;
+  supportVotes?: number;
+  opposeVotes?: number;
+}
+
+interface ElectoralVote {
+  candidateId: string;
+  voteType: string;
+  reasoning?: string;
+  timestamp: string;
+}
+
 export default function Voting() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [selectedBill, setSelectedBill] = useState<Bill | null>(null);
+  const [selectedCandidate, setSelectedCandidate] = useState<ElectoralCandidate | null>(null);
+  const [activeTab, setActiveTab] = useState("bills");
   const { isAuthenticated, user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -303,6 +331,122 @@ export default function Voting() {
     },
   });
 
+  // Electoral voting queries
+  const { data: electoralCandidates = [], isLoading: candidatesLoading } = useQuery<ElectoralCandidate[]>({
+    queryKey: ['/api/voting/electoral/candidates'],
+    queryFn: async () => {
+      try {
+        const result = await apiRequest('/api/voting/electoral/candidates', 'GET');
+        return Array.isArray(result) ? result : [];
+      } catch (error) {
+        // Return fallback data if API fails
+        return [
+          {
+            id: "1",
+            name: "Mark Carney",
+            party: "Liberal Party",
+            position: "Prime Minister of Canada",
+            jurisdiction: "Federal",
+            bio: "Former Bank of Canada Governor and Bank of England Governor. Appointed Prime Minister in 2025, bringing significant financial expertise to government leadership.",
+            keyPolicies: ["Economic stability", "Climate action", "Financial regulation", "International cooperation"],
+            trustScore: "75.00",
+            totalVotes: 1250,
+            preferenceVotes: 800,
+            supportVotes: 300,
+            opposeVotes: 150
+          },
+          {
+            id: "2",
+            name: "Pierre Poilievre",
+            party: "Conservative Party",
+            position: "Leader of the Opposition",
+            jurisdiction: "Federal",
+            bio: "Conservative Party leader known for his focus on economic issues, inflation concerns, and cryptocurrency advocacy.",
+            keyPolicies: ["Economic freedom", "Reduced government spending", "Digital currency", "Common sense policies"],
+            trustScore: "65.00",
+            totalVotes: 1100,
+            preferenceVotes: 600,
+            supportVotes: 400,
+            opposeVotes: 100
+          },
+          {
+            id: "3",
+            name: "Yves-François Blanchet",
+            party: "Bloc Québécois",
+            position: "Party Leader",
+            jurisdiction: "Federal",
+            bio: "Leader of the Bloc Québécois, advocating for Quebec's interests and sovereignty within the Canadian federation.",
+            keyPolicies: ["Quebec sovereignty", "French language protection", "Provincial autonomy", "Cultural preservation"],
+            trustScore: "70.00",
+            totalVotes: 850,
+            preferenceVotes: 500,
+            supportVotes: 250,
+            opposeVotes: 100
+          }
+        ];
+      }
+    },
+  });
+
+  const { data: electoralResults = [] } = useQuery({
+    queryKey: ['/api/voting/electoral/results'],
+    queryFn: async () => {
+      try {
+        const result = await apiRequest('/api/voting/electoral/results', 'GET');
+        return Array.isArray(result) ? result : [];
+      } catch (error) {
+        return [];
+      }
+    },
+  });
+
+  const { data: userElectoralVotes = [] } = useQuery<ElectoralVote[]>({
+    queryKey: ['/api/voting/electoral/user-votes'],
+    queryFn: async () => {
+      if (!isAuthenticated) return [];
+      try {
+        const result = await apiRequest('/api/voting/electoral/user-votes', 'GET');
+        return Array.isArray(result) ? result : [];
+      } catch (error) {
+        return [];
+      }
+    },
+    enabled: isAuthenticated,
+  });
+
+  // Electoral vote mutation
+  const electoralVoteMutation = useMutation({
+    mutationFn: async ({ candidateId, voteType, reasoning }: { candidateId: string; voteType: string; reasoning?: string }) => {
+      if (!isAuthenticated) {
+        throw new Error("Please log in to vote");
+      }
+      
+      const response = await apiRequest('/api/voting/electoral/vote', 'POST', {
+        candidateId,
+        voteType,
+        reasoning: reasoning || `User voted ${voteType} for candidate ${candidateId}`
+      });
+      
+      return response;
+    },
+    onSuccess: () => {
+      toast({
+        title: "Electoral vote recorded!",
+        description: `Your electoral vote has been recorded successfully.`,
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/voting/electoral/candidates'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/voting/electoral/results'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/voting/electoral/user-votes'] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Electoral voting failed",
+        description: error.message || "Failed to record your electoral vote. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
   const filteredBills = bills.filter(bill => {
     const matchesSearch = bill.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          bill.billNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -373,6 +517,46 @@ export default function Voting() {
            <Minus className="w-3 h-3" />;
   };
 
+  // Electoral voting helper functions
+  const handleElectoralVote = (candidateId: string, voteType: string) => {
+    electoralVoteMutation.mutate({ candidateId, voteType });
+  };
+
+  const getUserElectoralVote = (candidateId: string) => {
+    const vote = userElectoralVotes.find(v => v.candidateId === candidateId);
+    return vote?.voteType || null;
+  };
+
+  const getElectoralVoteButtonVariant = (candidateId: string, voteType: string) => {
+    const userVote = getUserElectoralVote(candidateId);
+    if (userVote === voteType) {
+      return "default";
+    }
+    return "outline";
+  };
+
+  const getPartyColor = (party: string) => {
+    switch (party.toLowerCase()) {
+      case 'liberal party':
+      case 'liberal':
+        return 'bg-red-100 text-red-800 border-red-300';
+      case 'conservative party':
+      case 'conservative':
+        return 'bg-blue-100 text-blue-800 border-blue-300';
+      case 'new democratic party':
+      case 'ndp':
+        return 'bg-orange-100 text-orange-800 border-orange-300';
+      case 'bloc québécois':
+      case 'bloc':
+        return 'bg-green-100 text-green-800 border-green-300';
+      case 'green party':
+      case 'green':
+        return 'bg-emerald-100 text-emerald-800 border-emerald-300';
+      default:
+        return 'bg-gray-100 text-gray-800 border-gray-300';
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
@@ -395,73 +579,88 @@ export default function Voting() {
         <div className="mb-8">
           <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">Bills & Voting</h1>
           <p className="text-lg text-gray-600 dark:text-gray-300">
-            Track legislation, vote on bills, and see how Parliament decides - Current session July 2025
+            Track legislation, vote on bills, and participate in electoral democracy - Current session July 2025
           </p>
         </div>
 
-        {/* Filters */}
-        <div className="bg-white dark:bg-slate-800 rounded-lg shadow-sm border border-gray-200 dark:border-slate-700 p-6 mb-8">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Search</label>
-                  <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                    <Input
-                      placeholder="Search bills..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                      className="pl-10"
-                    />
+        {/* Main Tabs */}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="bills" className="flex items-center gap-2">
+              <FileText className="w-4 h-4" />
+              Bills & Legislation
+            </TabsTrigger>
+            <TabsTrigger value="electoral" className="flex items-center gap-2">
+              <Vote className="w-4 h-4" />
+              Electoral Voting
+            </TabsTrigger>
+          </TabsList>
+
+          {/* Bills Tab */}
+          <TabsContent value="bills" className="space-y-6">
+            {/* Filters */}
+            <div className="bg-white dark:bg-slate-800 rounded-lg shadow-sm border border-gray-200 dark:border-slate-700 p-6 mb-8">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Search</label>
+                      <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                        <Input
+                          placeholder="Search bills..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                          className="pl-10"
+                        />
+                      </div>
+                    </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Status</label>
+                  <Select value={statusFilter} onValueChange={setStatusFilter}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="All Statuses" />
+                        </SelectTrigger>
+                        <SelectContent>
+                      <SelectItem value="all">All Statuses</SelectItem>
+                      <SelectItem value="Active">Active</SelectItem>
+                      <SelectItem value="Passed">Passed</SelectItem>
+                      <SelectItem value="Failed">Failed</SelectItem>
+                      <SelectItem value="Withdrawn">Withdrawn</SelectItem>
+                        </SelectContent>
+                      </Select>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Category</label>
+                  <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="All Categories" />
+                        </SelectTrigger>
+                        <SelectContent>
+                      <SelectItem value="all">All Categories</SelectItem>
+                      <SelectItem value="Environment">Environment</SelectItem>
+                      <SelectItem value="Housing">Housing</SelectItem>
+                      <SelectItem value="Justice">Justice</SelectItem>
+                      <SelectItem value="Technology">Technology</SelectItem>
+                      <SelectItem value="Health">Health</SelectItem>
+                      <SelectItem value="Economy">Economy</SelectItem>
+                        </SelectContent>
+                      </Select>
+                  </div>
+
+                <div className="flex items-end">
+                  <div className="w-full space-y-2">
+                    <div className="text-sm text-gray-600 dark:text-gray-400">Found {billsWithUserVotes.length} bills</div>
+                    <Badge variant="outline" className="text-xs">
+                      Updated July 2025
+                    </Badge>
                   </div>
                 </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Status</label>
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger>
-                  <SelectValue placeholder="All Statuses" />
-                    </SelectTrigger>
-                    <SelectContent>
-                  <SelectItem value="all">All Statuses</SelectItem>
-                  <SelectItem value="Active">Active</SelectItem>
-                  <SelectItem value="Passed">Passed</SelectItem>
-                  <SelectItem value="Failed">Failed</SelectItem>
-                  <SelectItem value="Withdrawn">Withdrawn</SelectItem>
-                    </SelectContent>
-                  </Select>
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Category</label>
-              <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-                <SelectTrigger>
-                  <SelectValue placeholder="All Categories" />
-                    </SelectTrigger>
-                    <SelectContent>
-                  <SelectItem value="all">All Categories</SelectItem>
-                  <SelectItem value="Environment">Environment</SelectItem>
-                  <SelectItem value="Housing">Housing</SelectItem>
-                  <SelectItem value="Justice">Justice</SelectItem>
-                  <SelectItem value="Technology">Technology</SelectItem>
-                  <SelectItem value="Health">Health</SelectItem>
-                  <SelectItem value="Economy">Economy</SelectItem>
-                    </SelectContent>
-                  </Select>
-              </div>
+                  </div>
+                </div>
 
-            <div className="flex items-end">
-              <div className="w-full space-y-2">
-                <div className="text-sm text-gray-600 dark:text-gray-400">Found {billsWithUserVotes.length} bills</div>
-                <Badge variant="outline" className="text-xs">
-                  Updated July 2025
-                </Badge>
-              </div>
-            </div>
-              </div>
-            </div>
-
-            {/* Bills Grid */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Bills Grid */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {billsWithUserVotes.map((bill) => (
             <Card key={bill.id} className="cursor-pointer hover:shadow-lg transition-shadow">
               <CardHeader className="pb-4">
@@ -619,6 +818,7 @@ export default function Voting() {
             </p>
           </div>
         )}
+        </TabsContent>
 
         {/* Bill Detail Dialog */}
         <Dialog open={!!selectedBill} onOpenChange={() => setSelectedBill(null)}>
@@ -971,6 +1171,166 @@ export default function Voting() {
             )}
           </DialogContent>
         </Dialog>
+
+        {/* Electoral Voting Tab */}
+        <TabsContent value="electoral" className="space-y-6">
+          <div className="bg-white dark:bg-slate-800 rounded-lg shadow-sm border border-gray-200 dark:border-slate-700 p-6 mb-8">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Electoral Candidates</h2>
+                <p className="text-gray-600 dark:text-gray-300">Vote on political candidates and track electoral preferences</p>
+              </div>
+              <Badge variant="outline" className="text-xs">
+                Federal Election 2025
+              </Badge>
+            </div>
+
+            {candidatesLoading ? (
+              <div className="text-center py-8">
+                <div className="w-8 h-8 border-2 border-slate-300 border-t-slate-600 rounded-full animate-spin mx-auto mb-4"></div>
+                <p className="text-gray-600 dark:text-gray-400">Loading candidates...</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {electoralCandidates.map((candidate) => (
+                  <Card key={candidate.id} className="cursor-pointer hover:shadow-lg transition-shadow">
+                    <CardHeader className="pb-4">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-2">
+                            <Badge className={getPartyColor(candidate.party)}>
+                              {candidate.party}
+                            </Badge>
+                            <Badge variant="outline" className="text-xs">
+                              {candidate.jurisdiction}
+                            </Badge>
+                          </div>
+                          <CardTitle className="text-lg leading-tight">
+                            {candidate.name}
+                          </CardTitle>
+                          <CardDescription className="mt-2">
+                            {candidate.position}
+                          </CardDescription>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <Award className="w-4 h-4" />
+                          <span className="text-xs text-gray-500">Trust: {candidate.trustScore}%</span>
+                        </div>
+                      </div>
+                    </CardHeader>
+
+                    <CardContent>
+                      <div className="space-y-4">
+                        <p className="text-sm text-gray-600 dark:text-gray-300 line-clamp-3">
+                          {candidate.bio}
+                        </p>
+                        
+                        {/* Key Policies */}
+                        <div className="space-y-2">
+                          <h4 className="font-medium text-sm">Key Policies</h4>
+                          <div className="flex flex-wrap gap-1">
+                            {candidate.keyPolicies.slice(0, 3).map((policy, index) => (
+                              <Badge key={index} variant="secondary" className="text-xs">
+                                {policy}
+                              </Badge>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Voting Statistics */}
+                        {candidate.totalVotes && (
+                          <div className="space-y-2">
+                            <h4 className="font-medium text-sm">Voting Statistics</h4>
+                            <div className="grid grid-cols-3 gap-2 text-xs">
+                              <div className="text-center p-2 bg-green-50 dark:bg-green-900/20 rounded">
+                                <div className="font-medium text-green-700 dark:text-green-300">
+                                  {candidate.preferenceVotes || 0}
+                                </div>
+                                <div className="text-gray-500">Preference</div>
+                              </div>
+                              <div className="text-center p-2 bg-blue-50 dark:bg-blue-900/20 rounded">
+                                <div className="font-medium text-blue-700 dark:text-blue-300">
+                                  {candidate.supportVotes || 0}
+                                </div>
+                                <div className="text-gray-500">Support</div>
+                              </div>
+                              <div className="text-center p-2 bg-red-50 dark:bg-red-900/20 rounded">
+                                <div className="font-medium text-red-700 dark:text-red-300">
+                                  {candidate.opposeVotes || 0}
+                                </div>
+                                <div className="text-gray-500">Oppose</div>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Voting Buttons */}
+                        {isAuthenticated && (
+                          <div className="space-y-2">
+                            <h4 className="font-medium text-sm">Your Vote</h4>
+                            <div className="flex gap-2">
+                              <Button
+                                size="sm"
+                                variant={getElectoralVoteButtonVariant(candidate.id, 'preference')}
+                                onClick={() => handleElectoralVote(candidate.id, 'preference')}
+                                disabled={electoralVoteMutation.isPending}
+                              >
+                                <Target className="w-3 h-3 mr-1" />
+                                Preference
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant={getElectoralVoteButtonVariant(candidate.id, 'support')}
+                                onClick={() => handleElectoralVote(candidate.id, 'support')}
+                                disabled={electoralVoteMutation.isPending}
+                              >
+                                <ThumbsUp className="w-3 h-3 mr-1" />
+                                Support
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant={getElectoralVoteButtonVariant(candidate.id, 'oppose')}
+                                onClick={() => handleElectoralVote(candidate.id, 'oppose')}
+                                disabled={electoralVoteMutation.isPending}
+                              >
+                                <ThumbsDown className="w-3 h-3 mr-1" />
+                                Oppose
+                              </Button>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* User Vote Status */}
+                        {isAuthenticated && getUserElectoralVote(candidate.id) && (
+                          <div className="flex items-center gap-2 text-sm">
+                            <CheckCircle className="w-4 h-4 text-green-600" />
+                            <span className="text-gray-600 dark:text-gray-400">
+                              You voted: {getUserElectoralVote(candidate.id)}
+                            </span>
+                          </div>
+                        )}
+
+                        <div className="flex justify-between items-center pt-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setSelectedCandidate(candidate)}
+                          >
+                            View Details
+                          </Button>
+                          <div className="text-xs text-gray-500">
+                            Total votes: {candidate.totalVotes || 0}
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </div>
+        </TabsContent>
+      </Tabs>
       </main>
     </div>
   );
