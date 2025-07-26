@@ -115,6 +115,7 @@ class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { has
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading } = useAuth();
+  const [location] = useLocation();
   
   if (isLoading) {
     return <PageLoader />;
@@ -135,6 +136,48 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   }
   
   return <>{children}</>;
+}
+
+// Debug component for authentication testing
+function DebugAuth() {
+  const { user, isAuthenticated, isLoading } = useAuth();
+  const token = localStorage.getItem('civicos-jwt');
+  
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="max-w-md w-full bg-white shadow-lg rounded-lg p-8">
+        <h1 className="text-2xl font-bold text-gray-900 mb-4">Authentication Debug</h1>
+        <div className="space-y-4 text-sm">
+          <div>
+            <strong>Loading:</strong> {isLoading ? 'Yes' : 'No'}
+          </div>
+          <div>
+            <strong>Authenticated:</strong> {isAuthenticated ? 'Yes' : 'No'}
+          </div>
+          <div>
+            <strong>Token exists:</strong> {token ? 'Yes' : 'No'}
+          </div>
+          <div>
+            <strong>User:</strong> {user ? JSON.stringify(user, null, 2) : 'None'}
+          </div>
+          <div className="pt-4">
+            <button 
+              onClick={() => localStorage.removeItem('civicos-jwt')}
+              className="bg-red-600 text-white px-4 py-2 rounded mr-2"
+            >
+              Clear Token
+            </button>
+            <button 
+              onClick={() => window.location.href = '/auth'}
+              className="bg-blue-600 text-white px-4 py-2 rounded"
+            >
+              Go to Auth
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 export default function App() {
@@ -172,6 +215,11 @@ export default function App() {
                   <Route path="/terms" component={Terms} />
                   <Route path="/accessibility" component={Accessibility} />
                   <Route path="/support" component={Support} />
+                  
+                  {/* Debug route for testing auth */}
+                  <Route path="/debug-auth">
+                    <DebugAuth />
+                  </Route>
                   
                   {/* Protected Routes */}
                   <Route path="/dashboard">

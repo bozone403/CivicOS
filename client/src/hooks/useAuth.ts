@@ -50,10 +50,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (response && response.user) {
         setUser(response.user);
         await ensureUserProfile(response.user);
+      } else {
+        // Clear invalid token
+        localStorage.removeItem('civicos-jwt');
+        setUser(null);
       }
     } catch (error) {
       // console.error removed for production
+      // Clear invalid token on any error
       localStorage.removeItem('civicos-jwt');
+      setUser(null);
     } finally {
       setIsLoading(false);
     }
