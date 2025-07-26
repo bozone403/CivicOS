@@ -341,7 +341,7 @@ export function SocialFeed() {
             <Avatar className="h-10 w-10">
               <AvatarImage src={user?.profileImageUrl} />
               <AvatarFallback>
-                {user?.firstName?.[0]}{user?.lastName?.[0]}
+                {user?.firstName?.[0] || user?.lastName?.[0] || user?.email?.[0] || 'U'}
               </AvatarFallback>
             </Avatar>
             <div className="flex-1">
