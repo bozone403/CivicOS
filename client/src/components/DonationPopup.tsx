@@ -16,8 +16,10 @@ interface DonationPopupProps {
   onSuccess: () => void;
 }
 
-// Initialize Stripe
-const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY || 'pk_test_placeholder');
+// Initialize Stripe only if we have a key
+const stripePromise = import.meta.env.VITE_STRIPE_PUBLIC_KEY ? 
+  loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY) : 
+  Promise.resolve(null);
 
 export default function DonationPopup({ isOpen, onClose, onSuccess }: DonationPopupProps) {
   const [selectedAmount, setSelectedAmount] = useState<number | null>(null);
