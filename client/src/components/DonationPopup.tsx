@@ -58,31 +58,13 @@ export default function DonationPopup({ isOpen, onClose, onSuccess }: DonationPo
         return;
       }
 
-      // Real Stripe checkout
-      if (data.url) {
-        toast({
-          title: "Redirecting to Stripe",
-          description: "Opening secure payment checkout...",
-        });
-        
-        // Redirect to Stripe Checkout
-        window.location.href = data.url;
-      } else if (data.sessionId) {
-        // Stripe redirect disabled for CSP compliance
-        setIsProcessing(false);
-        toast({
-          title: "Payment Configuration",
-          description: "Stripe integration is currently disabled for security compliance",
-          variant: "destructive",
-        });
-      } else {
-        setIsProcessing(false);
-        toast({
-          title: "Configuration Error",
-          description: "Payment system is not properly configured",
-          variant: "destructive",
-        });
-      }
+      // Payment functionality disabled for CSP compliance
+      setIsProcessing(false);
+      toast({
+        title: "Payment Configuration",
+        description: "Payment integration is currently disabled for security compliance",
+        variant: "destructive",
+      });
     },
     onError: (error: any) => {
       setIsProcessing(false);
