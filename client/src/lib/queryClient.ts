@@ -28,6 +28,17 @@ export async function apiRequest(
   const headers: Record<string, string> = data ? { "Content-Type": "application/json" } : {};
   if (token) headers["Authorization"] = `Bearer ${token}`;
   
+  // Debug logging for authentication issues
+  if (url.includes('/auth/')) {
+    console.log('[API Debug]', {
+      url,
+      fullUrl,
+      method,
+      hasToken: !!token,
+      baseUrl: API_BASE_URL
+    });
+  }
+  
   // Add timeout controller
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout

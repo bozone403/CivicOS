@@ -12,7 +12,7 @@ const getConfig = (): Config => {
       environment: 'production'
     };
   }
-  // Always use production URLs for live testing
+  // Fallback to Render backend if no environment variable is set
   return {
     apiUrl: 'https://civicos.onrender.com',
     environment: 'production'
