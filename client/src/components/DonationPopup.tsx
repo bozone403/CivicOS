@@ -8,7 +8,7 @@ import { Heart, X, DollarSign, Server, Database, Zap } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { useMutation } from "@tanstack/react-query";
-// import { loadStripe } from "@stripe/stripe-js";
+import { loadStripe } from "@stripe/stripe-js";
 
 interface DonationPopupProps {
   isOpen: boolean;
@@ -17,7 +17,7 @@ interface DonationPopupProps {
 }
 
 // Initialize Stripe only if we have a key
-const stripePromise = Promise.resolve(null); // Disabled for CSP compliance
+const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || '');
 
 export default function DonationPopup({ isOpen, onClose, onSuccess }: DonationPopupProps) {
   const [selectedAmount, setSelectedAmount] = useState<number | null>(null);
@@ -58,13 +58,47 @@ export default function DonationPopup({ isOpen, onClose, onSuccess }: DonationPo
         return;
       }
 
-      // Payment functionality disabled for CSP compliance
-      setIsProcessing(false);
-      toast({
-        title: "Payment Configuration",
-        description: "Payment integration is currently disabled for security compliance",
-        variant: "destructive",
-      });
+      // Real Stripe checkout
+      if (data.url) {
+        toast({
+          title: "Redirecting to Stripe",
+          description: "Opening secure payment checkout...",
+        });
+        
+        // Redirect to Stripe Checkout
+        window.location.href = data.url;
+      } else if (data.sessionId) {
+        // Handle Stripe Checkout session
+        const stripe = await stripePromise;
+        if (stripe) {
+          const { error } = await stripe.redirectToCheckout({
+            sessionId: data.sessionId,
+          });
+          
+          if (error) {
+            setIsProcessing(false);
+            toast({
+              title: "Payment Error",
+              description: error.message || "Failed to redirect to payment",
+              variant: "destructive",
+            });
+          }
+        } else {
+          setIsProcessing(false);
+          toast({
+            title: "Payment Configuration",
+            description: "Stripe is not properly configured",
+            variant: "destructive",
+          });
+        }
+      } else {
+        setIsProcessing(false);
+        toast({
+          title: "Configuration Error",
+          description: "Payment system is not properly configured",
+          variant: "destructive",
+        });
+      }
     },
     onError: (error: any) => {
       setIsProcessing(false);
