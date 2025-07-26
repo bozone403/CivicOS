@@ -8,7 +8,7 @@ import { Heart, X, DollarSign, Server, Database, Zap } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { useMutation } from "@tanstack/react-query";
-import { loadStripe } from "@stripe/stripe-js";
+// import { loadStripe } from "@stripe/stripe-js";
 
 interface DonationPopupProps {
   isOpen: boolean;
@@ -16,8 +16,8 @@ interface DonationPopupProps {
   onSuccess: () => void;
 }
 
-// Initialize Stripe only if we have a key
-const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || '');
+// Stripe initialization disabled for CSP compliance
+const stripePromise = Promise.resolve(null);
 
 export default function DonationPopup({ isOpen, onClose, onSuccess }: DonationPopupProps) {
   const [selectedAmount, setSelectedAmount] = useState<number | null>(null);
@@ -68,29 +68,13 @@ export default function DonationPopup({ isOpen, onClose, onSuccess }: DonationPo
         // Redirect to Stripe Checkout
         window.location.href = data.url;
       } else if (data.sessionId) {
-        // Handle Stripe Checkout session
-        const stripe = await stripePromise;
-        if (stripe) {
-          const { error } = await stripe.redirectToCheckout({
-            sessionId: data.sessionId,
-          });
-          
-          if (error) {
-            setIsProcessing(false);
-            toast({
-              title: "Payment Error",
-              description: error.message || "Failed to redirect to payment",
-              variant: "destructive",
-            });
-          }
-        } else {
-          setIsProcessing(false);
-          toast({
-            title: "Payment Configuration",
-            description: "Stripe is not properly configured",
-            variant: "destructive",
-          });
-        }
+        // Stripe checkout disabled for CSP compliance
+        setIsProcessing(false);
+        toast({
+          title: "Payment Configuration",
+          description: "Stripe integration is currently disabled for security compliance",
+          variant: "destructive",
+        });
       } else {
         setIsProcessing(false);
         toast({
