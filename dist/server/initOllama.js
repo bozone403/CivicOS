@@ -4,24 +4,27 @@
  * This script helps ensure Ollama is properly set up and running
  */
 import { exec, spawn } from 'child_process';
-// Add fetch for Node.js environment
-let fetch;
-if (typeof globalThis.fetch === 'undefined') {
-    fetch = require('node-fetch');
-}
-else {
-    fetch = globalThis.fetch;
-}
 export class OllamaManager {
     baseUrl;
     model;
     maxRetries;
     retryDelay;
+    fetch;
     constructor() {
         this.baseUrl = process.env.OLLAMA_BASE_URL || 'http://localhost:11434';
         this.model = process.env.OLLAMA_MODEL || 'mistral:latest';
         this.maxRetries = 5;
         this.retryDelay = 10000; // 10 seconds
+    }
+    async initializeFetch() {
+        if (typeof globalThis.fetch === 'undefined') {
+            // Use dynamic import for ES modules
+            const nodeFetch = await import('node-fetch');
+            this.fetch = nodeFetch.default;
+        }
+        else {
+            this.fetch = globalThis.fetch;
+        }
     }
     log(level, message, data = '') {
         const timestamp = new Date().toISOString();
@@ -33,7 +36,7 @@ export class OllamaManager {
     }
     async checkOllamaHealth() {
         try {
-            const response = await fetch(`${this.baseUrl}/api/tags`);
+            const response = await this.fetch(`${this.baseUrl}/api/tags`);
             if (response.ok) {
                 const data = await response.json();
                 this.log('info', 'Ollama health check passed', `Models: ${data.models?.length || 0}`);
@@ -51,7 +54,7 @@ export class OllamaManager {
     }
     async checkModelAvailability() {
         try {
-            const response = await fetch(`${this.baseUrl}/api/tags`);
+            const response = await this.fetch(`${this.baseUrl}/api/tags`);
             if (response.ok) {
                 const data = await response.json();
                 const models = data.models || [];
@@ -135,7 +138,7 @@ export class OllamaManager {
     async testModel() {
         this.log('info', 'Testing model functionality...');
         try {
-            const response = await fetch(`${this.baseUrl}/api/generate`, {
+            const response = await this.fetch(`${this.baseUrl}/api/generate`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -192,6 +195,8 @@ export class OllamaManager {
     }
     async initialize() {
         this.log('info', '🚀 Starting Ollama initialization...');
+        // Initialize fetch
+        await this.initializeFetch();
         // Get system information
         await this.getSystemInfo();
         // Wait for Ollama to be available
@@ -264,7 +269,8 @@ async function main() {
         process.exit(1);
     }
 }
-if (require.main === module) {
+// Check if this is the main module (ES module equivalent)
+if (import.meta.url === `file://${process.argv[1]}`) {
     main();
 }
 export default OllamaManager;
