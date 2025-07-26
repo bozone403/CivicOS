@@ -77,12 +77,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       debugLog('Token from localStorage:', token ? 'exists' : 'missing');
       const response = await apiRequest('/api/auth/user', 'GET');
       debugLog('Token validation response:', response);
-      if (response && response.user) {
-        debugLog('Setting user:', response.user);
-        setUser(response.user);
-        await ensureUserProfile(response.user);
+      
+      // The backend returns user data directly, not wrapped in a 'user' property
+      if (response && response.id && response.email) {
+        debugLog('Setting user from response:', response);
+        setUser(response);
+        await ensureUserProfile(response);
       } else {
-        debugLog('No user in response, clearing token');
+        debugLog('No valid user data in response, clearing token');
         // Clear invalid token
         localStorage.removeItem('civicos-jwt');
         setUser(null);
