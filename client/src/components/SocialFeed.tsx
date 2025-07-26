@@ -74,15 +74,21 @@ export function SocialFeed() {
 
   // Fetch social posts
   const { data: posts = [], isLoading } = useQuery<SocialPost[]>({
-    queryKey: ["/api/social/posts"],
-    queryFn: () => apiRequest("/api/social/posts", "GET"),
+    queryKey: ["/api/social/feed"],
+    queryFn: async () => {
+      const response = await apiRequest("/api/social/feed", "GET");
+      return response?.feed || [];
+    },
     enabled: isAuthenticated,
   });
 
   // Fetch comments for selected post
   const { data: comments = [] } = useQuery<SocialComment[]>({
     queryKey: ["/api/social/posts", selectedPost?.id, "comments"],
-    queryFn: () => apiRequest(`/api/social/posts/${selectedPost?.id}/comments`, "GET"),
+    queryFn: async () => {
+      const response = await apiRequest(`/api/social/posts/${selectedPost?.id}`, "GET");
+      return response?.post?.comments || [];
+    },
     enabled: !!selectedPost && isAuthenticated,
   });
 
@@ -92,7 +98,7 @@ export function SocialFeed() {
       return apiRequest("/api/social/posts", "POST", data);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/social/posts"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/social/feed"] });
       setNewPostContent("");
       setImageUrl("");
       setIsCreatePostOpen(false);
@@ -116,7 +122,7 @@ export function SocialFeed() {
       return apiRequest(`/api/social/posts/${postId}`, "PUT", data);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/social/posts"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/social/feed"] });
       setEditingPost(null);
       toast({
         title: "Post updated!",
@@ -138,7 +144,7 @@ export function SocialFeed() {
       return apiRequest(`/api/social/posts/${postId}`, "DELETE");
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/social/posts"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/social/feed"] });
       toast({
         title: "Post deleted!",
         description: "Your post has been deleted successfully.",
@@ -225,7 +231,7 @@ export function SocialFeed() {
       return apiRequest("/api/social/like", "POST", { postId, commentId });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/social/posts"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/social/feed"] });
       if (selectedPost) {
         queryClient.invalidateQueries({ queryKey: ["/api/social/posts", selectedPost.id, "comments"] });
       }
