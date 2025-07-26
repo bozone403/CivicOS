@@ -207,11 +207,15 @@ export default function CivicSocialFriends() {
               <div key={request.id} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-slate-800 rounded-lg">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 bg-green-600 rounded-full flex items-center justify-center text-white font-bold">
-                    {request.user?.firstName?.[0]}{request.user?.lastName?.[0]}
+                    {request.user?.firstName?.[0] || request.user?.lastName?.[0] || request.user?.email?.[0] || 'U'}
                   </div>
                   <div>
-                    <p className="font-medium">{request.user?.firstName} {request.user?.lastName}</p>
-                    <p className="text-sm text-gray-500">{request.user?.email}</p>
+                    <p className="font-medium">
+                      {request.user?.firstName && request.user?.lastName 
+                        ? `${request.user.firstName} ${request.user.lastName}` 
+                        : request.user?.firstName || request.user?.lastName || request.user?.email || 'Unknown User'}
+                    </p>
+                    <p className="text-sm text-gray-500">{request.user?.email || 'No email'}</p>
                   </div>
                 </div>
                 <div className="flex gap-2">
@@ -252,11 +256,15 @@ export default function CivicSocialFriends() {
               <div key={request.id} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-slate-800 rounded-lg">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 bg-yellow-600 rounded-full flex items-center justify-center text-white font-bold">
-                    {request.friend?.firstName?.[0]}{request.friend?.lastName?.[0]}
+                    {request.friend?.firstName?.[0] || request.friend?.lastName?.[0] || request.friend?.email?.[0] || 'U'}
                   </div>
                   <div>
-                    <p className="font-medium">{request.friend?.firstName} {request.friend?.lastName}</p>
-                    <p className="text-sm text-gray-500">{request.friend?.email}</p>
+                    <p className="font-medium">
+                      {request.friend?.firstName && request.friend?.lastName 
+                        ? `${request.friend.firstName} ${request.friend.lastName}` 
+                        : request.friend?.firstName || request.friend?.lastName || request.friend?.email || 'Unknown User'}
+                    </p>
+                    <p className="text-sm text-gray-500">{request.friend?.email || 'No email'}</p>
                   </div>
                 </div>
                 <Button
@@ -291,11 +299,15 @@ export default function CivicSocialFriends() {
               <div key={friend.id} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-slate-800 rounded-lg">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 bg-civic-blue rounded-full flex items-center justify-center text-white font-bold">
-                    {friend.firstName?.[0]}{friend.lastName?.[0]}
+                    {friend.firstName?.[0] || friend.lastName?.[0] || friend.email?.[0] || 'U'}
                   </div>
                   <div>
-                    <p className="font-medium">{friend.firstName} {friend.lastName}</p>
-                    <p className="text-sm text-gray-500">{friend.email}</p>
+                    <p className="font-medium">
+                      {friend.firstName && friend.lastName 
+                        ? `${friend.firstName} ${friend.lastName}` 
+                        : friend.firstName || friend.lastName || friend.email || 'Unknown User'}
+                    </p>
+                    <p className="text-sm text-gray-500">{friend.email || 'No email'}</p>
                     {friend.civicPoints && (
                       <p className="text-xs text-civic-gold">Civic Points: {friend.civicPoints}</p>
                     )}
