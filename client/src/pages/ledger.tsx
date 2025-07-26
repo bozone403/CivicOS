@@ -301,10 +301,10 @@ export default function Ledger() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-xl font-semibold">Recent Votes</h2>
-                <Badge variant="outline">{ledgerData.votes.length} votes</Badge>
+                <Badge variant="outline">{ledgerData.votes?.length || 0} votes</Badge>
               </div>
               <div className="space-y-4">
-                {ledgerData.votes.map((vote) => (
+                {ledgerData.votes?.map((vote) => (
                   <div key={vote.id} className="flex items-center justify-between p-4 border rounded-lg">
                     <div className="flex-1">
                       <div className="flex items-center space-x-2 mb-1">
@@ -332,10 +332,10 @@ export default function Ledger() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-xl font-semibold">Signed Petitions</h2>
-                <Badge variant="outline">{ledgerData.petitions.length} petitions</Badge>
+                <Badge variant="outline">{ledgerData.petitions?.length || 0} petitions</Badge>
               </div>
               <div className="space-y-4">
-                {ledgerData.petitions.map((petition) => (
+                {ledgerData.petitions?.map((petition) => (
                   <div key={petition.id} className="p-4 border rounded-lg">
                     <div className="flex items-center space-x-2 mb-2">
                       <FileText className="w-4 h-4 text-purple-500" />
@@ -368,7 +368,7 @@ export default function Ledger() {
               </Button>
             </div>
             <div className="space-y-4">
-              {ledgerData.activities.map((activity) => (
+              {ledgerData.activities?.map((activity) => (
                 <div key={activity.id} className="flex items-center space-x-4 p-4 border rounded-lg">
                   <div className={`p-2 rounded-full ${getActivityColor(activity.activityType)}`}>
                     {getActivityIcon(activity.activityType)}
