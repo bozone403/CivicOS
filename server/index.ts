@@ -90,6 +90,16 @@ app.use((req, res, next) => {
   const afterhourshvacRegex = /^https?:\/\/(.*\.)?afterhourshvac\.me$/;
   const isAllowed = origin && (allowedOrigins.includes(origin) || civicosRegex.test(origin) || afterhourshvacRegex.test(origin));
 
+  // Debug CORS requests
+  if (req.path.startsWith('/api/auth/')) {
+    console.log('[CORS Debug]', {
+      origin,
+      isAllowed,
+      path: req.path,
+      method: req.method
+    });
+  }
+
   // Allow only trusted origins in production, strict in development
   if (process.env.NODE_ENV === 'production') {
     if (isAllowed) {
