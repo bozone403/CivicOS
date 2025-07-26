@@ -44,7 +44,10 @@ export default function CivicSocialFeed() {
     setShowWelcomePopup(false);
   };
 
-  const displayName = user ? (user.firstName || "") + (user.lastName ? " " + user.lastName : "") || user.email || "Anonymous" : "Anonymous";
+  const displayName = user ? 
+    (user.firstName && user.lastName ? `${user.firstName} ${user.lastName}` : 
+     user.firstName || user.lastName || user.email || "Anonymous") : 
+    "Anonymous";
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];

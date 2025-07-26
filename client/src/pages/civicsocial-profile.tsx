@@ -54,7 +54,10 @@ export default function CivicSocialProfile() {
   // Only show posts by this user (type-safe string comparison)
   const userPosts = feed ? feed.filter((post: any) => String(post.userId) === String(user?.id)) : [];
 
-  const displayName = user ? (user.firstName || "") + (user.lastName ? " " + user.lastName : "") || user.email || "Anonymous" : "Anonymous";
+  const displayName = user ? 
+    (user.firstName && user.lastName ? `${user.firstName} ${user.lastName}` : 
+     user.firstName || user.lastName || user.email || "Anonymous") : 
+    "Anonymous";
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
