@@ -77,6 +77,11 @@ export async function registerRoutes(app: Express): Promise<void> {
   registerAnnouncementsRoutes(app);
   registerPermissionsRoutes(app);
   
+  // Test route to verify registration
+  app.get('/api/test-route', (req, res) => {
+    res.json({ success: true, message: 'Test route working' });
+  });
+  
   // registerSocialRoutes(app);
 
   // FOI routes (no auth required)
