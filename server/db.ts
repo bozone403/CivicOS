@@ -37,14 +37,11 @@ logger.info('[DB] Connecting to:', {
   sslConfig: { rejectUnauthorized: false },
 });
 
-// SSL configuration for Supabase
+// SSL configuration - disable for local development
 const sslConfig = process.env.NODE_ENV === 'production' ? {
   rejectUnauthorized: false,
   checkServerIdentity: () => undefined
-} : {
-  rejectUnauthorized: false,
-  checkServerIdentity: () => undefined
-};
+} : false; // Disable SSL for local development
 
 export const pool = new Pool({ 
   connectionString: process.env.DATABASE_URL,

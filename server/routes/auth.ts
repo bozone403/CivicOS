@@ -315,7 +315,7 @@ export function registerAuthRoutes(app: Express) {
         return res.status(401).json({ message: "Unauthorized" });
       }
 
-      const { firstName, lastName, bio, profileImageUrl, location, website } = req.body;
+      const { firstName, lastName, bio, profileImageUrl, website } = req.body;
       
       // Update user profile
       await db.update(users)
@@ -324,7 +324,6 @@ export function registerAuthRoutes(app: Express) {
           lastName: lastName || undefined,
           bio: bio || undefined,
           profileImageUrl: profileImageUrl || undefined,
-          location: location || undefined,
           website: website || undefined,
           updatedAt: new Date()
         })

@@ -61,7 +61,7 @@ export const users = pgTable("users", {
   ipAddress: varchar("ip_address"),
   deviceFingerprint: varchar("device_fingerprint"),
   authenticationHistory: jsonb("authentication_history"),
-  profileCompleteness: integer("profile_completeness").default(0), // percentage 0-100
+  profileCompleteness: integer("profile_completeness").default(0),
   identityVerificationScore: decimal("identity_verification_score", { precision: 5, scale: 2 }).default("0.00"),
   residencyVerified: boolean("residency_verified").default(false),
   citizenshipStatus: varchar("citizenship_status"), // citizen, permanent_resident, temporary_resident, visitor
@@ -79,10 +79,21 @@ export const users = pgTable("users", {
   yearlyGoal: integer("yearly_goal").default(1200),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
+  // NEW: Comprehensive profile customization fields
   bio: text("bio"),
-  location: varchar("location"),
   website: varchar("website"),
-  social: jsonb("social"), // { twitter, facebook, linkedin, instagram }
+  socialLinks: jsonb("social_links").default("{}"),
+  interests: text("interests").array(),
+  politicalAffiliation: varchar("political_affiliation"),
+  occupation: varchar("occupation"),
+  education: varchar("education"),
+  profileVisibility: varchar("profile_visibility").default("public"),
+  profileCompletionPercentage: integer("profile_completion_percentage").default(0),
+  // Profile customization
+  profileTheme: varchar("profile_theme").default("default"),
+  profileBannerUrl: varchar("profile_banner_url"),
+  profileAccentColor: varchar("profile_accent_color").default("#3B82F6"),
+  profileBioVisibility: varchar("profile_bio_visibility").default("public"),
 });
 
 // Gamification badges and achievements
@@ -1231,12 +1242,17 @@ export const socialPosts = pgTable("social_posts", {
   userId: varchar("user_id").notNull().references(() => users.id),
   content: text("content"),
   imageUrl: varchar("image_url"),
-  type: varchar("type").default("post"), // post, share
-  originalItemId: integer("original_item_id"), // for shares: id of bill, petition, news, etc
-  originalItemType: varchar("original_item_type"), // bill, petition, news
-  comment: text("comment"), // for shares
+  type: varchar("type").default("post"), // post, share, poll, event
+  originalItemId: integer("original_item_id"),
+  originalItemType: varchar("original_item_type"),
+  comment: text("comment"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
+  // NEW: Enhanced social features
+  visibility: varchar("visibility").default("public"),
+  tags: text("tags").array(),
+  location: varchar("location"),
+  mood: varchar("mood"),
 });
 
 export const socialComments = pgTable("social_comments", {
@@ -1270,6 +1286,51 @@ export const userFriends = pgTable("user_friends", {
 }, (table) => ({
   uniqueFriendship: unique().on(table.userId, table.friendId),
 }));
+
+// NEW: User activities tracking
+export const userActivities = pgTable("user_activities", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  activityType: varchar("activity_type").notNull(),
+  activityData: jsonb("activity_data"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// NEW: Profile views tracking
+export const profileViews = pgTable("profile_views", {
+  id: serial("id").primaryKey(),
+  viewerId: varchar("viewer_id").references(() => users.id),
+  profileId: varchar("profile_id").notNull().references(() => users.id),
+  viewedAt: timestamp("viewed_at").defaultNow(),
+}, (table) => ({
+  uniqueView: unique().on(table.viewerId, table.profileId),
+}));
+
+// NEW: User blocks system
+export const userBlocks = pgTable("user_blocks", {
+  id: serial("id").primaryKey(),
+  blockerId: varchar("blocker_id").notNull().references(() => users.id),
+  blockedId: varchar("blocked_id").notNull().references(() => users.id),
+  reason: text("reason"),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => ({
+  uniqueBlock: unique().on(table.blockerId, table.blockedId),
+}));
+
+// NEW: User reports system
+export const userReports = pgTable("user_reports", {
+  id: serial("id").primaryKey(),
+  reporterId: varchar("reporter_id").notNull().references(() => users.id),
+  reportedId: varchar("reported_id").notNull().references(() => users.id),
+  reportType: varchar("report_type").notNull(),
+  reportReason: text("report_reason").notNull(),
+  evidence: jsonb("evidence"),
+  status: varchar("status").default("pending"),
+  reviewedBy: varchar("reviewed_by").references(() => users.id),
+  reviewedAt: timestamp("reviewed_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
 
 // --- General Comments System ---
 export const comments = pgTable("comments", {
