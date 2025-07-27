@@ -1,5 +1,5 @@
 import React from 'react';
-import { UserSearch } from '../components/UserSearch';
+import UserSearch from '../components/UserSearch';
 import { Layout } from '../components/Layout';
 
 export default function UserSearchPage() {

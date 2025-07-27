@@ -1,5 +1,5 @@
 import React, { useState, useRef } from "react";
-import { Card } from "../components/ui/card";
+import { Card, CardContent } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { useCivicSocialFeed, useCivicSocialPost, useCivicSocialLike, useCivicSocialComment, useCivicSocialNotify, useCivicSocialFriends } from "../hooks/useCivicSocial";
 import { useAuth } from "../hooks/useAuth";
@@ -14,9 +14,11 @@ import remarkGfm from 'remark-gfm';
 import { ThumbsUp, MessageCircle, Share2, Image as ImageIcon, Edit2, Trash2 } from "lucide-react";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "../lib/queryClient";
-import { CivicSocialPostCard } from "./civicsocial-feed";
+// import { PostCard } from "./civicsocial-feed";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "../components/ui/tabs";
 import { Skeleton } from "../components/ui/skeleton";
+import { Avatar, AvatarImage, AvatarFallback } from "../components/ui/avatar";
+import { Heart, MessageSquare } from "lucide-react";
 
 export default function CivicSocialProfile() {
   const { user, isLoading: authLoading, isAuthenticated } = useAuth();
@@ -287,21 +289,42 @@ export default function CivicSocialProfile() {
           <div className="flex flex-col gap-4">
             {userPosts && userPosts.length === 0 && <div className="text-muted-foreground">No posts yet.</div>}
             {userPosts && userPosts.map((post: any) => (
-              <CivicSocialPostCard
-                key={post.id}
-                post={post}
-                userId={user?.id}
-                onReact={handleReact}
-                onComment={handleComment}
-                onDelete={deletePost}
-                openComment={openComment}
-                setOpenComment={setOpenComment}
-                commentText={commentText}
-                setCommentText={setCommentText}
-                commentMutation={commentMutation}
-                toast={toast}
-                showWallLink={false}
-              />
+              <Card key={post.id} className="mb-4">
+                <CardContent className="p-4">
+                  <div className="flex items-start gap-3">
+                    <Avatar className="w-10 h-10">
+                      <AvatarImage src={post.user?.profileImageUrl} />
+                      <AvatarFallback className="bg-blue-600 text-white">
+                        {post.user?.firstName?.[0] || post.user?.email?.[0] || "U"}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="font-semibold">
+                          {post.user?.firstName} {post.user?.lastName}
+                        </span>
+                        <span className="text-sm text-gray-500">
+                          {new Date(post.createdAt).toLocaleDateString()}
+                        </span>
+                      </div>
+                      <p className="text-gray-800 mb-3">{post.content}</p>
+                      {post.imageUrl && (
+                        <img src={post.imageUrl} alt="Post" className="rounded-lg max-w-full h-auto mb-3" />
+                      )}
+                      <div className="flex items-center gap-4 text-sm text-gray-500">
+                        <button className="flex items-center gap-1 hover:text-blue-600">
+                          <Heart className="w-4 h-4" />
+                          {post.likesCount || 0}
+                        </button>
+                        <button className="flex items-center gap-1 hover:text-blue-600">
+                          <MessageSquare className="w-4 h-4" />
+                          {post.commentsCount || 0}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
             ))}
           </div>
         </TabsContent>
