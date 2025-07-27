@@ -17,6 +17,7 @@ const Auth = lazy(() => import("@/pages/auth"));
 const Register = lazy(() => import("@/pages/Register"));
 const Dashboard = lazy(() => import("@/pages/dashboard"));
 const Profile = lazy(() => import("@/pages/profile"));
+const PersonalProfile = lazy(() => import("@/pages/personal-profile"));
 const Settings = lazy(() => import("@/pages/settings"));
 const News = lazy(() => import("@/pages/news"));
 const Politicians = lazy(() => import("@/pages/politicians"));
@@ -215,7 +216,7 @@ export default function App() {
                     </ProtectedRoute>
                   </Route>
                   
-                  <Route path="/profile/:userId">
+                  <Route path="/profile">
                     <ProtectedRoute>
                       <Layout>
                         <Profile />
@@ -223,7 +224,7 @@ export default function App() {
                     </ProtectedRoute>
                   </Route>
                   
-                  <Route path="/profile">
+                  <Route path="/profile/:userId">
                     <ProtectedRoute>
                       <Layout>
                         <Profile />

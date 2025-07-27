@@ -68,7 +68,7 @@ interface NavItem {
 // CivicSocial navigation items for top header
 const civicsocialNavItems = [
   { title: "Feed", href: "/civicsocial/feed", icon: Home },
-  { title: "Profile", href: "/civicsocial/profile", icon: User },
+  { title: "Social Profile", href: "/civicsocial/profile", icon: User },
   { title: "Friends", href: "/civicsocial/friends", icon: UserPlus },
   { title: "News", href: "/news", icon: Newspaper },
   { title: "Petitions", href: "/petitions", icon: FileSignature },
@@ -115,6 +115,13 @@ const navigationSections = [
       { title: "Trust Metrics", href: "/trust", icon: BarChart3 },
       { title: "Engagement Maps", href: "/maps", icon: MapPin },
       { title: "Ledger", href: "/ledger", icon: BookOpen },
+    ]
+  },
+  {
+    title: "Account",
+    items: [
+      { title: "Account Settings", href: "/profile", icon: SettingsIcon },
+      { title: "Settings", href: "/settings", icon: SettingsIcon },
     ]
   }
 ];
