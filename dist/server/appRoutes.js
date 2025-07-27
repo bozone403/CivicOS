@@ -33,6 +33,8 @@ import { registerCorruptionRoutes } from "./routes/corruption.js";
 import { registerElectionsRoutes } from "./routes/elections.js";
 import { registerRightsRoutes } from "./routes/rights.js";
 import { registerMembershipRoutes } from "./routes/membership.js";
+import { announcementsRoutes } from "./routes/announcements.js";
+import { permissionsRoutes } from "./routes/permissions.js";
 // import { registerSocialRoutes } from "./routes/social.js";
 import votingRouter from "./routes/voting.js";
 import donationsRouter from "./routes/donations.js";
@@ -65,6 +67,10 @@ export async function registerRoutes(app) {
     registerElectionsRoutes(app);
     registerRightsRoutes(app);
     registerMembershipRoutes(app);
+    // Announcements routes (JWT protected)
+    app.use("/api/announcements", announcementsRoutes);
+    // Permissions routes (JWT protected)
+    app.use("/api/permissions", permissionsRoutes);
     // registerSocialRoutes(app);
     // FOI routes (no auth required)
     app.use("/api/foi", foiRouter);

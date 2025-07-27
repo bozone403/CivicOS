@@ -1268,3 +1268,58 @@ export const userMembershipHistory = pgTable("user_membership_history", {
     notes: text("notes"),
     createdAt: timestamp("created_at").defaultNow(),
 });
+// New tables for membership-based access control
+export const permissions = pgTable('permissions', {
+    id: serial('id').primaryKey(),
+    name: varchar('name', { length: 100 }).notNull().unique(),
+    description: text('description'),
+    category: varchar('category', { length: 50 }).notNull(), // 'announcement', 'news', 'moderation', 'analytics', etc.
+    isActive: boolean('is_active').default(true),
+    createdAt: timestamp('created_at').defaultNow(),
+    updatedAt: timestamp('updated_at').defaultNow(),
+});
+export const membershipPermissions = pgTable('membership_permissions', {
+    id: serial('id').primaryKey(),
+    membershipType: varchar('membership_type', { length: 50 }).notNull(), // 'citizen', 'press', 'government'
+    permissionId: integer('permission_id').references(() => permissions.id),
+    permissionName: varchar('permission_name', { length: 100 }).notNull(), // Direct reference for easier queries
+    isGranted: boolean('is_granted').default(true),
+    createdAt: timestamp('created_at').defaultNow(),
+    updatedAt: timestamp('updated_at').defaultNow(),
+});
+export const announcements = pgTable('announcements', {
+    id: serial('id').primaryKey(),
+    title: varchar('title', { length: 255 }).notNull(),
+    content: text('content').notNull(),
+    authorId: varchar('author_id', { length: 255 }).references(() => users.id),
+    authorName: varchar('author_name', { length: 255 }).notNull(),
+    authorMembershipType: varchar('author_membership_type', { length: 50 }).notNull(),
+    status: varchar('status', { length: 50 }).default('published'), // 'draft', 'published', 'archived'
+    priority: varchar('priority', { length: 50 }).default('normal'), // 'low', 'normal', 'high', 'urgent'
+    targetAudience: varchar('target_audience', { length: 50 }).default('all'), // 'all', 'citizens', 'press', 'government'
+    isPinned: boolean('is_pinned').default(false),
+    viewsCount: integer('views_count').default(0),
+    createdAt: timestamp('created_at').defaultNow(),
+    updatedAt: timestamp('updated_at').defaultNow(),
+    publishedAt: timestamp('published_at'),
+});
+export const userPermissions = pgTable('user_permissions', {
+    id: serial('id').primaryKey(),
+    userId: varchar('user_id', { length: 255 }).references(() => users.id),
+    permissionName: varchar('permission_name', { length: 100 }).notNull(),
+    isGranted: boolean('is_granted').default(true),
+    grantedBy: varchar('granted_by', { length: 255 }).references(() => users.id),
+    grantedAt: timestamp('granted_at').defaultNow(),
+    expiresAt: timestamp('expires_at'),
+    notes: text('notes'),
+});
+export const moderationActions = pgTable('moderation_actions', {
+    id: serial('id').primaryKey(),
+    moderatorId: varchar('moderator_id', { length: 255 }).references(() => users.id),
+    targetType: varchar('target_type', { length: 50 }).notNull(), // 'article', 'comment', 'announcement', 'user'
+    targetId: integer('target_id').notNull(),
+    action: varchar('action', { length: 50 }).notNull(), // 'approve', 'reject', 'edit', 'delete', 'warn', 'suspend'
+    reason: text('reason'),
+    details: jsonb('details'),
+    createdAt: timestamp('created_at').defaultNow(),
+});

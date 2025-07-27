@@ -9,7 +9,7 @@ import { users } from '../../shared/schema';
 const app = express.Router();
 
 // Get all announcements (public)
-app.get("/api/announcements", async (req: Request, res: Response) => {
+app.get("/", async (req: Request, res: Response) => {
   try {
     const { page = 1, limit = 10, status = 'published', priority } = req.query;
     const offset = (Number(page) - 1) * Number(limit);
@@ -55,7 +55,7 @@ app.get("/api/announcements", async (req: Request, res: Response) => {
 });
 
 // Get single announcement
-app.get("/api/announcements/:id", async (req: Request, res: Response) => {
+app.get("/:id", async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
 
@@ -94,7 +94,7 @@ app.get("/api/announcements/:id", async (req: Request, res: Response) => {
 });
 
 // Create announcement (requires permission)
-app.post("/api/announcements", jwtAuth, async (req: Request, res: Response) => {
+app.post("/", jwtAuth, async (req: Request, res: Response) => {
   try {
     const userId = (req.user as any)?.id;
     const user = await db.select().from(users).where(eq(users.id, userId)).limit(1);
@@ -163,7 +163,7 @@ app.post("/api/announcements", jwtAuth, async (req: Request, res: Response) => {
 });
 
 // Update announcement (requires permission)
-app.put("/api/announcements/:id", jwtAuth, async (req: Request, res: Response) => {
+app.put("/:id", jwtAuth, async (req: Request, res: Response) => {
   try {
     const userId = (req.user as any)?.id;
     const { id } = req.params;
@@ -263,7 +263,7 @@ app.put("/api/announcements/:id", jwtAuth, async (req: Request, res: Response) =
 });
 
 // Delete announcement (requires permission)
-app.delete("/api/announcements/:id", jwtAuth, async (req: Request, res: Response) => {
+app.delete("/:id", jwtAuth, async (req: Request, res: Response) => {
   try {
     const userId = (req.user as any)?.id;
     const { id } = req.params;
@@ -335,7 +335,7 @@ app.delete("/api/announcements/:id", jwtAuth, async (req: Request, res: Response
 });
 
 // Get user's announcements
-app.get("/api/announcements/user/me", jwtAuth, async (req: Request, res: Response) => {
+app.get("/user/me", jwtAuth, async (req: Request, res: Response) => {
   try {
     const userId = (req.user as any)?.id;
     const { page = 1, limit = 10 } = req.query;
