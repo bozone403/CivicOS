@@ -11,7 +11,7 @@ import fs from 'fs';
 // Import modular route registrations
 import { registerAuthRoutes, jwtAuth } from "./routes/auth.js";
 import { registerApiRoutes } from "./routes/api.js";
-import { registerUserRoutes } from "./routes/users.js";
+import usersRoutes from "./routes/users.js";
 import { registerFriendRoutes } from "./routes/friends.js";
 import { registerPetitionRoutes } from "./routes/petitions.js";
 import { registerMessageRoutes } from "./routes/messages.js";
@@ -45,7 +45,7 @@ export async function registerRoutes(app) {
     // Register all modular routes
     registerAuthRoutes(app);
     registerApiRoutes(app);
-    registerUserRoutes(app);
+    usersRoutes(app);
     registerFriendRoutes(app);
     registerPetitionRoutes(app);
     registerMessageRoutes(app);

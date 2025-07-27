@@ -1,10 +1,6 @@
-import { storage } from '../storage.js';
 import { db } from '../db.js';
-import { users, userActivities, profileViews, userBlocks, userReports, votes, petitionSignatures, socialPosts, userFriends } from '../../shared/schema.js';
-import { eq, and, desc, count, sql } from 'drizzle-orm';
+import { sql } from 'drizzle-orm';
 import jwt from 'jsonwebtoken';
-import multer from 'multer';
-import path from 'path';
 // JWT Auth middleware
 function jwtAuth(req, res, next) {
     const authHeader = req.headers.authorization;
@@ -22,437 +18,250 @@ function jwtAuth(req, res, next) {
         next();
     }
     catch (err) {
-        return res.status(401).json({ error: "Invalid or expired token" });
+        return res.status(401).json({ error: "Invalid token" });
     }
 }
-// Configure multer for file uploads
-const upload = multer({
-    storage: multer.diskStorage({
-        destination: (req, file, cb) => {
-            cb(null, 'uploads/');
-        },
-        filename: (req, file, cb) => {
-            const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-            cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
-        }
-    }),
-    limits: {
-        fileSize: 5 * 1024 * 1024, // 5MB limit
-    },
-    fileFilter: (req, file, cb) => {
-        if (file.mimetype.startsWith('image/')) {
-            cb(null, true);
-        }
-        else {
-            cb(new Error('Only image files are allowed'));
-        }
-    }
-});
-export function registerUserRoutes(app) {
-    // GET /api/users/:id/profile - Get user profile
-    app.get('/api/users/:id/profile', async (req, res) => {
+export default function usersRoutes(app) {
+    // Get public profile by username
+    app.get('/api/users/profile/:username', async (req, res) => {
         try {
-            const userId = req.params.id;
-            const [user] = await db
-                .select({
-                id: users.id,
-                firstName: users.firstName,
-                lastName: users.lastName,
-                email: users.email,
-                bio: users.bio,
-                website: users.website,
-                socialLinks: users.socialLinks,
-                interests: users.interests,
-                politicalAffiliation: users.politicalAffiliation,
-                occupation: users.occupation,
-                education: users.education,
-                profileImageUrl: users.profileImageUrl,
-                profileBannerUrl: users.profileBannerUrl,
-                profileTheme: users.profileTheme,
-                profileAccentColor: users.profileAccentColor,
-                profileVisibility: users.profileVisibility,
-                profileBioVisibility: users.profileBioVisibility,
-                profileCompletionPercentage: users.profileCompletionPercentage,
-                civicLevel: users.civicLevel,
-                trustScore: users.trustScore,
-                civicPoints: users.civicPoints,
-                city: users.city,
-                province: users.province,
-                federalRiding: users.federalRiding,
-                provincialRiding: users.provincialRiding,
-                isVerified: users.isVerified,
-                verificationLevel: users.verificationLevel,
-                createdAt: users.createdAt,
-            })
-                .from(users)
-                .where(eq(users.id, userId));
-            if (!user) {
+            const { username } = req.params;
+            const user = await db.execute(sql `
+        SELECT 
+          id, 
+          email, 
+          first_name, 
+          last_name, 
+          bio, 
+          profile_image_url, 
+          civic_level, 
+          is_verified,
+          location,
+          created_at,
+          civic_points
+        FROM users 
+        WHERE username = ${username} OR email = ${username}
+      `);
+            if (user.rows.length === 0) {
                 return res.status(404).json({ error: "User not found" });
             }
-            // Check profile visibility
-            if (user.profileVisibility === 'private') {
-                // Only allow access if the requester is the user themselves
-                const authHeader = req.headers.authorization;
-                if (!authHeader || !authHeader.startsWith("Bearer ")) {
-                    return res.status(403).json({ error: "Profile is private" });
-                }
-                try {
-                    const token = authHeader.split(" ")[1];
-                    const secret = process.env.SESSION_SECRET;
-                    if (!secret) {
-                        return res.status(500).json({ error: "Server configuration error" });
-                    }
-                    const decoded = jwt.verify(token, secret);
-                    if (decoded.id !== userId) {
-                        return res.status(403).json({ error: "Profile is private" });
-                    }
-                }
-                catch (err) {
-                    return res.status(403).json({ error: "Profile is private" });
-                }
-            }
-            // Record profile view if authenticated
-            const authHeader = req.headers.authorization;
-            if (authHeader && authHeader.startsWith("Bearer ")) {
-                try {
-                    const token = authHeader.split(" ")[1];
-                    const secret = process.env.SESSION_SECRET;
-                    if (secret) {
-                        const decoded = jwt.verify(token, secret);
-                        if (decoded.id !== userId) {
-                            // Record the view
-                            await db.insert(profileViews).values({
-                                viewerId: decoded.id,
-                                profileId: userId,
-                            }).onConflictDoNothing();
-                        }
-                    }
-                }
-                catch (err) {
-                    // Ignore errors in view tracking
-                }
-            }
-            res.json(user);
+            const userData = user.rows[0];
+            // Get user stats
+            const stats = await db.execute(sql `
+        SELECT 
+          (SELECT COUNT(*) FROM social_posts WHERE user_id = ${userData.id}) as posts_count,
+          (SELECT COUNT(*) FROM user_friends WHERE friend_id = ${userData.id} AND status = 'accepted') as followers_count,
+          (SELECT COUNT(*) FROM user_friends WHERE user_id = ${userData.id} AND status = 'accepted') as following_count
+      `);
+            const profile = {
+                id: userData.id,
+                username: userData.email?.split('@')[0] || 'anonymous',
+                firstName: userData.first_name,
+                lastName: userData.last_name,
+                email: userData.email,
+                bio: userData.bio,
+                profileImageUrl: userData.profile_image_url,
+                civicLevel: userData.civic_level,
+                isVerified: userData.is_verified,
+                location: userData.location,
+                joinDate: userData.created_at,
+                postsCount: parseInt(stats.rows[0]?.posts_count || '0'),
+                followersCount: parseInt(stats.rows[0]?.followers_count || '0'),
+                followingCount: parseInt(stats.rows[0]?.following_count || '0'),
+                civicPoints: userData.civic_points || 0,
+            };
+            res.json({ profile });
         }
         catch (error) {
-            console.error('Get user profile error:', error);
-            res.status(500).json({ error: "Failed to get user profile" });
+            console.error('Error fetching user profile:', error);
+            res.status(500).json({ error: "Failed to fetch user profile" });
         }
     });
-    // PUT /api/users/:id/profile - Update user profile
-    app.put('/api/users/:id/profile', jwtAuth, async (req, res) => {
+    // Get user posts
+    app.get('/api/social/posts/user/:username', async (req, res) => {
         try {
-            const userId = req.params.id;
-            const currentUserId = req.user.id;
-            // Only allow users to update their own profile
-            if (currentUserId !== userId) {
-                return res.status(403).json({ error: "You can only update your own profile" });
-            }
-            const updates = req.body;
-            // Validate required fields
-            if (updates.firstName && updates.firstName.length > 50) {
-                return res.status(400).json({ error: "First name too long" });
-            }
-            if (updates.lastName && updates.lastName.length > 50) {
-                return res.status(400).json({ error: "Last name too long" });
-            }
-            if (updates.bio && updates.bio.length > 500) {
-                return res.status(400).json({ error: "Bio too long" });
-            }
-            // Update the user
-            const [updatedUser] = await db
-                .update(users)
-                .set({
-                ...updates,
-                updatedAt: new Date(),
-            })
-                .where(eq(users.id, userId))
-                .returning();
-            if (!updatedUser) {
+            const { username } = req.params;
+            // Get user ID from username
+            const user = await db.execute(sql `
+        SELECT id FROM users WHERE username = ${username} OR email = ${username}
+      `);
+            if (user.rows.length === 0) {
                 return res.status(404).json({ error: "User not found" });
             }
-            res.json(updatedUser);
-        }
-        catch (error) {
-            console.error('Update user profile error:', error);
-            res.status(500).json({ error: "Failed to update user profile" });
-        }
-    });
-    // POST /api/users/:id/upload-image - Upload profile or banner image
-    app.post('/api/users/:id/upload-image', jwtAuth, upload.single('image'), async (req, res) => {
-        try {
-            const userId = req.params.id;
-            const currentUserId = req.user.id;
-            const imageType = req.body.type; // 'profile' or 'banner'
-            // Only allow users to upload their own images
-            if (currentUserId !== userId) {
-                return res.status(403).json({ error: "You can only upload images for your own profile" });
-            }
-            if (!req.file) {
-                return res.status(400).json({ error: "No image file provided" });
-            }
-            if (!['profile', 'banner'].includes(imageType)) {
-                return res.status(400).json({ error: "Invalid image type" });
-            }
-            // Generate public URL for the uploaded image
-            const imageUrl = `/uploads/${req.file.filename}`;
-            // Update the user's profile with the new image URL
-            const updateData = imageType === 'profile'
-                ? { profileImageUrl: imageUrl }
-                : { profileBannerUrl: imageUrl };
-            const [updatedUser] = await db
-                .update(users)
-                .set({
-                ...updateData,
-                updatedAt: new Date(),
-            })
-                .where(eq(users.id, userId))
-                .returning();
-            res.json({
-                success: true,
-                imageUrl,
-                user: updatedUser
-            });
-        }
-        catch (error) {
-            console.error('Upload image error:', error);
-            res.status(500).json({ error: "Failed to upload image" });
-        }
-    });
-    // GET /api/users/:id/stats - Get user statistics
-    app.get('/api/users/:id/stats', async (req, res) => {
-        try {
-            const userId = req.params.id;
-            // Get user's civic engagement stats
-            const stats = await storage.getUserStats(userId);
-            // Get additional stats from other tables
-            const [votesCount] = await db
-                .select({ count: count() })
-                .from(votes)
-                .where(eq(votes.userId, userId));
-            const [petitionsCount] = await db
-                .select({ count: count() })
-                .from(petitionSignatures)
-                .where(eq(petitionSignatures.userId, userId));
-            const [postsCount] = await db
-                .select({ count: count() })
-                .from(socialPosts)
-                .where(eq(socialPosts.userId, userId));
-            const [friendsCount] = await db
-                .select({ count: count() })
-                .from(userFriends)
-                .where(and(eq(userFriends.userId, userId), eq(userFriends.status, 'accepted')));
-            const [profileViewsCount] = await db
-                .select({ count: count() })
-                .from(profileViews)
-                .where(eq(profileViews.profileId, userId));
-            res.json({
-                totalVotes: votesCount?.count || 0,
-                totalPetitions: petitionsCount?.count || 0,
-                totalDiscussions: 0, // TODO: Implement discussions count
-                totalContacts: 0, // TODO: Implement contacts count
-                civicPoints: stats.civicPoints || 0,
-                trustScore: parseFloat(stats.trustScore) || 0,
-                civicLevel: stats.civicLevel || 'Registered',
-                achievementCount: 0, // TODO: Implement achievements
-                streakDays: 0, // TODO: Implement streak tracking
-                postsCount: postsCount?.count || 0,
-                friendsCount: friendsCount?.count || 0,
-                profileViews: profileViewsCount?.count || 0,
-            });
-        }
-        catch (error) {
-            console.error('Get user stats error:', error);
-            res.status(500).json({ error: "Failed to get user stats" });
-        }
-    });
-    // GET /api/users/:id/activity - Get user activity
-    app.get('/api/users/:id/activity', async (req, res) => {
-        try {
-            const userId = req.params.id;
-            const limit = parseInt(req.query.limit) || 20;
-            // Get user activities
-            const activities = await db
-                .select({
-                id: userActivities.id,
-                activityType: userActivities.activityType,
-                activityData: userActivities.activityData,
-                createdAt: userActivities.createdAt,
-            })
-                .from(userActivities)
-                .where(eq(userActivities.userId, userId))
-                .orderBy(desc(userActivities.createdAt))
-                .limit(limit);
-            // Format activities for display
-            const formattedActivities = activities.map(activity => ({
-                id: activity.id,
-                type: activity.activityType,
-                description: getActivityDescription(activity.activityType, activity.activityData),
-                timestamp: activity.createdAt,
-                data: activity.activityData,
+            const userId = user.rows[0].id;
+            // Get user's posts
+            const posts = await db.execute(sql `
+        SELECT 
+          sp.id,
+          sp.content,
+          sp.image_url,
+          sp.type,
+          sp.visibility,
+          sp.tags,
+          sp.location,
+          sp.mood,
+          sp.created_at,
+          sp.updated_at,
+          u.id as user_id,
+          u.first_name,
+          u.last_name,
+          u.profile_image_url,
+          (SELECT COUNT(*) FROM social_likes WHERE post_id = sp.id) as likes_count,
+          (SELECT COUNT(*) FROM social_comments WHERE post_id = sp.id) as comments_count,
+          (SELECT COUNT(*) FROM social_posts WHERE original_item_id = sp.id AND type = 'share') as shares_count
+        FROM social_posts sp
+        JOIN users u ON sp.user_id = u.id
+        WHERE sp.user_id = ${userId}
+        ORDER BY sp.created_at DESC
+      `);
+            const formattedPosts = posts.rows.map((post) => ({
+                id: post.id,
+                content: post.content,
+                imageUrl: post.image_url,
+                type: post.type,
+                visibility: post.visibility,
+                tags: post.tags || [],
+                location: post.location,
+                mood: post.mood,
+                createdAt: post.created_at,
+                updatedAt: post.updated_at,
+                likesCount: parseInt(post.likes_count || '0'),
+                commentsCount: parseInt(post.comments_count || '0'),
+                sharesCount: parseInt(post.shares_count || '0'),
+                isLiked: false, // TODO: Check if current user liked this post
+                user: {
+                    id: post.user_id,
+                    firstName: post.first_name,
+                    lastName: post.last_name,
+                    profileImageUrl: post.profile_image_url,
+                },
             }));
-            res.json(formattedActivities);
+            res.json({ posts: formattedPosts });
         }
         catch (error) {
-            console.error('Get user activity error:', error);
-            res.status(500).json({ error: "Failed to get user activity" });
+            console.error('Error fetching user posts:', error);
+            res.status(500).json({ error: "Failed to fetch user posts" });
         }
     });
-    // POST /api/users/:id/activity - Record user activity
-    app.post('/api/users/:id/activity', jwtAuth, async (req, res) => {
+    // Get user achievements
+    app.get('/api/users/:username/achievements', async (req, res) => {
         try {
-            const userId = req.params.id;
-            const currentUserId = req.user.id;
-            const { activityType, activityData } = req.body;
-            // Only allow users to record their own activity
-            if (currentUserId !== userId) {
-                return res.status(403).json({ error: "You can only record your own activity" });
+            const { username } = req.params;
+            // Get user ID from username
+            const user = await db.execute(sql `
+        SELECT id FROM users WHERE username = ${username} OR email = ${username}
+      `);
+            if (user.rows.length === 0) {
+                return res.status(404).json({ error: "User not found" });
             }
-            const [activity] = await db
-                .insert(userActivities)
-                .values({
-                userId,
-                activityType,
-                activityData,
-            })
-                .returning();
-            res.status(201).json(activity);
+            const userId = user.rows[0].id;
+            // Get user's achievements
+            const achievements = await db.execute(sql `
+        SELECT 
+          b.id,
+          b.name,
+          b.description,
+          b.icon,
+          ub.earned_at
+        FROM user_badges ub
+        JOIN badges b ON ub.badge_id = b.id
+        WHERE ub.user_id = ${userId} AND ub.is_completed = true
+        ORDER BY ub.earned_at DESC
+      `);
+            const formattedAchievements = achievements.rows.map((achievement) => ({
+                id: achievement.id,
+                name: achievement.name,
+                description: achievement.description,
+                icon: achievement.icon,
+                earnedAt: achievement.earned_at,
+            }));
+            res.json({ achievements: formattedAchievements });
         }
         catch (error) {
-            console.error('Record user activity error:', error);
-            res.status(500).json({ error: "Failed to record user activity" });
+            console.error('Error fetching user achievements:', error);
+            res.status(500).json({ error: "Failed to fetch user achievements" });
         }
     });
-    // GET /api/users/search - Search users
+    // Search users
     app.get('/api/users/search', async (req, res) => {
         try {
-            const { q, limit = 20, offset = 0 } = req.query;
+            const { q, limit = 10 } = req.query;
             if (!q || typeof q !== 'string') {
                 return res.status(400).json({ error: "Search query is required" });
             }
             const searchTerm = `%${q}%`;
-            const searchResults = await db
-                .select({
-                id: users.id,
-                firstName: users.firstName,
-                lastName: users.lastName,
-                email: users.email,
-                profileImageUrl: users.profileImageUrl,
-                civicLevel: users.civicLevel,
-                trustScore: users.trustScore,
-                isVerified: users.isVerified,
-                profileVisibility: users.profileVisibility,
-            })
-                .from(users)
-                .where(and(sql `(
-            ${users.firstName} ILIKE ${searchTerm} OR 
-            ${users.lastName} ILIKE ${searchTerm} OR 
-            ${users.email} ILIKE ${searchTerm} OR
-            ${users.bio} ILIKE ${searchTerm}
-          )`, eq(users.profileVisibility, 'public')))
-                .limit(parseInt(limit))
-                .offset(parseInt(offset));
-            res.json({
-                users: searchResults,
-                total: searchResults.length,
-                query: q,
-                limit: parseInt(limit),
-                offset: parseInt(offset),
-            });
+            const results = await db.execute(sql `
+        SELECT 
+          id,
+          email,
+          first_name,
+          last_name,
+          bio,
+          profile_image_url,
+          civic_level,
+          is_verified,
+          location
+        FROM users 
+        WHERE 
+          first_name ILIKE ${searchTerm} OR 
+          last_name ILIKE ${searchTerm} OR 
+          email ILIKE ${searchTerm} OR
+          bio ILIKE ${searchTerm}
+        ORDER BY 
+          CASE 
+            WHEN first_name ILIKE ${searchTerm} OR last_name ILIKE ${searchTerm} THEN 1
+            WHEN email ILIKE ${searchTerm} THEN 2
+            ELSE 3
+          END,
+          created_at DESC
+        LIMIT ${parseInt(limit)}
+      `);
+            const users = results.rows.map((user) => ({
+                id: user.id,
+                username: user.email?.split('@')[0] || 'anonymous',
+                firstName: user.first_name,
+                lastName: user.last_name,
+                email: user.email,
+                bio: user.bio,
+                profileImageUrl: user.profile_image_url,
+                civicLevel: user.civic_level,
+                isVerified: user.is_verified,
+                location: user.location,
+            }));
+            res.json({ users });
         }
         catch (error) {
-            console.error('Search users error:', error);
+            console.error('Error searching users:', error);
             res.status(500).json({ error: "Failed to search users" });
         }
     });
-    // POST /api/users/:id/block - Block a user
-    app.post('/api/users/:id/block', jwtAuth, async (req, res) => {
+    // Update user profile
+    app.put('/api/users/profile', jwtAuth, async (req, res) => {
         try {
-            const targetUserId = req.params.id;
-            const blockerId = req.user.id;
-            const { reason } = req.body;
-            if (blockerId === targetUserId) {
-                return res.status(400).json({ error: "You cannot block yourself" });
+            const { firstName, lastName, bio, profileImageUrl } = req.body;
+            const userId = req.user.sub;
+            const updateData = {};
+            if (firstName !== undefined)
+                updateData.first_name = firstName;
+            if (lastName !== undefined)
+                updateData.last_name = lastName;
+            if (bio !== undefined)
+                updateData.bio = bio;
+            if (profileImageUrl !== undefined)
+                updateData.profile_image_url = profileImageUrl;
+            if (Object.keys(updateData).length === 0) {
+                return res.status(400).json({ error: "No fields to update" });
             }
-            const [block] = await db
-                .insert(userBlocks)
-                .values({
-                blockerId,
-                blockedId: targetUserId,
-                reason,
-            })
-                .onConflictDoNothing()
-                .returning();
-            res.status(201).json(block);
+            await db.execute(sql `
+        UPDATE users 
+        SET ${Object.keys(updateData).map(key => `${key} = ${updateData[key]}`).join(', ')}
+        WHERE id = ${userId}
+      `);
+            res.json({ message: "Profile updated successfully" });
         }
         catch (error) {
-            console.error('Block user error:', error);
-            res.status(500).json({ error: "Failed to block user" });
+            console.error('Error updating user profile:', error);
+            res.status(500).json({ error: "Failed to update profile" });
         }
     });
-    // DELETE /api/users/:id/block - Unblock a user
-    app.delete('/api/users/:id/block', jwtAuth, async (req, res) => {
-        try {
-            const targetUserId = req.params.id;
-            const blockerId = req.user.id;
-            await db
-                .delete(userBlocks)
-                .where(and(eq(userBlocks.blockerId, blockerId), eq(userBlocks.blockedId, targetUserId)));
-            res.json({ success: true });
-        }
-        catch (error) {
-            console.error('Unblock user error:', error);
-            res.status(500).json({ error: "Failed to unblock user" });
-        }
-    });
-    // POST /api/users/:id/report - Report a user
-    app.post('/api/users/:id/report', jwtAuth, async (req, res) => {
-        try {
-            const reportedId = req.params.id;
-            const reporterId = req.user.id;
-            const { reportType, reportReason, evidence } = req.body;
-            if (reporterId === reportedId) {
-                return res.status(400).json({ error: "You cannot report yourself" });
-            }
-            if (!reportType || !reportReason) {
-                return res.status(400).json({ error: "Report type and reason are required" });
-            }
-            const [report] = await db
-                .insert(userReports)
-                .values({
-                reporterId,
-                reportedId,
-                reportType,
-                reportReason,
-                evidence,
-            })
-                .returning();
-            res.status(201).json(report);
-        }
-        catch (error) {
-            console.error('Report user error:', error);
-            res.status(500).json({ error: "Failed to report user" });
-        }
-    });
-}
-// Helper function to generate activity descriptions
-function getActivityDescription(activityType, data) {
-    switch (activityType) {
-        case 'vote':
-            return `Voted on ${data?.itemType || 'legislation'}`;
-        case 'petition_sign':
-            return `Signed petition: ${data?.petitionTitle || 'Unknown petition'}`;
-        case 'profile_update':
-            return 'Updated profile information';
-        case 'friend_add':
-            return `Added ${data?.friendName || 'a friend'}`;
-        case 'post_create':
-            return 'Created a new post';
-        case 'comment_create':
-            return 'Added a comment';
-        case 'verification_complete':
-            return 'Completed identity verification';
-        default:
-            return 'Performed an action';
-    }
 }

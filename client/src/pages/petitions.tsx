@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Progress } from "@/components/ui/progress";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Search, Filter, TrendingUp, Users, Calendar, Target, CheckCircle, AlertTriangle, Clock, Share2, Bookmark, ExternalLink, Plus } from "lucide-react";
+import { Search, Filter, TrendingUp, Users, Calendar, Target, CheckCircle, AlertTriangle, Clock, Share2, Bookmark, ExternalLink, Plus, MessageSquare } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/useAuth";
@@ -260,7 +260,38 @@ export default function Petitions() {
   };
 
   const handleSharePetition = async (petitionId: number, platform: string) => {
-    sharePetitionMutation.mutate({ petitionId, platform });
+    const petition = petitions.find(p => p.id === petitionId);
+    if (!petition) return;
+
+    const shareUrl = `${window.location.origin}/petitions?id=${petitionId}`;
+    const shareText = `Sign this petition: ${petition.title} on CivicOS`;
+
+    if (platform === 'civicsocial') {
+      // Share to CivicSocial
+      try {
+        await apiRequest('/api/social/posts', 'POST', {
+          content: shareText,
+          type: 'share',
+          originalItemId: petitionId,
+          originalItemType: 'petition',
+          visibility: 'public',
+          tags: ['petition', petition.category],
+        });
+        toast({
+          title: "Shared to CivicSocial!",
+          description: "Your post has been added to the social feed.",
+        });
+      } catch (error) {
+        toast({
+          title: "Share failed",
+          description: "Failed to share to CivicSocial. Please try again.",
+          variant: "destructive",
+        });
+      }
+    } else {
+      // Use existing share functionality
+      sharePetitionMutation.mutate({ petitionId, platform });
+    }
   };
 
   const handleSavePetition = async (petitionId: number) => {
@@ -493,6 +524,14 @@ export default function Petitions() {
                   >
                     <Share2 className="w-4 h-4 mr-1" />
                     Share
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleSharePetition(petition.id, 'civicsocial')}
+                  >
+                    <MessageSquare className="w-4 h-4 mr-1" />
+                    CivicSocial
                   </Button>
                 </div>
                 <Button

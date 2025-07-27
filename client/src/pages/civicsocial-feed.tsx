@@ -56,6 +56,7 @@ import {
 } from 'lucide-react';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
+import { UnifiedSocialPost } from '@/components/UnifiedSocialPost';
 
 interface SocialPost {
   id: number;
@@ -452,35 +453,14 @@ export default function CivicSocialFeed() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Main Feed */}
         <div className="lg:col-span-2">
-          {/* Create Post Button */}
+          {/* Create Post */}
           <div className="mb-6">
-            {!currentUser ? (
-              <Card className="bg-yellow-50 border-yellow-200">
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <MessageSquare className="h-5 w-5 text-yellow-600" />
-                      <span className="text-yellow-800">Login to create posts</span>
-                    </div>
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={() => window.location.href = '/auth'}
-                    >
-                      Login
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ) : (
-              <Button 
-                onClick={() => setShowCreatePost(true)}
-                className="w-full sm:w-auto"
-              >
-                <MessageSquare className="h-4 w-4 mr-2" />
-                Create Post
-              </Button>
-            )}
+            <UnifiedSocialPost 
+              placeholder="What's on your mind?"
+              onPostCreated={() => {
+                queryClient.invalidateQueries({ queryKey: ['social-posts'] });
+              }}
+            />
           </div>
 
           {/* Feed Tabs */}
@@ -597,112 +577,7 @@ export default function CivicSocialFeed() {
         </div>
       </div>
 
-      {/* Create Post Dialog */}
-      <Dialog open={showCreatePost} onOpenChange={setShowCreatePost}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Create New Post</DialogTitle>
-          </DialogHeader>
-          
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="content">Content</Label>
-              <Textarea
-                id="content"
-                placeholder="What's on your mind?"
-                value={newPost.content}
-                onChange={(e) => setNewPost({...newPost, content: e.target.value})}
-                rows={4}
-              />
-            </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="type">Post Type</Label>
-                <Select
-                  value={newPost.type}
-                  onValueChange={(value: 'post' | 'share' | 'poll' | 'event') => 
-                    setNewPost({...newPost, type: value})
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="post">Post</SelectItem>
-                    <SelectItem value="share">Share</SelectItem>
-                    <SelectItem value="poll">Poll</SelectItem>
-                    <SelectItem value="event">Event</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div>
-                <Label htmlFor="visibility">Visibility</Label>
-                <Select
-                  value={newPost.visibility}
-                  onValueChange={(value: 'public' | 'friends' | 'private') => 
-                    setNewPost({...newPost, visibility: value})
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="public">Public</SelectItem>
-                    <SelectItem value="friends">Friends Only</SelectItem>
-                    <SelectItem value="private">Private</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            <div>
-              <Label htmlFor="tags">Tags (comma separated)</Label>
-              <Input
-                id="tags"
-                placeholder="civic, politics, community"
-                value={newPost.tags.join(', ')}
-                onChange={(e) => setNewPost({
-                  ...newPost, 
-                  tags: e.target.value.split(',').map(tag => tag.trim()).filter(Boolean)
-                })}
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="location">Location (optional)</Label>
-                <Input
-                  id="location"
-                  placeholder="City, Province"
-                  value={newPost.location || ''}
-                  onChange={(e) => setNewPost({...newPost, location: e.target.value})}
-                />
-              </div>
-              
-              <div>
-                <Label htmlFor="mood">Mood (optional)</Label>
-                <Input
-                  id="mood"
-                  placeholder="Happy, Concerned, Excited"
-                  value={newPost.mood || ''}
-                  onChange={(e) => setNewPost({...newPost, mood: e.target.value})}
-                />
-              </div>
-            </div>
-
-            <div className="flex gap-2">
-              <Button onClick={handleCreatePost} disabled={createPostMutation.isPending}>
-                {createPostMutation.isPending ? 'Creating...' : 'Create Post'}
-              </Button>
-              <Button variant="outline" onClick={() => setShowCreatePost(false)}>
-                Cancel
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
 
       {/* Post Detail Dialog */}
       <Dialog open={!!selectedPost} onOpenChange={() => setSelectedPost(null)}>

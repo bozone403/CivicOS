@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import { useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 import { 
   Search, 
   MapPin, 
@@ -24,6 +25,7 @@ import {
   Building2,
   Globe,
   Heart,
+  Share2,
   MessageSquare,
   ThumbsUp,
   ThumbsDown,
@@ -69,6 +71,7 @@ interface Politician {
 }
 
 export default function Politicians() {
+  const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
   const [partyFilter, setPartyFilter] = useState("all");
   const [levelFilter, setLevelFilter] = useState("all");
@@ -472,6 +475,30 @@ export default function Politicians() {
                       onClick={() => setSelectedPolitician(politician)}
                         >
                       View Details
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            const shareUrl = `${window.location.origin}/politicians?id=${politician.id}`;
+                            const shareText = `Check out ${politician.name} (${politician.party}) on CivicOS`;
+                            
+                            if (navigator.share) {
+                              navigator.share({
+                                title: politician.name,
+                                text: shareText,
+                                url: shareUrl,
+                              });
+                            } else {
+                              navigator.clipboard.writeText(`${shareText} ${shareUrl}`);
+                              toast({
+                                title: "Link copied!",
+                                description: "Politician profile link has been copied to your clipboard.",
+                              });
+                            }
+                          }}
+                        >
+                          <Share2 className="w-4 h-4" />
                         </Button>
                     {politician.contactInfo.email && (
                       <Button size="sm" variant="outline" className="px-3">

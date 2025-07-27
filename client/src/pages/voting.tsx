@@ -41,6 +41,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
+import { ShareableCard } from "@/components/ShareableCard";
 
 interface Bill {
   id: string;
@@ -790,6 +791,32 @@ export default function Voting() {
                         <div className="text-xs text-gray-500">Next vote</div>
                         <div className="text-xs font-medium">{bill.nextVoteDate}</div>
                       </div>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-8 px-3 text-xs"
+                        onClick={() => {
+                          const shareUrl = `${window.location.origin}/voting?bill=${bill.id}`;
+                          const shareText = `Check out Bill ${bill.billNumber}: ${bill.title} on CivicOS`;
+                          
+                          if (navigator.share) {
+                            navigator.share({
+                              title: `Bill ${bill.billNumber}`,
+                              text: shareText,
+                              url: shareUrl,
+                            });
+                          } else {
+                            navigator.clipboard.writeText(`${shareText} ${shareUrl}`);
+                            toast({
+                              title: "Link copied!",
+                              description: "Bill link has been copied to your clipboard.",
+                            });
+                          }
+                        }}
+                      >
+                        <Share2 className="w-3 h-3 mr-1" />
+                        Share
+                      </Button>
                       <Button
                         size="sm"
                         variant="outline"

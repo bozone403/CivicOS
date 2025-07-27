@@ -14,6 +14,7 @@ import remarkGfm from 'remark-gfm';
 import { ThumbsUp, MessageCircle, Share2, Image as ImageIcon, Edit2, Trash2 } from "lucide-react";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "../lib/queryClient";
+import { UnifiedSocialPost } from "../components/UnifiedSocialPost";
 // import { PostCard } from "./civicsocial-feed";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "../components/ui/tabs";
 import { Skeleton } from "../components/ui/skeleton";
@@ -242,50 +243,14 @@ export default function CivicSocialProfile() {
         </TabsList>
         <TabsContent value="posts">
           {/* Post Composer and Wall */}
-          <Card className="p-4 mb-4 flex items-start gap-3 bg-white shadow-lg rounded-xl border border-gray-200 fade-in-up">
-            <div className="w-12 h-12 rounded-full bg-blue-600 flex items-center justify-center font-bold text-2xl text-white shadow-md">
-              {displayName[0]}
-            </div>
-            <form className="flex-1 flex flex-col gap-2" onSubmit={handlePost} aria-label="Post composer">
-              <textarea
-                className="flex-1 border rounded-lg px-3 py-2 bg-gray-50 resize-none text-base focus:ring-2 focus:ring-blue-500"
-                placeholder={isAuthenticated ? "What's on your mind?" : "Login to post"}
-                value={content}
-                onChange={e => setContent(e.target.value)}
-                disabled={postMutation.isPending || !isAuthenticated}
-                aria-label="Post content"
-                rows={2}
-                maxLength={500}
-                style={{ minHeight: 48 }}
-              />
-              <div className="flex items-center gap-2 mt-1">
-                <label className="cursor-pointer flex items-center gap-1 text-blue-600 hover:text-blue-800 transition-colors">
-                  <ImageIcon className="w-5 h-5" />
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleImageChange}
-                    disabled={postMutation.isPending || !isAuthenticated}
-                    aria-label="Upload image"
-                    className="hidden"
-                  />
-                  <span className="text-xs">Image</span>
-                </label>
-                {imagePreview && (
-                  <div className="flex items-center gap-2">
-                    <img src={imagePreview} alt="Preview" className="w-16 h-16 object-cover rounded border" />
-                    <Button type="button" size="sm" variant="outline" onClick={() => { setImage(null); setImagePreview(null); }}>Remove</Button>
-                  </div>
-                )}
-                <Button type="submit" disabled={(!content.trim() && !image) || postMutation.isPending || !isAuthenticated} aria-label="Submit post" className="ml-auto px-6 py-2 rounded-lg bg-blue-600 text-white font-bold hover:bg-blue-700 transition-colors">
-                  {postMutation.isPending ? "Posting..." : "Post"}
-                </Button>
-              </div>
-              {postMutation.error && (
-                <div className="text-xs text-red-500 mt-2" role="alert">Error posting. Try again.</div>
-              )}
-            </form>
-          </Card>
+          <div className="mb-4">
+            <UnifiedSocialPost 
+              placeholder={`What's on your mind, ${displayName}?`}
+              onPostCreated={() => {
+                queryClient.invalidateQueries({ queryKey: ['civicSocialFeed'] });
+              }}
+            />
+          </div>
           <div className="flex flex-col gap-4">
             {userPosts && userPosts.length === 0 && <div className="text-muted-foreground">No posts yet.</div>}
             {userPosts && userPosts.map((post: any) => (
