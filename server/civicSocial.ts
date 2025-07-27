@@ -1,4 +1,5 @@
 // PARANOID: All CivicSocial endpoints must use real, production data only. No demo/test logic allowed. All endpoints must remain JWT-protected via parent router. If you add new endpoints, ensure they are protected and use only real data.
+// DEPLOYMENT: This file contains all CivicSocial endpoints including /api/social/posts, /api/social/feed, /api/social/friends, etc.
 import { Router, Request, Response } from "express";
 import { db } from "./db.js";
 import { socialPosts, socialComments, socialLikes, socialShares, socialBookmarks, userFriends, users, notifications, userMessages } from "../shared/schema.js";
