@@ -409,6 +409,91 @@ export function registerUserRoutes(app: Express) {
     }
   });
 
+  // GET /api/users/popular - Get popular users
+  app.get('/api/users/popular', async (req: Request, res: Response) => {
+    try {
+      const limit = parseInt(req.query.limit as string) || 10;
+      
+      // Get users with highest trust scores and civic points
+      const popularUsers = await db
+        .select({
+          id: users.id,
+          firstName: users.firstName,
+          lastName: users.lastName,
+          email: users.email,
+          profileImageUrl: users.profileImageUrl,
+          bio: users.bio,
+          city: users.city,
+          province: users.province,
+          civicLevel: users.civicLevel,
+          trustScore: users.trustScore,
+          civicPoints: users.civicPoints,
+          isVerified: users.isVerified,
+          occupation: users.occupation,
+          education: users.education,
+          politicalAffiliation: users.politicalAffiliation,
+          interests: users.interests,
+          createdAt: users.createdAt,
+        })
+        .from(users)
+        .where(and(
+          eq(users.profileVisibility, 'public'),
+          sql`${users.trustScore} > 80`
+        ))
+        .orderBy(desc(users.trustScore), desc(users.civicPoints))
+        .limit(limit);
+
+      res.json({
+        users: popularUsers,
+        total: popularUsers.length,
+      });
+    } catch (error) {
+      console.error('Get popular users error:', error);
+      res.status(500).json({ error: "Failed to get popular users" });
+    }
+  });
+
+  // GET /api/users/recent-activity - Get recently active users
+  app.get('/api/users/recent-activity', async (req: Request, res: Response) => {
+    try {
+      const limit = parseInt(req.query.limit as string) || 10;
+      
+      // Get users who have been active recently (have recent activities)
+      const recentActivityUsers = await db
+        .select({
+          id: users.id,
+          firstName: users.firstName,
+          lastName: users.lastName,
+          email: users.email,
+          profileImageUrl: users.profileImageUrl,
+          bio: users.bio,
+          city: users.city,
+          province: users.province,
+          civicLevel: users.civicLevel,
+          trustScore: users.trustScore,
+          civicPoints: users.civicPoints,
+          isVerified: users.isVerified,
+          occupation: users.occupation,
+          education: users.education,
+          politicalAffiliation: users.politicalAffiliation,
+          interests: users.interests,
+          createdAt: users.createdAt,
+        })
+        .from(users)
+        .where(eq(users.profileVisibility, 'public'))
+        .orderBy(desc(users.updatedAt))
+        .limit(limit);
+
+      res.json({
+        users: recentActivityUsers,
+        total: recentActivityUsers.length,
+      });
+    } catch (error) {
+      console.error('Get recent activity users error:', error);
+      res.status(500).json({ error: "Failed to get recent activity users" });
+    }
+  });
+
   // POST /api/users/:id/block - Block a user
   app.post('/api/users/:id/block', jwtAuth, async (req: Request, res: Response) => {
     try {
