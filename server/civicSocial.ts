@@ -2,7 +2,7 @@
 import { Router, Request, Response } from "express";
 import { db } from "./db.js";
 import { socialPosts, socialComments, socialLikes, userFriends, users, notifications, userMessages } from "../shared/schema.js";
-import { eq, desc, and, isNull, or, inArray } from "drizzle-orm";
+import { eq, desc, and, isNull, or, inArray, count, sql } from "drizzle-orm";
 import { aiService } from "./utils/aiService.js";
 import pino from "pino";
 import jwt from "jsonwebtoken";
@@ -406,6 +406,322 @@ router.delete("/posts/:id", jwtAuth, async (req: Request, res: Response) => {
   } catch (err) {
     logger.error("Delete post error:", err);
     res.status(500).json({ error: "Failed to delete post" });
+  }
+});
+
+// GET /api/social/friends - Get user's friends and friend requests
+router.get("/friends", jwtAuth, async (req: Request, res: Response) => {
+  try {
+    const userId = (req.user as any).id || (req.user as any).sub;
+    if (!userId) return res.status(401).json({ error: "Not authenticated" });
+
+    // Get accepted friends
+    const friends = await db
+      .select({
+        id: userFriends.id,
+        userId: userFriends.userId,
+        friendId: userFriends.friendId,
+        status: userFriends.status,
+        createdAt: userFriends.createdAt,
+        // Friend info
+        displayName: users.firstName,
+        email: users.email,
+        profileImageUrl: users.profileImageUrl,
+        isOnline: sql<boolean>`${users.id} = ANY(${Array.from(onlineUsers)})`,
+      })
+      .from(userFriends)
+      .leftJoin(users, eq(userFriends.friendId, users.id))
+      .where(and(
+        eq(userFriends.userId, userId),
+        eq(userFriends.status, "accepted")
+      ));
+
+    // Get reverse friendships
+    const reverseFriends = await db
+      .select({
+        id: userFriends.id,
+        userId: userFriends.friendId,
+        friendId: userFriends.userId,
+        status: userFriends.status,
+        createdAt: userFriends.createdAt,
+        // Friend info
+        displayName: users.firstName,
+        email: users.email,
+        profileImageUrl: users.profileImageUrl,
+        isOnline: sql<boolean>`${users.id} = ANY(${Array.from(onlineUsers)})`,
+      })
+      .from(userFriends)
+      .leftJoin(users, eq(userFriends.userId, users.id))
+      .where(and(
+        eq(userFriends.friendId, userId),
+        eq(userFriends.status, "accepted")
+      ));
+
+    // Get pending friend requests sent by user
+    const pendingSent = await db
+      .select({
+        id: userFriends.id,
+        friendId: userFriends.friendId,
+        status: userFriends.status,
+        createdAt: userFriends.createdAt,
+        // Friend info
+        displayName: users.firstName,
+        email: users.email,
+        profileImageUrl: users.profileImageUrl,
+      })
+      .from(userFriends)
+      .leftJoin(users, eq(userFriends.friendId, users.id))
+      .where(and(
+        eq(userFriends.userId, userId),
+        eq(userFriends.status, "pending")
+      ));
+
+    // Get pending friend requests received by user
+    const pendingReceived = await db
+      .select({
+        id: userFriends.id,
+        userId: userFriends.userId,
+        status: userFriends.status,
+        createdAt: userFriends.createdAt,
+        // Friend info
+        displayName: users.firstName,
+        email: users.email,
+        profileImageUrl: users.profileImageUrl,
+      })
+      .from(userFriends)
+      .leftJoin(users, eq(userFriends.userId, users.id))
+      .where(and(
+        eq(userFriends.friendId, userId),
+        eq(userFriends.status, "pending")
+      ));
+
+    res.json({
+      friends: [...friends, ...reverseFriends],
+      pendingSent,
+      pendingReceived,
+    });
+  } catch (err) {
+    logger.error("Get friends error:", err);
+    res.status(500).json({ error: "Failed to get friends" });
+  }
+});
+
+// POST /api/social/friends - Send, accept, or remove friend request
+router.post("/friends", jwtAuth, async (req: Request, res: Response) => {
+  try {
+    const userId = (req.user as any).id || (req.user as any).sub;
+    if (!userId) return res.status(401).json({ error: "Not authenticated" });
+    
+    const { friendId, action } = req.body;
+    if (!friendId) return res.status(400).json({ error: "friendId is required." });
+    if (friendId === userId) return res.status(400).json({ error: "Cannot friend yourself." });
+
+    if (action === "send") {
+      // Send friend request
+      const [request] = await db
+        .insert(userFriends)
+        .values({ userId, friendId, status: "pending" })
+        .onConflictDoNothing()
+        .returning();
+      
+      // Send notification to recipient
+      await db.insert(notifications).values({
+        userId: friendId,
+        type: "social",
+        title: "New Friend Request",
+        message: "You have a new friend request!",
+        sourceModule: "CivicSocial",
+        sourceId: String(request?.id || ""),
+        priority: "medium",
+      });
+
+      return res.status(201).json({ request });
+    } else if (action === "accept") {
+      // Accept friend request
+      const updated = await db
+        .update(userFriends)
+        .set({ status: "accepted" })
+        .where(and(
+          eq(userFriends.userId, friendId),
+          eq(userFriends.friendId, userId),
+          eq(userFriends.status, "pending")
+        ))
+        .returning();
+
+      if (updated.length > 0) {
+        // Send notification to sender
+        await db.insert(notifications).values({
+          userId: friendId,
+          type: "social",
+          title: "Friend Request Accepted",
+          message: "Your friend request was accepted!",
+          sourceModule: "CivicSocial",
+          sourceId: String(updated[0].id),
+          priority: "medium",
+        });
+      }
+
+      return res.json({ accepted: updated.length > 0 });
+    } else if (action === "remove") {
+      // Remove friend (either direction)
+      await db.delete(userFriends).where(
+        and(
+          or(
+            and(eq(userFriends.userId, userId), eq(userFriends.friendId, friendId)),
+            and(eq(userFriends.userId, friendId), eq(userFriends.friendId, userId))
+          )
+        )
+      );
+      return res.json({ removed: true });
+    } else {
+      return res.status(400).json({ error: "Invalid action. Use send, accept, or remove." });
+    }
+  } catch (err) {
+    logger.error("Friend request error:", err);
+    res.status(500).json({ error: "Failed to process friend request" });
+  }
+});
+
+// GET /api/social/users/search - Search for users
+router.get("/users/search", jwtAuth, async (req: Request, res: Response) => {
+  try {
+    const userId = (req.user as any).id || (req.user as any).sub;
+    if (!userId) return res.status(401).json({ error: "Not authenticated" });
+    
+    const { q, limit = 20 } = req.query;
+    if (!q) return res.status(400).json({ error: "Search query is required." });
+
+    const searchTerm = `%${q}%`;
+    const searchResults = await db
+      .select({
+        id: users.id,
+        firstName: users.firstName,
+        lastName: users.lastName,
+        email: users.email,
+        profileImageUrl: users.profileImageUrl,
+        civicLevel: users.civicLevel,
+        trustScore: users.trustScore,
+        isVerified: users.isVerified,
+        createdAt: users.createdAt,
+      })
+      .from(users)
+      .where(and(
+        or(
+          sql`${users.firstName} ILIKE ${searchTerm}`,
+          sql`${users.lastName} ILIKE ${searchTerm}`,
+          sql`${users.email} ILIKE ${searchTerm}`
+        ),
+        sql`${users.id} != ${userId}`
+      ))
+      .limit(parseInt(limit as string));
+
+    res.json({ users: searchResults });
+  } catch (err) {
+    logger.error("Search users error:", err);
+    res.status(500).json({ error: "Failed to search users" });
+  }
+});
+
+// GET /api/social/users/:id - Get user profile
+router.get("/users/:id", jwtAuth, async (req: Request, res: Response) => {
+  try {
+    const userId = (req.user as any).id || (req.user as any).sub;
+    if (!userId) return res.status(401).json({ error: "Not authenticated" });
+    
+    const profileId = req.params.id;
+    if (!profileId) return res.status(400).json({ error: "User ID is required." });
+
+    const [user] = await db
+      .select({
+        id: users.id,
+        firstName: users.firstName,
+        lastName: users.lastName,
+        email: users.email,
+        profileImageUrl: users.profileImageUrl,
+        civicLevel: users.civicLevel,
+        trustScore: users.trustScore,
+        isVerified: users.isVerified,
+        createdAt: users.createdAt,
+      })
+      .from(users)
+      .where(eq(users.id, profileId));
+
+    if (!user) return res.status(404).json({ error: "User not found." });
+
+    // Get user's posts count
+    const postsCount = await db
+      .select({ count: count() })
+      .from(socialPosts)
+      .where(eq(socialPosts.userId, profileId));
+
+    // Get friend status
+    const friendship = await db
+      .select()
+      .from(userFriends)
+      .where(and(
+        or(
+          and(eq(userFriends.userId, userId), eq(userFriends.friendId, profileId)),
+          and(eq(userFriends.userId, profileId), eq(userFriends.friendId, userId))
+        )
+      ));
+
+    res.json({
+      ...user,
+      postsCount: postsCount[0]?.count || 0,
+      isOnline: onlineUsers.has(profileId),
+      friendship: friendship[0] || null,
+    });
+  } catch (err) {
+    logger.error("Get user profile error:", err);
+    res.status(500).json({ error: "Failed to get user profile" });
+  }
+});
+
+// GET /api/social/trending - Get trending posts
+router.get("/trending", jwtAuth, async (req: Request, res: Response) => {
+  try {
+    const userId = (req.user as any).id || (req.user as any).sub;
+    if (!userId) return res.status(401).json({ error: "Not authenticated" });
+
+    // Get posts with high engagement in the last 24 hours
+    const trendingPosts = await db
+      .select({
+        id: socialPosts.id,
+        userId: socialPosts.userId,
+        content: socialPosts.content,
+        imageUrl: socialPosts.imageUrl,
+        type: socialPosts.type,
+        createdAt: socialPosts.createdAt,
+        // User info
+        displayName: users.firstName,
+        email: users.email,
+        profileImageUrl: users.profileImageUrl,
+        // Engagement counts
+        reactionCount: sql<number>`(
+          SELECT COUNT(*) FROM social_likes 
+          WHERE social_likes.post_id = social_posts.id
+        )`,
+        commentCount: sql<number>`(
+          SELECT COUNT(*) FROM social_comments 
+          WHERE social_comments.post_id = social_posts.id
+        )`,
+      })
+      .from(socialPosts)
+      .leftJoin(users, eq(socialPosts.userId, users.id))
+      .where(sql`social_posts.created_at > NOW() - INTERVAL '24 hours'`)
+      .orderBy(desc(sql`(
+        SELECT COUNT(*) FROM social_likes 
+        WHERE social_likes.post_id = social_posts.id
+      ) + (
+        SELECT COUNT(*) FROM social_comments 
+        WHERE social_comments.post_id = social_posts.id
+      )`))
+      .limit(10);
+
+    res.json({ trending: trendingPosts });
+  } catch (err) {
+    logger.error("Get trending posts error:", err);
+    res.status(500).json({ error: "Failed to get trending posts" });
   }
 });
 
