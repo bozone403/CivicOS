@@ -1540,3 +1540,25 @@ export const moderationActions = pgTable('moderation_actions', {
   details: jsonb('details'),
   createdAt: timestamp('created_at').defaultNow(),
 });
+
+// NEW: Social shares tracking
+export const socialShares = pgTable("social_shares", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  postId: integer("post_id").notNull().references(() => socialPosts.id),
+  sharedPostId: integer("shared_post_id").references(() => socialPosts.id),
+  shareType: varchar("share_type").default("repost"), // repost, quote, link
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => ({
+  uniqueShare: unique().on(table.userId, table.postId),
+}));
+
+// NEW: Social bookmarks tracking
+export const socialBookmarks = pgTable("social_bookmarks", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  postId: integer("post_id").notNull().references(() => socialPosts.id),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => ({
+  uniqueBookmark: unique().on(table.userId, table.postId),
+}));

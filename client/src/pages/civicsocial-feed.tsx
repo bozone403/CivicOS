@@ -220,6 +220,23 @@ export default function CivicSocialFeed() {
     },
   });
 
+  // Bookmark post mutation
+  const bookmarkPostMutation = useMutation({
+    mutationFn: async ({ postId, action }: { postId: number; action: 'bookmark' | 'unbookmark' }) => {
+      return apiRequest(`/api/social/posts/${postId}/bookmark`, 'POST', { action });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['social-posts'] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Bookmark Failed",
+        description: error.message || "Failed to bookmark post.",
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleCreatePost = () => {
     if (!newPost.content.trim()) {
       toast({
@@ -247,6 +264,13 @@ export default function CivicSocialFeed() {
 
   const handleShare = (post: SocialPost) => {
     sharePostMutation.mutate({ postId: post.id });
+  };
+
+  const handleBookmark = (post: SocialPost) => {
+    bookmarkPostMutation.mutate({
+      postId: post.id,
+      action: post.isBookmarked ? 'unbookmark' : 'bookmark'
+    });
   };
 
   const getDisplayName = (user: any) => {
@@ -403,9 +427,9 @@ export default function CivicSocialFeed() {
             Share
           </Button>
           
-          <Button variant="ghost" size="sm">
+          <Button variant="ghost" size="sm" onClick={() => handleBookmark(post)}>
             <Bookmark className="w-4 h-4 mr-2" />
-            Save
+            {post.isBookmarked ? 'Saved' : 'Save'}
           </Button>
         </div>
       </CardContent>

@@ -1,7 +1,7 @@
 // PARANOID: All CivicSocial endpoints must use real, production data only. No demo/test logic allowed. All endpoints must remain JWT-protected via parent router. If you add new endpoints, ensure they are protected and use only real data.
 import { Router } from "express";
 import { db } from "./db.js";
-import { socialPosts, socialComments, socialLikes, userFriends, users, notifications, userMessages } from "../shared/schema.js";
+import { socialPosts, socialComments, socialLikes, socialShares, socialBookmarks, userFriends, users, notifications, userMessages } from "../shared/schema.js";
 import { eq, desc, and, isNull, or, inArray, count, sql } from "drizzle-orm";
 import pino from "pino";
 import jwt from "jsonwebtoken";
@@ -70,6 +70,139 @@ async function checkAndNotifyTrending(postId) {
         }
     }
 }
+// GET /api/social/posts - Get social posts (frontend compatibility)
+router.get("/posts", jwtAuth, async (req, res) => {
+    try {
+        const userId = req.user.id || req.user.sub;
+        if (!userId)
+            return res.status(401).json({ error: "Not authenticated" });
+        const { tab = 'all', type = 'all', visibility = 'all', sortBy = 'recent', limit = 20, offset = 0 } = req.query;
+        let whereConditions = [];
+        // Filter by tab
+        switch (tab) {
+            case 'friends':
+                // Get friends' posts
+                const friendsPosts = await db
+                    .select({ postId: socialPosts.id })
+                    .from(socialPosts)
+                    .innerJoin(userFriends, eq(socialPosts.userId, userFriends.friendId))
+                    .where(and(eq(userFriends.userId, userId), eq(userFriends.status, 'accepted')));
+                const friendPostIds = friendsPosts.map(p => p.postId);
+                if (friendPostIds.length > 0) {
+                    whereConditions.push(inArray(socialPosts.id, friendPostIds));
+                }
+                else {
+                    whereConditions.push(sql `1 = 0`); // No friends, no posts
+                }
+                break;
+            case 'my-posts':
+                whereConditions.push(eq(socialPosts.userId, userId));
+                break;
+            case 'trending':
+                // Posts with high engagement - we'll filter this in the main query
+                break;
+            default: // 'all'
+                // Show public posts and user's own posts
+                whereConditions.push(sql `(${socialPosts.visibility} = 'public' OR ${socialPosts.userId} = ${userId})`);
+        }
+        // Filter by type
+        if (type !== 'all') {
+            whereConditions.push(eq(socialPosts.type, type));
+        }
+        // Filter by visibility
+        if (visibility !== 'all') {
+            whereConditions.push(eq(socialPosts.visibility, visibility));
+        }
+        // Get posts with basic info first
+        const posts = await db
+            .select({
+            id: socialPosts.id,
+            userId: socialPosts.userId,
+            content: socialPosts.content,
+            imageUrl: socialPosts.imageUrl,
+            type: socialPosts.type,
+            visibility: socialPosts.visibility,
+            tags: socialPosts.tags,
+            location: socialPosts.location,
+            mood: socialPosts.mood,
+            originalItemId: socialPosts.originalItemId,
+            originalItemType: socialPosts.originalItemType,
+            comment: socialPosts.comment,
+            createdAt: socialPosts.createdAt,
+            updatedAt: socialPosts.updatedAt,
+        })
+            .from(socialPosts)
+            .where(and(...whereConditions))
+            .orderBy(desc(socialPosts.createdAt))
+            .limit(parseInt(limit))
+            .offset(parseInt(offset));
+        // Get user info and engagement stats separately
+        const postsWithDetails = await Promise.all(posts.map(async (post) => {
+            // Get user info
+            const [user] = await db
+                .select({
+                firstName: users.firstName,
+                lastName: users.lastName,
+                profileImageUrl: users.profileImageUrl,
+                civicLevel: users.civicLevel,
+                isVerified: users.isVerified,
+            })
+                .from(users)
+                .where(eq(users.id, post.userId));
+            // Get engagement stats
+            const [likesCount] = await db
+                .select({ count: count() })
+                .from(socialLikes)
+                .where(eq(socialLikes.postId, post.id));
+            const [commentsCount] = await db
+                .select({ count: count() })
+                .from(socialComments)
+                .where(eq(socialComments.postId, post.id));
+            // Check if current user liked/bookmarked
+            const [isLiked] = await db
+                .select({ count: count() })
+                .from(socialLikes)
+                .where(and(eq(socialLikes.postId, post.id), eq(socialLikes.userId, userId)));
+            // Get shares count
+            const [sharesCount] = await db
+                .select({ count: count() })
+                .from(socialShares)
+                .where(eq(socialShares.postId, post.id));
+            // Check if current user bookmarked
+            const [isBookmarked] = await db
+                .select({ count: count() })
+                .from(socialBookmarks)
+                .where(and(eq(socialBookmarks.postId, post.id), eq(socialBookmarks.userId, userId)));
+            return {
+                ...post,
+                user: {
+                    id: post.userId,
+                    firstName: user?.firstName,
+                    lastName: user?.lastName,
+                    profileImageUrl: user?.profileImageUrl,
+                    civicLevel: user?.civicLevel,
+                    isVerified: user?.isVerified,
+                },
+                likesCount: likesCount?.count || 0,
+                commentsCount: commentsCount?.count || 0,
+                sharesCount: sharesCount?.count || 0,
+                isLiked: (isLiked?.count || 0) > 0,
+                isBookmarked: (isBookmarked?.count || 0) > 0,
+            };
+        }));
+        res.json({
+            posts: postsWithDetails,
+            total: postsWithDetails.length,
+            tab,
+            filters: { type, visibility, sortBy },
+            pagination: { limit: parseInt(limit), offset: parseInt(offset) }
+        });
+    }
+    catch (error) {
+        console.error('Get social posts error:', error);
+        res.status(500).json({ error: "Failed to get social posts" });
+    }
+});
 // GET /api/social/feed - Get the user's CivicSocial feed
 router.get("/feed", jwtAuth, async (req, res) => {
     try {
@@ -245,7 +378,7 @@ router.post("/posts", jwtAuth, async (req, res) => {
             logger.error("[POST /api/social/posts] Not authenticated. req.user:", req.user);
             return res.status(401).json({ error: "Not authenticated" });
         }
-        const { content, imageUrl, type, originalItemId, originalItemType, comment } = req.body;
+        const { content, imageUrl, type, originalItemId, originalItemType, comment, visibility, tags, location, mood } = req.body;
         if (!content && type !== "share") {
             return res.status(400).json({ error: "Content is required for a post." });
         }
@@ -262,6 +395,10 @@ router.post("/posts", jwtAuth, async (req, res) => {
             originalItemId: originalItemId || null,
             originalItemType: originalItemType || null,
             comment: comment || null,
+            visibility: visibility || "public",
+            tags: tags || [],
+            location: location || null,
+            mood: mood || null,
             createdAt: new Date(),
             updatedAt: new Date(),
         })
@@ -310,6 +447,41 @@ router.post("/posts/:id/comment", jwtAuth, async (req, res) => {
         res.status(500).json({ error: "Failed to add comment" });
     }
 });
+// POST /api/social/posts/:id/comments - Add comment to post (frontend compatibility)
+router.post("/posts/:id/comments", jwtAuth, async (req, res) => {
+    try {
+        const userId = req.user.id || req.user.sub;
+        if (!userId)
+            return res.status(401).json({ error: "Not authenticated" });
+        const postId = parseInt(req.params.id, 10);
+        if (isNaN(postId))
+            return res.status(400).json({ error: "Invalid post ID." });
+        const { content } = req.body;
+        if (!content || !content.trim()) {
+            return res.status(400).json({ error: "Comment content is required." });
+        }
+        // Verify post exists
+        const [post] = await db.select().from(socialPosts).where(eq(socialPosts.id, postId));
+        if (!post)
+            return res.status(404).json({ error: "Post not found." });
+        const [comment] = await db
+            .insert(socialComments)
+            .values({
+            userId,
+            postId,
+            content: content.trim(),
+            createdAt: new Date(),
+        })
+            .returning();
+        // Check if post is trending after new comment
+        await checkAndNotifyTrending(postId);
+        res.status(201).json(comment);
+    }
+    catch (err) {
+        logger.error("Add comment error:", err);
+        res.status(500).json({ error: "Failed to add comment" });
+    }
+});
 // POST /api/social/posts/:id/like - React to a post
 router.post("/posts/:id/like", jwtAuth, async (req, res) => {
     try {
@@ -319,9 +491,9 @@ router.post("/posts/:id/like", jwtAuth, async (req, res) => {
         const postId = parseInt(req.params.id, 10);
         if (isNaN(postId))
             return res.status(400).json({ error: "Invalid post ID." });
-        const { reaction } = req.body;
-        if (!reaction)
-            return res.status(400).json({ error: "Reaction is required." });
+        const { action, reaction } = req.body;
+        // Handle both old format (action) and new format (reaction)
+        const reactionType = reaction || (action === 'like' ? '👍' : action === 'unlike' ? null : '👍');
         // Verify post exists
         const [post] = await db.select().from(socialPosts).where(eq(socialPosts.id, postId));
         if (!post)
@@ -329,7 +501,12 @@ router.post("/posts/:id/like", jwtAuth, async (req, res) => {
         // Check for existing reaction
         const existing = await db.select().from(socialLikes).where(and(eq(socialLikes.userId, userId), eq(socialLikes.postId, postId), isNull(socialLikes.commentId)));
         if (existing.length > 0) {
-            if (existing[0].reaction === reaction) {
+            if (action === 'unlike' || !reactionType) {
+                // Remove reaction (toggle off)
+                await db.delete(socialLikes).where(eq(socialLikes.id, existing[0].id));
+                return res.json({ reacted: false });
+            }
+            else if (existing[0].reaction === reactionType) {
                 // Remove reaction (toggle off)
                 await db.delete(socialLikes).where(eq(socialLikes.id, existing[0].id));
                 return res.json({ reacted: false });
@@ -338,17 +515,20 @@ router.post("/posts/:id/like", jwtAuth, async (req, res) => {
                 // Change reaction
                 const [updated] = await db
                     .update(socialLikes)
-                    .set({ reaction })
+                    .set({ reaction: reactionType })
                     .where(eq(socialLikes.id, existing[0].id))
                     .returning();
                 return res.json({ reacted: true, reaction: updated.reaction });
             }
         }
         else {
+            if (action === 'unlike' || !reactionType) {
+                return res.json({ reacted: false });
+            }
             // Add new reaction
             const [inserted] = await db
                 .insert(socialLikes)
-                .values({ userId, postId, reaction })
+                .values({ userId, postId, reaction: reactionType })
                 .returning();
             return res.json({ reacted: true, reaction: inserted.reaction });
         }
@@ -356,6 +536,90 @@ router.post("/posts/:id/like", jwtAuth, async (req, res) => {
     catch (err) {
         logger.error("Reaction error:", err);
         res.status(500).json({ error: "Failed to react to post" });
+    }
+});
+// POST /api/social/posts/:id/share - Share a post (frontend compatibility)
+router.post("/posts/:id/share", jwtAuth, async (req, res) => {
+    try {
+        const originalPostId = parseInt(req.params.id, 10);
+        const currentUserId = req.user.id || req.user.sub;
+        const { comment } = req.body;
+        if (!currentUserId)
+            return res.status(401).json({ error: "Not authenticated" });
+        // Get the original post
+        const [originalPost] = await db
+            .select()
+            .from(socialPosts)
+            .where(eq(socialPosts.id, originalPostId));
+        if (!originalPost) {
+            return res.status(404).json({ error: "Original post not found" });
+        }
+        // Create shared post
+        const [sharedPost] = await db
+            .insert(socialPosts)
+            .values({
+            userId: currentUserId,
+            content: comment || '',
+            type: 'share',
+            originalItemId: originalPostId,
+            originalItemType: 'post',
+            visibility: 'public',
+            createdAt: new Date(),
+            updatedAt: new Date(),
+        })
+            .returning();
+        // Record the share
+        await db.insert(socialShares).values({
+            userId: currentUserId,
+            postId: originalPostId,
+            sharedPostId: sharedPost.id,
+            shareType: 'repost',
+            createdAt: new Date(),
+        });
+        res.status(201).json(sharedPost);
+    }
+    catch (error) {
+        console.error('Share post error:', error);
+        res.status(500).json({ error: "Failed to share post" });
+    }
+});
+// POST /api/social/posts/:id/bookmark - Bookmark/unbookmark a post
+router.post("/posts/:id/bookmark", jwtAuth, async (req, res) => {
+    try {
+        const userId = req.user.id || req.user.sub;
+        if (!userId)
+            return res.status(401).json({ error: "Not authenticated" });
+        const postId = parseInt(req.params.id, 10);
+        if (isNaN(postId))
+            return res.status(400).json({ error: "Invalid post ID." });
+        const { action } = req.body; // 'bookmark' or 'unbookmark'
+        // Verify post exists
+        const [post] = await db.select().from(socialPosts).where(eq(socialPosts.id, postId));
+        if (!post)
+            return res.status(404).json({ error: "Post not found." });
+        if (action === 'bookmark') {
+            // Add bookmark
+            await db.insert(socialBookmarks).values({
+                userId,
+                postId,
+                createdAt: new Date(),
+            }).onConflictDoNothing();
+            return res.json({ bookmarked: true });
+        }
+        else if (action === 'unbookmark') {
+            // Remove bookmark
+            await db
+                .delete(socialBookmarks)
+                .where(and(eq(socialBookmarks.postId, postId), eq(socialBookmarks.userId, userId)));
+            return res.json({ bookmarked: false });
+        }
+        else {
+            return res.status(400).json({ error: "Invalid action. Use 'bookmark' or 'unbookmark'." });
+        }
+    }
+    catch (err) {
+        logger.error("Bookmark error:", err);
+        res.status(500).json({ error: "Failed to bookmark/unbookmark post" });
     }
 });
 // DELETE /api/social/posts/:id - Delete a post (owner only)
