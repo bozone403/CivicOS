@@ -37,7 +37,7 @@ export default function Profile() {
   // Extract userId from URL path
   const pathParts = location.split('/');
   const userIdFromUrl = pathParts[pathParts.length - 1];
-  const isOwnProfile = !userIdFromUrl || userIdFromUrl === 'profile' || userIdFromUrl === rawUser?.id;
+  const isOwnProfile = !userIdFromUrl || userIdFromUrl === 'profile' || userIdFromUrl === rawUser?.id || location === '/profile';
   
   // Use the URL userId or fall back to current user
   const targetUserId = isOwnProfile ? rawUser?.id : userIdFromUrl;
