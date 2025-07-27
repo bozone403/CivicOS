@@ -1,14 +1,14 @@
-import express, { Request, Response } from 'express';
-import { db } from '../db';
-import { userPermissions, permissions, users } from '../../shared/schema';
-import { jwtAuth } from './auth';
-import { PermissionService } from '../utils/permissionService';
+import { Express, Request, Response } from 'express';
+import { db } from '../db.js';
+import { userPermissions, permissions, users } from '../../shared/schema.js';
+import { jwtAuth } from './auth.js';
+import { PermissionService } from '../utils/permissionService.js';
 import { eq, and } from 'drizzle-orm';
 
-const app = express.Router();
+export function registerPermissionsRoutes(app: Express) {
 
-// Get user's permissions
-app.get("/me", jwtAuth, async (req: Request, res: Response) => {
+  // Get user's permissions
+  app.get("/api/permissions/me", jwtAuth, async (req: Request, res: Response) => {
   try {
     const userId = (req.user as any)?.id;
     const user = await db.select().from(users).where(eq(users.id, userId)).limit(1);
@@ -40,8 +40,8 @@ app.get("/me", jwtAuth, async (req: Request, res: Response) => {
   }
 });
 
-// Check if user has specific permission
-app.post("/check", jwtAuth, async (req: Request, res: Response) => {
+  // Check if user has specific permission
+  app.post("/api/permissions/check", jwtAuth, async (req: Request, res: Response) => {
   try {
     const userId = (req.user as any)?.id;
     const { permissionName } = req.body;
@@ -84,8 +84,8 @@ app.post("/check", jwtAuth, async (req: Request, res: Response) => {
   }
 });
 
-// Get all available permissions (admin only)
-app.get("/all", jwtAuth, async (req: Request, res: Response) => {
+  // Get all available permissions (admin only)
+  app.get("/api/permissions/all", jwtAuth, async (req: Request, res: Response) => {
   try {
     const userId = (req.user as any)?.id;
     const user = await db.select().from(users).where(eq(users.id, userId)).limit(1);
@@ -123,8 +123,8 @@ app.get("/all", jwtAuth, async (req: Request, res: Response) => {
   }
 });
 
-// Grant permission to user (admin only)
-app.post("/grant", jwtAuth, async (req: Request, res: Response) => {
+  // Grant permission to user (admin only)
+  app.post("/api/permissions/grant", jwtAuth, async (req: Request, res: Response) => {
   try {
     const userId = (req.user as any)?.id;
     const { targetUserId, permissionName, expiresAt, notes } = req.body;
@@ -183,8 +183,8 @@ app.post("/grant", jwtAuth, async (req: Request, res: Response) => {
   }
 });
 
-// Revoke permission from user (admin only)
-app.post("/revoke", jwtAuth, async (req: Request, res: Response) => {
+  // Revoke permission from user (admin only)
+  app.post("/api/permissions/revoke", jwtAuth, async (req: Request, res: Response) => {
   try {
     const userId = (req.user as any)?.id;
     const { targetUserId, permissionName } = req.body;
@@ -237,8 +237,8 @@ app.post("/revoke", jwtAuth, async (req: Request, res: Response) => {
   }
 });
 
-// Get user's individual permissions (admin only)
-app.get("/user/:userId", jwtAuth, async (req: Request, res: Response) => {
+  // Get user's individual permissions (admin only)
+  app.get("/api/permissions/user/:userId", jwtAuth, async (req: Request, res: Response) => {
   try {
     const adminUserId = (req.user as any)?.id;
     const { userId: targetUserId } = req.params;
@@ -290,4 +290,4 @@ app.get("/user/:userId", jwtAuth, async (req: Request, res: Response) => {
   }
 });
 
-export { app as permissionsRoutes }; 
+} 

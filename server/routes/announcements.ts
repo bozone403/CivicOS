@@ -1,15 +1,15 @@
-import express, { Request, Response } from 'express';
-import { db } from '../db';
-import { announcements } from '../../shared/schema';
-import { jwtAuth } from './auth';
-import { PermissionService } from '../utils/permissionService';
+import { Express, Request, Response } from 'express';
+import { db } from '../db.js';
+import { announcements } from '../../shared/schema.js';
+import { jwtAuth } from './auth.js';
+import { PermissionService } from '../utils/permissionService.js';
 import { eq, and, desc, asc } from 'drizzle-orm';
-import { users } from '../../shared/schema';
+import { users } from '../../shared/schema.js';
 
-const app = express.Router();
+export function registerAnnouncementsRoutes(app: Express) {
 
-// Get all announcements (public)
-app.get("/", async (req: Request, res: Response) => {
+  // Get all announcements (public)
+  app.get("/api/announcements", async (req: Request, res: Response) => {
   try {
     const { page = 1, limit = 10, status = 'published', priority } = req.query;
     const offset = (Number(page) - 1) * Number(limit);
@@ -54,8 +54,8 @@ app.get("/", async (req: Request, res: Response) => {
   }
 });
 
-// Get single announcement
-app.get("/:id", async (req: Request, res: Response) => {
+  // Get single announcement
+  app.get("/api/announcements/:id", async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
 
@@ -93,8 +93,8 @@ app.get("/:id", async (req: Request, res: Response) => {
   }
 });
 
-// Create announcement (requires permission)
-app.post("/", jwtAuth, async (req: Request, res: Response) => {
+  // Create announcement (requires permission)
+  app.post("/api/announcements", jwtAuth, async (req: Request, res: Response) => {
   try {
     const userId = (req.user as any)?.id;
     const user = await db.select().from(users).where(eq(users.id, userId)).limit(1);
@@ -162,8 +162,8 @@ app.post("/", jwtAuth, async (req: Request, res: Response) => {
   }
 });
 
-// Update announcement (requires permission)
-app.put("/:id", jwtAuth, async (req: Request, res: Response) => {
+  // Update announcement (requires permission)
+  app.put("/api/announcements/:id", jwtAuth, async (req: Request, res: Response) => {
   try {
     const userId = (req.user as any)?.id;
     const { id } = req.params;
@@ -262,8 +262,8 @@ app.put("/:id", jwtAuth, async (req: Request, res: Response) => {
   }
 });
 
-// Delete announcement (requires permission)
-app.delete("/:id", jwtAuth, async (req: Request, res: Response) => {
+  // Delete announcement (requires permission)
+  app.delete("/api/announcements/:id", jwtAuth, async (req: Request, res: Response) => {
   try {
     const userId = (req.user as any)?.id;
     const { id } = req.params;
@@ -334,8 +334,8 @@ app.delete("/:id", jwtAuth, async (req: Request, res: Response) => {
   }
 });
 
-// Get user's announcements
-app.get("/user/me", jwtAuth, async (req: Request, res: Response) => {
+  // Get user's announcements
+  app.get("/api/announcements/user/me", jwtAuth, async (req: Request, res: Response) => {
   try {
     const userId = (req.user as any)?.id;
     const { page = 1, limit = 10 } = req.query;
@@ -375,4 +375,4 @@ app.get("/user/me", jwtAuth, async (req: Request, res: Response) => {
   }
 });
 
-export { app as announcementsRoutes }; 
+} 
