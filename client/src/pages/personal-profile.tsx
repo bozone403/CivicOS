@@ -94,14 +94,20 @@ export default function PersonalProfile() {
         throw new Error("Please log in to create posts");
       }
       
-      return await apiRequest('/api/social/posts', 'POST', { 
+      console.log('Sending post request with token:', localStorage.getItem('civicos-jwt') ? 'exists' : 'missing');
+      
+      const response = await apiRequest('/api/social/posts', 'POST', { 
         content,
         type: 'post',
         visibility: 'public',
         tags: []
       });
+      
+      console.log('Post response:', response);
+      return response;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      console.log('Post created successfully:', data);
       setNewPostContent("");
       setShowCreatePost(false);
       queryClient.invalidateQueries({ queryKey: ['user-posts', targetUserId] });
@@ -112,6 +118,13 @@ export default function PersonalProfile() {
     },
     onError: (error: any) => {
       console.error('Post creation error:', error);
+      console.error('Error details:', {
+        message: error.message,
+        stack: error.stack,
+        isAuthenticated,
+        rawUser: rawUser?.id,
+        token: localStorage.getItem('civicos-jwt') ? 'exists' : 'missing'
+      });
       toast({
         title: "Failed to create post",
         description: error.message || "Please check your connection and try again.",
@@ -129,20 +142,17 @@ export default function PersonalProfile() {
       });
       return;
     }
+    
+    // Debug logging
+    console.log('Creating post with:', {
+      isAuthenticated,
+      rawUser: rawUser?.id,
+      content: newPostContent,
+      token: localStorage.getItem('civicos-jwt') ? 'exists' : 'missing'
+    });
+    
     createPostMutation.mutate(newPostContent);
   };
-
-  if (!isAuthenticated) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <h2 className="text-xl font-bold mb-2">Loading your profile...</h2>
-          <p className="text-gray-600">Please log in to view profiles.</p>
-        </div>
-      </div>
-    );
-  }
 
   if (isLoadingUser) {
     return (
@@ -245,39 +255,58 @@ export default function PersonalProfile() {
                         Login to Post
                       </Button>
                     ) : (
-                      <Dialog open={showCreatePost} onOpenChange={setShowCreatePost}>
-                        <DialogTrigger asChild>
-                          <Button className="flex items-center gap-2">
-                            <Plus className="h-4 w-4" />
-                            Create Post
-                          </Button>
-                        </DialogTrigger>
-                        <DialogContent className="max-w-md">
-                          <DialogHeader>
-                            <DialogTitle>Create a Post</DialogTitle>
-                            <DialogDescription>Share something with the CivicOS community</DialogDescription>
-                          </DialogHeader>
-                          <div className="space-y-4">
-                            <Textarea
-                              value={newPostContent}
-                              onChange={(e) => setNewPostContent(e.target.value)}
-                              placeholder="What's on your mind?"
-                              rows={4}
-                            />
-                          </div>
-                          <div className="flex justify-end space-x-2 mt-6">
-                            <Button variant="outline" onClick={() => setShowCreatePost(false)}>
-                              Cancel
+                      <>
+                        <Dialog open={showCreatePost} onOpenChange={setShowCreatePost}>
+                          <DialogTrigger asChild>
+                            <Button className="flex items-center gap-2">
+                              <Plus className="h-4 w-4" />
+                              Create Post
                             </Button>
-                            <Button 
-                              onClick={handleCreatePost}
-                              disabled={createPostMutation.isPending}
-                            >
-                              {createPostMutation.isPending ? 'Posting...' : 'Post'}
-                            </Button>
-                          </div>
-                        </DialogContent>
-                      </Dialog>
+                          </DialogTrigger>
+                          <DialogContent className="max-w-md">
+                            <DialogHeader>
+                              <DialogTitle>Create a Post</DialogTitle>
+                              <DialogDescription>Share something with the CivicOS community</DialogDescription>
+                            </DialogHeader>
+                            <div className="space-y-4">
+                              <Textarea
+                                value={newPostContent}
+                                onChange={(e) => setNewPostContent(e.target.value)}
+                                placeholder="What's on your mind?"
+                                rows={4}
+                              />
+                            </div>
+                            <div className="flex justify-end space-x-2 mt-6">
+                              <Button variant="outline" onClick={() => setShowCreatePost(false)}>
+                                Cancel
+                              </Button>
+                              <Button 
+                                onClick={handleCreatePost}
+                                disabled={createPostMutation.isPending}
+                              >
+                                {createPostMutation.isPending ? 'Posting...' : 'Post'}
+                              </Button>
+                            </div>
+                          </DialogContent>
+                        </Dialog>
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => {
+                            console.log('Auth Debug:', {
+                              isAuthenticated,
+                              rawUser: rawUser?.id,
+                              token: localStorage.getItem('civicos-jwt') ? 'exists' : 'missing'
+                            });
+                            toast({
+                              title: "Debug Info",
+                              description: "Check browser console for authentication details",
+                            });
+                          }}
+                        >
+                          Debug Auth
+                        </Button>
+                      </>
                     )}
                   </>
                 )}
