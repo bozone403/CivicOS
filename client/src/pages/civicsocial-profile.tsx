@@ -290,7 +290,7 @@ export default function CivicSocialProfile() {
               <CivicSocialPostCard
                 key={post.id}
                 post={post}
-                user={user as any}
+                userId={user?.id}
                 onReact={handleReact}
                 onComment={handleComment}
                 onDelete={deletePost}

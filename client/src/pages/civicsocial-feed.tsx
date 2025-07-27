@@ -284,7 +284,7 @@ export default function CivicSocialFeed() {
           <CivicSocialPostCard
             key={post.id}
             post={post}
-            user={user}
+            userId={user?.id}
             onReact={handleReact}
             onComment={handleComment}
             onDelete={deletePost}
@@ -303,7 +303,7 @@ export default function CivicSocialFeed() {
   );
 }
 
-export function CivicSocialPostCard({ post, user, onReact, onComment, onDelete, openComment, setOpenComment, commentText, setCommentText, commentMutation, toast, showWallLink }: any) {
+export function CivicSocialPostCard({ post, userId, onReact, onComment, onDelete, openComment, setOpenComment, commentText, setCommentText, commentMutation, toast, showWallLink }: any) {
   // Collect all unique emojis used in reactions
   const allEmojis = Object.keys(post.reactions || {});
 
@@ -335,7 +335,7 @@ export function CivicSocialPostCard({ post, user, onReact, onComment, onDelete, 
         <div className="flex items-center gap-2">
           <span className="font-bold text-base">{getDisplayName(post)}</span>
           <span className="text-xs text-gray-500">{new Date(post.createdAt).toLocaleString()}</span>
-          {user?.id === post.userId && (
+          {userId === post.userId && (
             <Button size="icon" variant="ghost" aria-label="Delete post" onClick={() => onDelete(post.id)} onKeyDown={handleKeyDown(() => onDelete(post.id))} className="ml-auto text-red-600 hover:bg-red-100 focus:ring-2 focus:ring-red-400" tabIndex={0}>
               <Trash2 className="w-5 h-5" />
             </Button>
@@ -360,7 +360,7 @@ export function CivicSocialPostCard({ post, user, onReact, onComment, onDelete, 
                   onClick={() => onReact(post, emoji)}
                   onKeyDown={handleKeyDown(() => onReact(post, emoji))}
                   aria-label={`React with ${emoji}`}
-                  className={`rounded-full px-2 py-1 text-lg font-bold shadow-sm border border-gray-200 bg-blue-50 hover:bg-blue-100 focus:ring-2 focus:ring-blue-400 transition-all ${post.reactions[emoji].includes(user?.id) ? "bg-blue-600 text-white" : ""}`}
+                  className={`rounded-full px-2 py-1 text-lg font-bold shadow-sm border border-gray-200 bg-blue-50 hover:bg-blue-100 focus:ring-2 focus:ring-blue-400 transition-all ${post.reactions[emoji].includes(userId) ? "bg-blue-600 text-white" : ""}`}
                   tabIndex={0}
                 >
                   {emoji} <span className="text-xs font-semibold ml-1">{post.reactions[emoji].length}</span>
@@ -372,8 +372,8 @@ export function CivicSocialPostCard({ post, user, onReact, onComment, onDelete, 
           <button
             onClick={() => onReact(post, "👍")}
             onKeyDown={handleKeyDown(() => onReact(post, "👍"))}
-            aria-label={post.reactions && post.reactions["👍"] && post.reactions["👍"].includes(user?.id) ? "Remove Like" : "Like"}
-            className={`ml-2 rounded-full px-3 py-1 text-base font-bold border border-gray-200 bg-gray-50 hover:bg-blue-50 focus:ring-2 focus:ring-blue-400 transition-all ${post.reactions && post.reactions["👍"] && post.reactions["👍"].includes(user?.id) ? "bg-blue-600 text-white" : ""}`}
+            aria-label={post.reactions && post.reactions["👍"] && post.reactions["👍"].includes(userId) ? "Remove Like" : "Like"}
+            className={`ml-2 rounded-full px-3 py-1 text-base font-bold border border-gray-200 bg-gray-50 hover:bg-blue-50 focus:ring-2 focus:ring-blue-400 transition-all ${post.reactions && post.reactions["👍"] && post.reactions["👍"].includes(userId) ? "bg-blue-600 text-white" : ""}`}
             tabIndex={0}
           >
             👍 Like
@@ -425,7 +425,7 @@ export function CivicSocialPostCard({ post, user, onReact, onComment, onDelete, 
 }
 CivicSocialPostCard.propTypes = {
   post: PropTypes.object.isRequired,
-  user: PropTypes.object,
+  userId: PropTypes.string,
   onReact: PropTypes.func.isRequired,
   onComment: PropTypes.func.isRequired,
   onDelete: PropTypes.func.isRequired,
