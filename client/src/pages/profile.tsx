@@ -263,6 +263,26 @@ export default function Profile() {
                   )}
                 </div>
                 <p className="text-gray-600 mb-2">{user?.email}</p>
+                <div className="flex items-center gap-2 mb-2">
+                  <Badge variant="outline" className="text-xs">
+                    User ID: {user?.id}
+                  </Badge>
+                  {isOwnProfile && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        navigator.clipboard.writeText(`${window.location.origin}/profile/${user?.id}`);
+                        toast({
+                          title: "Profile URL Copied!",
+                          description: "Share this link with others to view your profile",
+                        });
+                      }}
+                    >
+                      Copy Profile URL
+                    </Button>
+                  )}
+                </div>
                 <p className="text-gray-700">
                   {user?.bio || "No bio yet. Click 'Edit Profile' to add one!"}
                 </p>

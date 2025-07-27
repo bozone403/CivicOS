@@ -6,9 +6,10 @@ import { Input } from './ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import { Badge } from './ui/badge';
-import { Search, UserPlus, MapPin, Award, Shield } from 'lucide-react';
+import { Search, UserPlus, MapPin, Award, Shield, ExternalLink } from 'lucide-react';
 import { useToast } from '../hooks/use-toast';
 import { useAuth } from '../hooks/useAuth';
+import { useLocation } from 'wouter';
 
 interface User {
   id: string;
@@ -35,6 +36,7 @@ export function UserSearch() {
   const [isSearching, setIsSearching] = useState(false);
   const { toast } = useToast();
   const { isAuthenticated } = useAuth();
+  const [, setLocation] = useLocation();
 
   const { data: searchResults, isLoading, refetch } = useQuery<UserSearchResponse>({
     queryKey: ['user-search', searchQuery, isAuthenticated],
@@ -43,9 +45,8 @@ export function UserSearch() {
         return { users: [], total: 0, query: searchQuery, limit: 20, offset: 0 };
       }
       
-      // Use public endpoint if not authenticated, authenticated endpoint if logged in
-      const endpoint = isAuthenticated ? '/api/users/search' : '/api/users/search/public';
-      const response = await apiRequest(`${endpoint}?q=${encodeURIComponent(searchQuery)}`, 'GET');
+      // Use the correct social API endpoint
+      const response = await apiRequest(`/api/social/users/search?q=${encodeURIComponent(searchQuery)}`, 'GET');
       return response;
     },
     enabled: false, // Don't auto-fetch, only on button click
@@ -177,6 +178,9 @@ export function UserSearch() {
                         <Badge className={getCivicLevelColor(user.civicLevel)}>
                           {user.civicLevel}
                         </Badge>
+                        <Badge variant="outline" className="text-xs">
+                          ID: {user.id}
+                        </Badge>
                       </div>
                       
                       <div className="flex items-center gap-4 text-sm text-muted-foreground">
@@ -200,14 +204,25 @@ export function UserSearch() {
                     </div>
                   </div>
                   
-                  <Button
-                    onClick={() => handleAddFriend(user.id, user.name)}
-                    size="sm"
-                    className="flex items-center gap-2"
-                  >
-                    <UserPlus className="h-4 w-4" />
-                    Add Friend
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button
+                      onClick={() => setLocation(`/profile/${user.id}`)}
+                      size="sm"
+                      variant="outline"
+                      className="flex items-center gap-2"
+                    >
+                      <ExternalLink className="h-4 w-4" />
+                      View Profile
+                    </Button>
+                    <Button
+                      onClick={() => handleAddFriend(user.id, user.name)}
+                      size="sm"
+                      className="flex items-center gap-2"
+                    >
+                      <UserPlus className="h-4 w-4" />
+                      Add Friend
+                    </Button>
+                  </div>
                 </div>
               ))}
             </div>
