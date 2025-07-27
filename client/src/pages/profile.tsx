@@ -15,6 +15,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { useLocation } from "wouter";
 
 // Add UserStats interface
 interface UserStats {
@@ -30,7 +31,33 @@ interface UserStats {
 
 export default function Profile() {
   const { user: rawUser, isAuthenticated, updateProfile } = useAuth();
-  const user = rawUser as any;
+  const [location, setLocation] = useLocation();
+  const { toast } = useToast();
+  
+  // Extract userId from URL path
+  const pathParts = location.split('/');
+  const userIdFromUrl = pathParts[pathParts.length - 1];
+  const isOwnProfile = !userIdFromUrl || userIdFromUrl === 'profile' || userIdFromUrl === rawUser?.id;
+  
+  // Use the URL userId or fall back to current user
+  const targetUserId = isOwnProfile ? rawUser?.id : userIdFromUrl;
+  
+  // Fetch user data based on targetUserId
+  const { data: profileUser, isLoading: isLoadingUser } = useQuery({
+    queryKey: ['user-profile', targetUserId],
+    queryFn: async () => {
+      if (isOwnProfile) {
+        return rawUser;
+      } else {
+        // Fetch other user's profile data
+        const response = await apiRequest(`/api/social/users/${targetUserId}`, 'GET');
+        return response;
+      }
+    },
+    enabled: !!targetUserId,
+  });
+  
+  const user = profileUser || rawUser;
   const [showWelcome, setShowWelcome] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [editFirstName, setEditFirstName] = useState("");
@@ -38,7 +65,6 @@ export default function Profile() {
   const [editBio, setEditBio] = useState("");
   const [editAvatar, setEditAvatar] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const { toast } = useToast();
 
   // Update form state when user data changes
   useEffect(() => {
@@ -72,13 +98,39 @@ export default function Profile() {
     }
   };
 
-  if (!isAuthenticated || !user) {
+  if (!isAuthenticated) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
           <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600 mx-auto mb-4"></div>
           <h2 className="text-xl font-bold mb-2">Loading your profile...</h2>
-          <p className="text-gray-600">Please log in to view your profile.</p>
+          <p className="text-gray-600">Please log in to view profiles.</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (isLoadingUser) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <h2 className="text-xl font-bold mb-2">Loading profile...</h2>
+          <p className="text-gray-600">Fetching user information...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <h2 className="text-xl font-bold mb-2">User not found</h2>
+          <p className="text-gray-600">The user you're looking for doesn't exist or has been removed.</p>
+          <Button onClick={() => setLocation('/dashboard')} className="mt-4">
+            Go to Dashboard
+          </Button>
         </div>
       </div>
     );
@@ -151,62 +203,64 @@ export default function Profile() {
                       : (user?.email?.split('@')[0] || 'User')
                     }
                   </h1>
-                  <Dialog open={editOpen} onOpenChange={setEditOpen}>
-                    <DialogTrigger asChild>
-                      <Button variant="outline" size="sm">
-                        Edit Profile
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent className="max-w-md">
-                      <DialogHeader>
-                        <DialogTitle>Edit Profile</DialogTitle>
-                        <DialogDescription>Update your profile information</DialogDescription>
-                      </DialogHeader>
-                      <div className="space-y-4">
-                        <div>
-                          <label className="block text-sm font-medium mb-2">First Name</label>
-                          <Input
-                            value={editFirstName}
-                            onChange={(e) => setEditFirstName(e.target.value)}
-                            placeholder="First name"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium mb-2">Last Name</label>
-                          <Input
-                            value={editLastName}
-                            onChange={(e) => setEditLastName(e.target.value)}
-                            placeholder="Last name"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium mb-2">Bio</label>
-                          <Textarea
-                            value={editBio}
-                            onChange={(e) => setEditBio(e.target.value)}
-                            placeholder="Tell us about yourself..."
-                            rows={3}
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium mb-2">Profile Picture URL</label>
-                          <Input
-                            value={editAvatar}
-                            onChange={(e) => setEditAvatar(e.target.value)}
-                            placeholder="https://example.com/image.jpg"
-                          />
-                        </div>
-                      </div>
-                      <div className="flex justify-end space-x-2 mt-6">
-                        <Button variant="outline" onClick={() => setEditOpen(false)}>
-                          Cancel
+                  {isOwnProfile && (
+                    <Dialog open={editOpen} onOpenChange={setEditOpen}>
+                      <DialogTrigger asChild>
+                        <Button variant="outline" size="sm">
+                          Edit Profile
                         </Button>
-                        <Button onClick={handleSaveProfile}>
-                          Save Changes
-                        </Button>
-                      </div>
-                    </DialogContent>
-                  </Dialog>
+                      </DialogTrigger>
+                      <DialogContent className="max-w-md">
+                        <DialogHeader>
+                          <DialogTitle>Edit Profile</DialogTitle>
+                          <DialogDescription>Update your profile information</DialogDescription>
+                        </DialogHeader>
+                        <div className="space-y-4">
+                          <div>
+                            <label className="block text-sm font-medium mb-2">First Name</label>
+                            <Input
+                              value={editFirstName}
+                              onChange={(e) => setEditFirstName(e.target.value)}
+                              placeholder="First name"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium mb-2">Last Name</label>
+                            <Input
+                              value={editLastName}
+                              onChange={(e) => setEditLastName(e.target.value)}
+                              placeholder="Last name"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium mb-2">Bio</label>
+                            <Textarea
+                              value={editBio}
+                              onChange={(e) => setEditBio(e.target.value)}
+                              placeholder="Tell us about yourself..."
+                              rows={3}
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium mb-2">Profile Picture URL</label>
+                            <Input
+                              value={editAvatar}
+                              onChange={(e) => setEditAvatar(e.target.value)}
+                              placeholder="https://example.com/image.jpg"
+                            />
+                          </div>
+                        </div>
+                        <div className="flex justify-end space-x-2 mt-6">
+                          <Button variant="outline" onClick={() => setEditOpen(false)}>
+                            Cancel
+                          </Button>
+                          <Button onClick={handleSaveProfile}>
+                            Save Changes
+                          </Button>
+                        </div>
+                      </DialogContent>
+                    </Dialog>
+                  )}
                 </div>
                 <p className="text-gray-600 mb-2">{user?.email}</p>
                 <p className="text-gray-700">

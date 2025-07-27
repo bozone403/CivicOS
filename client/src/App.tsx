@@ -215,6 +215,14 @@ export default function App() {
                     </ProtectedRoute>
                   </Route>
                   
+                  <Route path="/profile/:userId">
+                    <ProtectedRoute>
+                      <Layout>
+                        <Profile />
+                      </Layout>
+                    </ProtectedRoute>
+                  </Route>
+                  
                   <Route path="/profile">
                     <ProtectedRoute>
                       <Layout>
