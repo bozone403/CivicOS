@@ -35,16 +35,11 @@ export default function Profile() {
   const { toast } = useToast();
   
   // Extract userId from URL path
-  const pathParts = useMemo(() => location.split('/'), [location]);
-  const userIdFromUrl = useMemo(() => pathParts[pathParts.length - 1], [pathParts]);
-  const isOwnProfile = useMemo(() => 
-    !userIdFromUrl || userIdFromUrl === 'profile' || userIdFromUrl === rawUser?.id || location === '/profile',
-    [userIdFromUrl, rawUser?.id, location]
-  );
-  
-  // Use the URL userId or fall back to current user
-  const targetUserId = useMemo(() => isOwnProfile ? rawUser?.id : userIdFromUrl, [isOwnProfile, rawUser?.id, userIdFromUrl]);
-  
+  const pathParts = location.split('/');
+  const userIdFromUrl = pathParts[pathParts.length - 1];
+  const isOwnProfile = !userIdFromUrl || userIdFromUrl === 'profile' || userIdFromUrl === rawUser?.id || location === '/profile';
+  const targetUserId = isOwnProfile ? rawUser?.id : userIdFromUrl;
+
   // Fetch user data based on targetUserId
   const { data: profileUser, isLoading: isLoadingUser } = useQuery({
     queryKey: ['user-profile', targetUserId],
@@ -60,7 +55,7 @@ export default function Profile() {
     enabled: !!targetUserId,
   });
   
-  const user = useMemo(() => profileUser || rawUser, [profileUser, rawUser]);
+  const user = profileUser || rawUser;
   const [showWelcome, setShowWelcome] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [editFirstName, setEditFirstName] = useState("");
@@ -77,7 +72,7 @@ export default function Profile() {
       setEditBio(user.bio || "");
       setEditAvatar(user.profileImageUrl || "");
     }
-  }, [user?.id, user?.firstName, user?.lastName, user?.bio, user?.profileImageUrl]);
+  }, [user?.id]);
 
   useEffect(() => {
     // Show welcome notice only for new users (e.g., just registered)
