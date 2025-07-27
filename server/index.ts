@@ -341,7 +341,12 @@ app.use('/api/ai', aiRoutes);
         await politicianDataEnhancer.enhanceAllPoliticians();
         const stats = await politicianDataEnhancer.getEnhancementStats();
         // Politician enhancement completed
-      }, 180000); // Increased to 3 minutes delay to let initial data load
+        
+        // Force garbage collection after enhancement
+        if (global.gc) {
+          global.gc();
+        }
+      }, 300000); // Increased to 5 minutes delay to let initial data load
     } catch (error) {
       logger.error({ msg: 'Error enhancing politician data', error });
     }
@@ -367,12 +372,12 @@ app.use('/api/ai', aiRoutes);
     });
   }, 300000); // Increased to 5 minutes delay
 
-  // Schedule regular comprehensive news analysis (every 4 hours instead of 2)
+  // Schedule regular comprehensive news analysis (every 12 hours instead of 4 to reduce memory pressure)
   setInterval(() => {
     comprehensiveNewsAnalyzer.performComprehensiveAnalysis().catch(error => {
       logger.error({ msg: "Error in scheduled news analysis", error });
     });
-  }, 4 * 60 * 60 * 1000); // 4 hours instead of 2
+  }, 12 * 60 * 60 * 1000); // 12 hours instead of 4
   
   // Start real-time platform monitoring (non-blocking) with delay
   setTimeout(() => {

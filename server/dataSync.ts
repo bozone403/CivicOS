@@ -66,13 +66,35 @@ interface LegislativeBill {
  */
 export async function syncAllGovernmentData(): Promise<void> {
   logger.info({ msg: 'Starting full government data sync' });
-  // Sync federal data
-  await syncFederalData();
-  // Sync provincial data
-  await syncProvincialData();
-  // Sync major municipal data
-  await syncMunicipalData();
-  logger.info({ msg: 'Completed full government data sync' });
+  
+  try {
+    // Sync federal data
+    await syncFederalData();
+    
+    // Force garbage collection after each major sync
+    if (global.gc) {
+      global.gc();
+    }
+    
+    // Sync provincial data
+    await syncProvincialData();
+    
+    if (global.gc) {
+      global.gc();
+    }
+    
+    // Sync major municipal data
+    await syncMunicipalData();
+    
+    if (global.gc) {
+      global.gc();
+    }
+    
+    logger.info({ msg: 'Completed full government data sync' });
+  } catch (error) {
+    logger.error({ msg: 'Data sync failed', error: error instanceof Error ? error.message : String(error) });
+    throw error;
+  }
 }
 
 /**
@@ -82,16 +104,30 @@ async function syncFederalData(): Promise<void> {
   logger.info({ msg: 'Syncing federal MPs' });
   const mps = await scrapeFederalMPs();
   logger.info({ msg: 'Scraped federal MPs', count: mps.length });
+  
+  // Limit to first 50 MPs to prevent memory overload
+  const limitedMps = mps.slice(0, 50);
+  
   logger.info({ msg: 'Syncing senators' });
   const senators = await scrapeSenators();
   logger.info({ msg: 'Scraped senators', count: senators.length });
+  
+  // Limit to first 20 senators
+  const limitedSenators = senators.slice(0, 20);
+  
   logger.info({ msg: 'Syncing federal bills' });
   const bills = await scrapeFederalBills();
   logger.info({ msg: 'Scraped federal bills', count: bills.length });
-  for (const official of [...mps, ...senators]) {
+  
+  // Limit to first 30 bills
+  const limitedBills = bills.slice(0, 30);
+  
+  // Store officials in batches to prevent memory buildup
+  for (const official of [...limitedMps, ...limitedSenators]) {
     await storeOfficial(official);
   }
-  for (const bill of bills) {
+  
+  for (const bill of limitedBills) {
     await storeBill(bill);
   }
 }
@@ -102,10 +138,18 @@ async function syncFederalData(): Promise<void> {
 async function syncProvincialData(): Promise<void> {
   logger.info({ msg: 'Syncing provincial officials' });
   const provinces = Object.keys(DATA_SOURCES.provincial);
-  for (const province of provinces) {
+  
+  // Limit to first 3 provinces to prevent memory overload
+  const limitedProvinces = provinces.slice(0, 3);
+  
+  for (const province of limitedProvinces) {
     const officials = await scrapeProvincialOfficials(province);
     logger.info({ msg: 'Scraped provincial officials', province, count: officials.length });
-    for (const official of officials) {
+    
+    // Limit to first 20 officials per province
+    const limitedOfficials = officials.slice(0, 20);
+    
+    for (const official of limitedOfficials) {
       await storeOfficial(official);
     }
   }
@@ -117,10 +161,18 @@ async function syncProvincialData(): Promise<void> {
 async function syncMunicipalData(): Promise<void> {
   logger.info({ msg: 'Syncing municipal officials' });
   const cities = Object.keys(DATA_SOURCES.municipal);
-  for (const city of cities) {
+  
+  // Limit to first 2 cities to prevent memory overload
+  const limitedCities = cities.slice(0, 2);
+  
+  for (const city of limitedCities) {
     const officials = await scrapeMunicipalOfficials(city);
     logger.info({ msg: 'Scraped municipal officials', city, count: officials.length });
-    for (const official of officials) {
+    
+    // Limit to first 10 officials per city
+    const limitedOfficials = officials.slice(0, 10);
+    
+    for (const official of limitedOfficials) {
       await storeOfficial(official);
     }
   }
@@ -453,18 +505,22 @@ function calculateInitialTrustScore(official: GovernmentOfficial): string {
  * Initialize automatic data sync on server start
  */
 export function initializeDataSync(): void {
-  
-  // Run initial sync with delay to ensure server is fully started
-  setTimeout(() => {
-  syncAllGovernmentData().catch(error => {
-    console.error("Initial data sync failed:", error instanceof Error ? error : String(error));
-  });
-  }, 10000); // 10 second delay
-  
-  // Set up periodic sync (every 24 hours)
-  setInterval(() => {
-    syncAllGovernmentData().catch(error => {
-      console.error("Scheduled data sync failed:", error instanceof Error ? error : String(error));
-    });
-  }, 24 * 60 * 60 * 1000); // 24 hours
+  // Only run data sync in production and limit frequency
+  if (process.env.NODE_ENV === 'production') {
+    // Run initial sync with delay to ensure server is fully started
+    setTimeout(() => {
+      syncAllGovernmentData().catch(error => {
+        logger.error("Initial data sync failed:", error instanceof Error ? error : String(error));
+      });
+    }, 30000); // 30 second delay
+    
+    // Set up periodic sync (every 7 days instead of 24 hours to reduce memory pressure)
+    setInterval(() => {
+      syncAllGovernmentData().catch(error => {
+        logger.error("Scheduled data sync failed:", error instanceof Error ? error : String(error));
+      });
+    }, 7 * 24 * 60 * 60 * 1000); // 7 days
+  } else {
+    logger.info("Data sync disabled in development mode");
+  }
 }
