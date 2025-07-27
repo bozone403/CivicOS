@@ -155,7 +155,7 @@ export default function UserSearch() {
     mutationFn: async ({ friendId, action }: { friendId: string; action: 'send' | 'accept' | 'reject' | 'remove' }) => {
       return apiRequest('/api/social/friends', 'POST', { friendId, action });
     },
-    onSuccess: (data, variables) => {
+    onSuccess: (_, variables) => {
       const action = variables.action;
       const actionText = {
         send: 'Friend request sent',
