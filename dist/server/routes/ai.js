@@ -1,24 +1,41 @@
 import { Router } from 'express';
 import { aiService } from '../utils/aiService.js';
+import { fallbackAiService } from '../utils/fallbackAiService.js';
 const router = Router();
 // Health check endpoint
 router.get('/health', async (req, res) => {
     try {
+        // Try primary AI service first
         const health = await aiService.healthCheck();
-        res.json({
-            status: 'healthy',
-            service: health.service ? 'operational' : 'offline',
-            models: health.model ? ['active'] : [],
-            message: health.message,
-            timestamp: new Date().toISOString()
-        });
+        if (health.service) {
+            res.json({
+                status: 'healthy',
+                service: 'operational',
+                models: health.model ? ['active'] : [],
+                message: health.message,
+                timestamp: new Date().toISOString()
+            });
+        }
+        else {
+            // Fallback to secondary AI service
+            const fallbackHealth = await fallbackAiService.healthCheck();
+            res.json({
+                status: fallbackHealth.status === 'online' ? 'healthy' : 'degraded',
+                service: fallbackHealth.service,
+                models: fallbackHealth.models,
+                message: fallbackHealth.message,
+                timestamp: new Date().toISOString()
+            });
+        }
     }
     catch (error) {
-        res.status(500).json({
-            status: 'error',
-            service: 'offline',
-            models: [],
-            message: 'AI service health check failed',
+        // Final fallback
+        const fallbackHealth = await fallbackAiService.healthCheck();
+        res.json({
+            status: fallbackHealth.status === 'online' ? 'healthy' : 'degraded',
+            service: fallbackHealth.service,
+            models: fallbackHealth.models,
+            message: fallbackHealth.message,
             timestamp: new Date().toISOString()
         });
     }
@@ -32,7 +49,15 @@ router.post('/chat', async (req, res) => {
                 error: 'Message is required and must be a string'
             });
         }
-        const response = await aiService.generateResponse(message, context);
+        // Try primary AI service first
+        let response;
+        try {
+            response = await aiService.generateResponse(message, context);
+        }
+        catch (error) {
+            // Fallback to secondary AI service
+            response = await fallbackAiService.generateResponse(message, context);
+        }
         res.json({
             response,
             timestamp: new Date().toISOString(),
@@ -40,11 +65,12 @@ router.post('/chat', async (req, res) => {
         });
     }
     catch (error) {
-        // console.error removed for production
-        res.status(500).json({
-            error: 'Failed to generate AI response',
-            fallback: 'AI chat is temporarily unavailable. Please try again later.',
-            timestamp: new Date().toISOString()
+        // Final fallback - use offline responses
+        const response = await fallbackAiService.generateResponse(req.body.message || 'Hello');
+        res.json({
+            response,
+            timestamp: new Date().toISOString(),
+            context: req.body.context || {}
         });
     }
 });

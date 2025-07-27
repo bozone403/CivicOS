@@ -244,6 +244,48 @@ export default function CivicSocialFeed() {
     },
   });
 
+  // Edit post mutation
+  const editPostMutation = useMutation({
+    mutationFn: async ({ postId, updates }: { postId: number; updates: any }) => {
+      return apiRequest(`/api/social/posts/${postId}`, 'PUT', updates);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['social-posts'] });
+      toast({
+        title: "Post Updated",
+        description: "Your post has been updated successfully.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Update Failed",
+        description: error.message || "Failed to update post.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Delete post mutation
+  const deletePostMutation = useMutation({
+    mutationFn: async (postId: number) => {
+      return apiRequest(`/api/social/posts/${postId}`, 'DELETE');
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['social-posts'] });
+      toast({
+        title: "Post Deleted",
+        description: "Your post has been deleted successfully.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Delete Failed",
+        description: error.message || "Failed to delete post.",
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleCreatePost = () => {
     if (!newPost.content.trim()) {
       toast({
@@ -347,9 +389,44 @@ export default function CivicSocialFeed() {
               </div>
             </div>
           </div>
-          <Button variant="ghost" size="sm">
-            <MoreHorizontal className="w-4 h-4" />
-          </Button>
+          <div className="relative">
+            <Button variant="ghost" size="sm">
+              <MoreHorizontal className="w-4 h-4" />
+            </Button>
+            {/* Post actions dropdown - only show for user's own posts */}
+            {post.user?.id === currentUser?.id && (
+              <div className="absolute right-0 top-full mt-1 bg-white border rounded-md shadow-lg z-10 min-w-[120px]">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="w-full justify-start"
+                  onClick={() => {
+                    // TODO: Implement edit modal
+                    toast({
+                      title: "Edit Feature",
+                      description: "Post editing will be available soon.",
+                    });
+                  }}
+                >
+                  <Edit className="w-4 h-4 mr-2" />
+                  Edit
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="w-full justify-start text-red-600 hover:text-red-700"
+                  onClick={() => {
+                    if (confirm('Are you sure you want to delete this post?')) {
+                      deletePostMutation.mutate(post.id);
+                    }
+                  }}
+                >
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Delete
+                </Button>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Post Content */}

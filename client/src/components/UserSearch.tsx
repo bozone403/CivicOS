@@ -1,11 +1,11 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { useQuery, useMutation } from '@tanstack/react-query';
-import { useLocation } from 'wouter';
+import React, { useState, useEffect } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useAuth } from '@/hooks/useAuth';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -13,174 +13,185 @@ import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { 
   Search, 
+  UserPlus, 
   Users, 
   MapPin, 
-  Shield, 
-  Trophy, 
-  Zap, 
   Star, 
+  MessageSquare,
   Filter,
   X,
-  UserPlus,
-  MessageCircle,
-  Eye,
+  User,
+  Check,
+  Clock,
   TrendingUp,
+  Heart,
+  MessageCircle,
+  MoreHorizontal,
+  Settings,
+  Activity,
   Award,
-  Calendar,
+  Shield,
   Globe,
+  Building,
+  Home,
   Briefcase,
   GraduationCap,
+  Calendar,
+  Phone,
+  Mail,
+  ExternalLink,
+  Eye,
+  EyeOff,
+  Camera,
+  Video,
+  Link,
+  BarChart3,
+  Zap,
+  Star as StarIcon,
+  TrendingDown,
+  Users as GroupIcon,
+  Hash,
+  AtSign,
+  Send,
+  UserCheck,
+  UserX,
+  UserMinus,
+  UserPlus as AddUserIcon,
+  MessageCircle as ChatIcon,
+  Heart as LikeIcon,
+  Share,
+  Bookmark,
   Flag,
-  Heart,
-  Activity
+  Edit,
+  Trash2,
+  Settings as SettingsIcon,
+  Activity as ActivityIcon,
+  Zap as ZapIcon,
+  Award as AwardIcon,
+  Star as StarIcon2,
+  TrendingDown as TrendingDownIcon,
+  Users as GroupIcon2,
+  Hash as HashIcon,
+  AtSign as AtSignIcon
 } from 'lucide-react';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
-import { useAuth } from '@/hooks/useAuth';
 
 interface User {
   id: string;
   firstName?: string;
   lastName?: string;
-  email?: string;
+  email: string;
   profileImageUrl?: string;
   bio?: string;
-  city?: string;
-  province?: string;
-  civicLevel?: string;
-  trustScore?: number;
-  civicPoints?: number;
-  isVerified?: boolean;
-  occupation?: string;
-  education?: string;
-  politicalAffiliation?: string;
-  interests?: string[];
-  createdAt?: string;
-  profileVisibility?: string;
-}
-
-interface SearchFilters {
   location?: string;
   civicLevel?: string;
-  verificationStatus?: string;
-  sortBy?: string;
-  interests?: string[];
+  isVerified?: boolean;
+  trustScore?: string;
+  joinedAt?: string;
+  displayName: string;
+  stats?: {
+    posts: number;
+    friends: number;
+    activities: number;
+  };
+  friendship?: {
+    isFriend: boolean;
+    pendingRequest: boolean;
+    receivedRequest: boolean;
+    canSendRequest: boolean;
+  };
 }
 
-interface SearchResult {
-  users: User[];
-  total: number;
-  query: string;
-  limit: number;
-  offset: number;
+interface SearchParams {
+  q: string;
+  location: string;
+  interests: string;
+  civicLevel: string;
 }
 
 export default function UserSearch() {
-  const [location, setLocation] = useLocation();
-  const { toast } = useToast();
   const { user: currentUser } = useAuth();
-  const [searchQuery, setSearchQuery] = useState('');
-  const [debouncedQuery, setDebouncedQuery] = useState('');
-  const [filters, setFilters] = useState<SearchFilters>({});
-  const [showFilters, setShowFilters] = useState(false);
-  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  
+  const [searchParams, setSearchParams] = useState<SearchParams>({
+    q: '',
+    location: '',
+    interests: '',
+    civicLevel: ''
+  });
   const [activeTab, setActiveTab] = useState('search');
-  const searchTimeoutRef = useRef<NodeJS.Timeout>();
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [showFilters, setShowFilters] = useState(false);
 
-  // Debounce search query
-  useEffect(() => {
-    if (searchTimeoutRef.current) {
-      clearTimeout(searchTimeoutRef.current);
-    }
-
-    searchTimeoutRef.current = setTimeout(() => {
-      setDebouncedQuery(searchQuery);
-    }, 500);
-
-    return () => {
-      if (searchTimeoutRef.current) {
-        clearTimeout(searchTimeoutRef.current);
-      }
-    };
-  }, [searchQuery]);
-
-  // Search users
-  const { data: searchResults, isLoading: isSearching } = useQuery<SearchResult>({
-    queryKey: ['user-search', debouncedQuery, filters],
+  // Search users query
+  const { data: searchResults, isLoading: isLoadingSearch } = useQuery({
+    queryKey: ['users/search', searchParams],
     queryFn: async () => {
-      if (!debouncedQuery || debouncedQuery.length < 2) {
-        return { users: [], total: 0, query: '', limit: 20, offset: 0 };
-      }
-
-             const params = new URLSearchParams({
-         q: debouncedQuery,
-         limit: '20',
-         ...Object.fromEntries(
-           Object.entries(filters).filter(([_, value]) => value !== undefined && value !== '')
-         )
-       });
-
+      const params = new URLSearchParams({
+        q: searchParams.q,
+        location: searchParams.location,
+        interests: searchParams.interests,
+        civicLevel: searchParams.civicLevel
+      });
       const response = await apiRequest(`/api/users/search?${params}`, 'GET');
-      return response;
-    },
-    enabled: !!debouncedQuery && debouncedQuery.length >= 2,
-  });
-
-  // Get popular users (for suggestions)
-  const { data: popularUsers } = useQuery<User[]>({
-    queryKey: ['popular-users'],
-    queryFn: async () => {
-      const response = await apiRequest('/api/users/popular', 'GET');
       return response.users || [];
     },
-    enabled: activeTab === 'discover',
+    enabled: searchParams.q.length > 0 || searchParams.location.length > 0 || searchParams.civicLevel.length > 0
   });
 
-  // Get recent activity users
-  const { data: recentActivityUsers } = useQuery<User[]>({
-    queryKey: ['recent-activity-users'],
+  // User suggestions query
+  const { data: suggestions = [] } = useQuery({
+    queryKey: ['users/suggestions'],
     queryFn: async () => {
-      const response = await apiRequest('/api/users/recent-activity', 'GET');
-      return response.users || [];
-    },
-    enabled: activeTab === 'discover',
+      const response = await apiRequest('/api/users/suggestions', 'GET');
+      return response.suggestions || [];
+    }
   });
 
-  // Add friend mutation
-  const addFriendMutation = useMutation({
-    mutationFn: async (userId: string) => {
-      return apiRequest('/api/social/friends', 'POST', {
-        friendId: userId,
-        action: 'send'
-      });
+  // Friend request mutation
+  const friendRequestMutation = useMutation({
+    mutationFn: async ({ friendId, action }: { friendId: string; action: 'send' | 'accept' | 'reject' | 'remove' }) => {
+      return apiRequest('/api/social/friends', 'POST', { friendId, action });
     },
-    onSuccess: () => {
+    onSuccess: (data, variables) => {
+      const action = variables.action;
+      const actionText = {
+        send: 'Friend request sent',
+        accept: 'Friend request accepted',
+        reject: 'Friend request rejected',
+        remove: 'Friend removed'
+      }[action];
+      
       toast({
-        title: "Friend Request Sent",
-        description: "Your friend request has been sent.",
+        title: "Success",
+        description: actionText,
       });
+      
+      // Invalidate relevant queries
+      queryClient.invalidateQueries({ queryKey: ['users/search'] });
+      queryClient.invalidateQueries({ queryKey: ['users/suggestions'] });
+      queryClient.invalidateQueries({ queryKey: ['social/friends'] });
     },
     onError: (error: any) => {
       toast({
-        title: "Request Failed",
-        description: error.message || "Failed to send friend request.",
+        title: "Action Failed",
+        description: error.message || "Failed to perform action.",
         variant: "destructive",
       });
     },
   });
 
-  // Message user mutation
-  const messageUserMutation = useMutation({
-    mutationFn: async (userId: string) => {
-      return apiRequest('/api/social/messages', 'POST', {
-        recipientId: userId,
-        content: "Hello! I'd like to connect with you on CivicOS."
-      });
+  // Send message mutation
+  const sendMessageMutation = useMutation({
+    mutationFn: async ({ recipientId, content }: { recipientId: string; content: string }) => {
+      return apiRequest('/api/social/messages', 'POST', { recipientId, content });
     },
     onSuccess: () => {
       toast({
         title: "Message Sent",
-        description: "Your message has been sent.",
+        description: "Your message has been sent successfully.",
       });
     },
     onError: (error: any) => {
@@ -192,27 +203,17 @@ export default function UserSearch() {
     },
   });
 
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    setDebouncedQuery(searchQuery);
+  const handleSearch = () => {
+    // Trigger search by updating query key
+    queryClient.invalidateQueries({ queryKey: ['users/search', searchParams] });
   };
 
-  const handleFilterChange = (key: keyof SearchFilters, value: any) => {
-    setFilters(prev => ({
-      ...prev,
-      [key]: value
-    }));
+  const handleFriendAction = (userId: string, action: 'send' | 'accept' | 'reject' | 'remove') => {
+    friendRequestMutation.mutate({ friendId: userId, action });
   };
 
-  const clearFilters = () => {
-    setFilters({});
-  };
-
-  const getDisplayName = (user: User) => {
-    if (user.firstName && user.lastName) return `${user.firstName} ${user.lastName}`;
-    if (user.firstName) return user.firstName;
-    if (user.email) return user.email.split('@')[0];
-    return 'Anonymous User';
+  const handleSendMessage = (userId: string, content: string) => {
+    sendMessageMutation.mutate({ recipientId: userId, content });
   };
 
   const getCivicLevelColor = (level: string) => {
@@ -225,336 +226,276 @@ export default function UserSearch() {
     }
   };
 
-  const getTrustScoreColor = (score: number) => {
-    if (score >= 90) return 'text-green-600';
-    if (score >= 70) return 'text-yellow-600';
-    return 'text-red-600';
+  const formatTimeAgo = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+    
+    if (diffInSeconds < 60) return 'just now';
+    if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;
+    if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`;
+    if (diffInSeconds < 2592000) return `${Math.floor(diffInSeconds / 86400)}d ago`;
+    return date.toLocaleDateString();
   };
 
-  const UserCard = ({ user, showActions = true }: { user: User; showActions?: boolean }) => (
-    <Card className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => setSelectedUser(user)}>
+  const UserCard = ({ user }: { user: User }) => (
+    <Card className="mb-4 hover:shadow-md transition-shadow">
       <CardContent className="p-4">
-        <div className="flex items-start gap-4">
-          <Avatar className="w-12 h-12">
-            <AvatarImage src={user.profileImageUrl} />
-            <AvatarFallback className="bg-blue-600">
-              {getDisplayName(user)[0]?.toUpperCase()}
-            </AvatarFallback>
-          </Avatar>
-          
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-1">
-              <h3 className="font-semibold text-lg truncate">{getDisplayName(user)}</h3>
-                             {user.isVerified && (
-                 <Badge variant="secondary">
-                   <Shield className="w-3 h-3 mr-1" />
-                   Verified
-                 </Badge>
-               )}
-               <Badge className={`text-xs ${getCivicLevelColor(user.civicLevel || '')}`}>
-                 {user.civicLevel || 'Registered'}
-               </Badge>
-            </div>
-            
-            {user.occupation && (
-              <p className="text-sm text-gray-600 mb-1 flex items-center gap-1">
-                <Briefcase className="w-3 h-3" />
-                {user.occupation}
-              </p>
-            )}
-            
-            {user.city && user.province && (
-              <p className="text-sm text-gray-600 mb-1 flex items-center gap-1">
-                <MapPin className="w-3 h-3" />
-                {user.city}, {user.province}
-              </p>
-            )}
-            
-            {user.bio && (
-              <p className="text-sm text-gray-700 line-clamp-2">{user.bio}</p>
-            )}
-            
-            <div className="flex items-center gap-4 mt-3 text-xs text-gray-500">
-              <span className={`flex items-center gap-1 ${getTrustScoreColor(user.trustScore || 0)}`}>
-                <Shield className="w-3 h-3" />
-                {user.trustScore || 0}% trust
-              </span>
-              <span className="flex items-center gap-1">
-                <Trophy className="w-3 h-3" />
-                {user.civicPoints || 0} points
-              </span>
-              {user.createdAt && (
-                <span className="flex items-center gap-1">
-                  <Calendar className="w-3 h-3" />
-                  {new Date(user.createdAt).toLocaleDateString()}
-                </span>
+        <div className="flex items-start justify-between">
+          <div className="flex items-center gap-3">
+            <Avatar className="w-12 h-12">
+              <AvatarImage src={user.profileImageUrl} />
+              <AvatarFallback className="bg-blue-600">
+                {user.displayName[0]?.toUpperCase()}
+              </AvatarFallback>
+            </Avatar>
+            <div className="flex-1">
+              <div className="flex items-center gap-2 mb-1">
+                <h3 className="font-semibold">{user.displayName}</h3>
+                {user.isVerified && (
+                  <Badge variant="secondary">
+                    <Star className="w-3 h-3 mr-1" />
+                    Verified
+                  </Badge>
+                )}
+                <Badge className={`text-xs ${getCivicLevelColor(user.civicLevel || '')}`}>
+                  {user.civicLevel || 'Registered'}
+                </Badge>
+              </div>
+              
+              {user.location && (
+                <div className="flex items-center gap-1 text-sm text-gray-600 mb-1">
+                  <MapPin className="w-3 h-3" />
+                  {user.location}
+                </div>
+              )}
+              
+              {user.stats && (
+                <div className="flex items-center gap-4 text-xs text-gray-500">
+                  <span>{user.stats.posts} posts</span>
+                  <span>{user.stats.friends} friends</span>
+                  <span>{user.stats.activities} activities</span>
+                </div>
               )}
             </div>
           </div>
           
-          {showActions && currentUser?.id !== user.id && (
-            <div className="flex flex-col gap-2">
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  addFriendMutation.mutate(user.id);
-                }}
-              >
-                <UserPlus className="w-3 h-3 mr-1" />
-                Add
-              </Button>
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  messageUserMutation.mutate(user.id);
-                }}
-              >
-                <MessageCircle className="w-3 h-3 mr-1" />
-                Message
-              </Button>
-            </div>
-          )}
+          <div className="flex items-center gap-2">
+            {user.friendship && (
+              <>
+                {user.friendship.isFriend ? (
+                  <Button variant="outline" size="sm" disabled>
+                    <UserCheck className="w-4 h-4 mr-1" />
+                    Friends
+                  </Button>
+                ) : user.friendship.pendingRequest ? (
+                  <Button variant="outline" size="sm" disabled>
+                    <Clock className="w-4 h-4 mr-1" />
+                    Request Sent
+                  </Button>
+                ) : user.friendship.receivedRequest ? (
+                  <div className="flex gap-1">
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => handleFriendAction(user.id, 'accept')}
+                    >
+                      <Check className="w-4 h-4 mr-1" />
+                      Accept
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => handleFriendAction(user.id, 'reject')}
+                    >
+                      <X className="w-4 h-4 mr-1" />
+                      Decline
+                    </Button>
+                  </div>
+                ) : user.friendship.canSendRequest ? (
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => handleFriendAction(user.id, 'send')}
+                  >
+                    <UserPlus className="w-4 h-4 mr-1" />
+                    Add Friend
+                  </Button>
+                ) : null}
+              </>
+            )}
+            
+            <Button 
+              variant="ghost" 
+              size="sm"
+              onClick={() => setSelectedUser(user)}
+            >
+              <MoreHorizontal className="w-4 h-4" />
+            </Button>
+          </div>
         </div>
       </CardContent>
     </Card>
   );
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-6xl">
+    <div className="container mx-auto px-4 py-8 max-w-4xl">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2">Find Civic Citizens</h1>
-        <p className="text-gray-600">Discover and connect with engaged citizens in your community</p>
+        <h1 className="text-3xl font-bold mb-2">Find People</h1>
+        <p className="text-gray-600">Connect with fellow citizens and build your civic network</p>
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-2">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="search">Search Users</TabsTrigger>
-          <TabsTrigger value="discover">Discover</TabsTrigger>
+          <TabsTrigger value="suggestions">Suggestions</TabsTrigger>
+          <TabsTrigger value="recent">Recent Activity</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="search" className="space-y-6">
+        <TabsContent value="search" className="mt-6">
           {/* Search Form */}
-          <Card>
+          <Card className="mb-6">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Search className="w-5 h-5" />
-                Search Users
-              </CardTitle>
-              <CardDescription>
-                Find users by name, email, location, or interests
-              </CardDescription>
+              <CardTitle>Search Users</CardTitle>
+              <CardDescription>Find people by name, location, or interests</CardDescription>
             </CardHeader>
             <CardContent>
-              <form onSubmit={handleSearch} className="space-y-4">
-                <div className="flex gap-4">
-                  <div className="flex-1">
-                    <Input
-                      placeholder="Search by name, email, location, or interests..."
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      className="w-full"
-                    />
-                  </div>
-                  <Button type="submit" disabled={isSearching}>
-                    {isSearching ? 'Searching...' : 'Search'}
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => setShowFilters(!showFilters)}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div>
+                  <Label htmlFor="search-name">Name or Email</Label>
+                  <Input
+                    id="search-name"
+                    placeholder="Search by name or email..."
+                    value={searchParams.q}
+                    onChange={(e) => setSearchParams(prev => ({ ...prev, q: e.target.value }))}
+                    onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
+                  />
+                </div>
+                
+                <div>
+                  <Label htmlFor="search-location">Location</Label>
+                  <Input
+                    id="search-location"
+                    placeholder="City, province, or riding..."
+                    value={searchParams.location}
+                    onChange={(e) => setSearchParams(prev => ({ ...prev, location: e.target.value }))}
+                    onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
+                  />
+                </div>
+                
+                <div>
+                  <Label htmlFor="search-level">Civic Level</Label>
+                  <Select 
+                    value={searchParams.civicLevel} 
+                    onValueChange={(value) => setSearchParams(prev => ({ ...prev, civicLevel: value }))}
                   >
-                    <Filter className="w-4 h-4 mr-2" />
-                    Filters
+                    <SelectTrigger>
+                      <SelectValue placeholder="Any level" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">Any level</SelectItem>
+                      <SelectItem value="Registered">Registered</SelectItem>
+                      <SelectItem value="Active">Active</SelectItem>
+                      <SelectItem value="Advocate">Advocate</SelectItem>
+                      <SelectItem value="Expert">Expert</SelectItem>
+                      <SelectItem value="Champion">Champion</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div className="flex items-end">
+                  <Button onClick={handleSearch} className="w-full">
+                    <Search className="w-4 h-4 mr-2" />
+                    Search
                   </Button>
                 </div>
-
-                {showFilters && (
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4 p-4 border rounded-lg bg-gray-50">
-                    <div>
-                      <Label htmlFor="location">Location</Label>
-                      <Input
-                        id="location"
-                        placeholder="City or Province"
-                        value={filters.location || ''}
-                        onChange={(e) => handleFilterChange('location', e.target.value)}
-                      />
-                    </div>
-                    
-                    <div>
-                      <Label htmlFor="civicLevel">Civic Level</Label>
-                      <Select
-                        value={filters.civicLevel || ''}
-                        onValueChange={(value) => handleFilterChange('civicLevel', value)}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Any level" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="">Any level</SelectItem>
-                          <SelectItem value="champion">Champion</SelectItem>
-                          <SelectItem value="expert">Expert</SelectItem>
-                          <SelectItem value="advocate">Advocate</SelectItem>
-                          <SelectItem value="active">Active</SelectItem>
-                          <SelectItem value="registered">Registered</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    
-                    <div>
-                      <Label htmlFor="verification">Verification</Label>
-                      <Select
-                        value={filters.verificationStatus || ''}
-                        onValueChange={(value) => handleFilterChange('verificationStatus', value)}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Any status" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="">Any status</SelectItem>
-                          <SelectItem value="verified">Verified only</SelectItem>
-                          <SelectItem value="unverified">Unverified only</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    
-                    <div>
-                      <Label htmlFor="sortBy">Sort By</Label>
-                      <Select
-                        value={filters.sortBy || ''}
-                        onValueChange={(value) => handleFilterChange('sortBy', value)}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Relevance" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="relevance">Relevance</SelectItem>
-                          <SelectItem value="trust_score">Trust Score</SelectItem>
-                          <SelectItem value="civic_points">Civic Points</SelectItem>
-                          <SelectItem value="recent">Recently Active</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                )}
-
-                {Object.keys(filters).some(key => filters[key as keyof SearchFilters]) && (
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm text-gray-600">Active filters:</span>
-                    {Object.entries(filters).map(([key, value]) => (
-                      value && (
-                        <Badge key={key} variant="secondary" className="text-xs">
-                          {key}: {value}
-                          <X
-                            className="w-3 h-3 ml-1 cursor-pointer"
-                            onClick={() => handleFilterChange(key as keyof SearchFilters, '')}
-                          />
-                        </Badge>
-                      )
-                    ))}
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={clearFilters}
-                      className="text-xs"
-                    >
-                      Clear all
-                    </Button>
-                  </div>
-                )}
-              </form>
+              </div>
             </CardContent>
           </Card>
 
           {/* Search Results */}
-          {debouncedQuery && (
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <h2 className="text-xl font-semibold">
-                  Search Results
-                  {searchResults && (
-                    <span className="text-sm font-normal text-gray-600 ml-2">
-                      ({searchResults.total} users found)
-                    </span>
-                  )}
-                </h2>
-              </div>
-
-              {isSearching ? (
-                <div className="text-center py-8">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-                  <p className="mt-2 text-gray-600">Searching users...</p>
-                </div>
-              ) : searchResults?.users.length === 0 ? (
-                <Card>
-                  <CardContent className="p-8 text-center">
-                    <Users className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                    <h3 className="text-lg font-semibold mb-2">No users found</h3>
-                    <p className="text-gray-600">
-                      Try adjusting your search terms or filters to find more users.
-                    </p>
-                  </CardContent>
-                </Card>
-              ) : (
-                <div className="grid gap-4">
-                  {searchResults?.users.map((user) => (
-                    <UserCard key={user.id} user={user} />
-                  ))}
-                </div>
-              )}
+          {isLoadingSearch ? (
+            <div className="text-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+              <p className="mt-2 text-gray-600">Searching users...</p>
             </div>
+          ) : searchResults?.length === 0 && (searchParams.q || searchParams.location || searchParams.civicLevel) ? (
+            <Card>
+              <CardContent className="p-8 text-center">
+                <Users className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-lg font-semibold mb-2">No users found</h3>
+                <p className="text-gray-600">
+                  Try adjusting your search criteria or browse suggestions instead.
+                </p>
+              </CardContent>
+            </Card>
+          ) : searchResults?.length > 0 ? (
+            <div>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold">Search Results ({searchResults.length})</h3>
+                <Button variant="outline" size="sm" onClick={() => setShowFilters(!showFilters)}>
+                  <Filter className="w-4 h-4 mr-2" />
+                  Filters
+                </Button>
+              </div>
+              
+              {searchResults.map((user: User) => (
+                <UserCard key={user.id} user={user} />
+              ))}
+            </div>
+          ) : (
+            <Card>
+              <CardContent className="p-8 text-center">
+                <Search className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-lg font-semibold mb-2">Start searching</h3>
+                <p className="text-gray-600">
+                  Enter a name, location, or civic level to find users.
+                </p>
+              </CardContent>
+            </Card>
           )}
         </TabsContent>
 
-        <TabsContent value="discover" className="space-y-6">
-          {/* Popular Users */}
+        <TabsContent value="suggestions" className="mt-6">
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <TrendingUp className="w-5 h-5" />
-                Popular Users
-              </CardTitle>
-              <CardDescription>
-                Most engaged and trusted citizens on the platform
-              </CardDescription>
+              <CardTitle>People You May Know</CardTitle>
+              <CardDescription>Users with similar interests or location</CardDescription>
             </CardHeader>
             <CardContent>
-              {popularUsers?.length === 0 ? (
-                <p className="text-gray-500 text-center py-8">No popular users found</p>
+              {suggestions.length === 0 ? (
+                <div className="text-center py-8">
+                  <Users className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                  <h3 className="text-lg font-semibold mb-2">No suggestions yet</h3>
+                  <p className="text-gray-600">
+                    Complete your profile to get personalized suggestions.
+                  </p>
+                </div>
               ) : (
-                <div className="grid gap-4">
-                  {popularUsers?.map((user) => (
+                <div className="space-y-4">
+                  {suggestions.map((user: User) => (
                     <UserCard key={user.id} user={user} />
                   ))}
                 </div>
               )}
             </CardContent>
           </Card>
+        </TabsContent>
 
-          {/* Recent Activity */}
+        <TabsContent value="recent" className="mt-6">
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Activity className="w-5 h-5" />
-                Recently Active
-              </CardTitle>
-              <CardDescription>
-                Users who have been active recently
-              </CardDescription>
+              <CardTitle>Recent Activity</CardTitle>
+              <CardDescription>Recent user activity and engagement</CardDescription>
             </CardHeader>
             <CardContent>
-              {recentActivityUsers?.length === 0 ? (
-                <p className="text-gray-500 text-center py-8">No recent activity found</p>
-              ) : (
-                <div className="grid gap-4">
-                  {recentActivityUsers?.map((user) => (
-                    <UserCard key={user.id} user={user} />
-                  ))}
-                </div>
-              )}
+              <div className="text-center py-8">
+                <Activity className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-lg font-semibold mb-2">No recent activity</h3>
+                <p className="text-gray-600">
+                  Activity feed will appear here as users engage with the platform.
+                </p>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
@@ -568,113 +509,96 @@ export default function UserSearch() {
           </DialogHeader>
           {selectedUser && (
             <div className="space-y-4">
-              <div className="flex items-center gap-4">
+              <div className="flex items-start gap-4">
                 <Avatar className="w-16 h-16">
                   <AvatarImage src={selectedUser.profileImageUrl} />
-                  <AvatarFallback className="text-xl bg-blue-600">
-                    {getDisplayName(selectedUser)[0]?.toUpperCase()}
+                  <AvatarFallback className="bg-blue-600 text-lg">
+                    {selectedUser.displayName[0]?.toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
-                <div>
-                  <h3 className="text-xl font-semibold">{getDisplayName(selectedUser)}</h3>
-                  <div className="flex items-center gap-2 mt-1">
-                                         {selectedUser.isVerified && (
-                       <Badge variant="secondary">
-                         <Shield className="w-3 h-3 mr-1" />
-                         Verified
-                       </Badge>
-                     )}
-                     <Badge className={getCivicLevelColor(selectedUser.civicLevel || '')}>
-                       {selectedUser.civicLevel || 'Registered'}
-                     </Badge>
-                  </div>
-                </div>
-              </div>
-
-              {selectedUser.bio && (
-                <p className="text-gray-700">{selectedUser.bio}</p>
-              )}
-
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                {selectedUser.occupation && (
-                  <div className="flex items-center gap-2">
-                    <Briefcase className="w-4 h-4 text-gray-500" />
-                    <span>{selectedUser.occupation}</span>
-                  </div>
-                )}
                 
-                {selectedUser.education && (
-                  <div className="flex items-center gap-2">
-                    <GraduationCap className="w-4 h-4 text-gray-500" />
-                    <span>{selectedUser.education}</span>
-                  </div>
-                )}
-                
-                {selectedUser.city && selectedUser.province && (
-                  <div className="flex items-center gap-2">
-                    <MapPin className="w-4 h-4 text-gray-500" />
-                    <span>{selectedUser.city}, {selectedUser.province}</span>
-                  </div>
-                )}
-                
-                {selectedUser.politicalAffiliation && (
-                  <div className="flex items-center gap-2">
-                    <Flag className="w-4 h-4 text-gray-500" />
-                    <span>{selectedUser.politicalAffiliation}</span>
-                  </div>
-                )}
-              </div>
-
-              {selectedUser.interests && selectedUser.interests.length > 0 && (
-                <div>
-                  <h4 className="font-medium mb-2">Interests</h4>
-                  <div className="flex flex-wrap gap-2">
-                    {selectedUser.interests.map((interest, index) => (
-                      <Badge key={index} variant="secondary">
-                        {interest}
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-2">
+                    <h3 className="text-xl font-semibold">{selectedUser.displayName}</h3>
+                    {selectedUser.isVerified && (
+                      <Badge variant="secondary">
+                        <Star className="w-3 h-3 mr-1" />
+                        Verified
                       </Badge>
-                    ))}
+                    )}
+                    <Badge className={getCivicLevelColor(selectedUser.civicLevel || '')}>
+                      {selectedUser.civicLevel || 'Registered'}
+                    </Badge>
                   </div>
+                  
+                  {selectedUser.location && (
+                    <div className="flex items-center gap-1 text-gray-600 mb-2">
+                      <MapPin className="w-4 h-4" />
+                      {selectedUser.location}
+                    </div>
+                  )}
+                  
+                  {selectedUser.stats && (
+                    <div className="flex items-center gap-4 text-sm text-gray-500">
+                      <span>{selectedUser.stats.posts} posts</span>
+                      <span>{selectedUser.stats.friends} friends</span>
+                      <span>{selectedUser.stats.activities} activities</span>
+                    </div>
+                  )}
                 </div>
-              )}
-
-              <div className="flex items-center justify-between pt-4 border-t">
-                <div className="flex items-center gap-4 text-sm text-gray-600">
-                  <span className={`flex items-center gap-1 ${getTrustScoreColor(selectedUser.trustScore || 0)}`}>
-                    <Shield className="w-4 h-4" />
-                    {selectedUser.trustScore || 0}% trust
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <Trophy className="w-4 h-4" />
-                    {selectedUser.civicPoints || 0} points
-                  </span>
-                </div>
-                
-                {currentUser?.id !== selectedUser.id && (
-                  <div className="flex gap-2">
-                    <Button
-                      size="sm"
-                      onClick={() => {
-                        addFriendMutation.mutate(selectedUser.id);
-                        setSelectedUser(null);
-                      }}
-                    >
-                      <UserPlus className="w-4 h-4 mr-2" />
-                      Add Friend
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => {
-                        messageUserMutation.mutate(selectedUser.id);
-                        setSelectedUser(null);
-                      }}
-                    >
-                      <MessageCircle className="w-4 h-4 mr-2" />
-                      Message
-                    </Button>
-                  </div>
+              </div>
+              
+              <Separator />
+              
+              <div className="flex gap-2">
+                {selectedUser.friendship && (
+                  <>
+                    {selectedUser.friendship.isFriend ? (
+                      <Button variant="outline" disabled>
+                        <UserCheck className="w-4 h-4 mr-2" />
+                        Friends
+                      </Button>
+                    ) : selectedUser.friendship.pendingRequest ? (
+                      <Button variant="outline" disabled>
+                        <Clock className="w-4 h-4 mr-2" />
+                        Request Sent
+                      </Button>
+                    ) : selectedUser.friendship.receivedRequest ? (
+                      <>
+                        <Button 
+                          onClick={() => handleFriendAction(selectedUser.id, 'accept')}
+                        >
+                          <Check className="w-4 h-4 mr-2" />
+                          Accept Request
+                        </Button>
+                        <Button 
+                          variant="outline"
+                          onClick={() => handleFriendAction(selectedUser.id, 'reject')}
+                        >
+                          <X className="w-4 h-4 mr-2" />
+                          Decline
+                        </Button>
+                      </>
+                    ) : selectedUser.friendship.canSendRequest ? (
+                      <Button 
+                        onClick={() => handleFriendAction(selectedUser.id, 'send')}
+                      >
+                        <UserPlus className="w-4 h-4 mr-2" />
+                        Add Friend
+                      </Button>
+                    ) : null}
+                  </>
                 )}
+                
+                <Button variant="outline">
+                  <MessageSquare className="w-4 h-4 mr-2" />
+                  Send Message
+                </Button>
+                
+                <Button variant="outline">
+                  <ExternalLink className="w-4 h-4 mr-2" />
+                  View Profile
+                </Button>
               </div>
             </div>
           )}

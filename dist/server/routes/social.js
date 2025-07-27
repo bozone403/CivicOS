@@ -122,8 +122,8 @@ export function registerSocialRoutes(app) {
                     .where(eq(sql `post_id`, post.id));
                 const [sharesCount] = await db
                     .select({ count: count() })
-                    .from(sql `social_shares`)
-                    .where(eq(sql `post_id`, post.id));
+                    .from(sql `social_posts`)
+                    .where(and(eq(sql `original_item_id`, post.id), eq(sql `type`, 'share')));
                 // Check if current user liked/bookmarked
                 const [isLiked] = currentUserId ? await db
                     .select({ count: count() })
@@ -285,6 +285,93 @@ export function registerSocialRoutes(app) {
         catch (error) {
             console.error('Comment on post error:', error);
             res.status(500).json({ error: "Failed to add comment" });
+        }
+    });
+    // PUT /api/social/posts/:id - Edit a post
+    app.put('/api/social/posts/:id', jwtAuth, async (req, res) => {
+        try {
+            const postId = parseInt(req.params.id);
+            const currentUserId = req.user.id;
+            const { content, imageUrl, visibility, tags, location, mood } = req.body;
+            if (!content || !content.trim()) {
+                return res.status(400).json({ error: "Post content is required" });
+            }
+            // Check if user owns the post
+            const [existingPost] = await db
+                .select()
+                .from(socialPosts)
+                .where(and(eq(socialPosts.id, postId), eq(socialPosts.userId, currentUserId)));
+            if (!existingPost) {
+                return res.status(404).json({ error: "Post not found or you don't have permission to edit it" });
+            }
+            // Update the post
+            const [updatedPost] = await db
+                .update(socialPosts)
+                .set({
+                content: content.trim(),
+                imageUrl,
+                visibility: visibility || existingPost.visibility,
+                tags: tags || existingPost.tags,
+                location,
+                mood,
+                updatedAt: new Date(),
+            })
+                .where(and(eq(socialPosts.id, postId), eq(socialPosts.userId, currentUserId)))
+                .returning();
+            // Record activity
+            await db.insert(userActivities).values({
+                userId: currentUserId,
+                activityType: 'post_edit',
+                activityData: {
+                    postId,
+                    contentLength: content.length,
+                },
+            });
+            res.json(updatedPost);
+        }
+        catch (error) {
+            console.error('Edit post error:', error);
+            res.status(500).json({ error: "Failed to edit post" });
+        }
+    });
+    // DELETE /api/social/posts/:id - Delete a post
+    app.delete('/api/social/posts/:id', jwtAuth, async (req, res) => {
+        try {
+            const postId = parseInt(req.params.id);
+            const currentUserId = req.user.id;
+            // Check if user owns the post
+            const [existingPost] = await db
+                .select()
+                .from(socialPosts)
+                .where(and(eq(socialPosts.id, postId), eq(socialPosts.userId, currentUserId)));
+            if (!existingPost) {
+                return res.status(404).json({ error: "Post not found or you don't have permission to delete it" });
+            }
+            // Soft delete - mark as deleted instead of actually deleting
+            await db
+                .update(socialPosts)
+                .set({
+                content: '[This post has been deleted]',
+                imageUrl: null,
+                tags: [],
+                location: null,
+                mood: null,
+                updatedAt: new Date(),
+            })
+                .where(and(eq(socialPosts.id, postId), eq(socialPosts.userId, currentUserId)));
+            // Record activity
+            await db.insert(userActivities).values({
+                userId: currentUserId,
+                activityType: 'post_delete',
+                activityData: {
+                    postId,
+                },
+            });
+            res.json({ success: true, message: "Post deleted successfully" });
+        }
+        catch (error) {
+            console.error('Delete post error:', error);
+            res.status(500).json({ error: "Failed to delete post" });
         }
     });
     // POST /api/social/posts/:id/share - Share a post

@@ -38,7 +38,7 @@ import { registerRightsRoutes } from "./routes/rights.js";
 import { registerMembershipRoutes } from "./routes/membership.js";
 import { registerAnnouncementsRoutes } from "./routes/announcements.js";
 import { registerPermissionsRoutes } from "./routes/permissions.js";
-// import { registerSocialRoutes } from "./routes/social.js";
+import { registerSocialRoutes } from "./routes/social.js";
 import votingRouter from "./routes/voting.js";
 import donationsRouter from "./routes/donations.js";
 import foiRouter from "./routes/foi.js";
@@ -82,7 +82,7 @@ export async function registerRoutes(app: Express): Promise<void> {
     res.json({ success: true, message: 'Test route working' });
   });
   
-  // registerSocialRoutes(app);
+  registerSocialRoutes(app);
 
   // FOI routes (no auth required)
   app.use("/api/foi", foiRouter);

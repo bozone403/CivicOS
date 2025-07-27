@@ -1,7 +1,7 @@
 import { Express, Request, Response } from 'express';
 import { db } from '../db.js';
 import { users } from '../../shared/schema.js';
-import { eq, and, desc, count, sql, like, or } from 'drizzle-orm';
+import { eq, and, desc, count, sql, or, inArray, ne, isNotNull, ilike } from 'drizzle-orm';
 import jwt from 'jsonwebtoken';
 
 // JWT Auth middleware
@@ -20,273 +20,357 @@ function jwtAuth(req: any, res: any, next: any) {
     req.user = decoded;
     next();
   } catch (err) {
-    return res.status(401).json({ error: "Invalid token" });
+    return res.status(401).json({ error: "Invalid or expired token" });
   }
 }
 
-export default function usersRoutes(app: Express) {
-  // Get public profile by username
-  app.get('/api/users/profile/:username', async (req: Request, res: Response) => {
+export function registerUserRoutes(app: Express) {
+  // GET /api/users/search - Search for users
+  app.get('/api/users/search', jwtAuth, async (req: Request, res: Response) => {
     try {
-      const { username } = req.params;
-      
-      const user = await db.execute(sql`
-        SELECT 
-          id, 
-          email, 
-          first_name, 
-          last_name, 
-          bio, 
-          profile_image_url, 
-          civic_level, 
-          is_verified,
-          location,
-          created_at,
-          civic_points
-        FROM users 
-        WHERE username = ${username} OR email = ${username}
-      `);
+      const currentUserId = (req.user as any).id;
+      const { 
+        q = '', 
+        location = '', 
+        interests = '', 
+        civicLevel = '', 
+        limit = 20, 
+        offset = 0 
+      } = req.query;
 
-      if (user.rows.length === 0) {
-        return res.status(404).json({ error: "User not found" });
+      let whereConditions: any[] = [];
+
+      // Exclude current user from search results
+      whereConditions.push(ne(users.id, currentUserId));
+
+      // Search by name, email, or location
+      if (q && typeof q === 'string') {
+        const searchTerm = `%${q.toLowerCase()}%`;
+        whereConditions.push(
+          or(
+            ilike(users.firstName, searchTerm),
+            ilike(users.lastName, searchTerm),
+            ilike(users.email, searchTerm),
+            ilike(users.city, searchTerm),
+            ilike(users.province, searchTerm)
+          )
+        );
       }
 
-      const userData = user.rows[0];
-      
-      // Get user stats
-      const stats = await db.execute(sql`
-        SELECT 
-          (SELECT COUNT(*) FROM social_posts WHERE user_id = ${userData.id}) as posts_count,
-          (SELECT COUNT(*) FROM user_friends WHERE friend_id = ${userData.id} AND status = 'accepted') as followers_count,
-          (SELECT COUNT(*) FROM user_friends WHERE user_id = ${userData.id} AND status = 'accepted') as following_count
-      `);
-
-      const profile = {
-        id: userData.id,
-        username: (userData.email as string)?.split('@')[0] || 'anonymous',
-        firstName: userData.first_name,
-        lastName: userData.last_name,
-        email: userData.email,
-        bio: userData.bio,
-        profileImageUrl: userData.profile_image_url,
-        civicLevel: userData.civic_level,
-        isVerified: userData.is_verified,
-        location: userData.location,
-        joinDate: userData.created_at,
-        postsCount: parseInt((stats.rows[0]?.posts_count as string) || '0'),
-        followersCount: parseInt((stats.rows[0]?.followers_count as string) || '0'),
-        followingCount: parseInt((stats.rows[0]?.following_count as string) || '0'),
-        civicPoints: userData.civic_points || 0,
-      };
-
-      res.json({ profile });
-    } catch (error) {
-      console.error('Error fetching user profile:', error);
-      res.status(500).json({ error: "Failed to fetch user profile" });
-    }
-  });
-
-  // Get user posts
-  app.get('/api/social/posts/user/:username', async (req: Request, res: Response) => {
-    try {
-      const { username } = req.params;
-      
-      // Get user ID from username
-      const user = await db.execute(sql`
-        SELECT id FROM users WHERE username = ${username} OR email = ${username}
-      `);
-
-      if (user.rows.length === 0) {
-        return res.status(404).json({ error: "User not found" });
+      // Filter by location
+      if (location && typeof location === 'string') {
+        const locationTerm = `%${location.toLowerCase()}%`;
+        whereConditions.push(
+          or(
+            ilike(users.city, locationTerm),
+            ilike(users.province, locationTerm),
+            ilike(users.federalRiding, locationTerm)
+          )
+        );
       }
 
-      const userId = user.rows[0].id;
-
-      // Get user's posts
-      const posts = await db.execute(sql`
-        SELECT 
-          sp.id,
-          sp.content,
-          sp.image_url,
-          sp.type,
-          sp.visibility,
-          sp.tags,
-          sp.location,
-          sp.mood,
-          sp.created_at,
-          sp.updated_at,
-          u.id as user_id,
-          u.first_name,
-          u.last_name,
-          u.profile_image_url,
-          (SELECT COUNT(*) FROM social_likes WHERE post_id = sp.id) as likes_count,
-          (SELECT COUNT(*) FROM social_comments WHERE post_id = sp.id) as comments_count,
-          (SELECT COUNT(*) FROM social_posts WHERE original_item_id = sp.id AND type = 'share') as shares_count
-        FROM social_posts sp
-        JOIN users u ON sp.user_id = u.id
-        WHERE sp.user_id = ${userId}
-        ORDER BY sp.created_at DESC
-      `);
-
-      const formattedPosts = posts.rows.map((post: any) => ({
-        id: post.id,
-        content: post.content,
-        imageUrl: post.image_url,
-        type: post.type,
-        visibility: post.visibility,
-        tags: post.tags || [],
-        location: post.location,
-        mood: post.mood,
-        createdAt: post.created_at,
-        updatedAt: post.updated_at,
-        likesCount: parseInt(post.likes_count || '0'),
-        commentsCount: parseInt(post.comments_count || '0'),
-        sharesCount: parseInt(post.shares_count || '0'),
-        isLiked: false, // TODO: Check if current user liked this post
-        user: {
-          id: post.user_id,
-          firstName: post.first_name,
-          lastName: post.last_name,
-          profileImageUrl: post.profile_image_url,
-        },
-      }));
-
-      res.json({ posts: formattedPosts });
-    } catch (error) {
-      console.error('Error fetching user posts:', error);
-      res.status(500).json({ error: "Failed to fetch user posts" });
-    }
-  });
-
-  // Get user achievements
-  app.get('/api/users/:username/achievements', async (req: Request, res: Response) => {
-    try {
-      const { username } = req.params;
-      
-      // Get user ID from username
-      const user = await db.execute(sql`
-        SELECT id FROM users WHERE username = ${username} OR email = ${username}
-      `);
-
-      if (user.rows.length === 0) {
-        return res.status(404).json({ error: "User not found" });
+      // Filter by civic level
+      if (civicLevel && typeof civicLevel === 'string') {
+        whereConditions.push(eq(users.civicLevel, civicLevel));
       }
 
-      const userId = user.rows[0].id;
+      // Get users with basic info
+      const searchResults = await db
+        .select({
+          id: users.id,
+          firstName: users.firstName,
+          lastName: users.lastName,
+          email: users.email,
+          profileImageUrl: users.profileImageUrl,
+          bio: users.bio,
+          city: users.city,
+          province: users.province,
+          civicLevel: users.civicLevel,
+          isVerified: users.isVerified,
+          trustScore: users.trustScore,
+          createdAt: users.createdAt,
+        })
+        .from(users)
+        .where(and(...whereConditions))
+        .orderBy(desc(users.createdAt))
+        .limit(parseInt(limit as string))
+        .offset(parseInt(offset as string));
 
-      // Get user's achievements
-      const achievements = await db.execute(sql`
-        SELECT 
-          b.id,
-          b.name,
-          b.description,
-          b.icon,
-          ub.earned_at
-        FROM user_badges ub
-        JOIN badges b ON ub.badge_id = b.id
-        WHERE ub.user_id = ${userId} AND ub.is_completed = true
-        ORDER BY ub.earned_at DESC
-      `);
+      // Get total count for pagination
+      const [totalCount] = await db
+        .select({ count: count() })
+        .from(users)
+        .where(and(...whereConditions));
 
-      const formattedAchievements = achievements.rows.map((achievement: any) => ({
-        id: achievement.id,
-        name: achievement.name,
-        description: achievement.description,
-        icon: achievement.icon,
-        earnedAt: achievement.earned_at,
-      }));
-
-      res.json({ achievements: formattedAchievements });
-    } catch (error) {
-      console.error('Error fetching user achievements:', error);
-      res.status(500).json({ error: "Failed to fetch user achievements" });
-    }
-  });
-
-  // Search users
-  app.get('/api/users/search', async (req: Request, res: Response) => {
-    try {
-      const { q, limit = 10 } = req.query;
-      
-      if (!q || typeof q !== 'string') {
-        return res.status(400).json({ error: "Search query is required" });
-      }
-
-      const searchTerm = `%${q}%`;
-      
-      const results = await db.execute(sql`
-        SELECT 
-          id,
-          email,
-          first_name,
-          last_name,
-          bio,
-          profile_image_url,
-          civic_level,
-          is_verified,
-          location
-        FROM users 
-        WHERE 
-          first_name ILIKE ${searchTerm} OR 
-          last_name ILIKE ${searchTerm} OR 
-          email ILIKE ${searchTerm} OR
-          bio ILIKE ${searchTerm}
-        ORDER BY 
-          CASE 
-            WHEN first_name ILIKE ${searchTerm} OR last_name ILIKE ${searchTerm} THEN 1
-            WHEN email ILIKE ${searchTerm} THEN 2
-            ELSE 3
-          END,
-          created_at DESC
-        LIMIT ${parseInt(limit as string)}
-      `);
-
-      const users = results.rows.map((user: any) => ({
+      // Format results for frontend
+      const formattedResults = searchResults.map(user => ({
         id: user.id,
-        username: user.email?.split('@')[0] || 'anonymous',
-        firstName: user.first_name,
-        lastName: user.last_name,
+        firstName: user.firstName,
+        lastName: user.lastName,
         email: user.email,
+        profileImageUrl: user.profileImageUrl,
         bio: user.bio,
-        profileImageUrl: user.profile_image_url,
-        civicLevel: user.civic_level,
-        isVerified: user.is_verified,
-        location: user.location,
+        location: user.city && user.province ? `${user.city}, ${user.province}` : user.city || user.province,
+        civicLevel: user.civicLevel,
+        isVerified: user.isVerified,
+        trustScore: user.trustScore,
+        joinedAt: user.createdAt,
+        displayName: user.firstName && user.lastName 
+          ? `${user.firstName} ${user.lastName}` 
+          : user.firstName || user.email?.split('@')[0] || 'Anonymous User'
       }));
 
-      res.json({ users });
+      res.json({
+        users: formattedResults,
+        total: totalCount?.count || 0,
+        pagination: {
+          limit: parseInt(limit as string),
+          offset: parseInt(offset as string),
+          hasMore: formattedResults.length === parseInt(limit as string)
+        },
+        searchParams: { q, location, interests, civicLevel }
+      });
     } catch (error) {
-      console.error('Error searching users:', error);
+      console.error('User search error:', error);
       res.status(500).json({ error: "Failed to search users" });
     }
   });
 
-  // Update user profile
-  app.put('/api/users/profile', jwtAuth, async (req: Request, res: Response) => {
+  // GET /api/users/:id - Get user profile
+  app.get('/api/users/:id', jwtAuth, async (req: Request, res: Response) => {
     try {
-      const { firstName, lastName, bio, profileImageUrl } = req.body;
-      const userId = (req as any).user.sub;
+      const userId = req.params.id;
+      const currentUserId = (req.user as any).id;
 
-      const updateData: any = {};
-      if (firstName !== undefined) updateData.first_name = firstName;
-      if (lastName !== undefined) updateData.last_name = lastName;
-      if (bio !== undefined) updateData.bio = bio;
-      if (profileImageUrl !== undefined) updateData.profile_image_url = profileImageUrl;
+      const [user] = await db
+        .select({
+          id: users.id,
+          firstName: users.firstName,
+          lastName: users.lastName,
+          email: users.email,
+          profileImageUrl: users.profileImageUrl,
+          bio: users.bio,
+          city: users.city,
+          province: users.province,
+          postalCode: users.postalCode,
+          civicLevel: users.civicLevel,
+          isVerified: users.isVerified,
+          trustScore: users.trustScore,
+          createdAt: users.createdAt,
+          updatedAt: users.updatedAt,
+        })
+        .from(users)
+        .where(eq(users.id, userId));
 
-      if (Object.keys(updateData).length === 0) {
-        return res.status(400).json({ error: "No fields to update" });
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
       }
 
-      await db.execute(sql`
-        UPDATE users 
-        SET ${Object.keys(updateData).map(key => `${key} = ${updateData[key]}`).join(', ')}
-        WHERE id = ${userId}
-      `);
+      // Get user's social stats
+      const [postsCount] = await db
+        .select({ count: count() })
+        .from(sql`social_posts`)
+        .where(eq(sql`user_id`, userId));
 
-      res.json({ message: "Profile updated successfully" });
+      const [friendsCount] = await db
+        .select({ count: count() })
+        .from(sql`user_friends`)
+        .where(and(
+          eq(sql`user_id`, userId),
+          eq(sql`status`, 'accepted')
+        ));
+
+      const [activitiesCount] = await db
+        .select({ count: count() })
+        .from(sql`user_activities`)
+        .where(eq(sql`user_id`, userId));
+
+      // Check if current user is friends with this user
+      const [isFriend] = await db
+        .select({ count: count() })
+        .from(sql`user_friends`)
+        .where(and(
+          or(
+            and(eq(sql`user_id`, currentUserId), eq(sql`friend_id`, userId)),
+            and(eq(sql`user_id`, userId), eq(sql`friend_id`, currentUserId))
+          ),
+          eq(sql`status`, 'accepted')
+        ));
+
+      // Check if there's a pending friend request
+      const [pendingRequest] = await db
+        .select({ count: count() })
+        .from(sql`user_friends`)
+        .where(and(
+          eq(sql`user_id`, currentUserId),
+          eq(sql`friend_id`, userId),
+          eq(sql`status`, 'pending')
+        ));
+
+      const [receivedRequest] = await db
+        .select({ count: count() })
+        .from(sql`user_friends`)
+        .where(and(
+          eq(sql`user_id`, userId),
+          eq(sql`friend_id`, currentUserId),
+          eq(sql`status`, 'pending')
+        ));
+
+      const profile = {
+        id: user.id,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
+        profileImageUrl: user.profileImageUrl,
+        bio: user.bio,
+        location: user.city && user.province ? `${user.city}, ${user.province}` : user.city || user.province,
+        civicLevel: user.civicLevel,
+        isVerified: user.isVerified,
+        trustScore: user.trustScore,
+        joinedAt: user.createdAt,
+        displayName: user.firstName && user.lastName 
+          ? `${user.firstName} ${user.lastName}` 
+          : user.firstName || user.email?.split('@')[0] || 'Anonymous User',
+        stats: {
+          posts: postsCount?.count || 0,
+          friends: friendsCount?.count || 0,
+          activities: activitiesCount?.count || 0
+        },
+        friendship: {
+          isFriend: (isFriend?.count || 0) > 0,
+          pendingRequest: (pendingRequest?.count || 0) > 0,
+          receivedRequest: (receivedRequest?.count || 0) > 0,
+          canSendRequest: !isFriend?.count && !pendingRequest?.count && !receivedRequest?.count
+        }
+      };
+
+      res.json(profile);
     } catch (error) {
-      console.error('Error updating user profile:', error);
-      res.status(500).json({ error: "Failed to update profile" });
+      console.error('Get user profile error:', error);
+      res.status(500).json({ error: "Failed to get user profile" });
     }
   });
+
+  // GET /api/users/:id/posts - Get user's posts
+  app.get('/api/users/:id/posts', jwtAuth, async (req: Request, res: Response) => {
+    try {
+      const userId = req.params.id;
+      const { limit = 10, offset = 0 } = req.query;
+
+      const posts = await db
+        .select({
+          id: sql`social_posts.id`,
+          content: sql`social_posts.content`,
+          type: sql`social_posts.type`,
+          visibility: sql`social_posts.visibility`,
+          createdAt: sql`social_posts.created_at`,
+          likesCount: sql`(SELECT COUNT(*) FROM social_likes WHERE post_id = social_posts.id)`,
+          commentsCount: sql`(SELECT COUNT(*) FROM social_comments WHERE post_id = social_posts.id)`,
+        })
+        .from(sql`social_posts`)
+        .where(eq(sql`social_posts.user_id`, userId))
+        .orderBy(desc(sql`social_posts.created_at`))
+        .limit(parseInt(limit as string))
+        .offset(parseInt(offset as string));
+
+      res.json({
+        posts,
+        total: posts.length,
+        pagination: {
+          limit: parseInt(limit as string),
+          offset: parseInt(offset as string),
+          hasMore: posts.length === parseInt(limit as string)
+        }
+      });
+    } catch (error) {
+      console.error('Get user posts error:', error);
+      res.status(500).json({ error: "Failed to get user posts" });
+    }
+  });
+
+  // GET /api/users/:id/activity - Get user's recent activity
+  app.get('/api/users/:id/activity', jwtAuth, async (req: Request, res: Response) => {
+    try {
+      const userId = req.params.id;
+      const { limit = 10, offset = 0 } = req.query;
+
+      const activities = await db
+        .select({
+          id: sql`user_activities.id`,
+          activityType: sql`user_activities.activity_type`,
+          activityData: sql`user_activities.activity_data`,
+          createdAt: sql`user_activities.created_at`,
+        })
+        .from(sql`user_activities`)
+        .where(eq(sql`user_activities.user_id`, userId))
+        .orderBy(desc(sql`user_activities.created_at`))
+        .limit(parseInt(limit as string))
+        .offset(parseInt(offset as string));
+
+      res.json({
+        activities,
+        total: activities.length,
+        pagination: {
+          limit: parseInt(limit as string),
+          offset: parseInt(offset as string),
+          hasMore: activities.length === parseInt(limit as string)
+        }
+      });
+    } catch (error) {
+      console.error('Get user activity error:', error);
+      res.status(500).json({ error: "Failed to get user activity" });
+    }
+  });
+
+  // GET /api/users/suggestions - Get user suggestions
+  app.get('/api/users/suggestions', jwtAuth, async (req: Request, res: Response) => {
+    try {
+      const currentUserId = (req.user as any).id;
+      const { limit = 5 } = req.query;
+
+      // Get users with similar interests or location
+      const suggestions = await db
+        .select({
+          id: users.id,
+          firstName: users.firstName,
+          lastName: users.lastName,
+          profileImageUrl: users.profileImageUrl,
+          civicLevel: users.civicLevel,
+          city: users.city,
+          province: users.province,
+        })
+        .from(users)
+        .where(and(
+          ne(users.id, currentUserId),
+          isNotNull(users.city)
+        ))
+        .orderBy(sql`RANDOM()`)
+        .limit(parseInt(limit as string));
+
+      const formattedSuggestions = suggestions.map(user => ({
+        id: user.id,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        profileImageUrl: user.profileImageUrl,
+        civicLevel: user.civicLevel,
+        location: user.city && user.province ? `${user.city}, ${user.province}` : user.city || user.province,
+        displayName: user.firstName && user.lastName 
+          ? `${user.firstName} ${user.lastName}` 
+          : user.firstName || 'Anonymous User'
+      }));
+
+      res.json({
+        suggestions: formattedSuggestions,
+        total: formattedSuggestions.length
+      });
+    } catch (error) {
+      console.error('Get user suggestions error:', error);
+      res.status(500).json({ error: "Failed to get user suggestions" });
+    }
+  });
+}
+
+// Default export for backward compatibility
+export default function usersRoutes(app: Express) {
+  registerUserRoutes(app);
 } 
