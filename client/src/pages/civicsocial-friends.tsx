@@ -48,11 +48,11 @@ export default function CivicSocialFriends() {
         const data = await response.json();
         if (data.users) {
           // Filter out current user and existing friends
-          const filteredUsers = data.users.filter((user: SearchUser) => {
-            const isCurrentUser = user.id === user?.id;
-            const isAlreadyFriend = friends.some((friend: any) => friend.id === user.id);
-            const isPendingSent = pendingSent.some((request: any) => request.friendId === user.id);
-            const isPendingReceived = pendingReceived.some((request: any) => request.userId === user.id);
+          const filteredUsers = data.users.filter((searchUser: SearchUser) => {
+            const isCurrentUser = searchUser.id === user?.id;
+            const isAlreadyFriend = friends.some((friend: any) => friend.id === searchUser.id);
+            const isPendingSent = pendingSent.some((request: any) => request.friendId === searchUser.id);
+            const isPendingReceived = pendingReceived.some((request: any) => request.userId === searchUser.id);
             
             return !isCurrentUser && !isAlreadyFriend && !isPendingSent && !isPendingReceived;
           });
@@ -159,23 +159,23 @@ export default function CivicSocialFriends() {
                 </div>
               ) : searchResults.length > 0 ? (
                 <div className="py-2">
-                  {searchResults.map((user) => (
-                    <div key={user.id} className="flex items-center justify-between p-3 hover:bg-gray-50 dark:hover:bg-slate-700">
+                  {searchResults.map((searchUser) => (
+                    <div key={searchUser.id} className="flex items-center justify-between p-3 hover:bg-gray-50 dark:hover:bg-slate-700">
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 bg-civic-blue rounded-full flex items-center justify-center text-white font-bold">
-                          {user.firstName?.[0]}{user.lastName?.[0]}
+                          {searchUser.firstName?.[0]}{searchUser.lastName?.[0]}
                         </div>
                         <div>
-                          <p className="font-medium">{user.firstName} {user.lastName}</p>
-                          <p className="text-sm text-gray-500">{user.email}</p>
-                          {user.civicPoints && (
-                            <p className="text-xs text-civic-gold">Civic Points: {user.civicPoints}</p>
+                          <p className="font-medium">{searchUser.firstName} {searchUser.lastName}</p>
+                          <p className="text-sm text-gray-500">{searchUser.email}</p>
+                          {searchUser.civicPoints && (
+                            <p className="text-xs text-civic-gold">Civic Points: {searchUser.civicPoints}</p>
                           )}
                         </div>
                       </div>
                       <Button
                         size="sm"
-                        onClick={() => handleAddFriend(user.id)}
+                        onClick={() => handleAddFriend(searchUser.id)}
                         disabled={addFriendMutation.isPending}
                         className="bg-civic-blue hover:bg-civic-gold"
                       >
