@@ -1,6 +1,6 @@
 import { db } from '../db.js';
 import { petitions, petitionSignatures, users } from '../../shared/schema.js';
-import { eq, and, desc } from 'drizzle-orm';
+import { eq, and, desc, sql } from 'drizzle-orm';
 import { ResponseFormatter } from '../utils/responseFormatter.js';
 import jwt from 'jsonwebtoken';
 import { storage } from '../storage.js';
@@ -231,11 +231,7 @@ export function registerPetitionRoutes(app) {
                     createdAt: petitions.createdAt,
                     updatedAt: petitions.updatedAt,
                     creatorId: petitions.creatorId,
-                    creator: {
-                        firstName: users.firstName,
-                        lastName: users.lastName,
-                        email: users.email
-                    }
+                    creator: sql `CONCAT(${users.firstName}, ' ', ${users.lastName})`
                 })
                     .from(petitions)
                     .leftJoin(users, eq(petitions.creatorId, users.id))
@@ -289,11 +285,7 @@ export function registerPetitionRoutes(app) {
                     createdAt: petitions.createdAt,
                     updatedAt: petitions.updatedAt,
                     creatorId: petitions.creatorId,
-                    creator: {
-                        firstName: users.firstName,
-                        lastName: users.lastName,
-                        email: users.email
-                    }
+                    creator: sql `CONCAT(${users.firstName}, ' ', ${users.lastName})`
                 })
                     .from(petitions)
                     .leftJoin(users, eq(petitions.creatorId, users.id))

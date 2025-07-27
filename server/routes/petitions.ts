@@ -235,11 +235,7 @@ export function registerPetitionRoutes(app: Express) {
             createdAt: petitions.createdAt,
             updatedAt: petitions.updatedAt,
             creatorId: petitions.creatorId,
-            creator: {
-              firstName: users.firstName,
-              lastName: users.lastName,
-              email: users.email
-            }
+            creator: sql`CONCAT(${users.firstName}, ' ', ${users.lastName})`
           })
           .from(petitions)
           .leftJoin(users, eq(petitions.creatorId, users.id))
@@ -302,11 +298,7 @@ export function registerPetitionRoutes(app: Express) {
             createdAt: petitions.createdAt,
             updatedAt: petitions.updatedAt,
             creatorId: petitions.creatorId,
-            creator: {
-              firstName: users.firstName,
-              lastName: users.lastName,
-              email: users.email
-            }
+            creator: sql`CONCAT(${users.firstName}, ' ', ${users.lastName})`
           })
           .from(petitions)
           .leftJoin(users, eq(petitions.creatorId, users.id))
