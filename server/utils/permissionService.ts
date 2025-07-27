@@ -1,5 +1,5 @@
 import { db } from '../db.js';
-import { membershipPermissions, userPermissions, permissions } from '../../shared/schema';
+import { membershipPermissions, userPermissions, permissions } from '../../shared/schema.js';
 import { eq, and, or } from 'drizzle-orm';
 
 export interface PermissionCheck {
