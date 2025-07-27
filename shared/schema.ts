@@ -34,10 +34,14 @@ export const users = pgTable("users", {
   password: varchar("password"),
   firstName: varchar("first_name"),
   lastName: varchar("last_name"),
+  middleName: varchar("middle_name"),
+  preferredName: varchar("preferred_name"),
   profileImageUrl: varchar("profile_image_url"),
   electoralDistrict: varchar("electoral_district"),
   phoneNumber: varchar("phone_number"),
   dateOfBirth: timestamp("date_of_birth"),
+  gender: varchar("gender"),
+  maritalStatus: varchar("marital_status"),
   governmentIdVerified: boolean("government_id_verified").default(false),
   governmentIdType: varchar("government_id_type"), // passport, drivers_license, health_card
   verificationLevel: varchar("verification_level").default("unverified"), // unverified, basic, government_id, enhanced
@@ -52,10 +56,14 @@ export const users = pgTable("users", {
   province: varchar("province"),
   postalCode: varchar("postal_code"),
   country: varchar("country").default("Canada"),
+  streetAddress: varchar("street_address"),
+  apartmentUnit: varchar("apartment_unit"),
   federalRiding: varchar("federal_riding"),
   provincialRiding: varchar("provincial_riding"),
   municipalWard: varchar("municipal_ward"),
   addressVerified: boolean("address_verified").default(false),
+  addressVerifiedAt: timestamp("address_verified_at"),
+  addressVerificationMethod: varchar("address_verification_method"),
   locationAccuracy: integer("location_accuracy"), // GPS accuracy in meters
   locationTimestamp: timestamp("location_timestamp"),
   ipAddress: varchar("ip_address"),
@@ -66,6 +74,46 @@ export const users = pgTable("users", {
   residencyVerified: boolean("residency_verified").default(false),
   citizenshipStatus: varchar("citizenship_status"), // citizen, permanent_resident, temporary_resident, visitor
   voterRegistrationStatus: varchar("voter_registration_status"), // registered, not_registered, unknown
+  // Emergency contact information
+  emergencyContactName: varchar("emergency_contact_name"),
+  emergencyContactPhone: varchar("emergency_contact_phone"),
+  emergencyContactRelationship: varchar("emergency_contact_relationship"),
+  // Professional and educational information
+  employer: varchar("employer"),
+  jobTitle: varchar("job_title"),
+  industry: varchar("industry"),
+  yearsOfExperience: integer("years_of_experience"),
+  highestEducation: varchar("highest_education"),
+  almaMater: varchar("alma_mater"),
+  graduationYear: integer("graduation_year"),
+  // Political engagement fields
+  politicalExperience: text("political_experience"),
+  campaignExperience: text("campaign_experience"),
+  volunteerExperience: text("volunteer_experience"),
+  advocacyAreas: text("advocacy_areas").array(),
+  policyInterests: text("policy_interests").array(),
+  // Verification and security fields
+  identityDocumentType: varchar("identity_document_type"),
+  identityDocumentNumber: varchar("identity_document_number"),
+  identityVerifiedAt: timestamp("identity_verified_at"),
+  twoFactorEnabled: boolean("two_factor_enabled").default(false),
+  twoFactorMethod: varchar("two_factor_method"),
+  lastLoginIp: varchar("last_login_ip"),
+  lastLoginUserAgent: text("last_login_user_agent"),
+  // Communication preferences
+  emailPreferences: jsonb("email_preferences").default("{}"),
+  notificationPreferences: jsonb("notification_preferences").default("{}"),
+  privacySettings: jsonb("privacy_settings").default("{}"),
+  // Membership fields
+  membershipType: varchar("membership_type").default("citizen"), // citizen, press, government
+  membershipStatus: varchar("membership_status").default("active"), // active, inactive, suspended, cancelled
+  membershipStartDate: timestamp("membership_start_date"),
+  membershipEndDate: timestamp("membership_end_date"),
+  stripeCustomerId: varchar("stripe_customer_id"),
+  stripeSubscriptionId: varchar("stripe_subscription_id"),
+  accessLevel: varchar("access_level").default("basic"), // basic, press, government, admin
+  featureAccess: jsonb("feature_access").default("{}"),
+  usageLimits: jsonb("usage_limits").default("{}"),
   // Gamification features
   civicPoints: integer("civic_points").default(0),
   currentLevel: integer("current_level").default(1),
@@ -1398,3 +1446,35 @@ export type ElectoralCandidate = typeof electoralCandidates.$inferSelect;
 export type InsertElectoralCandidate = typeof electoralCandidates.$inferInsert;
 export type ElectoralVote = typeof electoralVotes.$inferSelect;
 export type InsertElectoralVote = typeof electoralVotes.$inferInsert;
+
+// Membership types table
+export const membershipTypes = pgTable("membership_types", {
+  id: serial("id").primaryKey(),
+  name: varchar("name").notNull(),
+  description: text("description"),
+  priceMonthly: decimal("price_monthly", { precision: 10, scale: 2 }),
+  priceYearly: decimal("price_yearly", { precision: 10, scale: 2 }),
+  stripePriceIdMonthly: varchar("stripe_price_id_monthly"),
+  stripePriceIdYearly: varchar("stripe_price_id_yearly"),
+  features: jsonb("features").default("{}"),
+  accessLevel: varchar("access_level").default("basic"),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// User membership history table
+export const userMembershipHistory = pgTable("user_membership_history", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").references(() => users.id),
+  membershipType: varchar("membership_type").notNull(),
+  status: varchar("status").notNull(),
+  startDate: timestamp("start_date").notNull(),
+  endDate: timestamp("end_date"),
+  stripeSubscriptionId: varchar("stripe_subscription_id"),
+  stripeInvoiceId: varchar("stripe_invoice_id"),
+  amountPaid: decimal("amount_paid", { precision: 10, scale: 2 }),
+  paymentMethod: varchar("payment_method"),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow(),
+});

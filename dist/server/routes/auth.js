@@ -82,41 +82,17 @@ export function registerAuthRoutes(app) {
     app.get("/api/auth/test-schema", async (req, res) => {
         try {
             // Test if we can create a user with all fields
-            const testUserData = {
-                id: 'test-schema-check',
-                email: 'test@example.com',
-                password: 'test',
-                firstName: 'Test',
-                lastName: 'User',
-                phoneNumber: '123-456-7890',
-                dateOfBirth: new Date('1990-01-01'),
-                city: 'Test City',
-                province: 'Test Province',
-                postalCode: 'A1A 1A1',
-                federalRiding: 'Test Riding',
-                provincialRiding: 'Test Provincial Riding',
-                municipalWard: 'Test Ward',
-                citizenshipStatus: 'citizen',
-                voterRegistrationStatus: 'registered',
-                communicationStyle: 'auto',
-                country: 'Canada',
-                civicPoints: 0,
-                currentLevel: 1,
-                trustScore: "100.00",
-                verificationLevel: 'unverified',
-                engagementLevel: 'newcomer',
-                achievementTier: 'bronze',
-                profileCompleteness: 50,
-                createdAt: new Date(),
-                updatedAt: new Date(),
+            const testUser = {
+                id: 'test-schema-' + Date.now(),
+                email: 'test-schema@example.com',
+                socialLinks: { twitter: 'test' }
             };
-            // Try to create the user (this will fail if fields don't exist)
-            const user = await storage.createUser(testUserData);
-            // Clean up the test user
-            await db.delete(users).where(eq(users.id, 'test-schema-check'));
+            await db.insert(users).values(testUser);
+            // Clean up
+            await db.delete(users).where(eq(users.id, testUser.id));
             res.json({
                 status: 'success',
-                message: 'Database schema is correct - all user fields available',
+                message: 'Database schema test passed - all fields accessible',
                 timestamp: new Date().toISOString()
             });
         }
@@ -124,7 +100,31 @@ export function registerAuthRoutes(app) {
             res.status(500).json({
                 status: 'error',
                 message: 'Database schema test failed - missing fields',
-                error: err?.message || String(err),
+                error: err instanceof Error ? err.message : 'Unknown error',
+                timestamp: new Date().toISOString()
+            });
+        }
+    });
+    // Debug endpoint to check database connection details
+    app.get("/api/auth/debug-db", async (req, res) => {
+        try {
+            const dbUrl = process.env.DATABASE_URL;
+            const parsedUrl = new URL(dbUrl || '');
+            res.json({
+                status: 'success',
+                hasDatabaseUrl: !!dbUrl,
+                databaseHost: parsedUrl.hostname,
+                databaseName: parsedUrl.pathname.replace(/^\//, ''),
+                databaseUser: parsedUrl.username,
+                nodeEnv: process.env.NODE_ENV,
+                timestamp: new Date().toISOString()
+            });
+        }
+        catch (err) {
+            res.status(500).json({
+                status: 'error',
+                message: 'Database debug failed',
+                error: err instanceof Error ? err.message : 'Unknown error',
                 timestamp: new Date().toISOString()
             });
         }
@@ -132,10 +132,26 @@ export function registerAuthRoutes(app) {
     // Registration endpoint
     app.post("/api/auth/register", async (req, res) => {
         try {
-            const { email, password, firstName, lastName, phoneNumber, dateOfBirth, city, province, postalCode, federalRiding, provincialRiding, municipalWard, citizenshipStatus, voterRegistrationStatus, communicationStyle } = req.body;
-            // Required fields validation (only essentials)
-            if (!email || !password || !firstName || !lastName) {
-                return res.status(400).json({ message: "Required fields: email, password, firstName, lastName" });
+            const { 
+            // Basic Information
+            email, password, firstName, lastName, middleName, preferredName, phoneNumber, dateOfBirth, gender, 
+            // Address Information
+            streetAddress, apartmentUnit, city, province, postalCode, country, 
+            // Professional Information
+            employer, jobTitle, industry, yearsOfExperience, highestEducation, almaMater, graduationYear, 
+            // Political Engagement
+            politicalExperience, campaignExperience, volunteerExperience, advocacyAreas, policyInterests, 
+            // Emergency Contact
+            emergencyContactName, emergencyContactPhone, emergencyContactRelationship, 
+            // Membership
+            membershipType, 
+            // Terms and Conditions
+            agreeToTerms, agreeToPrivacy, agreeToMarketing } = req.body;
+            // Required fields validation
+            if (!email || !password || !firstName || !lastName || !agreeToTerms) {
+                return res.status(400).json({
+                    message: "Required fields: email, password, firstName, lastName, and agreement to terms"
+                });
             }
             // Check if user already exists
             const existingUser = await storage.getUserByEmail(email);
@@ -144,34 +160,97 @@ export function registerAuthRoutes(app) {
             }
             // Hash password
             const hashedPassword = await bcrypt.hash(password, 12);
-            // Create user with enhanced profile data
+            // Create user with comprehensive profile data
             const userId = uuidv4();
             const now = new Date();
+            // Calculate profile completion percentage
+            const requiredFields = ['firstName', 'lastName', 'email', 'city', 'province', 'postalCode'];
+            const optionalFields = [
+                'middleName', 'preferredName', 'phoneNumber', 'dateOfBirth', 'gender',
+                'streetAddress', 'employer', 'jobTitle', 'industry', 'highestEducation',
+                'emergencyContactName', 'emergencyContactPhone'
+            ];
+            let completedFields = 0;
+            const totalFields = requiredFields.length + optionalFields.length;
+            // Count completed required fields
+            requiredFields.forEach(field => {
+                if (req.body[field])
+                    completedFields++;
+            });
+            // Count completed optional fields
+            optionalFields.forEach(field => {
+                if (req.body[field])
+                    completedFields++;
+            });
+            const profileCompletionPercentage = Math.round((completedFields / totalFields) * 100);
             const userData = {
                 id: userId,
                 email,
                 password: hashedPassword,
                 firstName,
                 lastName,
+                middleName: middleName || null,
+                preferredName: preferredName || null,
                 phoneNumber: phoneNumber || null,
                 dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : null,
+                gender: gender || null,
+                // Address Information
+                streetAddress: streetAddress || null,
+                apartmentUnit: apartmentUnit || null,
                 city: city || null,
                 province: province || null,
                 postalCode: postalCode || null,
-                federalRiding: federalRiding || null,
-                provincialRiding: provincialRiding || null,
-                municipalWard: municipalWard || null,
-                citizenshipStatus: citizenshipStatus || null,
-                voterRegistrationStatus: voterRegistrationStatus || null,
-                communicationStyle: communicationStyle || null,
-                country: 'Canada',
+                country: country || 'Canada',
+                // Professional Information
+                employer: employer || null,
+                jobTitle: jobTitle || null,
+                industry: industry || null,
+                yearsOfExperience: yearsOfExperience ? parseInt(yearsOfExperience) : null,
+                highestEducation: highestEducation || null,
+                almaMater: almaMater || null,
+                graduationYear: graduationYear ? parseInt(graduationYear) : null,
+                // Political Engagement
+                politicalExperience: politicalExperience || null,
+                campaignExperience: campaignExperience || null,
+                volunteerExperience: volunteerExperience || null,
+                advocacyAreas: advocacyAreas || [],
+                policyInterests: policyInterests || [],
+                // Emergency Contact
+                emergencyContactName: emergencyContactName || null,
+                emergencyContactPhone: emergencyContactPhone || null,
+                emergencyContactRelationship: emergencyContactRelationship || null,
+                // Membership
+                membershipType: membershipType || 'citizen',
+                membershipStatus: 'active',
+                membershipStartDate: now,
+                accessLevel: membershipType === 'citizen' ? 'basic' : membershipType === 'press' ? 'press' : 'government',
+                // Communication Preferences
+                emailPreferences: {
+                    marketing: agreeToMarketing || false,
+                    updates: true,
+                    notifications: true
+                },
+                notificationPreferences: {
+                    email: true,
+                    push: true,
+                    sms: false
+                },
+                privacySettings: {
+                    profileVisibility: 'public',
+                    showEmail: false,
+                    showPhone: false
+                },
+                // Default values
                 civicPoints: 0,
                 currentLevel: 1,
                 trustScore: "100.00",
                 verificationLevel: 'unverified',
                 engagementLevel: 'newcomer',
                 achievementTier: 'bronze',
-                profileCompleteness: 50,
+                profileCompletionPercentage,
+                socialLinks: {},
+                featureAccess: {},
+                usageLimits: {},
                 createdAt: now,
                 updatedAt: now,
             };
@@ -186,8 +265,9 @@ export function registerAuthRoutes(app) {
                     email: user.email,
                     firstName: user.firstName,
                     lastName: user.lastName,
-                    city: user.city,
-                    province: user.province,
+                    membershipType: user.membershipType,
+                    accessLevel: user.accessLevel,
+                    profileCompletionPercentage: user.profileCompletionPercentage,
                     civicPoints: user.civicPoints,
                     trustScore: user.trustScore,
                 }

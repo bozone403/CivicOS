@@ -153,26 +153,60 @@ export function registerAuthRoutes(app: Express) {
   app.post("/api/auth/register", async (req: Request, res: Response) => {
     try {
       const { 
+        // Basic Information
         email, 
         password, 
         firstName, 
-        lastName, 
+        lastName,
+        middleName,
+        preferredName,
         phoneNumber,
         dateOfBirth,
+        gender,
+        
+        // Address Information
+        streetAddress,
+        apartmentUnit,
         city, 
         province, 
         postalCode,
-        federalRiding,
-        provincialRiding,
-        municipalWard,
-        citizenshipStatus,
-        voterRegistrationStatus,
-        communicationStyle
+        country,
+        
+        // Professional Information
+        employer,
+        jobTitle,
+        industry,
+        yearsOfExperience,
+        highestEducation,
+        almaMater,
+        graduationYear,
+        
+        // Political Engagement
+        politicalExperience,
+        campaignExperience,
+        volunteerExperience,
+        advocacyAreas,
+        policyInterests,
+        
+        // Emergency Contact
+        emergencyContactName,
+        emergencyContactPhone,
+        emergencyContactRelationship,
+        
+        // Membership
+        membershipType,
+        
+        // Terms and Conditions
+        agreeToTerms,
+        agreeToPrivacy,
+        agreeToMarketing
       } = req.body;
       
-      // Required fields validation (only essentials)
-      if (!email || !password || !firstName || !lastName) {
-        return res.status(400).json({ message: "Required fields: email, password, firstName, lastName" });
+      // Required fields validation
+      if (!email || !password || !firstName || !lastName || !agreeToTerms) {
+        return res.status(400).json({ 
+          message: "Required fields: email, password, firstName, lastName, and agreement to terms" 
+        });
       }
 
       // Check if user already exists
@@ -184,34 +218,108 @@ export function registerAuthRoutes(app: Express) {
       // Hash password
       const hashedPassword = await bcrypt.hash(password, 12);
       
-      // Create user with enhanced profile data
+      // Create user with comprehensive profile data
       const userId = uuidv4();
       const now = new Date();
+      
+      // Calculate profile completion percentage
+      const requiredFields = ['firstName', 'lastName', 'email', 'city', 'province', 'postalCode'];
+      const optionalFields = [
+        'middleName', 'preferredName', 'phoneNumber', 'dateOfBirth', 'gender',
+        'streetAddress', 'employer', 'jobTitle', 'industry', 'highestEducation',
+        'emergencyContactName', 'emergencyContactPhone'
+      ];
+      
+      let completedFields = 0;
+      const totalFields = requiredFields.length + optionalFields.length;
+      
+      // Count completed required fields
+      requiredFields.forEach(field => {
+        if (req.body[field]) completedFields++;
+      });
+      
+      // Count completed optional fields
+      optionalFields.forEach(field => {
+        if (req.body[field]) completedFields++;
+      });
+      
+      const profileCompletionPercentage = Math.round((completedFields / totalFields) * 100);
+      
       const userData = {
         id: userId,
         email,
         password: hashedPassword,
         firstName,
         lastName,
+        middleName: middleName || null,
+        preferredName: preferredName || null,
         phoneNumber: phoneNumber || null,
         dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : null,
+        gender: gender || null,
+        
+        // Address Information
+        streetAddress: streetAddress || null,
+        apartmentUnit: apartmentUnit || null,
         city: city || null,
         province: province || null,
         postalCode: postalCode || null,
-        federalRiding: federalRiding || null,
-        provincialRiding: provincialRiding || null,
-        municipalWard: municipalWard || null,
-        citizenshipStatus: citizenshipStatus || null,
-        voterRegistrationStatus: voterRegistrationStatus || null,
-        communicationStyle: communicationStyle || null,
-        country: 'Canada',
+        country: country || 'Canada',
+        
+        // Professional Information
+        employer: employer || null,
+        jobTitle: jobTitle || null,
+        industry: industry || null,
+        yearsOfExperience: yearsOfExperience ? parseInt(yearsOfExperience) : null,
+        highestEducation: highestEducation || null,
+        almaMater: almaMater || null,
+        graduationYear: graduationYear ? parseInt(graduationYear) : null,
+        
+        // Political Engagement
+        politicalExperience: politicalExperience || null,
+        campaignExperience: campaignExperience || null,
+        volunteerExperience: volunteerExperience || null,
+        advocacyAreas: advocacyAreas || [],
+        policyInterests: policyInterests || [],
+        
+        // Emergency Contact
+        emergencyContactName: emergencyContactName || null,
+        emergencyContactPhone: emergencyContactPhone || null,
+        emergencyContactRelationship: emergencyContactRelationship || null,
+        
+        // Membership
+        membershipType: membershipType || 'citizen',
+        membershipStatus: 'active',
+        membershipStartDate: now,
+        accessLevel: membershipType === 'citizen' ? 'basic' : membershipType === 'press' ? 'press' : 'government',
+        
+        // Communication Preferences
+        emailPreferences: {
+          marketing: agreeToMarketing || false,
+          updates: true,
+          notifications: true
+        },
+        notificationPreferences: {
+          email: true,
+          push: true,
+          sms: false
+        },
+        privacySettings: {
+          profileVisibility: 'public',
+          showEmail: false,
+          showPhone: false
+        },
+        
+        // Default values
         civicPoints: 0,
         currentLevel: 1,
         trustScore: "100.00",
         verificationLevel: 'unverified',
         engagementLevel: 'newcomer',
         achievementTier: 'bronze',
-        profileCompleteness: 50,
+        profileCompletionPercentage,
+        socialLinks: {},
+        featureAccess: {},
+        usageLimits: {},
         createdAt: now,
         updatedAt: now,
       };
@@ -229,8 +337,9 @@ export function registerAuthRoutes(app: Express) {
           email: user.email,
           firstName: user.firstName,
           lastName: user.lastName,
-          city: user.city,
-          province: user.province,
+          membershipType: user.membershipType,
+          accessLevel: user.accessLevel,
+          profileCompletionPercentage: user.profileCompletionPercentage,
           civicPoints: user.civicPoints,
           trustScore: user.trustScore,
         }
