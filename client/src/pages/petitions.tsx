@@ -101,6 +101,15 @@ const fallbackPetitions: Petition[] = [
   }
 ];
 
+// Utility to ensure error messages are always strings
+function getErrorMessage(error: any): string {
+  if (!error) return "Unknown error";
+  if (typeof error === "string") return error;
+  if (typeof error.message === "string") return error.message;
+  if (typeof error.message === "object") return JSON.stringify(error.message);
+  return JSON.stringify(error);
+}
+
 export default function Petitions() {
   const { user, isAuthenticated } = useAuth();
   const { toast } = useToast();
@@ -158,7 +167,7 @@ export default function Petitions() {
     onError: (error: any) => {
       toast({
         title: "Error signing petition",
-        description: error.message || "Failed to sign petition. Please try again.",
+        description: getErrorMessage(error) || "Failed to sign petition. Please try again.",
         variant: "destructive",
       });
     },
@@ -181,7 +190,7 @@ export default function Petitions() {
     onError: (error: any) => {
       toast({
         title: "Error sharing petition",
-        description: error.message || "Failed to share petition. Please try again.",
+        description: getErrorMessage(error) || "Failed to share petition. Please try again.",
         variant: "destructive",
       });
     },
@@ -201,7 +210,7 @@ export default function Petitions() {
     onError: (error: any) => {
       toast({
         title: "Error saving petition",
-        description: error.message || "Failed to save petition. Please try again.",
+        description: getErrorMessage(error) || "Failed to save petition. Please try again.",
         variant: "destructive",
       });
     },
@@ -230,7 +239,7 @@ export default function Petitions() {
     onError: (error: any) => {
       toast({
         title: "Error creating petition",
-        description: error.message || "Failed to create petition. Please try again.",
+        description: getErrorMessage(error) || "Failed to create petition. Please try again.",
         variant: "destructive",
       });
     },
