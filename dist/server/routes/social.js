@@ -1,6 +1,6 @@
 import { db } from '../db.js';
-import { socialPosts, userFriends, socialLikes, socialComments, userActivities } from '../../shared/schema.js';
-import { eq, and, desc, count, sql, inArray, or } from 'drizzle-orm';
+import { socialPosts, userFriends, socialLikes, socialComments, userActivities, users, profileViews, userMessages, userReports, userBlocks, notifications } from '../../shared/schema.js';
+import { eq, and, desc, count, sql, inArray, ne, or, gte, asc } from 'drizzle-orm';
 import jwt from 'jsonwebtoken';
 // JWT Auth middleware
 function jwtAuth(req, res, next) {
@@ -505,7 +505,7 @@ export function registerSocialRoutes(app) {
                     // Remove friend
                     await db
                         .delete(userFriends)
-                        .where(and(or(and(eq(userFriends.userId, currentUserId), eq(userFriends.friendId, friendId)), and(eq(userFriends.userId, friendId), eq(userFriends.friendId, currentUserId)))));
+                        .where(or(and(eq(userFriends.userId, currentUserId), eq(userFriends.friendId, friendId)), and(eq(userFriends.userId, friendId), eq(userFriends.friendId, currentUserId))));
                     break;
                 default:
                     return res.status(400).json({ error: "Invalid action" });
@@ -575,6 +575,62 @@ export function registerSocialRoutes(app) {
             res.status(500).json({ error: "Failed to get friends" });
         }
     });
+    // GET /api/social/users/search - Search users
+    app.get('/api/social/users/search', jwtAuth, async (req, res) => {
+        try {
+            const currentUserId = req.user.id;
+            const { q = '', limit = 20, offset = 0 } = req.query;
+            if (!q || typeof q !== 'string' || q.trim().length < 2) {
+                return res.status(400).json({ error: "Search query must be at least 2 characters" });
+            }
+            const searchTerm = `%${q.trim()}%`;
+            // Search users by name, excluding current user
+            const users = await db
+                .select({
+                id: sql `users.id`,
+                firstName: sql `users.first_name`,
+                lastName: sql `users.last_name`,
+                email: sql `users.email`,
+                profileImageUrl: sql `users.profile_image_url`,
+                civicLevel: sql `users.civic_level`,
+                isVerified: sql `users.is_verified`,
+                createdAt: sql `users.created_at`,
+                // Check if already friends
+                isFriend: sql `CASE WHEN user_friends.id IS NOT NULL THEN true ELSE false END`,
+                friendStatus: sql `user_friends.status`,
+            })
+                .from(sql `users`)
+                .leftJoin(userFriends, and(eq(sql `users.id`, userFriends.friendId), eq(userFriends.userId, currentUserId)))
+                .where(and(ne(sql `users.id`, currentUserId), or(sql `LOWER(users.first_name) LIKE LOWER(${searchTerm})`, sql `LOWER(users.last_name) LIKE LOWER(${searchTerm})`, sql `LOWER(CONCAT(users.first_name, ' ', users.last_name)) LIKE LOWER(${searchTerm})`)))
+                .limit(Number(limit))
+                .offset(Number(offset));
+            // Format users for frontend
+            const formattedUsers = users.map(user => ({
+                id: user.id,
+                firstName: user.firstName,
+                lastName: user.lastName,
+                email: user.email,
+                profileImageUrl: user.profileImageUrl,
+                civicLevel: user.civicLevel,
+                isVerified: user.isVerified,
+                createdAt: user.createdAt,
+                isFriend: user.isFriend,
+                friendStatus: user.friendStatus,
+                displayName: `${user.firstName} ${user.lastName}`,
+            }));
+            res.json({
+                users: formattedUsers,
+                total: formattedUsers.length,
+                query: q,
+                limit: Number(limit),
+                offset: Number(offset)
+            });
+        }
+        catch (error) {
+            console.error('User search error:', error);
+            res.status(500).json({ error: "Failed to search users" });
+        }
+    });
     // POST /api/social/messages - Send message
     app.post('/api/social/messages', jwtAuth, async (req, res) => {
         try {
@@ -609,6 +665,477 @@ export function registerSocialRoutes(app) {
         catch (error) {
             console.error('Send message error:', error);
             res.status(500).json({ error: "Failed to send message" });
+        }
+    });
+    // GET /api/social/profile/:userId - Get user profile
+    app.get('/api/social/profile/:userId', async (req, res) => {
+        try {
+            const { userId } = req.params;
+            const currentUserId = req.user?.id;
+            // Get user profile
+            const [user] = await db
+                .select({
+                id: users.id,
+                firstName: users.firstName,
+                lastName: users.lastName,
+                email: users.email,
+                profileImageUrl: users.profileImageUrl,
+                civicLevel: users.civicLevel,
+                isVerified: users.isVerified,
+                createdAt: users.createdAt,
+                city: users.city,
+                province: users.province,
+                country: users.country,
+            })
+                .from(users)
+                .where(eq(users.id, userId));
+            if (!user) {
+                return res.status(404).json({ error: "User not found" });
+            }
+            // Get user stats
+            const [postsCount] = await db
+                .select({ count: sql `COUNT(*)` })
+                .from(socialPosts)
+                .where(eq(socialPosts.userId, userId));
+            const [friendsCount] = await db
+                .select({ count: sql `COUNT(*)` })
+                .from(userFriends)
+                .where(and(eq(userFriends.userId, userId), eq(userFriends.status, 'accepted')));
+            // Check if current user is friends with this user
+            let friendshipStatus = null;
+            if (currentUserId && currentUserId !== userId) {
+                const [friendship] = await db
+                    .select({
+                    status: userFriends.status,
+                })
+                    .from(userFriends)
+                    .where(and(eq(userFriends.userId, currentUserId), eq(userFriends.friendId, userId)));
+                if (friendship) {
+                    friendshipStatus = friendship.status;
+                }
+            }
+            // Record profile view if not own profile
+            if (currentUserId && currentUserId !== userId) {
+                try {
+                    await db.insert(profileViews).values({
+                        viewerId: currentUserId,
+                        profileId: userId,
+                    });
+                }
+                catch (error) {
+                    // Ignore duplicate view errors
+                }
+            }
+            res.json({
+                profile: {
+                    ...user,
+                    displayName: `${user.firstName} ${user.lastName}`,
+                },
+                stats: {
+                    postsCount: Number(postsCount.count),
+                    friendsCount: Number(friendsCount.count),
+                },
+                friendshipStatus,
+            });
+        }
+        catch (error) {
+            console.error('Get profile error:', error);
+            res.status(500).json({ error: "Failed to get profile" });
+        }
+    });
+    // PUT /api/social/profile - Update own profile
+    app.put('/api/social/profile', jwtAuth, async (req, res) => {
+        try {
+            const currentUserId = req.user.id;
+            const { firstName, lastName, city, province, country } = req.body;
+            const updateData = {};
+            if (firstName)
+                updateData.firstName = firstName;
+            if (lastName)
+                updateData.lastName = lastName;
+            if (city !== undefined)
+                updateData.city = city;
+            if (province !== undefined)
+                updateData.province = province;
+            if (country !== undefined)
+                updateData.country = country;
+            if (Object.keys(updateData).length === 0) {
+                return res.status(400).json({ error: "No fields to update" });
+            }
+            await db
+                .update(users)
+                .set(updateData)
+                .where(eq(users.id, currentUserId));
+            // Record activity
+            await db.insert(userActivities).values({
+                userId: currentUserId,
+                activityType: 'profile_update',
+                activityData: {
+                    updatedFields: Object.keys(updateData),
+                },
+            });
+            res.json({ message: "Profile updated successfully" });
+        }
+        catch (error) {
+            console.error('Update profile error:', error);
+            res.status(500).json({ error: "Failed to update profile" });
+        }
+    });
+    // GET /api/social/messages - Get messages between users
+    app.get('/api/social/messages', jwtAuth, async (req, res) => {
+        try {
+            const currentUserId = req.user.id;
+            const { otherUserId, limit = 50, offset = 0 } = req.query;
+            if (!otherUserId) {
+                return res.status(400).json({ error: "Other user ID is required" });
+            }
+            // Get messages between these two users
+            const messages = await db
+                .select({
+                id: userMessages.id,
+                senderId: userMessages.senderId,
+                recipientId: userMessages.recipientId,
+                content: userMessages.content,
+                createdAt: userMessages.createdAt,
+                isRead: userMessages.isRead,
+            })
+                .from(userMessages)
+                .where(and(or(and(eq(userMessages.senderId, currentUserId), eq(userMessages.recipientId, otherUserId)), and(eq(userMessages.senderId, otherUserId), eq(userMessages.recipientId, currentUserId)))))
+                .orderBy(asc(userMessages.createdAt))
+                .limit(Number(limit))
+                .offset(Number(offset));
+            // Mark messages as read
+            await db
+                .update(userMessages)
+                .set({ isRead: true })
+                .where(and(eq(userMessages.senderId, otherUserId), eq(userMessages.recipientId, currentUserId), eq(userMessages.isRead, false)));
+            res.json({
+                messages,
+                total: messages.length,
+                otherUserId,
+            });
+        }
+        catch (error) {
+            console.error('Get messages error:', error);
+            res.status(500).json({ error: "Failed to get messages" });
+        }
+    });
+    // GET /api/social/conversations - Get recent conversations
+    app.get('/api/social/conversations', jwtAuth, async (req, res) => {
+        try {
+            const currentUserId = req.user.id;
+            // Get recent messages where user is involved
+            const recentMessages = await db
+                .select({
+                id: userMessages.id,
+                senderId: userMessages.senderId,
+                recipientId: userMessages.recipientId,
+                content: userMessages.content,
+                createdAt: userMessages.createdAt,
+                isRead: userMessages.isRead,
+            })
+                .from(userMessages)
+                .where(or(eq(userMessages.senderId, currentUserId), eq(userMessages.recipientId, currentUserId)))
+                .orderBy(desc(userMessages.createdAt))
+                .limit(20);
+            // Group by other user and get latest message
+            const conversationsMap = new Map();
+            recentMessages.forEach(message => {
+                const otherUserId = message.senderId === currentUserId
+                    ? message.recipientId
+                    : message.senderId;
+                if (!conversationsMap.has(otherUserId) ||
+                    (message.createdAt && conversationsMap.get(otherUserId).lastMessageAt &&
+                        new Date(message.createdAt) > new Date(conversationsMap.get(otherUserId).lastMessageAt))) {
+                    conversationsMap.set(otherUserId, {
+                        otherUserId,
+                        lastMessage: message.content,
+                        lastMessageAt: message.createdAt,
+                        unreadCount: 0,
+                    });
+                }
+            });
+            // Get unread counts and user info
+            const conversationsWithDetails = await Promise.all(Array.from(conversationsMap.values()).map(async (conv) => {
+                const [unreadCount] = await db
+                    .select({ count: sql `COUNT(*)` })
+                    .from(userMessages)
+                    .where(and(eq(userMessages.senderId, conv.otherUserId), eq(userMessages.recipientId, currentUserId), eq(userMessages.isRead, false)));
+                const [otherUser] = await db
+                    .select({
+                    id: users.id,
+                    firstName: users.firstName,
+                    lastName: users.lastName,
+                    profileImageUrl: users.profileImageUrl,
+                })
+                    .from(users)
+                    .where(eq(users.id, conv.otherUserId));
+                return {
+                    ...conv,
+                    unreadCount: Number(unreadCount.count),
+                    otherUser: {
+                        id: otherUser.id,
+                        firstName: otherUser.firstName,
+                        lastName: otherUser.lastName,
+                        profileImageUrl: otherUser.profileImageUrl,
+                        displayName: `${otherUser.firstName} ${otherUser.lastName}`,
+                    },
+                };
+            }));
+            res.json({
+                conversations: conversationsWithDetails,
+                total: conversationsWithDetails.length,
+            });
+        }
+        catch (error) {
+            console.error('Get conversations error:', error);
+            res.status(500).json({ error: "Failed to get conversations" });
+        }
+    });
+    // POST /api/social/notifications - Create notification
+    app.post('/api/social/notifications', jwtAuth, async (req, res) => {
+        try {
+            const currentUserId = req.user.id;
+            const { recipientId, type, title, message, data } = req.body;
+            if (!recipientId || !type || !title || !message) {
+                return res.status(400).json({ error: "Recipient ID, type, title, and message are required" });
+            }
+            const notification = await db.insert(notifications).values({
+                userId: recipientId,
+                type,
+                title,
+                message,
+                sourceModule: 'social',
+                sourceId: currentUserId,
+                isRead: false,
+            }).returning();
+            res.status(201).json(notification[0]);
+        }
+        catch (error) {
+            console.error('Create notification error:', error);
+            res.status(500).json({ error: "Failed to create notification" });
+        }
+    });
+    // GET /api/social/notifications - Get user notifications
+    app.get('/api/social/notifications', jwtAuth, async (req, res) => {
+        try {
+            const currentUserId = req.user.id;
+            const { limit = 20, offset = 0, unreadOnly = false } = req.query;
+            let whereConditions = [eq(notifications.userId, currentUserId)];
+            if (unreadOnly === 'true') {
+                whereConditions.push(eq(notifications.isRead, false));
+            }
+            const userNotifications = await db
+                .select({
+                id: notifications.id,
+                type: notifications.type,
+                title: notifications.title,
+                message: notifications.message,
+                sourceModule: notifications.sourceModule,
+                sourceId: notifications.sourceId,
+                isRead: notifications.isRead,
+                createdAt: notifications.createdAt,
+            })
+                .from(notifications)
+                .where(and(...whereConditions))
+                .orderBy(desc(notifications.createdAt))
+                .limit(Number(limit))
+                .offset(Number(offset));
+            res.json({
+                notifications: userNotifications,
+                total: userNotifications.length,
+                unreadCount: userNotifications.filter(n => !n.isRead).length,
+            });
+        }
+        catch (error) {
+            console.error('Get notifications error:', error);
+            res.status(500).json({ error: "Failed to get notifications" });
+        }
+    });
+    // PUT /api/social/notifications/:id/read - Mark notification as read
+    app.put('/api/social/notifications/:id/read', jwtAuth, async (req, res) => {
+        try {
+            const currentUserId = req.user.id;
+            const { id } = req.params;
+            await db
+                .update(notifications)
+                .set({ isRead: true })
+                .where(and(eq(notifications.id, Number(id)), eq(notifications.userId, currentUserId)));
+            res.json({ message: "Notification marked as read" });
+        }
+        catch (error) {
+            console.error('Mark notification read error:', error);
+            res.status(500).json({ error: "Failed to mark notification as read" });
+        }
+    });
+    // PUT /api/social/notifications/read-all - Mark all notifications as read
+    app.put('/api/social/notifications/read-all', jwtAuth, async (req, res) => {
+        try {
+            const currentUserId = req.user.id;
+            await db
+                .update(notifications)
+                .set({ isRead: true })
+                .where(and(eq(notifications.userId, currentUserId), eq(notifications.isRead, false)));
+            res.json({ message: "All notifications marked as read" });
+        }
+        catch (error) {
+            console.error('Mark all notifications read error:', error);
+            res.status(500).json({ error: "Failed to mark all notifications as read" });
+        }
+    });
+    // POST /api/social/posts/:id/report - Report a post
+    app.post('/api/social/posts/:id/report', jwtAuth, async (req, res) => {
+        try {
+            const currentUserId = req.user.id;
+            const { id } = req.params;
+            const { reason, evidence } = req.body;
+            if (!reason) {
+                return res.status(400).json({ error: "Report reason is required" });
+            }
+            // Check if post exists
+            const [post] = await db
+                .select({ id: socialPosts.id, userId: socialPosts.userId })
+                .from(socialPosts)
+                .where(eq(socialPosts.id, Number(id)));
+            if (!post) {
+                return res.status(404).json({ error: "Post not found" });
+            }
+            if (post.userId === currentUserId) {
+                return res.status(400).json({ error: "You cannot report your own post" });
+            }
+            // Create report
+            await db.insert(userReports).values({
+                reporterId: currentUserId,
+                reportedId: post.userId,
+                reportType: 'post',
+                reportReason: reason,
+                evidence: {
+                    postId: Number(id),
+                    evidence: evidence || {},
+                },
+            });
+            res.json({ message: "Post reported successfully" });
+        }
+        catch (error) {
+            console.error('Report post error:', error);
+            res.status(500).json({ error: "Failed to report post" });
+        }
+    });
+    // POST /api/social/users/:userId/block - Block a user
+    app.post('/api/social/users/:userId/block', jwtAuth, async (req, res) => {
+        try {
+            const currentUserId = req.user.id;
+            const { userId } = req.params;
+            const { reason } = req.body;
+            if (currentUserId === userId) {
+                return res.status(400).json({ error: "You cannot block yourself" });
+            }
+            // Check if user exists
+            const [user] = await db
+                .select({ id: users.id })
+                .from(users)
+                .where(eq(users.id, userId));
+            if (!user) {
+                return res.status(404).json({ error: "User not found" });
+            }
+            // Create block
+            await db.insert(userBlocks).values({
+                blockerId: currentUserId,
+                blockedId: userId,
+                reason: reason || null,
+            });
+            // Remove any existing friendship
+            await db
+                .delete(userFriends)
+                .where(or(and(eq(userFriends.userId, currentUserId), eq(userFriends.friendId, userId)), and(eq(userFriends.userId, userId), eq(userFriends.friendId, currentUserId))));
+            res.json({ message: "User blocked successfully" });
+        }
+        catch (error) {
+            console.error('Block user error:', error);
+            res.status(500).json({ error: "Failed to block user" });
+        }
+    });
+    // DELETE /api/social/users/:userId/block - Unblock a user
+    app.delete('/api/social/users/:userId/block', jwtAuth, async (req, res) => {
+        try {
+            const currentUserId = req.user.id;
+            const { userId } = req.params;
+            await db
+                .delete(userBlocks)
+                .where(and(eq(userBlocks.blockerId, currentUserId), eq(userBlocks.blockedId, userId)));
+            res.json({ message: "User unblocked successfully" });
+        }
+        catch (error) {
+            console.error('Unblock user error:', error);
+            res.status(500).json({ error: "Failed to unblock user" });
+        }
+    });
+    // GET /api/social/feed/trending - Get trending posts
+    app.get('/api/social/feed/trending', async (req, res) => {
+        try {
+            const { limit = 20, offset = 0 } = req.query;
+            const currentUserId = req.user?.id;
+            // Get posts with high engagement (likes + comments)
+            const trendingPosts = await db
+                .select({
+                id: socialPosts.id,
+                userId: socialPosts.userId,
+                content: socialPosts.content,
+                imageUrl: socialPosts.imageUrl,
+                type: socialPosts.type,
+                visibility: socialPosts.visibility,
+                tags: socialPosts.tags,
+                location: socialPosts.location,
+                mood: socialPosts.mood,
+                originalItemId: socialPosts.originalItemId,
+                originalItemType: socialPosts.originalItemType,
+                comment: socialPosts.comment,
+                createdAt: socialPosts.createdAt,
+                updatedAt: socialPosts.updatedAt,
+                // Engagement metrics
+                likesCount: sql `(SELECT COUNT(*) FROM ${socialLikes} WHERE ${socialLikes.postId} = ${socialPosts.id})`,
+                commentsCount: sql `(SELECT COUNT(*) FROM ${socialComments} WHERE ${socialComments.postId} = ${socialPosts.id})`,
+            })
+                .from(socialPosts)
+                .where(and(eq(socialPosts.visibility, 'public'), gte(socialPosts.createdAt, sql `NOW() - INTERVAL '7 days'`)))
+                .orderBy(desc(sql `(likesCount + commentsCount)`))
+                .limit(Number(limit))
+                .offset(Number(offset));
+            // Get user info and format posts
+            const postsWithDetails = await Promise.all(trendingPosts.map(async (post) => {
+                const [user] = await db
+                    .select({
+                    firstName: users.firstName,
+                    lastName: users.lastName,
+                    profileImageUrl: users.profileImageUrl,
+                    civicLevel: users.civicLevel,
+                    isVerified: users.isVerified,
+                })
+                    .from(users)
+                    .where(eq(users.id, post.userId));
+                return {
+                    ...post,
+                    user: {
+                        id: post.userId,
+                        firstName: user.firstName,
+                        lastName: user.lastName,
+                        profileImageUrl: user.profileImageUrl,
+                        civicLevel: user.civicLevel,
+                        isVerified: user.isVerified,
+                        displayName: `${user.firstName} ${user.lastName}`,
+                    },
+                    engagementScore: Number(post.likesCount) + Number(post.commentsCount),
+                };
+            }));
+            res.json({
+                posts: postsWithDetails,
+                total: postsWithDetails.length,
+                type: 'trending',
+            });
+        }
+        catch (error) {
+            console.error('Get trending posts error:', error);
+            res.status(500).json({ error: "Failed to get trending posts" });
         }
     });
 }
