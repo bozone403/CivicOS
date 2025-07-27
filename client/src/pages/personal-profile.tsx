@@ -89,7 +89,17 @@ export default function PersonalProfile() {
   // Create post mutation
   const createPostMutation = useMutation({
     mutationFn: async (content: string) => {
-      return await apiRequest('/api/social/posts', 'POST', { content });
+      // Check if user is authenticated
+      if (!isAuthenticated || !rawUser) {
+        throw new Error("Please log in to create posts");
+      }
+      
+      return await apiRequest('/api/social/posts', 'POST', { 
+        content,
+        type: 'post',
+        visibility: 'public',
+        tags: []
+      });
     },
     onSuccess: () => {
       setNewPostContent("");
@@ -100,10 +110,11 @@ export default function PersonalProfile() {
         description: "Your post has been shared with the community.",
       });
     },
-    onError: () => {
+    onError: (error: any) => {
+      console.error('Post creation error:', error);
       toast({
         title: "Failed to create post",
-        description: "Please try again later.",
+        description: error.message || "Please check your connection and try again.",
         variant: "destructive",
       });
     },
@@ -204,6 +215,15 @@ export default function PersonalProfile() {
                   <Badge variant="outline" className="text-xs">
                     ID: {user?.id}
                   </Badge>
+                  {isAuthenticated ? (
+                    <Badge className="bg-green-100 text-green-800">
+                      ✓ Logged In
+                    </Badge>
+                  ) : (
+                    <Badge variant="destructive">
+                      ⚠ Not Logged In
+                    </Badge>
+                  )}
                 </div>
                 <p className="text-gray-600 mb-2">{user?.email}</p>
                 <p className="text-gray-700">
@@ -214,39 +234,52 @@ export default function PersonalProfile() {
               {/* Action Buttons */}
               <div className="flex gap-2">
                 {isOwnProfile && (
-                  <Dialog open={showCreatePost} onOpenChange={setShowCreatePost}>
-                    <DialogTrigger asChild>
-                      <Button className="flex items-center gap-2">
-                        <Plus className="h-4 w-4" />
-                        Create Post
+                  <>
+                    {!isAuthenticated ? (
+                      <Button 
+                        variant="outline" 
+                        onClick={() => setLocation('/auth')}
+                        className="flex items-center gap-2"
+                      >
+                        <MessageSquare className="h-4 w-4" />
+                        Login to Post
                       </Button>
-                    </DialogTrigger>
-                    <DialogContent className="max-w-md">
-                      <DialogHeader>
-                        <DialogTitle>Create a Post</DialogTitle>
-                        <DialogDescription>Share something with the CivicOS community</DialogDescription>
-                      </DialogHeader>
-                      <div className="space-y-4">
-                        <Textarea
-                          value={newPostContent}
-                          onChange={(e) => setNewPostContent(e.target.value)}
-                          placeholder="What's on your mind?"
-                          rows={4}
-                        />
-                      </div>
-                      <div className="flex justify-end space-x-2 mt-6">
-                        <Button variant="outline" onClick={() => setShowCreatePost(false)}>
-                          Cancel
-                        </Button>
-                        <Button 
-                          onClick={handleCreatePost}
-                          disabled={createPostMutation.isPending}
-                        >
-                          {createPostMutation.isPending ? 'Posting...' : 'Post'}
-                        </Button>
-                      </div>
-                    </DialogContent>
-                  </Dialog>
+                    ) : (
+                      <Dialog open={showCreatePost} onOpenChange={setShowCreatePost}>
+                        <DialogTrigger asChild>
+                          <Button className="flex items-center gap-2">
+                            <Plus className="h-4 w-4" />
+                            Create Post
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent className="max-w-md">
+                          <DialogHeader>
+                            <DialogTitle>Create a Post</DialogTitle>
+                            <DialogDescription>Share something with the CivicOS community</DialogDescription>
+                          </DialogHeader>
+                          <div className="space-y-4">
+                            <Textarea
+                              value={newPostContent}
+                              onChange={(e) => setNewPostContent(e.target.value)}
+                              placeholder="What's on your mind?"
+                              rows={4}
+                            />
+                          </div>
+                          <div className="flex justify-end space-x-2 mt-6">
+                            <Button variant="outline" onClick={() => setShowCreatePost(false)}>
+                              Cancel
+                            </Button>
+                            <Button 
+                              onClick={handleCreatePost}
+                              disabled={createPostMutation.isPending}
+                            >
+                              {createPostMutation.isPending ? 'Posting...' : 'Post'}
+                            </Button>
+                          </div>
+                        </DialogContent>
+                      </Dialog>
+                    )}
+                  </>
                 )}
                 <Button 
                   variant="outline"

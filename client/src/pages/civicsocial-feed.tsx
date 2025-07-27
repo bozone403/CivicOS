@@ -136,6 +136,11 @@ export default function CivicSocialFeed() {
   // Create post mutation
   const createPostMutation = useMutation({
     mutationFn: async (postData: CreatePostData) => {
+      // Check if user is authenticated
+      if (!currentUser) {
+        throw new Error("Please log in to create posts");
+      }
+      
       return apiRequest('/api/social/posts', 'POST', postData);
     },
     onSuccess: () => {
@@ -153,9 +158,10 @@ export default function CivicSocialFeed() {
       });
     },
     onError: (error: any) => {
+      console.error('Post creation error:', error);
       toast({
         title: "Post Failed",
-        description: error.message || "Failed to create post.",
+        description: error.message || "Failed to create post. Please check your connection and try again.",
         variant: "destructive",
       });
     },
@@ -446,67 +452,36 @@ export default function CivicSocialFeed() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Main Feed */}
         <div className="lg:col-span-2">
-          {/* Create Post */}
-          <Card className="mb-6">
-            <CardContent className="p-6">
-              <div className="flex items-start gap-3">
-                <Avatar className="w-10 h-10">
-                  <AvatarImage src={currentUser?.profileImageUrl} />
-                  <AvatarFallback className="bg-blue-600">
-                    {getDisplayName(currentUser)[0]?.toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="flex-1">
-                  <Textarea
-                    placeholder="What's on your mind? Share your civic thoughts..."
-                    value={newPost.content}
-                    onChange={(e) => setNewPost({...newPost, content: e.target.value})}
-                    className="min-h-[100px] mb-4"
-                  />
-                  
+          {/* Create Post Button */}
+          <div className="mb-6">
+            {!currentUser ? (
+              <Card className="bg-yellow-50 border-yellow-200">
+                <CardContent className="p-4">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setShowCreatePost(true)}
-                      >
-                        <ImageIcon className="w-4 h-4 mr-2" />
-                        Photo
-                      </Button>
-                      <Select
-                        value={newPost.visibility}
-                        onValueChange={(value: 'public' | 'friends' | 'private') => 
-                          setNewPost({...newPost, visibility: value})
-                        }
-                      >
-                        <SelectTrigger className="w-32">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="public">
-                            <Globe className="w-4 h-4 mr-2" />
-                            Public
-                          </SelectItem>
-                          <SelectItem value="friends">
-                            <Users className="w-4 h-4 mr-2" />
-                            Friends
-                          </SelectItem>
-                          <SelectItem value="private">
-                            <Lock className="w-4 h-4 mr-2" />
-                            Private
-                          </SelectItem>
-                        </SelectContent>
-                      </Select>
+                      <MessageSquare className="h-5 w-5 text-yellow-600" />
+                      <span className="text-yellow-800">Login to create posts</span>
                     </div>
-                    <Button onClick={handleCreatePost} disabled={createPostMutation.isPending}>
-                      {createPostMutation.isPending ? 'Posting...' : 'Post'}
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => window.location.href = '/auth'}
+                    >
+                      Login
                     </Button>
                   </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+                </CardContent>
+              </Card>
+            ) : (
+              <Button 
+                onClick={() => setShowCreatePost(true)}
+                className="w-full sm:w-auto"
+              >
+                <MessageSquare className="h-4 w-4 mr-2" />
+                Create Post
+              </Button>
+            )}
+          </div>
 
           {/* Feed Tabs */}
           <Tabs value={activeTab} onValueChange={setActiveTab}>
