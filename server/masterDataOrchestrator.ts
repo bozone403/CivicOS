@@ -1,6 +1,6 @@
 import cron from 'node-cron';
 // import { comprehensiveGovernmentScraper } from './comprehensiveGovernmentScraper'; // Temporarily disabled
-import { revolutionaryNewsAggregator } from './revolutionaryNewsAggregator';
+// import { revolutionaryNewsAggregator } from './revolutionaryNewsAggregator'; // Temporarily disabled
 import { comprehensiveLegalDatabase } from './comprehensiveLegalDatabase';
 // import { comprehensiveAnalytics } from './comprehensiveAnalytics'; // Temporarily disabled
 import { realTimeMonitoring } from './realTimeMonitoring';
@@ -113,9 +113,9 @@ export class MasterDataOrchestrator {
     // await comprehensiveGovernmentScraper.performComprehensiveScraping();
     // this.systemHealth.governmentScraper = 'completed';
     // Step 3: Initial news aggregation
-    this.systemHealth.newsAggregator = 'running';
-    await revolutionaryNewsAggregator.performComprehensiveAggregation();
-    this.systemHealth.newsAggregator = 'completed';
+    // this.systemHealth.newsAggregator = 'running';
+    // await revolutionaryNewsAggregator.performComprehensiveAggregation();
+    // this.systemHealth.newsAggregator = 'completed';
     // Step 4: Generate initial analytics
     // this.systemHealth.analytics = 'running';
     // await comprehensiveAnalytics.generateComprehensiveAnalytics();
@@ -130,7 +130,7 @@ export class MasterDataOrchestrator {
     // Run all data collection systems
     await Promise.all([
       // comprehensiveGovernmentScraper.performComprehensiveScraping(),
-      revolutionaryNewsAggregator.performComprehensiveAggregation(),
+      // revolutionaryNewsAggregator.performComprehensiveAggregation(),
       // comprehensiveAnalytics.generateComprehensiveAnalytics()
     ]);
     this.lastUpdate = new Date();

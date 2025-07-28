@@ -3,7 +3,7 @@ import { registerRoutes } from "./appRoutes.js";
 import { fileURLToPath } from 'url';
 import path from "path";
 import { initializeDataSync } from "./dataSync.js";
-import { initializeNewsAnalysis } from "./newsAnalyzer.js";
+// import { initializeNewsAnalysis } from "./newsAnalyzer.js"; // Temporarily disabled
 // import { comprehensiveNewsAnalyzer } from "./comprehensiveNewsAnalyzer.js"; // Temporarily disabled
 import { realTimeMonitoring } from "./realTimeMonitoring.js";
 import { confirmedAPIs } from "./confirmedAPIs.js";
@@ -332,7 +332,7 @@ app.use('/api/ai', aiRoutes);
     try {
         setTimeout(() => {
             try {
-                initializeNewsAnalysis();
+                // initializeNewsAnalysis(); // Temporarily disabled
             }
             catch (error) {
                 logger.error({ msg: "Failed to initialize news analysis", error });

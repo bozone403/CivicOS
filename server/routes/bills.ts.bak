@@ -267,10 +267,11 @@ export function registerBillsRoutes(app: Express) {
         }
       }
 
-      // Generate government URLs
-      const governmentUrl = `https://www.parl.ca/DocumentViewer/en/44-1/bill/${bill.billNumber}`;
-      const legiscanUrl = `https://legiscan.com/CA/bill/${bill.billNumber}/2025`;
-      const fullTextUrl = `https://www.parl.ca/DocumentViewer/en/44-1/bill/${bill.billNumber}/first-reading`;
+      // Generate government URLs (using title as identifier since billNumber doesn't exist)
+      const billIdentifier = bill.title.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+      const governmentUrl = `https://www.parl.ca/DocumentViewer/en/44-1/bill/${billIdentifier}`;
+      const legiscanUrl = `https://legiscan.com/CA/bill/${billIdentifier}/2025`;
+      const fullTextUrl = `https://www.parl.ca/DocumentViewer/en/44-1/bill/${billIdentifier}/first-reading`;
 
       res.json({
         ...bill,
@@ -322,17 +323,14 @@ export function registerBillsRoutes(app: Express) {
         or(
           like(bills.title, `%${q}%`),
           like(bills.description, `%${q}%`),
-          like(bills.billNumber, `%${q}%`),
-          like(bills.sponsor, `%${q}%`)
+          like(bills.sponsorName, `%${q}%`)
         )
       ];
 
       if (status) {
         conditions.push(eq(bills.status, status as string));
       }
-      if (jurisdiction) {
-        conditions.push(eq(bills.jurisdiction, jurisdiction as string));
-      }
+      // jurisdiction field doesn't exist in bills table
 
       const results = await db
         .select()
