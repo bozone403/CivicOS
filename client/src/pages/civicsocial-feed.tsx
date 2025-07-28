@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -52,11 +51,27 @@ import {
   TrendingDown,
   Users as GroupIcon,
   Hash,
-  AtSign
+  AtSign,
+  Plus,
+  Search,
+  RefreshCw,
+  Loader2
 } from 'lucide-react';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
-import { UnifiedSocialPost } from '@/components/UnifiedSocialPost';
+import { 
+  CivicSocialLayout, 
+  CivicSocialHeader, 
+  CivicSocialSection, 
+  CivicSocialList, 
+  CivicSocialEmptyState, 
+  CivicSocialLoadingState, 
+  CivicSocialErrorState 
+} from '@/components/CivicSocialLayout';
+import { 
+  CivicSocialCard, 
+  CivicSocialPostCard 
+} from '@/components/CivicSocialCard';
 
 interface SocialPost {
   id: number;
@@ -101,641 +116,501 @@ interface CreatePostData {
 }
 
 export default function CivicSocialFeed() {
-  const { user: currentUser, isAuthenticated } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
-  // State for post management
-  const [showCreatePost, setShowCreatePost] = useState(false);
-  const [newPost, setNewPost] = useState<CreatePostData>({
-    content: '',
-    type: 'post',
-    visibility: 'public',
-    tags: [],
-    location: '',
-    mood: ''
-  });
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string>('');
+  // State management
+  const [createPostOpen, setCreatePostOpen] = useState(false);
+  const [selectedTab, setSelectedTab] = useState('all');
+  const [filterVisibility, setFilterVisibility] = useState<'all' | 'public' | 'friends' | 'private'>('all');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [sortBy, setSortBy] = useState<'latest' | 'popular' | 'trending'>('latest');
   
-  // State for dropdown menus
-  const [openDropdown, setOpenDropdown] = useState<number | null>(null);
-  
-  // Close dropdown when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (_event: MouseEvent) => {
-      if (openDropdown !== null) {
-        setOpenDropdown(null);
-      }
-    };
-    
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [openDropdown]);
+  // Form state
+  const [postContent, setPostContent] = useState('');
+  const [postType, setPostType] = useState<'post' | 'share' | 'poll' | 'event'>('post');
+  const [postVisibility, setPostVisibility] = useState<'public' | 'friends' | 'private'>('public');
+  const [postTags, setPostTags] = useState<string[]>([]);
+  const [postLocation, setPostLocation] = useState('');
+  const [postMood, setPostMood] = useState('');
+  const [postImage, setPostImage] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
 
-  const [activeTab, setActiveTab] = useState('all');
-  const [selectedPost, setSelectedPost] = useState<SocialPost | null>(null);
-  const [showFilters, setShowFilters] = useState(false);
-  const [filters, setFilters] = useState({
-    type: 'all',
-    visibility: 'all',
-    sortBy: 'recent',
-  });
-
-  // Fetch social posts
-  const { data: posts, isLoading: isLoadingPosts } = useQuery<SocialPost[]>({
-    queryKey: ['social-posts', activeTab, filters],
+  // Fetch social feed
+  const { data: feed, isLoading, error, refetch } = useQuery({
+    queryKey: ['socialFeed', selectedTab, filterVisibility, sortBy, searchQuery],
     queryFn: async () => {
       const params = new URLSearchParams({
-        tab: activeTab,
-        ...filters
+        tab: selectedTab,
+        visibility: filterVisibility,
+        sort: sortBy,
+        ...(searchQuery && { q: searchQuery })
       });
-      const response = await apiRequest(`/api/social/posts?${params}`, 'GET');
-      return response.posts || [];
+      
+      const response = await apiRequest(`/api/social/feed?${params}`);
+      return response.feed || [];
     },
+    staleTime: 30000, // 30 seconds
   });
 
   // Create post mutation
   const createPostMutation = useMutation({
     mutationFn: async (postData: CreatePostData) => {
-      // Check if user is authenticated
-      if (!currentUser) {
-        throw new Error("Please log in to create posts");
-      }
-      
-      return apiRequest('/api/social/posts', 'POST', postData);
+      return await apiRequest('/api/social/posts', 'POST', postData);
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['socialFeed'] });
+      setCreatePostOpen(false);
+      resetForm();
       toast({
-        title: "Post Created",
-        description: "Your post has been published successfully.",
-      });
-      queryClient.invalidateQueries({ queryKey: ['social-posts'] });
-      setShowCreatePost(false);
-      setNewPost({
-        content: '',
-        type: 'post',
-        visibility: 'public',
-        tags: [],
-      });
-    },
-    onError: (error: any) => {
-      console.error('Post creation error:', error);
-      toast({
-        title: "Post Failed",
-        description: error.message || "Failed to create post. Please check your connection and try again.",
-        variant: "destructive",
-      });
-    },
-  });
-
-  // Like post mutation
-  const likePostMutation = useMutation({
-    mutationFn: async ({ postId, action }: { postId: number; action: 'like' | 'unlike' }) => {
-      return apiRequest(`/api/social/posts/${postId}/like`, 'POST', { action });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['social-posts'] });
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Action Failed",
-        description: error.message || "Failed to perform action.",
-        variant: "destructive",
-      });
-    },
-  });
-
-  // Comment on post mutation
-  const commentPostMutation = useMutation({
-    mutationFn: async ({ postId, content }: { postId: number; content: string }) => {
-      return apiRequest(`/api/social/posts/${postId}/comments`, 'POST', { content });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['social-posts'] });
-      toast({
-        title: "Comment Added",
-        description: "Your comment has been posted.",
-      });
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Comment Failed",
-        description: error.message || "Failed to post comment.",
-        variant: "destructive",
-      });
-    },
-  });
-
-  // Share post mutation
-  const sharePostMutation = useMutation({
-    mutationFn: async ({ postId, comment }: { postId: number; comment?: string }) => {
-      return apiRequest(`/api/social/posts/${postId}/share`, 'POST', { comment });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['social-posts'] });
-      toast({
-        title: "Post Shared",
+        title: "Post created!",
         description: "Your post has been shared successfully.",
       });
     },
     onError: (error: any) => {
       toast({
-        title: "Share Failed",
-        description: error.message || "Failed to share post.",
-        variant: "destructive",
+        title: "Error creating post",
+        description: error.message || "Failed to create post. Please try again.",
+        variant: "destructive"
       });
+    }
+  });
+
+  // Like post mutation
+  const likePostMutation = useMutation({
+    mutationFn: async (postId: number) => {
+      return await apiRequest(`/api/social/posts/${postId}/like`, 'POST');
     },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['socialFeed'] });
+    }
+  });
+
+  // Comment post mutation
+  const commentPostMutation = useMutation({
+    mutationFn: async ({ postId, content }: { postId: number; content: string }) => {
+      return await apiRequest(`/api/social/posts/${postId}/comments`, 'POST', { content });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['socialFeed'] });
+    }
+  });
+
+  // Share post mutation
+  const sharePostMutation = useMutation({
+    mutationFn: async (postId: number) => {
+      return await apiRequest(`/api/social/posts/${postId}/share`, 'POST');
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['socialFeed'] });
+      toast({
+        title: "Post shared!",
+        description: "Your post has been shared successfully.",
+      });
+    }
   });
 
   // Bookmark post mutation
   const bookmarkPostMutation = useMutation({
-    mutationFn: async ({ postId, action }: { postId: number; action: 'bookmark' | 'unbookmark' }) => {
-      return apiRequest(`/api/social/posts/${postId}/bookmark`, 'POST', { action });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['social-posts'] });
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Bookmark Failed",
-        description: error.message || "Failed to bookmark post.",
-        variant: "destructive",
-      });
-    },
-  });
-
-  // Edit post mutation
-  const editPostMutation = useMutation({
-    mutationFn: async ({ postId, updates }: { postId: number; updates: any }) => {
-      return apiRequest(`/api/social/posts/${postId}`, 'PUT', updates);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['social-posts'] });
-      toast({
-        title: "Post Updated",
-        description: "Your post has been updated successfully.",
-      });
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Update Failed",
-        description: error.message || "Failed to update post.",
-        variant: "destructive",
-      });
-    },
-  });
-
-  // Delete post mutation
-  const deletePostMutation = useMutation({
     mutationFn: async (postId: number) => {
-      return apiRequest(`/api/social/posts/${postId}`, 'DELETE');
+      return await apiRequest(`/api/social/posts/${postId}/bookmark`, 'POST');
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['social-posts'] });
-      toast({
-        title: "Post Deleted",
-        description: "Your post has been deleted successfully.",
-      });
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Delete Failed",
-        description: error.message || "Failed to delete post.",
-        variant: "destructive",
-      });
-    },
+      queryClient.invalidateQueries({ queryKey: ['socialFeed'] });
+    }
   });
 
-  const handleCreatePost = () => {
-    if (!newPost.content.trim()) {
-      toast({
-        title: "Post Required",
-        description: "Please enter some content for your post.",
-        variant: "destructive",
-      });
-      return;
-    }
+  // Handle post creation
+  const handleCreatePost = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!postContent.trim()) return;
 
-    createPostMutation.mutate(newPost);
+    const postData: CreatePostData = {
+      content: postContent,
+      type: postType,
+      visibility: postVisibility,
+      tags: postTags,
+      location: postLocation,
+      mood: postMood,
+      ...(imagePreview && { imageUrl: imagePreview })
+    };
+
+    createPostMutation.mutate(postData);
   };
 
-  const handleLikePost = (post: SocialPost) => {
-    likePostMutation.mutate({
-      postId: post.id,
-      action: post.isLiked ? 'unlike' : 'like'
+  // Handle post interactions
+  const handleLikePost = (postId: number) => {
+    likePostMutation.mutate(postId);
+  };
+
+  const handleCommentPost = (postId: number) => {
+    // This would typically open a comment dialog
+    // For now, we'll just show a toast
+    toast({
+      title: "Comment feature",
+      description: "Comment functionality coming soon!",
     });
   };
 
-  const handleComment = (postId: number, content: string) => {
-    if (!content.trim()) return;
-    commentPostMutation.mutate({ postId, content });
+  const handleSharePost = (postId: number) => {
+    sharePostMutation.mutate(postId);
   };
 
-  const handleShare = (post: SocialPost) => {
-    sharePostMutation.mutate({ postId: post.id });
+  const handleBookmarkPost = (postId: number) => {
+    bookmarkPostMutation.mutate(postId);
   };
 
-  const handleBookmark = (post: SocialPost) => {
-    bookmarkPostMutation.mutate({
-      postId: post.id,
-      action: post.isBookmarked ? 'unbookmark' : 'bookmark'
-    });
-  };
-
-  const getDisplayName = (user: any) => {
-    if (user.firstName && user.lastName) return `${user.firstName} ${user.lastName}`;
-    if (user.firstName) return user.firstName;
-    if (user.email) return user.email.split('@')[0];
-    return 'Anonymous User';
-  };
-
-  const getCivicLevelColor = (level: string) => {
-    switch (level?.toLowerCase()) {
-      case 'champion': return 'bg-purple-500';
-      case 'expert': return 'bg-blue-500';
-      case 'advocate': return 'bg-green-500';
-      case 'active': return 'bg-yellow-500';
-      default: return 'bg-gray-500';
+  // Handle image upload
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setPostImage(file);
+      setImagePreview(URL.createObjectURL(file));
     }
   };
 
-  const formatTimeAgo = (dateString: string) => {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
-    
-    if (diffInSeconds < 60) return 'just now';
-    if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;
-    if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`;
-    if (diffInSeconds < 2592000) return `${Math.floor(diffInSeconds / 86400)}d ago`;
-    return date.toLocaleDateString();
+  // Reset form
+  const resetForm = () => {
+    setPostContent('');
+    setPostType('post');
+    setPostVisibility('public');
+    setPostTags([]);
+    setPostLocation('');
+    setPostMood('');
+    setPostImage(null);
+    setImagePreview(null);
   };
 
-  const PostCard = ({ post }: { post: SocialPost }) => (
-    <Card className="mb-6 hover:shadow-md transition-shadow">
-      <CardContent className="p-6">
-        {/* Post Header */}
-        <div className="flex items-start justify-between mb-4">
-          <div className="flex items-center gap-3">
-            <Avatar className="w-10 h-10">
-              <AvatarImage src={post.user?.profileImageUrl} />
-              <AvatarFallback className="bg-blue-600">
-                {getDisplayName(post.user)[0]?.toUpperCase()}
-              </AvatarFallback>
-            </Avatar>
-            <div>
-              <div className="flex items-center gap-2">
-                <h3 className="font-semibold">{getDisplayName(post.user)}</h3>
-                {post.user?.isVerified && (
-                  <Badge variant="secondary">
-                    <Star className="w-3 h-3 mr-1" />
-                    Verified
-                  </Badge>
-                )}
-                <Badge className={`text-xs ${getCivicLevelColor(post.user?.civicLevel || '')}`}>
-                  {post.user?.civicLevel || 'Registered'}
-                </Badge>
+  // Sidebar content
+  const sidebar = (
+    <>
+      <CivicSocialSection title="Quick Actions">
+        <div className="space-y-3">
+          <Button 
+            onClick={() => setCreatePostOpen(true)}
+            className="w-full social-button-primary"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Create Post
+          </Button>
+          
+          <Button variant="outline" className="w-full">
+            <Camera className="w-4 h-4 mr-2" />
+            Share Photo
+          </Button>
+          
+          <Button variant="outline" className="w-full">
+            <Video className="w-4 h-4 mr-2" />
+            Share Video
+          </Button>
+        </div>
+      </CivicSocialSection>
+
+      <CivicSocialSection title="Trending Topics">
+        <div className="space-y-2">
+          {['#CanadianPolitics', '#CivicEngagement', '#Democracy', '#VotingRights'].map((tag) => (
+            <div key={tag} className="flex items-center justify-between p-2 rounded-md bg-muted/50 hover:bg-muted transition-colors cursor-pointer">
+              <span className="text-sm font-medium">{tag}</span>
+              <TrendingUp className="w-4 h-4 text-muted-foreground" />
+            </div>
+          ))}
+        </div>
+      </CivicSocialSection>
+
+      <CivicSocialSection title="Online Friends">
+        <div className="space-y-2">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="flex items-center space-x-2 p-2 rounded-md hover:bg-muted transition-colors cursor-pointer">
+              <div className="social-avatar-online w-8 h-8">
+                <div className="w-full h-full rounded-full bg-social-primary flex items-center justify-center text-white text-xs font-medium">
+                  U{i}
+                </div>
               </div>
-              <div className="flex items-center gap-2 text-sm text-gray-600">
-                <Clock className="w-3 h-3" />
-                {formatTimeAgo(post.createdAt)}
-                {post.visibility !== 'public' && (
-                  <>
-                    <span>•</span>
-                    <Globe className="w-3 h-3" />
-                    {post.visibility}
-                  </>
-                )}
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium truncate">User {i}</p>
+                <p className="text-xs text-muted-foreground">Online</p>
               </div>
             </div>
-          </div>
-          <div className="relative">
-            <Button 
-              variant="ghost" 
-              size="sm"
-              onClick={(e) => {
-                e.stopPropagation();
-                setOpenDropdown(openDropdown === post.id ? null : post.id);
-              }}
-            >
-              <MoreHorizontal className="w-4 h-4" />
-            </Button>
-            {/* Post actions dropdown - only show for user's own posts */}
-            {post.user?.id === currentUser?.id && openDropdown === post.id && (
-              <div className="absolute right-0 top-full mt-1 bg-white border rounded-md shadow-lg z-10 min-w-[120px]">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="w-full justify-start"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setOpenDropdown(null);
-                    // TODO: Implement edit modal
-                    toast({
-                      title: "Edit Feature",
-                      description: "Post editing will be available soon.",
-                    });
-                  }}
-                >
-                  <Edit className="w-4 h-4 mr-2" />
-                  Edit
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="w-full justify-start text-red-600 hover:text-red-700"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setOpenDropdown(null);
-                    if (confirm('Are you sure you want to delete this post?')) {
-                      deletePostMutation.mutate(post.id);
-                    }
-                  }}
-                >
-                  <Trash2 className="w-4 h-4 mr-2" />
-                  Delete
-                </Button>
-              </div>
-            )}
-          </div>
+          ))}
         </div>
-
-        {/* Post Content */}
-        <div className="mb-4">
-          <p className="text-gray-900 whitespace-pre-wrap">{post.content}</p>
-          
-          {post.imageUrl && (
-            <div className="mt-4">
-              <img 
-                src={post.imageUrl} 
-                alt="Post image" 
-                className="rounded-lg max-w-full h-auto"
-              />
-            </div>
-          )}
-
-          {/* Tags */}
-          {post.tags && post.tags.length > 0 && (
-            <div className="flex flex-wrap gap-2 mt-3">
-              {post.tags.map((tag, index) => (
-                <Badge key={index} variant="outline" className="text-xs">
-                  <Hash className="w-3 h-3 mr-1" />
-                  {tag}
-                </Badge>
-              ))}
-            </div>
-          )}
-
-          {/* Location and Mood */}
-          <div className="flex items-center gap-4 mt-3 text-sm text-gray-600">
-            {post.location && (
-              <div className="flex items-center gap-1">
-                <MapPin className="w-3 h-3" />
-                {post.location}
-              </div>
-            )}
-            {post.mood && (
-              <div className="flex items-center gap-1">
-                <Smile className="w-3 h-3" />
-                {post.mood}
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Engagement Stats */}
-        <div className="flex items-center justify-between text-sm text-gray-600 mb-4">
-          <div className="flex items-center gap-4">
-            <span>{post.likesCount} likes</span>
-            <span>{post.commentsCount} comments</span>
-            <span>{post.sharesCount} shares</span>
-          </div>
-        </div>
-
-        {/* Action Buttons */}
-        <div className="flex items-center justify-between pt-4 border-t">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => handleLikePost(post)}
-            className={post.isLiked ? 'text-red-600' : ''}
-          >
-            <Heart className={`w-4 h-4 mr-2 ${post.isLiked ? 'fill-current' : ''}`} />
-            Like
-          </Button>
-          
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setSelectedPost(post)}
-          >
-            <CommentIcon className="w-4 h-4 mr-2" />
-            Comment
-          </Button>
-          
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => handleShare(post)}
-          >
-            <Share className="w-4 h-4 mr-2" />
-            Share
-          </Button>
-          
-          <Button variant="ghost" size="sm" onClick={() => handleBookmark(post)}>
-            <Bookmark className="w-4 h-4 mr-2" />
-            {post.isBookmarked ? 'Saved' : 'Save'}
-          </Button>
-        </div>
-      </CardContent>
-    </Card>
+      </CivicSocialSection>
+    </>
   );
 
+  // Header content
+  const header = (
+    <CivicSocialHeader
+      title="CivicSocial Feed"
+      subtitle="Stay connected with your civic community"
+      actions={
+        <div className="flex items-center space-x-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => refetch()}
+            disabled={isLoading}
+          >
+            {isLoading ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <RefreshCw className="w-4 h-4" />
+            )}
+          </Button>
+          <Button
+            onClick={() => setCreatePostOpen(true)}
+            className="social-button-primary"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            New Post
+          </Button>
+        </div>
+      }
+    />
+  );
+
+  // Filter controls
+  const filterControls = (
+    <div className="flex flex-col sm:flex-row gap-4 p-4 bg-card border border-border rounded-lg">
+      <div className="flex-1">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Input
+            placeholder="Search posts..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-10"
+          />
+        </div>
+      </div>
+      
+      <div className="flex gap-2">
+        <Select value={filterVisibility} onValueChange={(value: any) => setFilterVisibility(value)}>
+          <SelectTrigger className="w-32">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Posts</SelectItem>
+            <SelectItem value="public">Public</SelectItem>
+            <SelectItem value="friends">Friends</SelectItem>
+            <SelectItem value="private">Private</SelectItem>
+          </SelectContent>
+        </Select>
+        
+        <Select value={sortBy} onValueChange={(value: any) => setSortBy(value)}>
+          <SelectTrigger className="w-32">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="latest">Latest</SelectItem>
+            <SelectItem value="popular">Popular</SelectItem>
+            <SelectItem value="trending">Trending</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+    </div>
+  );
+
+  // Loading state
+  if (isLoading) {
+    return (
+      <CivicSocialLayout header={header} sidebar={sidebar}>
+        <CivicSocialLoadingState 
+          title="Loading your feed..."
+          description="We're gathering the latest posts from your civic community."
+        />
+      </CivicSocialLayout>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <CivicSocialLayout header={header} sidebar={sidebar}>
+        <CivicSocialErrorState
+          title="Failed to load feed"
+          description="We couldn't load your social feed. Please check your connection and try again."
+          retry={() => refetch()}
+        />
+      </CivicSocialLayout>
+    );
+  }
+
+  // Empty state
+  if (!feed || feed.length === 0) {
+    return (
+      <CivicSocialLayout header={header} sidebar={sidebar}>
+        <CivicSocialEmptyState
+          title="No posts yet"
+          description="Be the first to share something with your civic community!"
+          icon={<MessageSquare className="w-8 h-8" />}
+          action={
+            <Button onClick={() => setCreatePostOpen(true)} className="social-button-primary">
+              <Plus className="w-4 h-4 mr-2" />
+              Create Your First Post
+            </Button>
+          }
+        />
+      </CivicSocialLayout>
+    );
+  }
+
   return (
-    <div className="container mx-auto px-4 py-8 max-w-4xl">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2">CivicSocial Feed</h1>
-        <p className="text-gray-600">Connect with fellow citizens and share your civic engagement</p>
-      </div>
+    <CivicSocialLayout header={header} sidebar={sidebar}>
+      <CivicSocialSection>
+        {filterControls}
+      </CivicSocialSection>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Main Feed */}
-        <div className="lg:col-span-2">
-          {/* Create Post */}
-          <div className="mb-6">
-            <UnifiedSocialPost 
-              placeholder="What's on your mind?"
-              onPostCreated={() => {
-                queryClient.invalidateQueries({ queryKey: ['social-posts'] });
-              }}
+      <CivicSocialSection>
+        <CivicSocialList>
+          {feed.map((post: SocialPost) => (
+            <CivicSocialPostCard
+              key={post.id}
+              post={post}
+              onLike={handleLikePost}
+              onComment={handleCommentPost}
+              onShare={handleSharePost}
+              onBookmark={handleBookmarkPost}
             />
-          </div>
+          ))}
+        </CivicSocialList>
+      </CivicSocialSection>
 
-          {/* Feed Tabs */}
-          <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-4">
-              <TabsTrigger value="all">All Posts</TabsTrigger>
-              <TabsTrigger value="friends">Friends</TabsTrigger>
-              <TabsTrigger value="trending">Trending</TabsTrigger>
-              <TabsTrigger value="my-posts">My Posts</TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="all" className="mt-6">
-              {isLoadingPosts ? (
-                <div className="text-center py-8">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-                  <p className="mt-2 text-gray-600">Loading posts...</p>
-                </div>
-              ) : posts?.length === 0 ? (
-                <Card>
-                  <CardContent className="p-8 text-center">
-                    <MessageSquare className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                    <h3 className="text-lg font-semibold mb-2">No posts yet</h3>
-                    <p className="text-gray-600">
-                      Be the first to share your civic thoughts and experiences!
-                    </p>
-                  </CardContent>
-                </Card>
-              ) : (
-                <div>
-                  {posts?.map((post) => (
-                    <PostCard key={post.id} post={post} />
-                  ))}
-                </div>
-              )}
-            </TabsContent>
-
-            <TabsContent value="friends" className="mt-6">
-              <div className="text-center py-8">
-                <Users className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-semibold mb-2">Friends' Posts</h3>
-                <p className="text-gray-600">
-                  Posts from your friends will appear here.
-                </p>
-              </div>
-            </TabsContent>
-
-            <TabsContent value="trending" className="mt-6">
-              <div className="text-center py-8">
-                <TrendingUp className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-semibold mb-2">Trending Posts</h3>
-                <p className="text-gray-600">
-                  Most popular and engaging posts will appear here.
-                </p>
-              </div>
-            </TabsContent>
-
-            <TabsContent value="my-posts" className="mt-6">
-              <div className="text-center py-8">
-                <Activity className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-semibold mb-2">My Posts</h3>
-                <p className="text-gray-600">
-                  Your posts will appear here.
-                </p>
-              </div>
-            </TabsContent>
-          </Tabs>
-        </div>
-
-        {/* Sidebar */}
-        <div className="space-y-6">
-          {/* Quick Stats */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Your Activity</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center justify-between">
-                <span className="text-sm">Posts Created</span>
-                <span className="text-sm font-medium">0</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm">Likes Given</span>
-                <span className="text-sm font-medium">0</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm">Comments Made</span>
-                <span className="text-sm font-medium">0</span>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Trending Topics */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Trending Topics</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm">#CivicEngagement</span>
-                  <Badge variant="secondary">Hot</Badge>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm">#LocalPolitics</span>
-                  <Badge variant="secondary">Trending</Badge>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm">#CommunityAction</span>
-                  <Badge variant="secondary">New</Badge>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-
-
-
-      {/* Post Detail Dialog */}
-      <Dialog open={!!selectedPost} onOpenChange={() => setSelectedPost(null)}>
+      {/* Create Post Dialog */}
+      <Dialog open={createPostOpen} onOpenChange={setCreatePostOpen}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>Post Details</DialogTitle>
+            <DialogTitle>Create a New Post</DialogTitle>
           </DialogHeader>
-          {selectedPost && (
-            <div className="space-y-4">
-              <PostCard post={selectedPost} />
-              
-              {/* Comments Section */}
-              <div className="border-t pt-4">
-                <h4 className="font-semibold mb-4">Comments</h4>
-                <div className="space-y-4">
-                  {/* Comment input */}
-                  <div className="flex gap-3">
-                    <Avatar className="w-8 h-8">
-                      <AvatarImage src={currentUser?.profileImageUrl} />
-                      <AvatarFallback className="bg-blue-600 text-xs">
-                        {getDisplayName(currentUser)[0]?.toUpperCase()}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1">
-                      <Input
-                        placeholder="Write a comment..."
-                        onKeyPress={(e) => {
-                          if (e.key === 'Enter' && e.currentTarget.value.trim()) {
-                            handleComment(selectedPost.id, e.currentTarget.value);
-                            e.currentTarget.value = '';
-                          }
-                        }}
-                      />
-                    </div>
-                  </div>
-                  
-                  {/* Comments list */}
-                  <div className="text-center py-4 text-gray-500">
-                    No comments yet. Be the first to comment!
-                  </div>
-                </div>
+          
+          <form onSubmit={handleCreatePost} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="content">What's on your mind?</Label>
+              <Textarea
+                id="content"
+                placeholder="Share your thoughts with the civic community..."
+                value={postContent}
+                onChange={(e) => setPostContent(e.target.value)}
+                className="min-h-[120px]"
+                required
+              />
+            </div>
+
+            {imagePreview && (
+              <div className="relative">
+                <img 
+                  src={imagePreview} 
+                  alt="Preview" 
+                  className="w-full rounded-lg max-h-64 object-cover"
+                />
+                <Button
+                  type="button"
+                  variant="destructive"
+                  size="sm"
+                  className="absolute top-2 right-2"
+                  onClick={() => {
+                    setPostImage(null);
+                    setImagePreview(null);
+                  }}
+                >
+                  <Trash2 className="w-4 h-4" />
+                </Button>
+              </div>
+            )}
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="type">Post Type</Label>
+                <Select value={postType} onValueChange={(value: any) => setPostType(value)}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="post">Post</SelectItem>
+                    <SelectItem value="share">Share</SelectItem>
+                    <SelectItem value="poll">Poll</SelectItem>
+                    <SelectItem value="event">Event</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="visibility">Visibility</Label>
+                <Select value={postVisibility} onValueChange={(value: any) => setPostVisibility(value)}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="public">Public</SelectItem>
+                    <SelectItem value="friends">Friends</SelectItem>
+                    <SelectItem value="private">Private</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
-          )}
+
+            <div className="flex items-center space-x-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => document.getElementById('image-upload')?.click()}
+              >
+                <ImageIcon className="w-4 h-4 mr-2" />
+                Add Image
+              </Button>
+              <input
+                id="image-upload"
+                type="file"
+                accept="image/*"
+                onChange={handleImageChange}
+                className="hidden"
+              />
+              
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+              >
+                <MapPin className="w-4 h-4 mr-2" />
+                Add Location
+              </Button>
+              
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+              >
+                <Tag className="w-4 h-4 mr-2" />
+                Add Tags
+              </Button>
+            </div>
+
+            <div className="flex justify-end space-x-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setCreatePostOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                className="social-button-primary"
+                disabled={createPostMutation.isPending || !postContent.trim()}
+              >
+                {createPostMutation.isPending ? (
+                  <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                ) : (
+                  <Send className="w-4 h-4 mr-2" />
+                )}
+                Post
+              </Button>
+            </div>
+          </form>
         </DialogContent>
       </Dialog>
-    </div>
+    </CivicSocialLayout>
   );
 }
 

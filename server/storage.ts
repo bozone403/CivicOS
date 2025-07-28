@@ -265,7 +265,7 @@ export class DatabaseStorage implements IStorage {
       if (!newBill) {
         const [existingBill] = await db.select()
           .from(bills)
-          .where(eq(bills.billNumber, bill.billNumber));
+          .where(eq(bills.billNumber, bill.billNumber || ''));
         return existingBill;
       }
       
@@ -354,7 +354,7 @@ export class DatabaseStorage implements IStorage {
           .where(
             and(
               eq(politicians.name, politician.name),
-              eq(politicians.jurisdiction, politician.jurisdiction)
+              eq(politicians.jurisdiction, politician.jurisdiction || '')
             )
           );
         return existingPolitician;

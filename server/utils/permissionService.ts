@@ -168,8 +168,21 @@ export class PermissionService {
     notes?: string
   ): Promise<boolean> {
     try {
+      // First check if permission exists
+      const perm = await db
+        .select()
+        .from(permissions)
+        .where(eq(permissions.name, permissionName))
+        .limit(1);
+
+      if (perm.length === 0) {
+        console.error(`Permission '${permissionName}' not found`);
+        return false;
+      }
+
       await db.insert(userPermissions).values({
         userId,
+        permissionId: perm[0].id,
         permissionName,
         isGranted: true,
         grantedBy,

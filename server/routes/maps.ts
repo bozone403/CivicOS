@@ -35,6 +35,8 @@ export function registerMapsRoutes(app: Express) {
         // Insert sample districts
         await db.insert(electoralDistricts).values([
           {
+            name: "Toronto Centre",
+            jurisdiction: "Federal",
             districtName: "Toronto Centre",
             districtNumber: "35035",
             province: "Ontario",
@@ -47,6 +49,8 @@ export function registerMapsRoutes(app: Express) {
             isRural: false,
           },
           {
+            name: "Vancouver Granville",
+            jurisdiction: "Federal",
             districtName: "Vancouver Granville",
             districtNumber: "59035",
             province: "British Columbia",
@@ -59,6 +63,8 @@ export function registerMapsRoutes(app: Express) {
             isRural: false,
           },
           {
+            name: "Calgary Centre",
+            jurisdiction: "Federal",
             districtName: "Calgary Centre",
             districtNumber: "48005",
             province: "Alberta",

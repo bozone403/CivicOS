@@ -111,7 +111,11 @@ export async function registerRoutes(app) {
             });
         }
     });
-    // Serve static files from the frontend build
+    // Add a catch-all 404 handler for /api/* routes (must be after all API routes)
+    app.all('/api/*', (req, res) => {
+        res.status(404).json({ message: 'API route not found', path: req.originalUrl });
+    });
+    // Serve static files from the frontend build (AFTER all API routes)
     const publicPath = path.join(process.cwd(), 'dist/public');
     console.log('  - process.cwd():', process.cwd());
     // Check if the directory exists

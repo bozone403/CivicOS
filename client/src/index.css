@@ -81,6 +81,28 @@
   --ndp-orange: hsl(24, 100%, 50%);
   --bloc-cyan: hsl(195, 53%, 79%);
   --green-party: hsl(142, 86%, 28%);
+  
+  /* CivicSocial Theme Colors */
+  --social-primary: hsl(220, 91%, 51%);
+  --social-secondary: hsl(142, 86%, 28%);
+  --social-accent: hsl(45, 93%, 58%);
+  --social-neutral: hsl(210, 11%, 25%);
+  --social-success: hsl(142, 86%, 28%);
+  --social-warning: hsl(45, 93%, 58%);
+  --social-error: hsl(0, 84%, 60%);
+  --social-info: hsl(220, 91%, 51%);
+  
+  /* Social Interaction Colors */
+  --like-color: hsl(0, 84%, 60%);
+  --comment-color: hsl(45, 93%, 58%);
+  --share-color: hsl(142, 86%, 28%);
+  --bookmark-color: hsl(259, 94%, 51%);
+  
+  /* Social Status Colors */
+  --online: hsl(142, 86%, 28%);
+  --away: hsl(45, 93%, 58%);
+  --busy: hsl(0, 84%, 60%);
+  --offline: hsl(210, 11%, 45%);
 }
 
 .dark {
@@ -125,6 +147,28 @@
   --ndp-orange: hsl(24, 100%, 60%);
   --bloc-cyan: hsl(195, 53%, 85%);
   --green-party: hsl(142, 86%, 35%);
+  
+  /* CivicSocial Theme Colors - Dark Mode */
+  --social-primary: hsl(220, 91%, 60%);
+  --social-secondary: hsl(142, 86%, 35%);
+  --social-accent: hsl(45, 93%, 65%);
+  --social-neutral: hsl(210, 11%, 71%);
+  --social-success: hsl(142, 86%, 35%);
+  --social-warning: hsl(45, 93%, 65%);
+  --social-error: hsl(0, 84%, 65%);
+  --social-info: hsl(220, 91%, 60%);
+  
+  /* Social Interaction Colors - Dark Mode */
+  --like-color: hsl(0, 84%, 65%);
+  --comment-color: hsl(45, 93%, 65%);
+  --share-color: hsl(142, 86%, 35%);
+  --bookmark-color: hsl(259, 94%, 60%);
+  
+  /* Social Status Colors - Dark Mode */
+  --online: hsl(142, 86%, 35%);
+  --away: hsl(45, 93%, 65%);
+  --busy: hsl(0, 84%, 65%);
+  --offline: hsl(210, 11%, 55%);
 }
 
 @layer base {
@@ -252,6 +296,66 @@
   .green-party { color: var(--green-party); }
   .bg-green-party { background-color: var(--green-party); }
   
+  /* CivicSocial Theme Colors */
+  .social-primary { color: var(--social-primary); }
+  .bg-social-primary { background-color: var(--social-primary); }
+  .border-social-primary { border-color: var(--social-primary); }
+  
+  .social-secondary { color: var(--social-secondary); }
+  .bg-social-secondary { background-color: var(--social-secondary); }
+  .border-social-secondary { border-color: var(--social-secondary); }
+  
+  .social-accent { color: var(--social-accent); }
+  .bg-social-accent { background-color: var(--social-accent); }
+  .border-social-accent { border-color: var(--social-accent); }
+  
+  .social-neutral { color: var(--social-neutral); }
+  .bg-social-neutral { background-color: var(--social-neutral); }
+  .border-social-neutral { border-color: var(--social-neutral); }
+  
+  .social-success { color: var(--social-success); }
+  .bg-social-success { background-color: var(--social-success); }
+  .border-social-success { border-color: var(--social-success); }
+  
+  .social-warning { color: var(--social-warning); }
+  .bg-social-warning { background-color: var(--social-warning); }
+  .border-social-warning { border-color: var(--social-warning); }
+  
+  .social-error { color: var(--social-error); }
+  .bg-social-error { background-color: var(--social-error); }
+  .border-social-error { border-color: var(--social-error); }
+  
+  .social-info { color: var(--social-info); }
+  .bg-social-info { background-color: var(--social-info); }
+  .border-social-info { border-color: var(--social-info); }
+  
+  /* Social Interaction Colors */
+  .like-color { color: var(--like-color); }
+  .bg-like-color { background-color: var(--like-color); }
+  .comment-color { color: var(--comment-color); }
+  .bg-comment-color { background-color: var(--comment-color); }
+  .share-color { color: var(--share-color); }
+  .bg-share-color { background-color: var(--share-color); }
+  .bookmark-color { color: var(--bookmark-color); }
+  .bg-bookmark-color { background-color: var(--bookmark-color); }
+  
+  /* Social Status Colors */
+  .online { color: var(--online); }
+  .bg-online { background-color: var(--online); }
+  .away { color: var(--away); }
+  .bg-away { background-color: var(--away); }
+  .busy { color: var(--busy); }
+  .bg-busy { background-color: var(--busy); }
+  .offline { color: var(--offline); }
+  .bg-offline { background-color: var(--offline); }
+  
+  /* CivicSocial Typography */
+  .social-heading-1 { @apply text-3xl font-bold; }
+  .social-heading-2 { @apply text-2xl font-semibold; }
+  .social-heading-3 { @apply text-xl font-medium; }
+  .social-body { @apply text-base leading-relaxed; }
+  .social-caption { @apply text-sm text-muted-foreground; }
+  
   /* Luxury glass morphism effects */
   .glass-card {
     background: rgba(255, 255, 255, 0.05);
@@ -266,6 +370,82 @@
   .gradient-ndp { background: linear-gradient(135deg, #FF6600 0%, #CC3300 100%); }
   .gradient-bloc { background: linear-gradient(135deg, #87CEEB 0%, #4682B4 100%); }
   .gradient-green { background: linear-gradient(135deg, #228B22 0%, #006400 100%); }
+  
+  /* Social Card Styles */
+  .social-card {
+    @apply bg-card border border-border rounded-lg shadow-sm hover:shadow-md transition-all duration-200;
+  }
+  
+  .social-card-interactive {
+    @apply social-card hover:scale-[1.02] cursor-pointer;
+  }
+  
+  .social-card-elevated {
+    @apply social-card shadow-lg hover:shadow-xl;
+  }
+  
+  /* Social Button Styles */
+  .social-button-primary {
+    @apply bg-social-primary text-white hover:bg-social-primary/90 transition-colors;
+  }
+  
+  .social-button-secondary {
+    @apply bg-social-secondary text-white hover:bg-social-secondary/90 transition-colors;
+  }
+  
+  .social-button-accent {
+    @apply bg-social-accent text-white hover:bg-social-accent/90 transition-colors;
+  }
+  
+  /* Social Avatar Styles */
+  .social-avatar {
+    @apply rounded-full border-2 border-border;
+  }
+  
+  .social-avatar-online {
+    @apply social-avatar border-online;
+  }
+  
+  .social-avatar-away {
+    @apply social-avatar border-away;
+  }
+  
+  .social-avatar-busy {
+    @apply social-avatar border-busy;
+  }
+  
+  .social-avatar-offline {
+    @apply social-avatar border-offline;
+  }
+  
+  /* Social Badge Styles */
+  .social-badge {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+  }
+  
+  .social-badge-primary {
+    @apply social-badge bg-social-primary text-white;
+  }
+  
+  .social-badge-secondary {
+    @apply social-badge bg-social-secondary text-white;
+  }
+  
+  .social-badge-accent {
+    @apply social-badge bg-social-accent text-white;
+  }
+  
+  .social-badge-success {
+    @apply social-badge bg-social-success text-white;
+  }
+  
+  .social-badge-warning {
+    @apply social-badge bg-social-warning text-white;
+  }
+  
+  .social-badge-error {
+    @apply social-badge bg-social-error text-white;
+  }
   
   /* Luxury animations */
   .fade-in-up {
@@ -284,6 +464,47 @@
   @keyframes pulseGlow {
     0%, 100% { box-shadow: 0 0 5px rgba(34, 139, 34, 0.5); }
     50% { box-shadow: 0 0 20px rgba(34, 139, 34, 0.8); }
+  }
+  
+  /* Social animations */
+  .social-fade-in {
+    animation: socialFadeIn 0.4s ease-out;
+  }
+  
+  @keyframes socialFadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  
+  .social-scale-in {
+    animation: socialScaleIn 0.3s ease-out;
+  }
+  
+  @keyframes socialScaleIn {
+    from { opacity: 0; transform: scale(0.95); }
+    to { opacity: 1; transform: scale(1); }
+  }
+  
+  /* Social hover effects */
+  .social-hover-lift {
+    @apply transition-all duration-200 hover:scale-[1.02] hover:shadow-lg;
+  }
+  
+  .social-hover-glow {
+    @apply transition-all duration-200 hover:shadow-lg hover:shadow-social-primary/20;
+  }
+  
+  /* Social responsive utilities */
+  .social-container {
+    @apply w-full max-w-4xl mx-auto px-4 sm:px-6 lg:px-8;
+  }
+  
+  .social-grid {
+    @apply grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6;
+  }
+  
+  .social-flex {
+    @apply flex flex-col sm:flex-row items-stretch sm:items-center gap-4;
   }
 }
 

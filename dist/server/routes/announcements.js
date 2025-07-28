@@ -4,12 +4,44 @@ import { jwtAuth } from './auth.js';
 import { PermissionService } from '../utils/permissionService.js';
 import { eq, and, desc } from 'drizzle-orm';
 import { users } from '../../shared/schema.js';
+import { z } from 'zod';
+// Input validation schemas
+const createAnnouncementSchema = z.object({
+    title: z.string().min(1, 'Title is required').max(200, 'Title too long'),
+    content: z.string().min(1, 'Content is required').max(5000, 'Content too long'),
+    priority: z.enum(['low', 'normal', 'high', 'urgent']).default('normal'),
+    targetAudience: z.enum(['all', 'citizens', 'press', 'government']).default('all'),
+    status: z.enum(['draft', 'published', 'archived']).default('published')
+});
+const updateAnnouncementSchema = z.object({
+    title: z.string().min(1, 'Title is required').max(200, 'Title too long').optional(),
+    content: z.string().min(1, 'Content is required').max(5000, 'Content too long').optional(),
+    priority: z.enum(['low', 'normal', 'high', 'urgent']).optional(),
+    targetAudience: z.enum(['all', 'citizens', 'press', 'government']).optional(),
+    status: z.enum(['draft', 'published', 'archived']).optional(),
+    isPinned: z.boolean().optional()
+});
 export function registerAnnouncementsRoutes(app) {
     // Get all announcements (public)
     app.get("/api/announcements", async (req, res) => {
         try {
             const { page = 1, limit = 10, status = 'published', priority } = req.query;
-            const offset = (Number(page) - 1) * Number(limit);
+            // Validate query parameters
+            const pageNum = Number(page);
+            const limitNum = Number(limit);
+            if (isNaN(pageNum) || pageNum < 1) {
+                return res.status(400).json({
+                    success: false,
+                    message: "Invalid page number"
+                });
+            }
+            if (isNaN(limitNum) || limitNum < 1 || limitNum > 100) {
+                return res.status(400).json({
+                    success: false,
+                    message: "Invalid limit (must be between 1 and 100)"
+                });
+            }
+            const offset = (pageNum - 1) * limitNum;
             let whereConditions = [eq(announcements.status, status)];
             if (priority) {
                 whereConditions.push(eq(announcements.priority, priority));
@@ -19,7 +51,7 @@ export function registerAnnouncementsRoutes(app) {
                 .from(announcements)
                 .where(and(...whereConditions))
                 .orderBy(desc(announcements.isPinned), desc(announcements.createdAt))
-                .limit(Number(limit))
+                .limit(limitNum)
                 .offset(offset);
             const total = await db
                 .select({ count: announcements.id })
@@ -29,10 +61,10 @@ export function registerAnnouncementsRoutes(app) {
                 success: true,
                 announcements: results,
                 pagination: {
-                    page: Number(page),
-                    limit: Number(limit),
+                    page: pageNum,
+                    limit: limitNum,
                     total: total.length,
-                    totalPages: Math.ceil(total.length / Number(limit))
+                    totalPages: Math.ceil(total.length / limitNum)
                 }
             });
         }
@@ -49,10 +81,18 @@ export function registerAnnouncementsRoutes(app) {
     app.get("/api/announcements/:id", async (req, res) => {
         try {
             const { id } = req.params;
+            // Validate ID parameter
+            const announcementId = Number(id);
+            if (isNaN(announcementId) || announcementId < 1) {
+                return res.status(400).json({
+                    success: false,
+                    message: "Invalid announcement ID"
+                });
+            }
             const announcement = await db
                 .select()
                 .from(announcements)
-                .where(eq(announcements.id, Number(id)))
+                .where(eq(announcements.id, announcementId))
                 .limit(1);
             if (announcement.length === 0) {
                 return res.status(404).json({
@@ -64,7 +104,7 @@ export function registerAnnouncementsRoutes(app) {
             await db
                 .update(announcements)
                 .set({ viewsCount: (announcement[0].viewsCount || 0) + 1 })
-                .where(eq(announcements.id, Number(id)));
+                .where(eq(announcements.id, announcementId));
             res.json({
                 success: true,
                 announcement: announcement[0]
@@ -83,11 +123,26 @@ export function registerAnnouncementsRoutes(app) {
     app.post("/api/announcements", jwtAuth, async (req, res) => {
         try {
             const userId = req.user?.id;
+            if (!userId) {
+                return res.status(401).json({
+                    success: false,
+                    message: "Authentication required"
+                });
+            }
             const user = await db.select().from(users).where(eq(users.id, userId)).limit(1);
             if (user.length === 0) {
                 return res.status(404).json({
                     success: false,
                     message: "User not found"
+                });
+            }
+            // Validate input
+            const validationResult = createAnnouncementSchema.safeParse(req.body);
+            if (!validationResult.success) {
+                return res.status(400).json({
+                    success: false,
+                    message: "Invalid input data",
+                    errors: validationResult.error.errors
                 });
             }
             const canCreate = await PermissionService.canCreateContent(userId, user[0].membershipType || 'citizen', 'announcement');
@@ -97,13 +152,7 @@ export function registerAnnouncementsRoutes(app) {
                     message: "You don't have permission to create announcements"
                 });
             }
-            const { title, content, priority = 'normal', targetAudience = 'all', status = 'published' } = req.body;
-            if (!title || !content) {
-                return res.status(400).json({
-                    success: false,
-                    message: "Title and content are required"
-                });
-            }
+            const { title, content, priority = 'normal', targetAudience = 'all', status = 'published' } = validationResult.data;
             const announcement = await db.insert(announcements).values({
                 title,
                 content,
@@ -134,12 +183,35 @@ export function registerAnnouncementsRoutes(app) {
     app.put("/api/announcements/:id", jwtAuth, async (req, res) => {
         try {
             const userId = req.user?.id;
+            if (!userId) {
+                return res.status(401).json({
+                    success: false,
+                    message: "Authentication required"
+                });
+            }
             const { id } = req.params;
+            // Validate ID parameter
+            const announcementId = Number(id);
+            if (isNaN(announcementId) || announcementId < 1) {
+                return res.status(400).json({
+                    success: false,
+                    message: "Invalid announcement ID"
+                });
+            }
             const user = await db.select().from(users).where(eq(users.id, userId)).limit(1);
             if (user.length === 0) {
                 return res.status(404).json({
                     success: false,
                     message: "User not found"
+                });
+            }
+            // Validate input
+            const validationResult = updateAnnouncementSchema.safeParse(req.body);
+            if (!validationResult.success) {
+                return res.status(400).json({
+                    success: false,
+                    message: "Invalid input data",
+                    errors: validationResult.error.errors
                 });
             }
             // Check if user can edit announcements
@@ -154,7 +226,7 @@ export function registerAnnouncementsRoutes(app) {
             const existing = await db
                 .select()
                 .from(announcements)
-                .where(eq(announcements.id, Number(id)))
+                .where(eq(announcements.id, announcementId))
                 .limit(1);
             if (existing.length === 0) {
                 return res.status(404).json({
@@ -171,30 +243,30 @@ export function registerAnnouncementsRoutes(app) {
                     message: "You can only edit your own announcements"
                 });
             }
-            const { title, content, priority, targetAudience, status, isPinned } = req.body;
             const updateData = {
                 updatedAt: new Date()
             };
-            if (title !== undefined)
-                updateData.title = title;
-            if (content !== undefined)
-                updateData.content = content;
-            if (priority !== undefined)
-                updateData.priority = priority;
-            if (targetAudience !== undefined)
-                updateData.targetAudience = targetAudience;
-            if (status !== undefined)
-                updateData.status = status;
-            if (isPinned !== undefined)
-                updateData.isPinned = isPinned;
+            // Only update fields that are provided
+            if (validationResult.data.title !== undefined)
+                updateData.title = validationResult.data.title;
+            if (validationResult.data.content !== undefined)
+                updateData.content = validationResult.data.content;
+            if (validationResult.data.priority !== undefined)
+                updateData.priority = validationResult.data.priority;
+            if (validationResult.data.targetAudience !== undefined)
+                updateData.targetAudience = validationResult.data.targetAudience;
+            if (validationResult.data.status !== undefined)
+                updateData.status = validationResult.data.status;
+            if (validationResult.data.isPinned !== undefined)
+                updateData.isPinned = validationResult.data.isPinned;
             // Set publishedAt if status is changing to published
-            if (status === 'published' && existing[0].status !== 'published') {
+            if (validationResult.data.status === 'published' && existing[0].status !== 'published') {
                 updateData.publishedAt = new Date();
             }
             const updated = await db
                 .update(announcements)
                 .set(updateData)
-                .where(eq(announcements.id, Number(id)))
+                .where(eq(announcements.id, announcementId))
                 .returning();
             res.json({
                 success: true,
@@ -215,7 +287,21 @@ export function registerAnnouncementsRoutes(app) {
     app.delete("/api/announcements/:id", jwtAuth, async (req, res) => {
         try {
             const userId = req.user?.id;
+            if (!userId) {
+                return res.status(401).json({
+                    success: false,
+                    message: "Authentication required"
+                });
+            }
             const { id } = req.params;
+            // Validate ID parameter
+            const announcementId = Number(id);
+            if (isNaN(announcementId) || announcementId < 1) {
+                return res.status(400).json({
+                    success: false,
+                    message: "Invalid announcement ID"
+                });
+            }
             const user = await db.select().from(users).where(eq(users.id, userId)).limit(1);
             if (user.length === 0) {
                 return res.status(404).json({
@@ -235,7 +321,7 @@ export function registerAnnouncementsRoutes(app) {
             const existing = await db
                 .select()
                 .from(announcements)
-                .where(eq(announcements.id, Number(id)))
+                .where(eq(announcements.id, announcementId))
                 .limit(1);
             if (existing.length === 0) {
                 return res.status(404).json({
@@ -254,7 +340,7 @@ export function registerAnnouncementsRoutes(app) {
             }
             await db
                 .delete(announcements)
-                .where(eq(announcements.id, Number(id)));
+                .where(eq(announcements.id, announcementId));
             res.json({
                 success: true,
                 message: "Announcement deleted successfully"
@@ -273,14 +359,35 @@ export function registerAnnouncementsRoutes(app) {
     app.get("/api/announcements/user/me", jwtAuth, async (req, res) => {
         try {
             const userId = req.user?.id;
+            if (!userId) {
+                return res.status(401).json({
+                    success: false,
+                    message: "Authentication required"
+                });
+            }
             const { page = 1, limit = 10 } = req.query;
-            const offset = (Number(page) - 1) * Number(limit);
+            // Validate query parameters
+            const pageNum = Number(page);
+            const limitNum = Number(limit);
+            if (isNaN(pageNum) || pageNum < 1) {
+                return res.status(400).json({
+                    success: false,
+                    message: "Invalid page number"
+                });
+            }
+            if (isNaN(limitNum) || limitNum < 1 || limitNum > 100) {
+                return res.status(400).json({
+                    success: false,
+                    message: "Invalid limit (must be between 1 and 100)"
+                });
+            }
+            const offset = (pageNum - 1) * limitNum;
             const results = await db
                 .select()
                 .from(announcements)
                 .where(eq(announcements.authorId, userId))
                 .orderBy(desc(announcements.createdAt))
-                .limit(Number(limit))
+                .limit(limitNum)
                 .offset(offset);
             const total = await db
                 .select({ count: announcements.id })
@@ -290,10 +397,10 @@ export function registerAnnouncementsRoutes(app) {
                 success: true,
                 announcements: results,
                 pagination: {
-                    page: Number(page),
-                    limit: Number(limit),
+                    page: pageNum,
+                    limit: limitNum,
                     total: total.length,
-                    totalPages: Math.ceil(total.length / Number(limit))
+                    totalPages: Math.ceil(total.length / limitNum)
                 }
             });
         }

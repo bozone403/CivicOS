@@ -42,7 +42,9 @@ router.get('/user-votes', async (req, res) => {
     // Convert to object format for easier lookup
     const votesObject: Record<string, string> = {};
     userVotes.forEach(vote => {
-      votesObject[vote.itemId.toString()] = vote.voteValue === 1 ? 'yes' : vote.voteValue === -1 ? 'no' : 'abstain';
+      if (vote.itemId) {
+        votesObject[vote.itemId.toString()] = vote.voteValue === 1 ? 'yes' : vote.voteValue === -1 ? 'no' : 'abstain';
+      }
     });
 
     res.json(votesObject);
@@ -85,13 +87,10 @@ router.post('/bills/vote', async (req, res) => {
     // Insert vote
     await db.insert(votes).values({
       userId,
-      itemId: parseInt(billId),
-      itemType: 'bill',
-      voteValue: vote === 'yes' ? 1 : vote === 'no' ? -1 : 0,
+      billId: parseInt(billId),
+      vote: vote,
       reasoning: req.body.reasoning || null,
-      verificationId,
-      blockHash,
-      isVerified: true
+      verificationId
     });
 
     res.json({ success: true, message: 'Vote recorded successfully' });
@@ -267,11 +266,8 @@ router.post('/electoral/vote', async (req, res) => {
     await db.insert(electoralVotes).values({
       userId,
       candidateId,
-      voteType,
-      reasoning: reasoning || null,
-      verificationId,
-      blockHash,
-      isVerified: true
+      vote: voteType,
+      reasoning: reasoning || null
     });
 
     res.json({ success: true, message: 'Electoral vote recorded successfully' });

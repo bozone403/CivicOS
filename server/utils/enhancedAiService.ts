@@ -45,7 +45,7 @@ class EnhancedAiService {
       }
     } catch (error) {
       this.isOllamaAvailable = false;
-      logger.warn('Ollama connection failed, using mock data', { error: error.message });
+      logger.warn('Ollama connection failed, using mock data', { error: error instanceof Error ? error.message : String(error) });
     }
   }
 
@@ -54,7 +54,7 @@ class EnhancedAiService {
       try {
         return await this.generateOllamaResponse(message, context);
       } catch (error) {
-        logger.error('Ollama generation failed, falling back to mock', { error: error.message });
+        logger.error('Ollama generation failed, falling back to mock', { error: error instanceof Error ? error.message : String(error) });
         return this.generateMockResponse(message, context);
       }
     } else {
@@ -161,7 +161,7 @@ User question: ${message}
           };
         }
       } catch (error) {
-        logger.error('Ollama health check failed', { error: error.message });
+        logger.error('Ollama health check failed', { error: error instanceof Error ? error.message : String(error) });
       }
     }
 

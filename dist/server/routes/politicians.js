@@ -320,7 +320,8 @@ export function registerPoliticiansRoutes(app) {
                 politicianId: parseInt(id),
                 statement,
                 context: context || 'general',
-                source: source || 'user_submitted'
+                source: source || 'user_submitted',
+                date: new Date()
             }).returning();
             res.json(newStatement);
         }

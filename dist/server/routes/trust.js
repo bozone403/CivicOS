@@ -33,20 +33,18 @@ export function registerTrustRoutes(app) {
                 // Insert sample fact checks
                 await db.insert(factChecks).values([
                     {
-                        politicianId: 194865,
-                        originalClaim: "I will reduce taxes by 10%",
-                        verificationResult: "mostly_true",
-                        factCheckSummary: "The politician's claim about tax reduction is mostly accurate based on the proposed budget.",
-                        confidenceLevel: "85.00",
-                        checkedBy: "CivicOS AI Fact Checker",
+                        statement: "I will reduce taxes by 10%",
+                        politicianId: "194865",
+                        factCheckResult: "mostly_true",
+                        accuracy: "85.00",
+                        source: "CivicOS AI Fact Checker",
                     },
                     {
-                        politicianId: 194864,
-                        originalClaim: "Our party will create 100,000 new jobs",
-                        verificationResult: "partially_true",
-                        factCheckSummary: "The job creation target is ambitious but achievable based on current economic projections.",
-                        confidenceLevel: "65.00",
-                        checkedBy: "CivicOS AI Fact Checker",
+                        statement: "Our party will create 100,000 new jobs",
+                        politicianId: "194864",
+                        factCheckResult: "partially_true",
+                        accuracy: "65.00",
+                        source: "CivicOS AI Fact Checker",
                     }
                 ]).onConflictDoNothing();
             }

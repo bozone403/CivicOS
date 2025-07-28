@@ -79,9 +79,7 @@ export function registerMembershipRoutes(app: Express) {
           membershipType: 'citizen',
           status: 'active',
           startDate: new Date(),
-          amountPaid: "0.00",
-          paymentMethod: 'free',
-          notes: 'Free citizen membership'
+          reason: 'Free citizen membership'
         });
 
         return res.json({
@@ -268,10 +266,7 @@ export function registerMembershipRoutes(app: Express) {
           status: 'cancelled',
           startDate: user.membershipStartDate || new Date(),
           endDate: new Date(),
-          stripeSubscriptionId: user.stripeSubscriptionId,
-          amountPaid: "0.00",
-          paymentMethod: 'cancelled',
-          notes: 'Membership cancelled by user'
+          reason: 'Membership cancelled by user'
         });
 
       res.json({
@@ -339,10 +334,7 @@ async function handleSubscriptionUpdate(subscription: any) {
       status: status === 'active' ? 'active' : 'inactive',
       startDate: new Date(subscription.start_date * 1000),
       endDate: subscription.cancel_at ? new Date(subscription.cancel_at * 1000) : null,
-      stripeSubscriptionId: subscriptionId,
-      amountPaid: String(subscription.items.data[0].price.unit_amount / 100),
-      paymentMethod: 'stripe',
-      notes: `Subscription ${status}`
+      reason: `Subscription ${status}`
     });
 
   } catch (error) {

@@ -156,6 +156,9 @@ export const politicians = pgTable("politicians", {
     contactInfo: jsonb("contact_info").default("{}"),
     socialMedia: jsonb("social_media").default("{}"),
     votingRecord: jsonb("voting_record").default("{}"),
+    level: varchar("level"),
+    jurisdiction: varchar("jurisdiction"),
+    trustScore: decimal("trust_score", { precision: 5, scale: 2 }).default("50.00"),
 });
 // Social posts table
 export const socialPosts = pgTable("social_posts", {
@@ -175,6 +178,8 @@ export const socialPosts = pgTable("social_posts", {
     moderatedAt: timestamp("moderated_at"),
     moderatedBy: varchar("moderated_by"),
     moderationNotes: text("moderation_notes"),
+    imageUrl: varchar("image_url"),
+    visibility: varchar("visibility").default("public"),
 });
 // Social comments table
 export const socialComments = pgTable("social_comments", {
@@ -255,6 +260,7 @@ export const notifications = pgTable("notifications", {
     data: jsonb("data"),
     sourceModule: varchar("source_module"),
     createdAt: timestamp("created_at").defaultNow(),
+    sourceId: varchar("source_id"),
 });
 // Bills table
 export const bills = pgTable("bills", {
@@ -274,6 +280,11 @@ export const bills = pgTable("bills", {
     fullText: text("full_text"),
     committeeReferral: varchar("committee_referral"),
     fiscalImpact: text("fiscal_impact"),
+    billNumber: varchar("bill_number"),
+    votingDeadline: timestamp("voting_deadline"),
+    deadlineDate: timestamp("deadline_date"),
+    aiSummary: text("ai_summary"),
+    category: varchar("category"),
 });
 // Votes table
 export const votes = pgTable("votes", {
@@ -288,6 +299,7 @@ export const votes = pgTable("votes", {
     reasoning: text("reasoning"),
     timestamp: timestamp("timestamp").defaultNow(),
     createdAt: timestamp("created_at").defaultNow(),
+    verificationId: varchar("verification_id"),
 });
 // News articles table
 export const newsArticles = pgTable("news_articles", {
@@ -300,6 +312,9 @@ export const newsArticles = pgTable("news_articles", {
     publishedAt: timestamp("published_at"),
     createdAt: timestamp("created_at").defaultNow(),
     updatedAt: timestamp("updated_at").defaultNow(),
+    summary: text("summary"),
+    bias: varchar("bias"),
+    credibilityScore: decimal("credibility_score", { precision: 3, scale: 2 }),
 });
 // News comparisons table
 export const newsComparisons = pgTable("news_comparisons", {
@@ -344,6 +359,9 @@ export const electoralVotes = pgTable("electoral_votes", {
     userId: varchar("user_id").notNull(),
     vote: varchar("vote").notNull(),
     createdAt: timestamp("created_at").defaultNow(),
+    voteType: varchar("vote_type"),
+    reasoning: text("reasoning"),
+    timestamp: timestamp("timestamp").defaultNow(),
 });
 // Elections table
 export const elections = pgTable("elections", {
@@ -382,6 +400,15 @@ export const electoralDistricts = pgTable("electoral_districts", {
     population: integer("population"),
     createdAt: timestamp("created_at").defaultNow(),
     updatedAt: timestamp("updated_at").defaultNow(),
+    districtName: varchar("district_name"),
+    districtNumber: varchar("district_number"),
+    province: varchar("province"),
+    area: varchar("area"),
+    majorCities: text("major_cities").array(),
+    currentRepresentative: varchar("current_representative"),
+    lastElectionTurnout: varchar("last_election_turnout"),
+    isUrban: boolean("is_urban"),
+    isRural: boolean("is_rural"),
 });
 // Criminal code sections table
 export const criminalCodeSections = pgTable("criminal_code_sections", {
@@ -401,6 +428,8 @@ export const legalActs = pgTable("legal_acts", {
     jurisdiction: varchar("jurisdiction"),
     createdAt: timestamp("created_at").defaultNow(),
     updatedAt: timestamp("updated_at").defaultNow(),
+    fullText: text("full_text"),
+    summary: text("summary"),
 });
 // Legal cases table
 export const legalCases = pgTable("legal_cases", {
@@ -426,40 +455,44 @@ export const legislativeActs = pgTable("legislative_acts", {
 // Politician statements table
 export const politicianStatements = pgTable("politician_statements", {
     id: serial("id").primaryKey(),
-    politicianId: varchar("politician_id").notNull(),
+    politicianId: integer("politician_id").notNull().references(() => politicians.id, { onDelete: "cascade" }),
     statement: text("statement").notNull(),
     context: text("context"),
     date: timestamp("date").notNull(),
     source: varchar("source"),
     createdAt: timestamp("created_at").defaultNow(),
+    dateCreated: timestamp("date_created").defaultNow(),
 });
 // Politician positions table
 export const politicianPositions = pgTable("politician_positions", {
     id: serial("id").primaryKey(),
-    politicianId: varchar("politician_id").notNull(),
+    politicianId: integer("politician_id").notNull().references(() => politicians.id, { onDelete: "cascade" }),
     position: varchar("position").notNull(),
     startDate: timestamp("start_date"),
     endDate: timestamp("end_date"),
     createdAt: timestamp("created_at").defaultNow(),
+    dateStated: timestamp("date_stated").defaultNow(),
 });
 // Campaign finance table
 export const campaignFinance = pgTable("campaign_finance", {
     id: serial("id").primaryKey(),
-    politicianId: varchar("politician_id").notNull(),
+    politicianId: integer("politician_id").notNull().references(() => politicians.id, { onDelete: "cascade" }),
     amount: decimal("amount", { precision: 10, scale: 2 }),
     source: varchar("source"),
     date: timestamp("date"),
     type: varchar("type"),
     createdAt: timestamp("created_at").defaultNow(),
+    reportingPeriod: timestamp("reporting_period"),
 });
 // Politician truth tracking table
 export const politicianTruthTracking = pgTable("politician_truth_tracking", {
     id: serial("id").primaryKey(),
-    politicianId: varchar("politician_id").notNull(),
+    politicianId: integer("politician_id").notNull().references(() => politicians.id, { onDelete: "cascade" }),
     statementId: integer("statement_id"),
     truthScore: decimal("truth_score", { precision: 3, scale: 2 }),
     factCheckResult: varchar("fact_check_result"),
     createdAt: timestamp("created_at").defaultNow(),
+    checkedAt: timestamp("checked_at").defaultNow(),
 });
 // Petitions table
 export const petitions = pgTable("petitions", {
@@ -472,6 +505,9 @@ export const petitions = pgTable("petitions", {
     status: varchar("status").default("active"),
     createdAt: timestamp("created_at").defaultNow(),
     updatedAt: timestamp("updated_at").defaultNow(),
+    relatedBillId: integer("related_bill_id"),
+    autoCreated: boolean("auto_created").default(false),
+    deadlineDate: timestamp("deadline_date"),
 });
 // Petition signatures table
 export const petitionSignatures = pgTable("petition_signatures", {
@@ -479,6 +515,8 @@ export const petitionSignatures = pgTable("petition_signatures", {
     petitionId: integer("petition_id").notNull(),
     userId: varchar("user_id").notNull(),
     createdAt: timestamp("created_at").defaultNow(),
+    signedAt: timestamp("signed_at").defaultNow(),
+    verificationId: varchar("verification_id"),
 });
 // Announcements table
 export const announcements = pgTable("announcements", {
@@ -504,9 +542,13 @@ export const announcements = pgTable("announcements", {
 export const userPermissions = pgTable("user_permissions", {
     id: serial("id").primaryKey(),
     userId: varchar("user_id").notNull(),
-    permissionId: integer("permission_id").notNull(),
+    permissionId: integer("permission_id").notNull().references(() => permissions.id),
+    permissionName: varchar("permission_name").notNull(), // Add this field for direct permission name lookup
+    isGranted: boolean("is_granted").default(true), // Add this field
     grantedAt: timestamp("granted_at").defaultNow(),
     grantedBy: varchar("granted_by"),
+    expiresAt: timestamp("expires_at"),
+    notes: text("notes"),
 });
 // Permissions table
 export const permissions = pgTable("permissions", {
@@ -514,13 +556,16 @@ export const permissions = pgTable("permissions", {
     name: varchar("name").notNull(),
     description: text("description"),
     category: varchar("category"),
+    isActive: boolean("is_active").default(true), // Add this field
     createdAt: timestamp("created_at").defaultNow(),
 });
 // Membership permissions table
 export const membershipPermissions = pgTable("membership_permissions", {
     id: serial("id").primaryKey(),
     membershipType: varchar("membership_type").notNull(),
-    permissionId: integer("permission_id").notNull(),
+    permissionId: integer("permission_id").notNull().references(() => permissions.id),
+    permissionName: varchar("permission_name").notNull(), // Add this field for direct permission name lookup
+    isGranted: boolean("is_granted").default(true), // Add this field
     createdAt: timestamp("created_at").defaultNow(),
 });
 // User membership history table
@@ -532,6 +577,7 @@ export const userMembershipHistory = pgTable("user_membership_history", {
     endDate: timestamp("end_date"),
     reason: varchar("reason"),
     createdAt: timestamp("created_at").defaultNow(),
+    status: varchar("status").default("active"),
 });
 // Fact checks table
 export const factChecks = pgTable("fact_checks", {
@@ -542,6 +588,35 @@ export const factChecks = pgTable("fact_checks", {
     accuracy: decimal("accuracy", { precision: 3, scale: 2 }),
     source: varchar("source"),
     createdAt: timestamp("created_at").defaultNow(),
+    checkedAt: timestamp("checked_at").defaultNow(),
+});
+// User notification preferences table
+export const userNotificationPreferences = pgTable("user_notification_preferences", {
+    id: serial("id").primaryKey(),
+    userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    emailNotifications: boolean("email_notifications").default(true),
+    pushNotifications: boolean("push_notifications").default(true),
+    smsNotifications: boolean("sms_notifications").default(false),
+    notificationTypes: jsonb("notification_types").default("{}"),
+    quietHours: jsonb("quiet_hours").default("{}"),
+    createdAt: timestamp("created_at").defaultNow(),
+    updatedAt: timestamp("updated_at").defaultNow(),
+});
+// Voting items table
+export const votingItems = pgTable("voting_items", {
+    id: serial("id").primaryKey(),
+    title: varchar("title").notNull(),
+    description: text("description"),
+    type: varchar("type").notNull(), // bill, motion, resolution, etc.
+    options: jsonb("options").notNull(),
+    startDate: timestamp("start_date").notNull(),
+    endDate: timestamp("end_date").notNull(),
+    status: varchar("status").notNull(),
+    jurisdiction: varchar("jurisdiction").notNull(),
+    requiredQuorum: integer("required_quorum").default(0),
+    eligibleVoters: jsonb("eligible_voters").notNull(),
+    createdAt: timestamp("created_at").defaultNow(),
+    updatedAt: timestamp("updated_at").defaultNow(),
 });
 // Create schemas for validation
 export const insertUserSchema = createInsertSchema(users);

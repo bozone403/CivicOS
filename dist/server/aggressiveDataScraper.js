@@ -672,7 +672,7 @@ export class AggressiveDataScraper {
                 .limit(1);
             if (politician.length > 0) {
                 await db.insert(politicianStatements).values({
-                    politicianId: politician[0].id.toString(),
+                    politicianId: politician[0].id,
                     statement: statementData.content,
                     context: statementData.context,
                     source: statementData.source,

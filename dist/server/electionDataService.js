@@ -118,12 +118,7 @@ export class ElectionDataService {
                 const [candidate] = await db.insert(electoralCandidates).values({
                     name: leader.name,
                     party: leader.party,
-                    position: leader.position,
-                    jurisdiction: leader.jurisdiction,
-                    imageUrl: leader.imageUrl,
-                    bio: leader.bio,
-                    keyPolicies: leader.keyPolicies,
-                    trustScore: leader.trustScore.toString()
+                    bio: leader.bio
                 }).returning();
                 return candidate;
             }));

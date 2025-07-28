@@ -167,7 +167,7 @@ export class DatabaseStorage {
             if (!newBill) {
                 const [existingBill] = await db.select()
                     .from(bills)
-                    .where(eq(bills.billNumber, bill.billNumber));
+                    .where(eq(bills.billNumber, bill.billNumber || ''));
                 return existingBill;
             }
             return newBill;
@@ -244,7 +244,7 @@ export class DatabaseStorage {
             if (!newPolitician) {
                 const [existingPolitician] = await db.select()
                     .from(politicians)
-                    .where(and(eq(politicians.name, politician.name), eq(politicians.jurisdiction, politician.jurisdiction)));
+                    .where(and(eq(politicians.name, politician.name), eq(politicians.jurisdiction, politician.jurisdiction || '')));
                 return existingPolitician;
             }
             return newPolitician;

@@ -690,7 +690,7 @@ export async function populateRealData(): Promise<void> {
           aiSummary: bill.summary,
           status: normalizeStatus(bill.status),
           category: inferCategory(bill.title, bill.summary),
-          jurisdiction: "Federal"
+          // jurisdiction: "Federal" // This field doesn't exist in the bills table
         };
 
         await storage.createBill(billData);

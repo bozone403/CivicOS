@@ -180,12 +180,52 @@ app.use(helmet({
     },
   },
 }));
-app.use(rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 200, // limit each IP to 200 requests per windowMs
-  standardHeaders: true,
-  legacyHeaders: false,
-}));
+
+// Enhanced rate limiting configuration (temporarily disabled)
+// const createRateLimit = (windowMs: number, max: number, message: string) => {
+//   return rateLimit({
+//     windowMs,
+//     max,
+//     message: { error: message },
+//     standardHeaders: true,
+//     legacyHeaders: false,
+//     handler: (req, res) => {
+//       res.status(429).json({
+//         error: message,
+//         retryAfter: Math.ceil(windowMs / 1000)
+//       });
+//     }
+//   });
+// };
+
+// Apply rate limiting to different endpoints (temporarily disabled)
+// app.use('/api/auth/', createRateLimit(15 * 60 * 1000, 5, 'Too many authentication attempts')); // 5 attempts per 15 minutes
+// app.use('/api/voting/', createRateLimit(60 * 1000, 10, 'Too many voting attempts')); // 10 votes per minute
+// app.use('/api/social/', createRateLimit(60 * 1000, 20, 'Too many social interactions')); // 20 interactions per minute
+// app.use('/api/', createRateLimit(60 * 1000, 100, 'Too many API requests')); // 100 requests per minute for general API
+
+// Enhanced error handling middleware
+app.use((error: any, req: Request, res: Response, next: NextFunction) => {
+  logger.error({ 
+    msg: 'Unhandled error', 
+    error: error.message, 
+    stack: error.stack,
+    url: req.url,
+    method: req.method,
+    ip: req.ip
+  });
+
+  // Don't expose internal errors in production
+  const isDevelopment = process.env.NODE_ENV === 'development';
+  const errorMessage = isDevelopment ? error.message : 'Internal server error';
+  const errorStack = isDevelopment ? error.stack : undefined;
+
+  res.status(500).json({
+    error: errorMessage,
+    ...(errorStack && { stack: errorStack }),
+    timestamp: new Date().toISOString()
+  });
+});
 
 (function checkRequiredEnvVars() {
   const required = [

@@ -241,7 +241,7 @@ export function registerFinanceRoutes(app) {
             const { id } = req.params;
             const financeData = await db.select()
                 .from(campaignFinance)
-                .where(eq(campaignFinance.politicianId, id))
+                .where(eq(campaignFinance.politicianId, parseInt(id)))
                 .orderBy(desc(campaignFinance.createdAt));
             res.json({
                 financeData,
