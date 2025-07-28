@@ -2,14 +2,19 @@
 let Stripe: any = null;
 let stripe: any = null;
 
-if (process.env.STRIPE_SECRET_KEY) {
+// Initialize Stripe lazily when needed
+async function initializeStripe() {
+  if (!process.env.STRIPE_SECRET_KEY) return null;
+  
   try {
-    Stripe = require('stripe');
-    stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+    const stripeModule = await import('stripe');
+    const StripeClass = stripeModule.default;
+    return new StripeClass(process.env.STRIPE_SECRET_KEY, {
       apiVersion: '2025-05-28.basil',
     });
   } catch (error) {
     console.warn('Stripe import failed:', error);
+    return null;
   }
 }
 
@@ -48,12 +53,13 @@ export const MEMBERSHIP_PRICING: MembershipPricing[] = [
 ];
 
 export async function createCustomer(email: string, name: string) {
-  if (!stripe) {
+  const stripeInstance = await initializeStripe();
+  if (!stripeInstance) {
     throw new Error('Stripe is not configured. Please set STRIPE_SECRET_KEY environment variable.');
   }
   
   try {
-    const customer = await stripe.customers.create({
+    const customer = await stripeInstance.customers.create({
       email,
       name,
       metadata: {
@@ -68,12 +74,13 @@ export async function createCustomer(email: string, name: string) {
 }
 
 export async function createSubscription(customerId: string, priceId: string) {
-  if (!stripe) {
+  const stripeInstance = await initializeStripe();
+  if (!stripeInstance) {
     throw new Error('Stripe is not configured. Please set STRIPE_SECRET_KEY environment variable.');
   }
   
   try {
-    const subscription = await stripe.subscriptions.create({
+    const subscription = await stripeInstance.subscriptions.create({
       customer: customerId,
       items: [{ price: priceId }],
       payment_behavior: 'default_incomplete',
@@ -88,12 +95,13 @@ export async function createSubscription(customerId: string, priceId: string) {
 }
 
 export async function createCheckoutSession(customerId: string, priceId: string, successUrl: string, cancelUrl: string) {
-  if (!stripe) {
+  const stripeInstance = await initializeStripe();
+  if (!stripeInstance) {
     throw new Error('Stripe is not configured. Please set STRIPE_SECRET_KEY environment variable.');
   }
   
   try {
-    const session = await stripe.checkout.sessions.create({
+    const session = await stripeInstance.checkout.sessions.create({
       customer: customerId,
       payment_method_types: ['card'],
       line_items: [
@@ -117,12 +125,13 @@ export async function createCheckoutSession(customerId: string, priceId: string,
 }
 
 export async function getSubscription(subscriptionId: string) {
-  if (!stripe) {
+  const stripeInstance = await initializeStripe();
+  if (!stripeInstance) {
     throw new Error('Stripe is not configured. Please set STRIPE_SECRET_KEY environment variable.');
   }
   
   try {
-    const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+    const subscription = await stripeInstance.subscriptions.retrieve(subscriptionId);
     return subscription;
   } catch (error) {
     console.error('Error retrieving subscription:', error);
@@ -131,12 +140,13 @@ export async function getSubscription(subscriptionId: string) {
 }
 
 export async function cancelSubscription(subscriptionId: string) {
-  if (!stripe) {
+  const stripeInstance = await initializeStripe();
+  if (!stripeInstance) {
     throw new Error('Stripe is not configured. Please set STRIPE_SECRET_KEY environment variable.');
   }
   
   try {
-    const subscription = await stripe.subscriptions.cancel(subscriptionId);
+    const subscription = await stripeInstance.subscriptions.cancel(subscriptionId);
     return subscription;
   } catch (error) {
     console.error('Error canceling subscription:', error);
@@ -145,13 +155,14 @@ export async function cancelSubscription(subscriptionId: string) {
 }
 
 export async function updateSubscription(subscriptionId: string, newPriceId: string) {
-  if (!stripe) {
+  const stripeInstance = await initializeStripe();
+  if (!stripeInstance) {
     throw new Error('Stripe is not configured. Please set STRIPE_SECRET_KEY environment variable.');
   }
   
   try {
-    const subscription = await stripe.subscriptions.retrieve(subscriptionId);
-    const updatedSubscription = await stripe.subscriptions.update(subscriptionId, {
+    const subscription = await stripeInstance.subscriptions.retrieve(subscriptionId);
+    const updatedSubscription = await stripeInstance.subscriptions.update(subscriptionId, {
       items: [
         {
           id: subscription.items.data[0].id,
@@ -167,12 +178,13 @@ export async function updateSubscription(subscriptionId: string, newPriceId: str
 }
 
 export async function createPaymentIntent(amount: number, currency: string = 'cad') {
-  if (!stripe) {
+  const stripeInstance = await initializeStripe();
+  if (!stripeInstance) {
     throw new Error('Stripe is not configured. Please set STRIPE_SECRET_KEY environment variable.');
   }
   
   try {
-    const paymentIntent = await stripe.paymentIntents.create({
+    const paymentIntent = await stripeInstance.paymentIntents.create({
       amount: Math.round(amount * 100), // Convert to cents
       currency,
       metadata: {
@@ -187,12 +199,13 @@ export async function createPaymentIntent(amount: number, currency: string = 'ca
 }
 
 export async function getCustomer(customerId: string) {
-  if (!stripe) {
+  const stripeInstance = await initializeStripe();
+  if (!stripeInstance) {
     throw new Error('Stripe is not configured. Please set STRIPE_SECRET_KEY environment variable.');
   }
   
   try {
-    const customer = await stripe.customers.retrieve(customerId);
+    const customer = await stripeInstance.customers.retrieve(customerId);
     return customer;
   } catch (error) {
     console.error('Error retrieving customer:', error);
@@ -201,12 +214,13 @@ export async function getCustomer(customerId: string) {
 }
 
 export async function updateCustomer(customerId: string, data: any) {
-  if (!stripe) {
+  const stripeInstance = await initializeStripe();
+  if (!stripeInstance) {
     throw new Error('Stripe is not configured. Please set STRIPE_SECRET_KEY environment variable.');
   }
   
   try {
-    const customer = await stripe.customers.update(customerId, data);
+    const customer = await stripeInstance.customers.update(customerId, data);
     return customer;
   } catch (error) {
     console.error('Error updating customer:', error);
@@ -214,4 +228,4 @@ export async function updateCustomer(customerId: string, data: any) {
   }
 }
 
-export { stripe }; 
+// Stripe is now initialized lazily when needed 
