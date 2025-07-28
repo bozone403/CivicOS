@@ -229,7 +229,7 @@ export const socialLikes = pgTable("social_likes", {
 export const socialShares = pgTable("social_shares", {
   id: serial("id").primaryKey(),
   userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
-  postId: varchar("post_id").notNull().references(() => socialPosts.id, { onDelete: "cascade" }),
+  postId: integer("post_id").notNull().references(() => socialPosts.id, { onDelete: "cascade" }),
   platform: varchar("platform").notNull(),
   sharedAt: timestamp("shared_at").defaultNow(),
 });
@@ -238,7 +238,7 @@ export const socialShares = pgTable("social_shares", {
 export const socialBookmarks = pgTable("social_bookmarks", {
   id: serial("id").primaryKey(),
   userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
-  postId: varchar("post_id").notNull().references(() => socialPosts.id, { onDelete: "cascade" }),
+  postId: integer("post_id").notNull().references(() => socialPosts.id, { onDelete: "cascade" }),
   bookmarkedAt: timestamp("bookmarked_at").defaultNow(),
 });
 

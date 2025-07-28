@@ -109,9 +109,10 @@ router.get("/posts", jwtAuth, async (req, res) => {
         if (type !== 'all') {
             whereConditions.push(eq(socialPosts.type, type));
         }
-        // Filter by visibility
+        // Filter by visibility (using isPublic instead)
         if (visibility !== 'all') {
-            whereConditions.push(eq(socialPosts.visibility, visibility));
+            const isPublic = visibility === 'public';
+            whereConditions.push(eq(socialPosts.isPublic, isPublic));
         }
         // Get posts with basic info first
         const posts = await db
@@ -119,15 +120,8 @@ router.get("/posts", jwtAuth, async (req, res) => {
             id: socialPosts.id,
             userId: socialPosts.userId,
             content: socialPosts.content,
-            imageUrl: socialPosts.imageUrl,
             type: socialPosts.type,
-            visibility: socialPosts.visibility,
-            tags: socialPosts.tags,
-            location: socialPosts.location,
-            mood: socialPosts.mood,
-            originalItemId: socialPosts.originalItemId,
-            originalItemType: socialPosts.originalItemType,
-            comment: socialPosts.comment,
+            isPublic: socialPosts.isPublic,
             createdAt: socialPosts.createdAt,
             updatedAt: socialPosts.updatedAt,
         })
@@ -215,11 +209,7 @@ router.get("/feed", jwtAuth, async (req, res) => {
             id: socialPosts.id,
             userId: socialPosts.userId,
             content: socialPosts.content,
-            imageUrl: socialPosts.imageUrl,
             type: socialPosts.type,
-            originalItemId: socialPosts.originalItemId,
-            originalItemType: socialPosts.originalItemType,
-            comment: socialPosts.comment,
             createdAt: socialPosts.createdAt,
             updatedAt: socialPosts.updatedAt,
             // User info

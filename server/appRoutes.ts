@@ -2,7 +2,7 @@ import type { Express } from "express";
 import express from "express";
 import { storage } from "./storage.js";
 import simpleNotificationsRouter from "./simpleNotifications.js";
-import civicSocialRouter from "./civicSocial.js";
+// import civicSocialRouter from "./civicSocial.js"; // Temporarily disabled
 import aiRoutes from "./aiRoutes.js";
 import searchRouter from "./routes/search.js";
 import dashboardRouter from "./routes/dashboard.js";
@@ -91,7 +91,7 @@ export async function registerRoutes(app: Express): Promise<void> {
   app.use("/api/notifications", simpleNotificationsRouter);
 
   // CivicSocial routes (no auth required for testing)
-  app.use("/api/social", civicSocialRouter);
+  // app.use("/api/social", civicSocialRouter); // Temporarily disabled
 
   // Dashboard routes (no auth required for demo)
   app.use("/api/dashboard", dashboardRouter);

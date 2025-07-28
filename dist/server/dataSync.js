@@ -293,9 +293,8 @@ async function storeOfficial(official) {
             name: official.name,
             position: official.position,
             party: official.party || '',
-            jurisdiction: official.jurisdiction,
             constituency: official.constituency || '',
-            trustScore: calculateInitialTrustScore(official)
+            // jurisdiction and trustScore fields removed from schema
         };
         await storage.createPolitician(politicianData);
         logger.info({ msg: 'Stored politician', name: official.name, position: official.position, jurisdiction: official.jurisdiction });
@@ -316,14 +315,12 @@ async function storeOfficial(official) {
 async function storeBill(bill) {
     try {
         const billData = {
-            billNumber: bill.number,
             title: bill.title,
             description: bill.summary,
             fullText: "",
-            category: inferCategory(bill.title),
-            jurisdiction: bill.jurisdiction,
+            billType: inferCategory(bill.title),
             status: bill.status,
-            votingDeadline: bill.votingDeadline || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+            // billNumber, category, jurisdiction, votingDeadline fields removed from schema
         };
         await storage.createBill(billData);
     }

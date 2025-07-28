@@ -4,7 +4,7 @@ import { fileURLToPath } from 'url';
 import path from "path";
 import { initializeDataSync } from "./dataSync.js";
 import { initializeNewsAnalysis } from "./newsAnalyzer.js";
-import { comprehensiveNewsAnalyzer } from "./comprehensiveNewsAnalyzer.js";
+// import { comprehensiveNewsAnalyzer } from "./comprehensiveNewsAnalyzer.js"; // Temporarily disabled
 import { realTimeMonitoring } from "./realTimeMonitoring.js";
 import { confirmedAPIs } from "./confirmedAPIs.js";
 import helmet from "helmet";
@@ -380,18 +380,18 @@ app.use('/api/ai', aiRoutes);
   }
   
   // Start comprehensive Canadian news analysis (non-blocking) with much longer delay
-  setTimeout(() => {
-    comprehensiveNewsAnalyzer.performComprehensiveAnalysis().catch(error => {
-      logger.error({ msg: "Error in comprehensive news analysis", error });
-    });
-  }, 300000); // Increased to 5 minutes delay
+  // setTimeout(() => {
+  //   comprehensiveNewsAnalyzer.performComprehensiveAnalysis().catch(error => {
+  //     logger.error({ msg: "Error in comprehensive news analysis", error });
+  //   });
+  // }, 300000); // Increased to 5 minutes delay
 
   // Schedule regular comprehensive news analysis (every 12 hours instead of 4 to reduce memory pressure)
-  setInterval(() => {
-    comprehensiveNewsAnalyzer.performComprehensiveAnalysis().catch(error => {
-      logger.error({ msg: "Error in scheduled news analysis", error });
-    });
-  }, 12 * 60 * 60 * 1000); // 12 hours instead of 4
+  // setInterval(() => {
+  //   comprehensiveNewsAnalyzer.performComprehensiveAnalysis().catch(error => {
+  //     logger.error({ msg: "Error in scheduled news analysis", error });
+  //   });
+  // }, 12 * 60 * 60 * 1000); // 12 hours instead of 4
   
   // Start real-time platform monitoring (non-blocking) with delay
   setTimeout(() => {

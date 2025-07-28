@@ -57,7 +57,7 @@ async function checkAndNotifyTrending(postId) {
         if (!post)
             return;
         // Check if already notified
-        const existing = await db.select().from(notifications).where(and(eq(notifications.userId, post.userId), eq(notifications.type, "social"), eq(notifications.sourceId, String(postId)), eq(notifications.title, "Your post is trending!")));
+        const existing = await db.select().from(notifications).where(and(eq(notifications.userId, post.userId), eq(notifications.type, "social"), eq(notifications.title, "Your post is trending!")));
         if (existing.length === 0) {
             await db.insert(notifications).values({
                 userId: post.userId,
@@ -65,8 +65,7 @@ async function checkAndNotifyTrending(postId) {
                 title: "Your post is trending!",
                 message: "Your post is getting lots of engagement. Check it out!",
                 sourceModule: "CivicSocial",
-                sourceId: String(postId),
-                priority: "high",
+                data: { postId: postId },
             });
         }
     }
@@ -104,7 +103,7 @@ router.get("/posts", jwtAuth, async (req, res) => {
                 break;
             default: // 'all'
                 // Show public posts and user's own posts
-                whereConditions.push(sql `(${socialPosts.visibility} = 'public' OR ${socialPosts.userId} = ${userId})`);
+                whereConditions.push(sql `(${socialPosts.isPublic} = true OR ${socialPosts.userId} = ${userId})`);
         }
         // Filter by type
         if (type !== 'all') {

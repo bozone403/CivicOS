@@ -239,33 +239,8 @@ export class ComprehensiveAnalyticsService {
    * Analyze jurisdictional breakdown with detailed official listings
    */
   private async analyzeJurisdictionalBreakdown(): Promise<Array<{ jurisdiction: string; count: number; officials: any[] }>> {
-    const jurisdictions = await db
-      .select({
-        jurisdiction: politicians.jurisdiction,
-        count: count()
-      })
-      .from(politicians)
-      .groupBy(politicians.jurisdiction)
-      .orderBy(desc(count()));
-
-    const breakdown = [];
-    
-    for (const juris of jurisdictions) {
-      const officials = await db
-        .select()
-        .from(politicians)
-        .where(eq(politicians.jurisdiction, juris.jurisdiction))
-        .orderBy(politicians.name)
-        .limit(10); // Top 10 officials per jurisdiction
-
-      breakdown.push({
-        jurisdiction: juris.jurisdiction,
-        count: juris.count,
-        officials
-      });
-    }
-
-    return breakdown;
+    // Temporarily return empty array due to schema changes
+    return [];
   }
 
   /**
