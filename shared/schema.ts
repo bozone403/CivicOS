@@ -10,6 +10,7 @@ import {
   boolean,
   decimal,
   unique,
+  date,
 } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
@@ -28,7 +29,7 @@ export const sessions = pgTable(
 
 // User storage table
 export const users = pgTable("users", {
-  id: varchar("id").primaryKey().notNull(),
+  id: varchar("id").primaryKey(),
   username: varchar("username", { length: 50 }).unique().notNull(),
   email: varchar("email").unique(),
   password: varchar("password"),
@@ -154,62 +155,91 @@ export const users = pgTable("users", {
   profileCompletionPercentage: integer("profile_completion_percentage").default(0),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
+  accountStatus: varchar("account_status").default("active"),
+  suspendedUntil: timestamp("suspended_until"),
+  suspensionReason: text("suspension_reason"),
 });
 
 // Politicians table
 export const politicians = pgTable("politicians", {
-  id: varchar("id").primaryKey().notNull(),
+  id: serial("id").primaryKey(),
   name: varchar("name").notNull(),
-  position: varchar("position").notNull(),
   party: varchar("party"),
-  jurisdiction: varchar("jurisdiction").notNull(),
-  email: varchar("email"),
-  phone: varchar("phone"),
-  website: varchar("website"),
-  socialMedia: jsonb("social_media"),
-  bio: text("bio"),
-  imageUrl: varchar("image_url"),
-  constituency: varchar("constituency"),
-  level: varchar("level"),
-  trustScore: decimal("trust_score", { precision: 5, scale: 2 }).default("50.00"),
+  position: varchar("position"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
+  partyAffiliation: varchar("party_affiliation"),
+  constituency: varchar("constituency"),
+  electionDate: date("election_date"),
+  termStart: date("term_start"),
+  termEnd: date("term_end"),
+  isIncumbent: boolean("is_incumbent").default(false),
+  biography: text("biography"),
+  contactInfo: jsonb("contact_info").default("{}"),
+  socialMedia: jsonb("social_media").default("{}"),
+  votingRecord: jsonb("voting_record").default("{}"),
 });
 
 // Social posts table
 export const socialPosts = pgTable("social_posts", {
   id: serial("id").primaryKey(),
-  userId: varchar("user_id").notNull(),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   content: text("content").notNull(),
-  imageUrl: varchar("image_url"),
   type: varchar("type").default("post"),
-  visibility: varchar("visibility").default("public"),
-  tags: text("tags").array(),
-  location: varchar("location"),
-  mood: varchar("mood"),
-  originalItemId: integer("original_item_id"),
-  originalItemType: varchar("original_item_type"),
-  comment: text("comment"),
+  isPublic: boolean("is_public").default(true),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
+  reaction: varchar("reaction").default("like"),
+  sourceId: varchar("source_id"),
+  dateCreated: timestamp("date_created").defaultNow(),
+  isFeatured: boolean("is_featured").default(false),
+  featuredAt: timestamp("featured_at"),
+  moderationStatus: varchar("moderation_status").default("approved"),
+  moderatedAt: timestamp("moderated_at"),
+  moderatedBy: varchar("moderated_by"),
+  moderationNotes: text("moderation_notes"),
 });
 
 // Social comments table
 export const socialComments = pgTable("social_comments", {
   id: serial("id").primaryKey(),
-  postId: integer("post_id").notNull(),
-  userId: varchar("user_id").notNull(),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  postId: integer("post_id").notNull().references(() => socialPosts.id, { onDelete: "cascade" }),
   content: text("content").notNull(),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
+  parentId: integer("parent_id"),
+  isEdited: boolean("is_edited").default(false),
+  editedAt: timestamp("edited_at"),
+  moderationStatus: varchar("moderation_status").default("approved"),
+  moderatedAt: timestamp("moderated_at"),
+  moderatedBy: varchar("moderated_by"),
 });
 
 // Social likes table
 export const socialLikes = pgTable("social_likes", {
   id: serial("id").primaryKey(),
-  postId: integer("post_id").notNull(),
-  userId: varchar("user_id").notNull(),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  postId: integer("post_id").notNull().references(() => socialPosts.id, { onDelete: "cascade" }),
+  reaction: varchar("reaction").default("like"),
   createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Social Shares table
+export const socialShares = pgTable("social_shares", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  postId: varchar("post_id").notNull().references(() => socialPosts.id, { onDelete: "cascade" }),
+  platform: varchar("platform").notNull(),
+  sharedAt: timestamp("shared_at").defaultNow(),
+});
+
+// Social Bookmarks table
+export const socialBookmarks = pgTable("social_bookmarks", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  postId: varchar("post_id").notNull().references(() => socialPosts.id, { onDelete: "cascade" }),
+  bookmarkedAt: timestamp("bookmarked_at").defaultNow(),
 });
 
 // User friends table
@@ -261,25 +291,21 @@ export const notifications = pgTable("notifications", {
 // Bills table
 export const bills = pgTable("bills", {
   id: serial("id").primaryKey(),
-  billNumber: varchar("bill_number").notNull(),
   title: varchar("title").notNull(),
   description: text("description"),
-  sponsor: varchar("sponsor"),
-  category: varchar("category"),
-  status: varchar("status").default("introduced"),
-  dateIntroduced: timestamp("date_introduced"),
-  datePassed: timestamp("date_passed"),
-  dateRoyalAssent: timestamp("date_royal_assent"),
-  keyProvisions: text("key_provisions").array(),
-  amendments: text("amendments").array(),
-  fiscalNotes: text("fiscal_notes"),
-  impactAssessment: text("impact_assessment"),
-  votingDeadline: timestamp("voting_deadline"),
-  jurisdiction: varchar("jurisdiction"),
-  fullText: text("full_text"),
-  aiSummary: text("ai_summary"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
+  sponsorId: varchar("sponsor_id"),
+  sponsorName: varchar("sponsor_name"),
+  billType: varchar("bill_type"),
+  status: varchar("status").default("introduced"),
+  introducedDate: date("introduced_date"),
+  passedDate: date("passed_date"),
+  enactedDate: date("enacted_date"),
+  summary: text("summary"),
+  fullText: text("full_text"),
+  committeeReferral: varchar("committee_referral"),
+  fiscalImpact: text("fiscal_impact"),
 });
 
 // Votes table

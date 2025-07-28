@@ -711,18 +711,16 @@ export class AggressiveDataScraper {
         name: politicianData.name,
         position: politicianData.position,
         party: politicianData.party,
-        level: level,
         constituency: politicianData.constituency,
-        jurisdiction: politicianData.jurisdiction,
-        contact: contact,
-        trustScore: '75.00'
+        contactInfo: contact,
+        socialMedia: {},
+        votingRecord: {}
       }).onConflictDoUpdate({
         target: [politicians.name],
         set: {
           party: politicianData.party,
-          level: level,
           constituency: politicianData.constituency,
-          contact: contact,
+          contactInfo: contact,
           updatedAt: new Date()
         }
       });
@@ -747,18 +745,17 @@ export class AggressiveDataScraper {
       const existing = await db
         .select()
         .from(bills)
-        .where(eq(bills.billNumber, billData.billNumber))
+        .where(eq(bills.title, billData.title))
         .limit(1);
 
       if (existing.length === 0) {
         await db.insert(bills).values({
-          billNumber: billData.billNumber,
           title: billData.title,
           description: billData.summary,
           status: billData.status,
-          category: billData.category,
-          jurisdiction: 'Federal',
-          votingDeadline: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // 30 days from now
+          sponsorName: billData.sponsor || 'Unknown',
+          billType: billData.category || 'General',
+          summary: billData.summary
         });
       }
     } catch (error) {
@@ -777,10 +774,11 @@ export class AggressiveDataScraper {
 
       if (politician.length > 0) {
         await db.insert(politicianStatements).values({
-          politicianId: politician[0].id,
+          politicianId: politician[0].id.toString(),
           statement: statementData.content,
           context: statementData.context,
-          source: statementData.source
+          source: statementData.source,
+          date: new Date()
         });
       }
     } catch (error) {

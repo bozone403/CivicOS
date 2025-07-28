@@ -66,7 +66,6 @@ async function checkAndNotifyTrending(postId: number) {
       and(
         eq(notifications.userId, post.userId),
         eq(notifications.type, "social"),
-        eq(notifications.sourceId, String(postId)),
         eq(notifications.title, "Your post is trending!")
       )
     );
@@ -77,8 +76,7 @@ async function checkAndNotifyTrending(postId: number) {
         title: "Your post is trending!",
         message: "Your post is getting lots of engagement. Check it out!",
         sourceModule: "CivicSocial",
-        sourceId: String(postId),
-        priority: "high",
+        data: { postId: postId },
       });
     }
   }
@@ -121,7 +119,7 @@ router.get("/posts", jwtAuth, async (req: Request, res: Response) => {
         break;
       default: // 'all'
         // Show public posts and user's own posts
-        whereConditions.push(sql`(${socialPosts.visibility} = 'public' OR ${socialPosts.userId} = ${userId})`);
+        whereConditions.push(sql`(${socialPosts.isPublic} = true OR ${socialPosts.userId} = ${userId})`);
     }
 
     // Filter by type

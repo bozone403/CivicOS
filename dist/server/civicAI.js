@@ -294,7 +294,7 @@ Respond in JSON format with: {
         // Search by bill number if mentioned
         for (const billNum of analysis.entities.bills) {
             const results = await db.select().from(bills)
-                .where(like(bills.billNumber, `%${billNum}%`))
+                .where(like(bills.title, `%${billNum}%`))
                 .limit(5);
             if (results.length > 0)
                 return results;
@@ -325,7 +325,7 @@ Respond in JSON format with: {
         // Search by region/constituency
         if (region) {
             const results = await db.select().from(politicians)
-                .where(sql `lower(${politicians.constituency}) like ${`%${region.toLowerCase()}%`} OR lower(${politicians.jurisdiction}) like ${`%${region.toLowerCase()}%`}`)
+                .where(sql `lower(${politicians.constituency}) like ${`%${region.toLowerCase()}%`}`)
                 .limit(10);
             if (results.length > 0)
                 return results;
@@ -347,7 +347,7 @@ Respond in JSON format with: {
             // Get recent statements for analysis
             return await db.select()
                 .from(politicianStatements)
-                .orderBy(desc(politicianStatements.dateCreated))
+                .orderBy(desc(politicianStatements.date))
                 .limit(20);
         }
         catch (error) {
