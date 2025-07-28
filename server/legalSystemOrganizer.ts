@@ -884,7 +884,13 @@ export class LegalSystemOrganizer {
     const batchSize = 3;
     for (let i = 0; i < landmarkCases.length; i += batchSize) {
       const batch = landmarkCases.slice(i, i + batchSize);
-      await db.insert(legalCases).values(batch);
+      await db.insert(legalCases).values(batch.map(case_ => ({
+        title: case_.caseName,
+        caseNumber: case_.caseNumber,
+        description: case_.summary,
+        jurisdiction: case_.jurisdiction,
+        status: case_.isActive ? 'active' : 'inactive'
+      })));
     }
   }
 
@@ -931,16 +937,16 @@ export class LegalSystemOrganizer {
     const [criminalSections, federalActs, cases] = await Promise.all([
       db.select().from(criminalCodeSections).orderBy(criminalCodeSections.sectionNumber),
       db.select().from(legalActs).where(eq(legalActs.jurisdiction, 'Federal')).orderBy(legalActs.title),
-      db.select().from(legalCases).orderBy(legalCases.dateDecided)
+      db.select().from(legalCases).orderBy(legalCases.createdAt)
     ]);
 
     return {
       federal: {
         criminal: criminalSections as any,
-        constitutional: federalActs.filter(act => act.category === 'Constitutional') as any,
-        civil: federalActs.filter(act => act.category === 'Civil') as any,
-        administrative: federalActs.filter(act => ['Health', 'Social Security', 'Immigration'].includes(act.category || '')) as any,
-        regulatory: federalActs.filter(act => ['Commercial Law', 'Environmental', 'Taxation'].includes(act.category || '')) as any
+        constitutional: federalActs.filter(act => act.title.toLowerCase().includes('constitution')) as any,
+        civil: federalActs.filter(act => act.title.toLowerCase().includes('civil')) as any,
+        administrative: federalActs.filter(act => ['Health', 'Social Security', 'Immigration'].some(keyword => act.title.toLowerCase().includes(keyword.toLowerCase()))) as any,
+        regulatory: federalActs.filter(act => ['Commercial', 'Environmental', 'Taxation'].some(keyword => act.title.toLowerCase().includes(keyword.toLowerCase()))) as any
       },
       provincial: {},
       municipal: {}

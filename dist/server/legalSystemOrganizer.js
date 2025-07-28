@@ -765,7 +765,13 @@ export class LegalSystemOrganizer {
         const batchSize = 3;
         for (let i = 0; i < landmarkCases.length; i += batchSize) {
             const batch = landmarkCases.slice(i, i + batchSize);
-            await db.insert(legalCases).values(batch);
+            await db.insert(legalCases).values(batch.map(case_ => ({
+                title: case_.caseName,
+                caseNumber: case_.caseNumber,
+                description: case_.summary,
+                jurisdiction: case_.jurisdiction,
+                status: case_.isActive ? 'active' : 'inactive'
+            })));
         }
     }
     /**
@@ -807,15 +813,15 @@ export class LegalSystemOrganizer {
         const [criminalSections, federalActs, cases] = await Promise.all([
             db.select().from(criminalCodeSections).orderBy(criminalCodeSections.sectionNumber),
             db.select().from(legalActs).where(eq(legalActs.jurisdiction, 'Federal')).orderBy(legalActs.title),
-            db.select().from(legalCases).orderBy(legalCases.dateDecided)
+            db.select().from(legalCases).orderBy(legalCases.createdAt)
         ]);
         return {
             federal: {
                 criminal: criminalSections,
-                constitutional: federalActs.filter(act => act.category === 'Constitutional'),
-                civil: federalActs.filter(act => act.category === 'Civil'),
-                administrative: federalActs.filter(act => ['Health', 'Social Security', 'Immigration'].includes(act.category || '')),
-                regulatory: federalActs.filter(act => ['Commercial Law', 'Environmental', 'Taxation'].includes(act.category || ''))
+                constitutional: federalActs.filter(act => act.title.toLowerCase().includes('constitution')),
+                civil: federalActs.filter(act => act.title.toLowerCase().includes('civil')),
+                administrative: federalActs.filter(act => ['Health', 'Social Security', 'Immigration'].some(keyword => act.title.toLowerCase().includes(keyword.toLowerCase()))),
+                regulatory: federalActs.filter(act => ['Commercial', 'Environmental', 'Taxation'].some(keyword => act.title.toLowerCase().includes(keyword.toLowerCase())))
             },
             provincial: {},
             municipal: {}

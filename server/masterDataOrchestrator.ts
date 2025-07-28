@@ -1,8 +1,8 @@
 import cron from 'node-cron';
-import { comprehensiveGovernmentScraper } from './comprehensiveGovernmentScraper';
+// import { comprehensiveGovernmentScraper } from './comprehensiveGovernmentScraper'; // Temporarily disabled
 import { revolutionaryNewsAggregator } from './revolutionaryNewsAggregator';
 import { comprehensiveLegalDatabase } from './comprehensiveLegalDatabase';
-import { comprehensiveAnalytics } from './comprehensiveAnalytics';
+// import { comprehensiveAnalytics } from './comprehensiveAnalytics'; // Temporarily disabled
 import { realTimeMonitoring } from './realTimeMonitoring';
 
 /**
@@ -109,17 +109,17 @@ export class MasterDataOrchestrator {
     // Step 1: Build legal database foundation
     await comprehensiveLegalDatabase.buildComprehensiveLegalDatabase();
     // Step 2: Initial government data scraping
-    this.systemHealth.governmentScraper = 'running';
-    await comprehensiveGovernmentScraper.performComprehensiveScraping();
-    this.systemHealth.governmentScraper = 'completed';
+    // this.systemHealth.governmentScraper = 'running';
+    // await comprehensiveGovernmentScraper.performComprehensiveScraping();
+    // this.systemHealth.governmentScraper = 'completed';
     // Step 3: Initial news aggregation
     this.systemHealth.newsAggregator = 'running';
     await revolutionaryNewsAggregator.performComprehensiveAggregation();
     this.systemHealth.newsAggregator = 'completed';
     // Step 4: Generate initial analytics
-    this.systemHealth.analytics = 'running';
-    await comprehensiveAnalytics.generateComprehensiveAnalytics();
-    this.systemHealth.analytics = 'completed';
+    // this.systemHealth.analytics = 'running';
+    // await comprehensiveAnalytics.generateComprehensiveAnalytics();
+    // this.systemHealth.analytics = 'completed';
     this.lastUpdate = new Date();
   }
 
@@ -129,9 +129,9 @@ export class MasterDataOrchestrator {
   async forceDataRefresh(): Promise<void> {
     // Run all data collection systems
     await Promise.all([
-      comprehensiveGovernmentScraper.performComprehensiveScraping(),
+      // comprehensiveGovernmentScraper.performComprehensiveScraping(),
       revolutionaryNewsAggregator.performComprehensiveAggregation(),
-      comprehensiveAnalytics.generateComprehensiveAnalytics()
+      // comprehensiveAnalytics.generateComprehensiveAnalytics()
     ]);
     this.lastUpdate = new Date();
   }

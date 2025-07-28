@@ -1,7 +1,7 @@
 import * as cheerio from 'cheerio';
 import fetch from 'node-fetch';
 import { db } from './db.js';
-import * as schema from '../shared/schema.js';
+import { elections, candidates, candidatePolicies, electoralDistricts } from '../shared/schema.js';
 /**
  * Scrape current federal elections from Elections Canada
  */
@@ -230,7 +230,13 @@ export async function populateSampleElectionData() {
             }
         ];
         for (const election of sampleElections) {
-            const [insertedElection] = await db.insert(schema.elections).values(election).returning();
+            const [insertedElection] = await db.insert(elections).values({
+                title: election.electionName,
+                date: election.electionDate,
+                type: election.electionType,
+                jurisdiction: election.jurisdiction,
+                status: election.status
+            }).returning();
             // Create sample candidates for each election
             const sampleCandidates = [
                 {
@@ -271,7 +277,7 @@ export async function populateSampleElectionData() {
                 }
             ];
             for (const candidate of sampleCandidates) {
-                const [insertedCandidate] = await db.insert(schema.candidates).values(candidate).returning();
+                const [insertedCandidate] = await db.insert(candidates).values(candidate).returning();
                 // Create sample policies for each candidate
                 const samplePolicies = [
                     {
@@ -305,7 +311,7 @@ export async function populateSampleElectionData() {
                         priority: "medium",
                     }
                 ];
-                await db.insert(schema.candidatePolicies).values(samplePolicies);
+                await db.insert(candidatePolicies).values(samplePolicies);
             }
         }
         // Create sample electoral districts
@@ -350,7 +356,11 @@ export async function populateSampleElectionData() {
                 isRural: true,
             }
         ];
-        await db.insert(schema.electoralDistricts).values(sampleDistricts);
+        await db.insert(electoralDistricts).values(sampleDistricts.map(district => ({
+            name: district.districtName,
+            jurisdiction: district.province,
+            population: district.population
+        })));
     }
     catch (error) {
         // // console.error removed for production

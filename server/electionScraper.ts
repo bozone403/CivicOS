@@ -1,7 +1,7 @@
 import * as cheerio from 'cheerio';
 import fetch from 'node-fetch';
 import { db } from './db.js';
-import * as schema from '../shared/schema.js';
+import { elections, candidates, candidatePolicies, electoralDistricts } from '../shared/schema.js';
 
 interface ScrapedElection {
   electionName: string;
@@ -301,7 +301,13 @@ export async function populateSampleElectionData(): Promise<void> {
     ];
 
     for (const election of sampleElections) {
-      const [insertedElection] = await db.insert(schema.elections).values(election).returning();
+      const [insertedElection] = await db.insert(elections).values({
+        title: election.electionName,
+        date: election.electionDate,
+        type: election.electionType,
+        jurisdiction: election.jurisdiction,
+        status: election.status
+      }).returning();
       
       // Create sample candidates for each election
       const sampleCandidates = [
@@ -344,7 +350,7 @@ export async function populateSampleElectionData(): Promise<void> {
       ];
 
       for (const candidate of sampleCandidates) {
-        const [insertedCandidate] = await db.insert(schema.candidates).values(candidate).returning();
+        const [insertedCandidate] = await db.insert(candidates).values(candidate).returning();
         
         // Create sample policies for each candidate
         const samplePolicies = [
@@ -380,7 +386,7 @@ export async function populateSampleElectionData(): Promise<void> {
           }
         ];
 
-        await db.insert(schema.candidatePolicies).values(samplePolicies);
+        await db.insert(candidatePolicies).values(samplePolicies);
       }
     }
 
@@ -427,7 +433,11 @@ export async function populateSampleElectionData(): Promise<void> {
       }
     ];
 
-    await db.insert(schema.electoralDistricts).values(sampleDistricts);
+    await db.insert(electoralDistricts).values(sampleDistricts.map(district => ({
+      name: district.districtName,
+      jurisdiction: district.province,
+      population: district.population
+    })));
 
   } catch (error) {
     // // console.error removed for production
