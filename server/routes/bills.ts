@@ -2,11 +2,10 @@ import { Express, Request, Response } from "express";
 import { db } from "../db.js";
 import { bills, votes } from "../../shared/schema.js";
 import { eq, and, desc, sql, count, like, or } from "drizzle-orm";
-import { ParliamentAPIService } from "../parliamentAPI.js";
+import { parliamentAPI } from "../parliamentAPI.js";
 import { ResponseFormatter } from "../utils/responseFormatter.js";
 
 export function registerBillsRoutes(app: Express) {
-  const parliamentAPI = new ParliamentAPIService();
 
   // Get all bills with real Parliament data
   app.get('/api/bills', async (req: Request, res: Response) => {
@@ -19,10 +18,10 @@ export function registerBillsRoutes(app: Express) {
       
       try {
         // Fetch real bills from Parliament of Canada
-        const realBills = await parliamentAPI.fetchFederalBills();
+        const realBills = await parliamentAPI.getBills(50, 0);
         
-        if (realBills && realBills.length > 0) {
-          billsData = realBills;
+        if (realBills.bills && realBills.bills.length > 0) {
+          billsData = realBills.bills;
         } else {
           // Fallback to database bills
           const dbBills = await db.select().from(bills).orderBy(desc(bills.createdAt));

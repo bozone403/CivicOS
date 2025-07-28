@@ -16,7 +16,17 @@ const getConfig = (): Config => {
     };
   }
   
-  // Always use production API for live testing
+  // Use local server for development, production for live testing
+  const isLocalhost = typeof window !== 'undefined' && window.location.hostname === 'localhost';
+  
+  if (isLocalhost) {
+    return {
+      apiUrl: 'http://localhost:5001',
+      environment: 'development',
+      version: '1.0.1' // Cache busting version
+    };
+  }
+  
   return {
     apiUrl: 'https://civicos.onrender.com',
     environment: 'production',

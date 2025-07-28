@@ -51,14 +51,14 @@ export function registerMessageRoutes(app: Express) {
     try {
       const userId = (req as any).user.id;
 
-      // Get all conversations for the user
+      // Get all conversations for the user using a simpler approach
       const conversations = await db.execute(sql`
         SELECT DISTINCT 
           u.id,
           u.first_name,
           u.last_name,
           u.email,
-          u.avatar_url,
+          u.profile_image_url as avatar_url,
           u.civic_level,
           u.trust_score,
           (
@@ -92,12 +92,12 @@ export function registerMessageRoutes(app: Express) {
           FROM user_messages 
           WHERE sender_id = ${userId} OR recipient_id = ${userId}
         )
-        ORDER BY last_message_time DESC
+        ORDER BY last_message_time DESC NULLS LAST
       `);
 
       res.json(conversations.rows);
     } catch (error) {
-      // console.error removed for production
+      console.error('Error fetching conversations:', error);
       res.status(500).json({ error: 'Failed to fetch conversations' });
     }
   });

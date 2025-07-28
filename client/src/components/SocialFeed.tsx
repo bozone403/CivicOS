@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { 
   MessageCircle, 
   Heart, 
@@ -501,6 +501,9 @@ export function SocialFeed() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Create Post</DialogTitle>
+            <DialogDescription>
+              Share your thoughts with the CivicOS community
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <Textarea
@@ -536,6 +539,9 @@ export function SocialFeed() {
         <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Comments</DialogTitle>
+            <DialogDescription>
+              View and add comments to this post
+            </DialogDescription>
           </DialogHeader>
           
           {selectedPost && (

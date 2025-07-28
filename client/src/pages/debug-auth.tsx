@@ -226,9 +226,9 @@ export default function DebugAuth() {
           </CardHeader>
           <CardContent>
             <div className="max-h-64 overflow-y-auto">
-              {window.authDebug ? (
+              {(window as any).authDebug ? (
                 <div className="space-y-2">
-                  {window.authDebug.map((log: any, i: number) => (
+                  {(window as any).authDebug.map((log: any, i: number) => (
                     <div key={i} className="text-xs border-b pb-1">
                       <div className="text-gray-500">{log.timestamp}</div>
                       <div className="text-blue-600">{log.message}</div>

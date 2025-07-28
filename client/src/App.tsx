@@ -120,14 +120,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
   const token = localStorage.getItem('civicos-jwt');
   
-  // Additional debug logging
-  console.log('[ProtectedRoute]', {
-    isAuthenticated,
-    isLoading,
-    hasUser: !!user,
-    hasToken: !!token,
-    location
-  });
+
   
   if (isLoading) {
     return <PageLoader />;
@@ -139,23 +132,9 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
         <div className="text-center">
           <h1 className="text-2xl font-bold text-gray-900 mb-4">Authentication Required</h1>
           <p className="text-gray-600 mb-6">Please log in to access this page.</p>
-          <div className="space-y-2 text-sm text-gray-500 mb-4">
-            <div>Debug: Token exists: {token ? 'Yes' : 'No'}</div>
-            <div>Debug: User exists: {user ? 'Yes' : 'No'}</div>
-            <div>Debug: Loading: {isLoading ? 'Yes' : 'No'}</div>
-          </div>
           <Button onClick={() => window.location.href = '/auth'}>
             Go to Login
           </Button>
-          <div className="mt-4">
-            <Button 
-              variant="outline" 
-              onClick={() => window.location.href = '/debug-auth'}
-              className="text-sm"
-            >
-              Debug Authentication
-            </Button>
-          </div>
         </div>
       </div>
     );

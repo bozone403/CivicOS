@@ -101,18 +101,41 @@ interface CreatePostData {
 }
 
 export default function CivicSocialFeed() {
-  const { user: currentUser } = useAuth();
+  const { user: currentUser, isAuthenticated } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
-  const [activeTab, setActiveTab] = useState('all');
+  // State for post management
   const [showCreatePost, setShowCreatePost] = useState(false);
   const [newPost, setNewPost] = useState<CreatePostData>({
     content: '',
     type: 'post',
     visibility: 'public',
     tags: [],
+    location: '',
+    mood: ''
   });
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string>('');
+  
+  // State for dropdown menus
+  const [openDropdown, setOpenDropdown] = useState<number | null>(null);
+  
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (_event: MouseEvent) => {
+      if (openDropdown !== null) {
+        setOpenDropdown(null);
+      }
+    };
+    
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [openDropdown]);
+
+  const [activeTab, setActiveTab] = useState('all');
   const [selectedPost, setSelectedPost] = useState<SocialPost | null>(null);
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState({
@@ -390,17 +413,26 @@ export default function CivicSocialFeed() {
             </div>
           </div>
           <div className="relative">
-            <Button variant="ghost" size="sm">
+            <Button 
+              variant="ghost" 
+              size="sm"
+              onClick={(e) => {
+                e.stopPropagation();
+                setOpenDropdown(openDropdown === post.id ? null : post.id);
+              }}
+            >
               <MoreHorizontal className="w-4 h-4" />
             </Button>
             {/* Post actions dropdown - only show for user's own posts */}
-            {post.user?.id === currentUser?.id && (
+            {post.user?.id === currentUser?.id && openDropdown === post.id && (
               <div className="absolute right-0 top-full mt-1 bg-white border rounded-md shadow-lg z-10 min-w-[120px]">
                 <Button
                   variant="ghost"
                   size="sm"
                   className="w-full justify-start"
-                  onClick={() => {
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setOpenDropdown(null);
                     // TODO: Implement edit modal
                     toast({
                       title: "Edit Feature",
@@ -415,7 +447,9 @@ export default function CivicSocialFeed() {
                   variant="ghost"
                   size="sm"
                   className="w-full justify-start text-red-600 hover:text-red-700"
-                  onClick={() => {
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setOpenDropdown(null);
                     if (confirm('Are you sure you want to delete this post?')) {
                       deletePostMutation.mutate(post.id);
                     }

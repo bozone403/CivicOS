@@ -50,6 +50,7 @@ import { useToast } from "@/hooks/use-toast";
 
 interface UserProfile {
   id: string;
+  username?: string;
   firstName?: string;
   lastName?: string;
   email?: string;
@@ -66,6 +67,17 @@ interface UserProfile {
   profileAccentColor?: string;
   profileVisibility?: string;
   profileBioVisibility?: string;
+  profileLocationVisibility?: string;
+  profileStatsVisibility?: string;
+  profilePostsVisibility?: string;
+  profileCustomFields?: Record<string, any>;
+  profileLayout?: string;
+  profileShowBadges?: boolean;
+  profileShowStats?: boolean;
+  profileShowActivity?: boolean;
+  profileShowFriends?: boolean;
+  profileShowPosts?: boolean;
+  profileLastUpdated?: string;
   profileCompletionPercentage?: number;
   civicLevel?: string;
   trustScore?: number;
@@ -109,31 +121,81 @@ interface ProfileStats {
 }
 
 export default function Profile() {
-  const { user: currentUser, isAuthenticated } = useAuth();
-  const [location, setLocation] = useLocation();
+  const { user, isAuthenticated, isLoading } = useAuth();
+  const [, setLocation] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+
+  // Redirect if not authenticated
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated) {
+      setLocation('/auth');
+      toast({
+        title: "Authentication Required",
+        description: "Please log in to view your profile.",
+        variant: "destructive",
+      });
+    }
+  }, [isAuthenticated, isLoading, setLocation, toast]);
+
+  // Show loading while checking authentication
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+
+  // Show loading while not authenticated
+  if (!isAuthenticated) {
+    return null; // Will redirect to auth
+  }
   
   // Extract userId from URL path
-  const pathParts = location.split('/');
+  const pathParts = location.pathname.split('/');
   const userIdFromUrl = pathParts[pathParts.length - 1];
-  const isOwnProfile = !userIdFromUrl || userIdFromUrl === 'profile' || userIdFromUrl === currentUser?.id || location === '/profile';
-  const targetUserId = isOwnProfile ? currentUser?.id : userIdFromUrl;
+  const isOwnProfile = !userIdFromUrl || userIdFromUrl === 'profile' || userIdFromUrl === user?.id || location.pathname === '/profile';
+  const targetUserId = isOwnProfile ? user?.id : userIdFromUrl;
 
   // State for editing
   const [isEditing, setIsEditing] = useState(false);
   const [editForm, setEditForm] = useState<Partial<UserProfile>>({});
   const [activeTab, setActiveTab] = useState("overview");
 
-  // Fetch user profile data
-  const { data: profileUser, isLoading: isLoadingUser } = useQuery({
-    queryKey: ['user-profile', targetUserId],
+  // Fetch profile data
+  const { data: profile, isLoading: isLoadingProfile, error: profileError } = useQuery({
+    queryKey: ['profile', targetUserId],
     queryFn: async () => {
-      if (!targetUserId) return null;
-      const response = await apiRequest(`/api/users/${targetUserId}/profile`, 'GET');
-      return response;
+      if (isOwnProfile) {
+        // Get current user's profile
+        const response = await apiRequest('/api/users/profile', 'GET');
+        return response;
+      } else {
+        // Get other user's profile by ID
+        const response = await apiRequest(`/api/users/${targetUserId}/profile`, 'GET');
+        return response;
+      }
     },
-    enabled: !!targetUserId,
+    enabled: !!targetUserId && isAuthenticated,
+  });
+
+  // Fetch user posts for profile wall
+  const { data: userPosts, isLoading: isLoadingPosts } = useQuery({
+    queryKey: ['user-posts', targetUserId],
+    queryFn: async () => {
+      if (isOwnProfile && profile?.username) {
+        // Get current user's posts by username
+        const response = await apiRequest(`/api/social/posts/user/${profile.username}`, 'GET');
+        return response.posts || [];
+      } else if (profile?.username) {
+        // Get other user's posts by username
+        const response = await apiRequest(`/api/social/posts/user/${profile.username}`, 'GET');
+        return response.posts || [];
+      }
+      return [];
+    },
+    enabled: !!profile?.username,
   });
 
   // Fetch user stats
@@ -280,7 +342,7 @@ export default function Profile() {
     return 'text-red-600';
   };
 
-  if (isLoadingUser) {
+  if (isLoadingProfile) {
     return (
       <div className="container mx-auto px-4 py-8">
         <div className="animate-pulse space-y-6">
@@ -294,7 +356,7 @@ export default function Profile() {
     );
   }
 
-  if (!profileUser) {
+  if (!profile) {
     return (
       <div className="container mx-auto px-4 py-8">
         <Card>
@@ -316,9 +378,9 @@ export default function Profile() {
       <div className="relative mb-8">
         {/* Banner Image */}
         <div className="h-64 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg relative overflow-hidden">
-          {profileUser.profileBannerUrl && (
+          {profile.profileBannerUrl && (
             <img 
-              src={profileUser.profileBannerUrl} 
+              src={profile.profileBannerUrl} 
               alt="Profile Banner"
               className="w-full h-full object-cover"
             />
@@ -352,9 +414,9 @@ export default function Profile() {
             {/* Profile Avatar */}
             <div className="relative">
               <Avatar className="w-32 h-32 border-4 border-white">
-                <AvatarImage src={profileUser.profileImageUrl} />
+                <AvatarImage src={profile.profileImageUrl} />
                 <AvatarFallback className="text-3xl bg-blue-600">
-                  {getDisplayName(profileUser)[0]?.toUpperCase()}
+                  {getDisplayName(profile)[0]?.toUpperCase()}
                 </AvatarFallback>
               </Avatar>
               {isOwnProfile && (
@@ -382,35 +444,35 @@ export default function Profile() {
             {/* Profile Details */}
             <div className="flex-1 text-white">
               <div className="flex items-center gap-4 mb-2">
-                <h1 className="text-3xl font-bold">{getDisplayName(profileUser)}</h1>
-                {profileUser.isVerified && (
+                <h1 className="text-3xl font-bold">{getDisplayName(profile)}</h1>
+                {profile.isVerified && (
                   <Badge variant="secondary" className="bg-green-500">
                     <Shield className="w-3 h-3 mr-1" />
                     Verified
                   </Badge>
                 )}
-                <Badge className={getCivicLevelColor(profileUser.civicLevel)}>
-                  {profileUser.civicLevel}
+                <Badge className={getCivicLevelColor(profile.civicLevel)}>
+                  {profile.civicLevel}
                 </Badge>
               </div>
               
-              {profileUser.occupation && (
+              {profile.occupation && (
                 <p className="text-lg opacity-90 mb-1">
                   <Briefcase className="w-4 h-4 inline mr-2" />
-                  {profileUser.occupation}
+                  {profile.occupation}
                 </p>
               )}
               
-              {profileUser.city && profileUser.province && (
+              {profile.city && profile.province && (
                 <p className="text-lg opacity-90 mb-1">
                   <MapPin className="w-4 h-4 inline mr-2" />
-                  {profileUser.city}, {profileUser.province}
+                  {profile.city}, {profile.province}
                 </p>
               )}
 
-              {profileUser.bio && (
+              {profile.bio && (
                 <p className="text-lg opacity-90 mt-2 max-w-2xl">
-                  {profileUser.bio}
+                  {profile.bio}
                 </p>
               )}
             </div>
@@ -465,9 +527,9 @@ export default function Profile() {
                     <div className="space-y-4">
                       <div className="flex items-center justify-between">
                         <span className="text-sm font-medium">Profile Complete</span>
-                        <span className="text-sm text-gray-600">{profileUser.profileCompletionPercentage}%</span>
+                        <span className="text-sm text-gray-600">{profile.profileCompletionPercentage}%</span>
                       </div>
-                      <Progress value={profileUser.profileCompletionPercentage} className="h-2" />
+                      <Progress value={profile.profileCompletionPercentage} className="h-2" />
                       <p className="text-xs text-gray-600">
                         Complete your profile to unlock more features and increase your civic impact score.
                       </p>
@@ -482,49 +544,49 @@ export default function Profile() {
                   <CardTitle>About</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {profileUser.bio ? (
-                    <p className="text-gray-700">{profileUser.bio}</p>
+                  {profile.bio ? (
+                    <p className="text-gray-700">{profile.bio}</p>
                   ) : (
                     <p className="text-gray-500 italic">No bio added yet.</p>
                   )}
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {profileUser.occupation && (
+                    {profile.occupation && (
                       <div className="flex items-center gap-2">
                         <Briefcase className="w-4 h-4 text-gray-500" />
-                        <span className="text-sm">{profileUser.occupation}</span>
+                        <span className="text-sm">{profile.occupation}</span>
                       </div>
                     )}
                     
-                    {profileUser.education && (
+                    {profile.education && (
                       <div className="flex items-center gap-2">
                         <GraduationCap className="w-4 h-4 text-gray-500" />
-                        <span className="text-sm">{profileUser.education}</span>
+                        <span className="text-sm">{profile.education}</span>
                       </div>
                     )}
                     
-                    {profileUser.website && (
+                    {profile.website && (
                       <div className="flex items-center gap-2">
                         <Globe className="w-4 h-4 text-gray-500" />
-                        <a href={profileUser.website} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 hover:underline">
-                          {profileUser.website}
+                        <a href={profile.website} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 hover:underline">
+                          {profile.website}
                         </a>
                       </div>
                     )}
                     
-                    {profileUser.politicalAffiliation && (
+                    {profile.politicalAffiliation && (
                       <div className="flex items-center gap-2">
                         <Flag className="w-4 h-4 text-gray-500" />
-                        <span className="text-sm">{profileUser.politicalAffiliation}</span>
+                        <span className="text-sm">{profile.politicalAffiliation}</span>
                       </div>
                     )}
                   </div>
 
-                                     {profileUser.interests && profileUser.interests.length > 0 && (
+                                     {profile.interests && profile.interests.length > 0 && (
                      <div>
                        <h4 className="font-medium mb-2">Interests</h4>
                        <div className="flex flex-wrap gap-2">
-                         {profileUser.interests.map((interest: string, index: number) => (
+                         {profile.interests.map((interest: string, index: number) => (
                            <Badge key={index} variant="secondary">
                              {interest}
                            </Badge>
@@ -600,15 +662,15 @@ export default function Profile() {
                 <CardContent>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     <div className="text-center">
-                      <div className="text-2xl font-bold text-blue-600">{profileUser.friendsCount || 0}</div>
+                      <div className="text-2xl font-bold text-blue-600">{profile.friendsCount || 0}</div>
                       <div className="text-sm text-gray-600">Friends</div>
                     </div>
                     <div className="text-center">
-                      <div className="text-2xl font-bold text-green-600">{profileUser.postsCount || 0}</div>
+                      <div className="text-2xl font-bold text-green-600">{profile.postsCount || 0}</div>
                       <div className="text-sm text-gray-600">Posts</div>
                     </div>
                     <div className="text-center">
-                      <div className="text-2xl font-bold text-purple-600">{profileUser.profileViews || 0}</div>
+                      <div className="text-2xl font-bold text-purple-600">{profile.profileViews || 0}</div>
                       <div className="text-sm text-gray-600">Profile Views</div>
                     </div>
                     <div className="text-center">
@@ -688,33 +750,33 @@ export default function Profile() {
               <div className="flex items-center justify-between">
                 <span className="text-sm">Member Since</span>
                                  <span className="text-sm font-medium">
-                   {profileUser.createdAt ? new Date(profileUser.createdAt as string).toLocaleDateString() : 'Unknown'}
+                   {profile.createdAt ? new Date(profile.createdAt as string).toLocaleDateString() : 'Unknown'}
                  </span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-sm">Verification</span>
-                <Badge variant={profileUser.isVerified ? "default" : "secondary"}>
-                  {profileUser.verificationLevel || 'Unverified'}
+                <Badge variant={profile.isVerified ? "default" : "secondary"}>
+                  {profile.verificationLevel || 'Unverified'}
                 </Badge>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-sm">Profile Visibility</span>
                 <Badge variant="outline">
-                  {profileUser.profileVisibility || 'Public'}
+                  {profile.profileVisibility || 'Public'}
                 </Badge>
               </div>
             </CardContent>
           </Card>
 
           {/* Social Links */}
-          {profileUser.socialLinks && Object.keys(profileUser.socialLinks).length > 0 && (
+          {profile.socialLinks && Object.keys(profile.socialLinks).length > 0 && (
             <Card>
               <CardHeader>
                 <CardTitle className="text-lg">Social Links</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-2">
-                  {Object.entries(profileUser.socialLinks || {}).map(([platform, url]) => (
+                  {Object.entries(profile.socialLinks || {}).map(([platform, url]) => (
                     <a
                       key={platform}
                       href={url as string}
@@ -750,7 +812,7 @@ export default function Profile() {
                 <Label htmlFor="firstName">First Name</Label>
                 <Input
                   id="firstName"
-                  value={editForm.firstName || profileUser.firstName || ''}
+                  value={editForm.firstName || profile.firstName || ''}
                   onChange={(e) => setEditForm({...editForm, firstName: e.target.value})}
                 />
               </div>
@@ -758,7 +820,7 @@ export default function Profile() {
                 <Label htmlFor="lastName">Last Name</Label>
                 <Input
                   id="lastName"
-                  value={editForm.lastName || profileUser.lastName || ''}
+                  value={editForm.lastName || profile.lastName || ''}
                   onChange={(e) => setEditForm({...editForm, lastName: e.target.value})}
                 />
               </div>
@@ -769,7 +831,7 @@ export default function Profile() {
               <Textarea
                 id="bio"
                 placeholder="Tell us about yourself..."
-                value={editForm.bio || profileUser.bio || ''}
+                value={editForm.bio || profile.bio || ''}
                 onChange={(e) => setEditForm({...editForm, bio: e.target.value})}
                 rows={4}
               />
@@ -780,7 +842,7 @@ export default function Profile() {
                 <Label htmlFor="occupation">Occupation</Label>
                 <Input
                   id="occupation"
-                  value={editForm.occupation || profileUser.occupation || ''}
+                  value={editForm.occupation || profile.occupation || ''}
                   onChange={(e) => setEditForm({...editForm, occupation: e.target.value})}
                 />
               </div>
@@ -788,7 +850,7 @@ export default function Profile() {
                 <Label htmlFor="education">Education</Label>
                 <Input
                   id="education"
-                  value={editForm.education || profileUser.education || ''}
+                  value={editForm.education || profile.education || ''}
                   onChange={(e) => setEditForm({...editForm, education: e.target.value})}
                 />
               </div>
@@ -799,7 +861,7 @@ export default function Profile() {
                 <Label htmlFor="city">City</Label>
                 <Input
                   id="city"
-                  value={editForm.city || profileUser.city || ''}
+                  value={editForm.city || profile.city || ''}
                   onChange={(e) => setEditForm({...editForm, city: e.target.value})}
                 />
               </div>
@@ -807,7 +869,7 @@ export default function Profile() {
                 <Label htmlFor="province">Province</Label>
                 <Input
                   id="province"
-                  value={editForm.province || profileUser.province || ''}
+                  value={editForm.province || profile.province || ''}
                   onChange={(e) => setEditForm({...editForm, province: e.target.value})}
                 />
               </div>
@@ -819,7 +881,7 @@ export default function Profile() {
                 id="website"
                 type="url"
                 placeholder="https://yourwebsite.com"
-                value={editForm.website || profileUser.website || ''}
+                value={editForm.website || profile.website || ''}
                 onChange={(e) => setEditForm({...editForm, website: e.target.value})}
               />
             </div>
@@ -829,7 +891,7 @@ export default function Profile() {
               <Input
                 id="politicalAffiliation"
                 placeholder="e.g., Liberal, Conservative, Independent"
-                value={editForm.politicalAffiliation || profileUser.politicalAffiliation || ''}
+                value={editForm.politicalAffiliation || profile.politicalAffiliation || ''}
                 onChange={(e) => setEditForm({...editForm, politicalAffiliation: e.target.value})}
               />
             </div>
@@ -837,7 +899,7 @@ export default function Profile() {
             <div>
               <Label htmlFor="profileVisibility">Profile Visibility</Label>
               <Select
-                value={editForm.profileVisibility || profileUser.profileVisibility || 'public'}
+                value={editForm.profileVisibility || profile.profileVisibility || 'public'}
                 onValueChange={(value) => setEditForm({...editForm, profileVisibility: value})}
               >
                 <SelectTrigger>

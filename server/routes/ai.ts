@@ -1,41 +1,27 @@
 import { Router } from 'express';
-import { aiService } from '../utils/aiService.js';
-import { fallbackAiService } from '../utils/fallbackAiService.js';
+import { enhancedAiService } from '../utils/enhancedAiService.js';
 
 const router = Router();
 
 // Health check endpoint
 router.get('/health', async (req, res) => {
   try {
-    // Try primary AI service first
-    const health = await aiService.healthCheck();
-    if (health.service) {
-      res.json({
-        status: 'healthy',
-        service: 'operational',
-        models: health.model ? ['active'] : [],
-        message: health.message,
-        timestamp: new Date().toISOString()
-      });
-    } else {
-      // Fallback to secondary AI service
-      const fallbackHealth = await fallbackAiService.healthCheck();
-      res.json({
-        status: fallbackHealth.status === 'online' ? 'healthy' : 'degraded',
-        service: fallbackHealth.service,
-        models: fallbackHealth.models,
-        message: fallbackHealth.message,
-        timestamp: new Date().toISOString()
-      });
-    }
-  } catch (error) {
-    // Final fallback
-    const fallbackHealth = await fallbackAiService.healthCheck();
+    const health = await enhancedAiService.healthCheck();
     res.json({
-      status: fallbackHealth.status === 'online' ? 'healthy' : 'degraded',
-      service: fallbackHealth.service,
-      models: fallbackHealth.models,
-      message: fallbackHealth.message,
+      status: health.service ? 'healthy' : 'degraded',
+      service: health.service ? 'operational' : 'fallback',
+      models: health.model ? ['active'] : [],
+      message: health.message,
+      provider: health.provider,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    res.json({
+      status: 'degraded',
+      service: 'fallback',
+      models: [],
+      message: 'AI service unavailable, using mock data',
+      provider: 'Mock',
       timestamp: new Date().toISOString()
     });
   }
@@ -52,25 +38,24 @@ router.post('/chat', async (req, res) => {
       });
     }
 
-    // Try primary AI service first
-    let response;
-    try {
-      response = await aiService.generateResponse(message, context);
-    } catch (error) {
-      // Fallback to secondary AI service
-      response = await fallbackAiService.generateResponse(message, context);
-    }
+    const response = await enhancedAiService.generateResponse(message, context);
     
     res.json({
-      response,
+      response: response.response,
+      confidence: response.confidence,
+      provider: response.provider,
+      model: response.model,
       timestamp: new Date().toISOString(),
       context: context || {}
     });
   } catch (error) {
-    // Final fallback - use offline responses
-    const response = await fallbackAiService.generateResponse(req.body.message || 'Hello');
+    // Fallback response
+    const fallbackResponse = await enhancedAiService.generateResponse(req.body.message || 'Hello');
     res.json({
-      response,
+      response: fallbackResponse.response,
+      confidence: fallbackResponse.confidence,
+      provider: fallbackResponse.provider,
+      model: fallbackResponse.model,
       timestamp: new Date().toISOString(),
       context: req.body.context || {}
     });
@@ -89,11 +74,13 @@ router.post('/analyze/politician', async (req, res) => {
     }
 
     const prompt = `Analyze politician: ${name || politicianId}. Provide comprehensive analysis including voting patterns, policy positions, and political alignment.`;
-    const response = await aiService.generateResponse(prompt);
+    const response = await enhancedAiService.generateResponse(prompt);
     
     res.json({
       politicianId: politicianId || name,
-      analysis: response,
+      analysis: response.response,
+      confidence: response.confidence,
+      provider: response.provider,
       timestamp: new Date().toISOString()
     });
   } catch (error) {
@@ -118,11 +105,13 @@ router.post('/analyze/bill', async (req, res) => {
     }
 
     const prompt = `Analyze Canadian bill: ${title || billId}. ${content ? `Content: ${content}` : ''} Provide summary, key provisions, and impact assessment.`;
-    const response = await aiService.generateResponse(prompt);
+    const response = await enhancedAiService.generateResponse(prompt);
     
     res.json({
       billId: billId || title,
-      analysis: response,
+      analysis: response.response,
+      confidence: response.confidence,
+      provider: response.provider,
       timestamp: new Date().toISOString()
     });
   } catch (error) {
@@ -147,11 +136,13 @@ router.post('/factcheck', async (req, res) => {
     }
 
     const prompt = `Fact check: ${claim || content}. ${topic ? `Topic: ${topic}` : ''} Provide verdict, evidence, and sources.`;
-    const response = await aiService.generateResponse(prompt);
+    const response = await enhancedAiService.generateResponse(prompt);
     
     res.json({
       claim: claim || content.substring(0, 100),
-      factCheck: response,
+      factCheck: response.response,
+      confidence: response.confidence,
+      provider: response.provider,
       timestamp: new Date().toISOString()
     });
   } catch (error) {
@@ -176,11 +167,13 @@ router.post('/civic-guide', async (req, res) => {
     }
 
     const prompt = `Civic guidance question: ${question}. ${topic ? `Topic: ${topic}` : ''} ${location ? `Location: ${location}` : ''} Provide helpful civic information and guidance.`;
-    const response = await aiService.generateResponse(prompt);
+    const response = await enhancedAiService.generateResponse(prompt);
     
     res.json({
       question,
-      guidance: response,
+      guidance: response.response,
+      confidence: response.confidence,
+      provider: response.provider,
       timestamp: new Date().toISOString()
     });
   } catch (error) {
@@ -196,7 +189,7 @@ router.post('/civic-guide', async (req, res) => {
 // AI service status endpoint
 router.get('/status', async (req, res) => {
   try {
-    const health = await aiService.healthCheck();
+    const health = await enhancedAiService.healthCheck();
     
     res.json({
       service: 'CivicOS AI',
@@ -208,7 +201,7 @@ router.get('/status', async (req, res) => {
         factChecking: true,
         civicGuidance: true
       },
-      dataSource: process.env.USE_MOCK_AI === 'true' ? 'mock_comprehensive' : 'ollama',
+      provider: health.provider,
       message: health.message,
       timestamp: new Date().toISOString()
     });

@@ -4,6 +4,7 @@ import { users, socialPosts, socialComments, socialLikes, userFriends, userMessa
 import { eq, and, or, desc, asc, gte, ne, inArray } from "drizzle-orm";
 import { sql } from "drizzle-orm";
 import jwt from "jsonwebtoken";
+import { count } from "drizzle-orm";
 
 // JWT Auth middleware
 function jwtAuth(req: any, res: any, next: any) {
@@ -88,6 +89,82 @@ export function registerSocialRoutes(app: Router) {
     }
   });
 
+  // GET /api/social/posts/user/:username - Get posts by username
+  app.get('/api/social/posts/user/:username', async (req: Request, res: Response) => {
+    try {
+      const { username } = req.params;
+      const { limit = 20, offset = 0 } = req.query;
+
+      // Get user by username
+      const [user] = await db
+        .select({ id: users.id })
+        .from(users)
+        .where(eq(users.username, username));
+
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      // Get posts by user
+      const userPosts = await db
+        .select({
+          id: socialPosts.id,
+          content: socialPosts.content,
+          imageUrl: socialPosts.imageUrl,
+          type: socialPosts.type,
+          visibility: socialPosts.visibility,
+          createdAt: socialPosts.createdAt,
+          updatedAt: socialPosts.updatedAt,
+          userId: socialPosts.userId,
+          user: {
+            id: users.id,
+            username: users.username,
+            firstName: users.firstName,
+            lastName: users.lastName,
+            profileImageUrl: users.profileImageUrl,
+            civicLevel: users.civicLevel,
+            isVerified: users.isVerified,
+          }
+        })
+        .from(socialPosts)
+        .leftJoin(users, eq(socialPosts.userId, users.id))
+        .where(eq(socialPosts.userId, user.id))
+        .orderBy(desc(socialPosts.createdAt))
+        .limit(parseInt(limit as string))
+        .offset(parseInt(offset as string));
+
+      // Get like counts for each post
+      const postsWithStats = await Promise.all(
+        userPosts.map(async (post) => {
+          const [likesCount] = await db
+            .select({ count: count() })
+            .from(socialLikes)
+            .where(eq(socialLikes.postId, post.id));
+
+          const [commentsCount] = await db
+            .select({ count: count() })
+            .from(socialComments)
+            .where(eq(socialComments.postId, post.id));
+
+          return {
+            ...post,
+            likesCount: likesCount?.count || 0,
+            commentsCount: commentsCount?.count || 0,
+            isLiked: false // Will be set by frontend if user is logged in
+          };
+        })
+      );
+
+      res.json({
+        success: true,
+        posts: postsWithStats
+      });
+    } catch (error) {
+      console.error('Error fetching user posts:', error);
+      res.status(500).json({ error: "Failed to fetch user posts" });
+    }
+  });
+
   // GET /api/social/posts - Get posts
   app.get('/api/social/posts', jwtAuth, async (req: Request, res: Response) => {
     try {
@@ -138,6 +215,50 @@ export function registerSocialRoutes(app: Router) {
     }
   });
 
+  // GET /api/social/wall/:userId - Get user's wall posts
+  app.get('/api/social/wall/:userId', jwtAuth, async (req: Request, res: Response) => {
+    try {
+      const { userId } = req.params;
+      const { limit = 20, offset = 0 } = req.query;
+
+      const posts = await db
+        .select({
+          id: socialPosts.id,
+          content: socialPosts.content,
+          imageUrl: socialPosts.imageUrl,
+          type: socialPosts.type,
+          createdAt: socialPosts.createdAt,
+          updatedAt: socialPosts.updatedAt,
+          userId: socialPosts.userId,
+          user: {
+            id: users.id,
+            firstName: users.firstName,
+            lastName: users.lastName,
+            profileImageUrl: users.profileImageUrl,
+            civicLevel: users.civicLevel,
+            isVerified: users.isVerified,
+          }
+        })
+        .from(socialPosts)
+        .leftJoin(users, eq(socialPosts.userId, users.id))
+        .where(and(
+          eq(socialPosts.userId, userId),
+          eq(socialPosts.visibility, 'public')
+        ))
+        .orderBy(desc(socialPosts.createdAt))
+        .limit(parseInt(limit as string))
+        .offset(parseInt(offset as string));
+
+      res.json({
+        success: true,
+        posts
+      });
+    } catch (error) {
+      console.error('Error fetching user wall posts:', error);
+      res.status(500).json({ error: "Failed to fetch user wall posts" });
+    }
+  });
+
   // POST /api/social/posts - Create post
   app.post('/api/social/posts', jwtAuth, async (req: Request, res: Response) => {
     try {
@@ -167,6 +288,86 @@ export function registerSocialRoutes(app: Router) {
     } catch (error) {
       console.error('Error creating post:', error);
       res.status(500).json({ error: "Failed to create post" });
+    }
+  });
+
+  // PUT /api/social/posts/:id - Update post
+  app.put('/api/social/posts/:id', jwtAuth, async (req: Request, res: Response) => {
+    try {
+      const currentUserId = (req.user as any).id;
+      const postId = parseInt(req.params.id);
+      const { content, imageUrl, visibility } = req.body;
+
+      // Check if post exists and belongs to current user
+      const [existingPost] = await db
+        .select()
+        .from(socialPosts)
+        .where(and(
+          eq(socialPosts.id, postId),
+          eq(socialPosts.userId, currentUserId)
+        ));
+
+      if (!existingPost) {
+        return res.status(404).json({ error: "Post not found or you don't have permission to edit it" });
+      }
+
+      // Update post
+      const [updatedPost] = await db
+        .update(socialPosts)
+        .set({
+          content: content || existingPost.content,
+          imageUrl: imageUrl || existingPost.imageUrl,
+          visibility: visibility || existingPost.visibility,
+          updatedAt: new Date()
+        })
+        .where(eq(socialPosts.id, postId))
+        .returning();
+
+      res.json({
+        success: true,
+        post: updatedPost
+      });
+    } catch (error) {
+      console.error('Error updating post:', error);
+      res.status(500).json({ error: "Failed to update post" });
+    }
+  });
+
+  // DELETE /api/social/posts/:id - Delete post
+  app.delete('/api/social/posts/:id', jwtAuth, async (req: Request, res: Response) => {
+    try {
+      const currentUserId = (req.user as any).id;
+      const postId = parseInt(req.params.id);
+
+      // Check if post exists and belongs to current user
+      const [existingPost] = await db
+        .select()
+        .from(socialPosts)
+        .where(and(
+          eq(socialPosts.id, postId),
+          eq(socialPosts.userId, currentUserId)
+        ));
+
+      if (!existingPost) {
+        return res.status(404).json({ error: "Post not found or you don't have permission to delete it" });
+      }
+
+      // Soft delete by updating content
+      await db
+        .update(socialPosts)
+        .set({
+          content: "[This post has been deleted]",
+          updatedAt: new Date()
+        })
+        .where(eq(socialPosts.id, postId));
+
+      res.json({
+        success: true,
+        message: "Post deleted successfully"
+      });
+    } catch (error) {
+      console.error('Error deleting post:', error);
+      res.status(500).json({ error: "Failed to delete post" });
     }
   });
 

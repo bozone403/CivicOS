@@ -136,6 +136,320 @@ export function registerUserRoutes(app: Express) {
     }
   });
 
+  // GET /api/users/profile - Get current user profile
+  app.get('/api/users/profile', jwtAuth, async (req: Request, res: Response) => {
+    try {
+      const currentUserId = (req.user as any).id;
+
+      const [user] = await db
+        .select({
+          id: users.id,
+          firstName: users.firstName,
+          lastName: users.lastName,
+          email: users.email,
+          profileImageUrl: users.profileImageUrl,
+          bio: users.bio,
+          city: users.city,
+          province: users.province,
+          postalCode: users.postalCode,
+          civicLevel: users.civicLevel,
+          isVerified: users.isVerified,
+          trustScore: users.trustScore,
+          createdAt: users.createdAt,
+          updatedAt: users.updatedAt,
+        })
+        .from(users)
+        .where(eq(users.id, currentUserId));
+
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      // Get user's social stats
+      const [postsCount] = await db
+        .select({ count: count() })
+        .from(sql`social_posts`)
+        .where(eq(sql`user_id`, currentUserId));
+
+      const [friendsCount] = await db
+        .select({ count: count() })
+        .from(sql`user_friends`)
+        .where(and(
+          eq(sql`user_id`, currentUserId),
+          eq(sql`status`, 'accepted')
+        ));
+
+      const [activitiesCount] = await db
+        .select({ count: count() })
+        .from(sql`user_activities`)
+        .where(eq(sql`user_id`, currentUserId));
+
+      const profile = {
+        id: user.id,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
+        profileImageUrl: user.profileImageUrl,
+        bio: user.bio,
+        location: user.city && user.province ? `${user.city}, ${user.province}` : user.city || user.province,
+        civicLevel: user.civicLevel,
+        isVerified: user.isVerified,
+        trustScore: user.trustScore,
+        joinedAt: user.createdAt,
+        displayName: user.firstName && user.lastName 
+          ? `${user.firstName} ${user.lastName}` 
+          : user.firstName || user.email?.split('@')[0] || 'Anonymous User',
+        stats: {
+          posts: postsCount?.count || 0,
+          friends: friendsCount?.count || 0,
+          activities: activitiesCount?.count || 0
+        }
+      };
+
+      res.json(profile);
+    } catch (error) {
+      console.error('Get current user profile error:', error);
+      res.status(500).json({ error: "Failed to get current user profile" });
+    }
+  });
+
+  // GET /api/users/profile/:username - Get user profile by username
+  app.get('/api/users/profile/:username', async (req: Request, res: Response) => {
+    try {
+      const { username } = req.params;
+
+      const [user] = await db
+        .select({
+          id: users.id,
+          username: users.username,
+          firstName: users.firstName,
+          lastName: users.lastName,
+          email: users.email,
+          profileImageUrl: users.profileImageUrl,
+          profileBannerUrl: users.profileBannerUrl,
+          bio: users.bio,
+          website: users.website,
+          socialLinks: users.socialLinks,
+          interests: users.interests,
+          politicalAffiliation: users.politicalAffiliation,
+          occupation: users.occupation,
+          education: users.education,
+          city: users.city,
+          province: users.province,
+          postalCode: users.postalCode,
+          civicLevel: users.civicLevel,
+          isVerified: users.isVerified,
+          trustScore: users.trustScore,
+          createdAt: users.createdAt,
+          updatedAt: users.updatedAt,
+          // Profile customization
+          profileTheme: users.profileTheme,
+          profileAccentColor: users.profileAccentColor,
+          profileBioVisibility: users.profileBioVisibility,
+          profileLocationVisibility: users.profileLocationVisibility,
+          profileStatsVisibility: users.profileStatsVisibility,
+          profilePostsVisibility: users.profilePostsVisibility,
+          profileCustomFields: users.profileCustomFields,
+          profileLayout: users.profileLayout,
+          profileShowBadges: users.profileShowBadges,
+          profileShowStats: users.profileShowStats,
+          profileShowActivity: users.profileShowActivity,
+          profileShowFriends: users.profileShowFriends,
+          profileShowPosts: users.profileShowPosts,
+          profileLastUpdated: users.profileLastUpdated,
+        })
+        .from(users)
+        .where(eq(users.username, username));
+
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      // Get user's social stats
+      const [postsCount] = await db
+        .select({ count: count() })
+        .from(sql`social_posts`)
+        .where(eq(sql`user_id`, user.id));
+
+      const [friendsCount] = await db
+        .select({ count: count() })
+        .from(sql`user_friends`)
+        .where(and(
+          eq(sql`user_id`, user.id),
+          eq(sql`status`, 'accepted')
+        ));
+
+      const [activitiesCount] = await db
+        .select({ count: count() })
+        .from(sql`user_activities`)
+        .where(eq(sql`user_id`, user.id));
+
+      const profile = {
+        id: user.id,
+        username: user.username,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
+        profileImageUrl: user.profileImageUrl,
+        profileBannerUrl: user.profileBannerUrl,
+        bio: user.bio,
+        website: user.website,
+        socialLinks: user.socialLinks,
+        interests: user.interests,
+        politicalAffiliation: user.politicalAffiliation,
+        occupation: user.occupation,
+        education: user.education,
+        location: user.city && user.province ? `${user.city}, ${user.province}` : user.city || user.province,
+        civicLevel: user.civicLevel,
+        isVerified: user.isVerified,
+        trustScore: user.trustScore,
+        joinedAt: user.createdAt,
+        displayName: user.firstName && user.lastName 
+          ? `${user.firstName} ${user.lastName}` 
+          : user.firstName || user.username || 'Anonymous User',
+        // Profile customization
+        profileTheme: user.profileTheme,
+        profileAccentColor: user.profileAccentColor,
+        profileBioVisibility: user.profileBioVisibility,
+        profileLocationVisibility: user.profileLocationVisibility,
+        profileStatsVisibility: user.profileStatsVisibility,
+        profilePostsVisibility: user.profilePostsVisibility,
+        profileCustomFields: user.profileCustomFields,
+        profileLayout: user.profileLayout,
+        profileShowBadges: user.profileShowBadges,
+        profileShowStats: user.profileShowStats,
+        profileShowActivity: user.profileShowActivity,
+        profileShowFriends: user.profileShowFriends,
+        profileShowPosts: user.profileShowPosts,
+        profileLastUpdated: user.profileLastUpdated,
+        stats: {
+          posts: postsCount?.count || 0,
+          friends: friendsCount?.count || 0,
+          activities: activitiesCount?.count || 0
+        }
+      };
+
+      res.json({ profile });
+    } catch (error) {
+      console.error('Get user profile by username error:', error);
+      res.status(500).json({ error: "Failed to get user profile" });
+    }
+  });
+
+  // GET /api/users/:id/profile - Get specific user profile
+  app.get('/api/users/:id/profile', jwtAuth, async (req: Request, res: Response) => {
+    try {
+      const userId = req.params.id;
+
+      const [user] = await db
+        .select({
+          id: users.id,
+          firstName: users.firstName,
+          lastName: users.lastName,
+          email: users.email,
+          profileImageUrl: users.profileImageUrl,
+          bio: users.bio,
+          city: users.city,
+          province: users.province,
+          postalCode: users.postalCode,
+          civicLevel: users.civicLevel,
+          isVerified: users.isVerified,
+          trustScore: users.trustScore,
+          createdAt: users.createdAt,
+          updatedAt: users.updatedAt,
+        })
+        .from(users)
+        .where(eq(users.id, userId));
+
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      // Get user's social stats
+      const [postsCount] = await db
+        .select({ count: count() })
+        .from(sql`social_posts`)
+        .where(eq(sql`user_id`, userId));
+
+      const [friendsCount] = await db
+        .select({ count: count() })
+        .from(sql`user_friends`)
+        .where(and(
+          eq(sql`user_id`, userId),
+          eq(sql`status`, 'accepted')
+        ));
+
+      const [activitiesCount] = await db
+        .select({ count: count() })
+        .from(sql`user_activities`)
+        .where(eq(sql`user_id`, userId));
+
+      const profile = {
+        id: user.id,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
+        profileImageUrl: user.profileImageUrl,
+        bio: user.bio,
+        location: user.city && user.province ? `${user.city}, ${user.province}` : user.city || user.province,
+        civicLevel: user.civicLevel,
+        isVerified: user.isVerified,
+        trustScore: user.trustScore,
+        joinedAt: user.createdAt,
+        displayName: user.firstName && user.lastName 
+          ? `${user.firstName} ${user.lastName}` 
+          : user.firstName || user.email?.split('@')[0] || 'Anonymous User',
+        stats: {
+          posts: postsCount?.count || 0,
+          friends: friendsCount?.count || 0,
+          activities: activitiesCount?.count || 0
+        }
+      };
+
+      res.json(profile);
+    } catch (error) {
+      console.error('Get user profile error:', error);
+      res.status(500).json({ error: "Failed to get user profile" });
+    }
+  });
+
+  // GET /api/users/:id/stats - Get user stats
+  app.get('/api/users/:id/stats', jwtAuth, async (req: Request, res: Response) => {
+    try {
+      const userId = req.params.id;
+
+      // Get user's social stats
+      const [postsCount] = await db
+        .select({ count: count() })
+        .from(sql`social_posts`)
+        .where(eq(sql`user_id`, userId));
+
+      const [friendsCount] = await db
+        .select({ count: count() })
+        .from(sql`user_friends`)
+        .where(and(
+          eq(sql`user_id`, userId),
+          eq(sql`status`, 'accepted')
+        ));
+
+      const [activitiesCount] = await db
+        .select({ count: count() })
+        .from(sql`user_activities`)
+        .where(eq(sql`user_id`, userId));
+
+      const stats = {
+        posts: postsCount?.count || 0,
+        friends: friendsCount?.count || 0,
+        activities: activitiesCount?.count || 0
+      };
+
+      res.json(stats);
+    } catch (error) {
+      console.error('Get user stats error:', error);
+      res.status(500).json({ error: "Failed to get user stats" });
+    }
+  });
+
   // GET /api/users/:id - Get user profile
   app.get('/api/users/:id', jwtAuth, async (req: Request, res: Response) => {
     try {
