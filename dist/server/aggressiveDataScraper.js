@@ -611,6 +611,8 @@ export class AggressiveDataScraper {
                 position: politicianData.position,
                 party: politicianData.party,
                 constituency: politicianData.constituency,
+                level: level,
+                jurisdiction: level,
                 contactInfo: contact,
                 socialMedia: {},
                 votingRecord: {}
@@ -619,6 +621,8 @@ export class AggressiveDataScraper {
                 set: {
                     party: politicianData.party,
                     constituency: politicianData.constituency,
+                    level: level,
+                    jurisdiction: level,
                     contactInfo: contact,
                     updatedAt: new Date()
                 }
