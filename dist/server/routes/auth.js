@@ -84,6 +84,7 @@ export function registerAuthRoutes(app) {
             // Test if we can create a user with all fields
             const testUser = {
                 id: 'test-schema-' + Date.now(),
+                username: 'test-schema-user',
                 email: 'test-schema@example.com',
                 socialLinks: { twitter: 'test' }
             };
@@ -185,6 +186,7 @@ export function registerAuthRoutes(app) {
             const profileCompletionPercentage = Math.round((completedFields / totalFields) * 100);
             const userData = {
                 id: userId,
+                username: email.split('@')[0] + '_' + Date.now(), // Generate username from email
                 email,
                 password: hashedPassword,
                 firstName,

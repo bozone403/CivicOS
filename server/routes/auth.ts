@@ -100,6 +100,7 @@ export function registerAuthRoutes(app: Express) {
       // Test if we can create a user with all fields
       const testUser = {
         id: 'test-schema-' + Date.now(),
+        username: 'test-schema-user',
         email: 'test-schema@example.com',
         socialLinks: { twitter: 'test' }
       };
@@ -247,6 +248,7 @@ export function registerAuthRoutes(app: Express) {
       
       const userData = {
         id: userId,
+        username: email.split('@')[0] + '_' + Date.now(), // Generate username from email
         email,
         password: hashedPassword,
         firstName,

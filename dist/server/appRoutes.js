@@ -19,7 +19,7 @@ import { registerPoliticiansRoutes } from "./routes/politicians.js";
 // import { registerBillsRoutes } from "./routes/bills.js"; // Temporarily disabled
 import { registerNewsRoutes } from "./routes/news.js";
 import { registerFinanceRoutes } from "./routes/finance.js";
-import { registerContactsRoutes } from "./routes/contacts.js";
+// import { registerContactsRoutes } from "./routes/contacts.js"; // Temporarily disabled
 import { registerLegalRoutes } from "./routes/legal.js";
 import { registerMapsRoutes } from "./routes/maps.js";
 import { registerProcurementRoutes } from "./routes/procurement.js";
@@ -53,7 +53,7 @@ export async function registerRoutes(app) {
     // registerBillsRoutes(app); // Temporarily disabled
     registerNewsRoutes(app);
     registerFinanceRoutes(app);
-    registerContactsRoutes(app);
+    // registerContactsRoutes(app); // Temporarily disabled
     registerLegalRoutes(app);
     registerMapsRoutes(app);
     registerProcurementRoutes(app);
