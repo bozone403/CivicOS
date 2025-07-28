@@ -167,7 +167,7 @@ export function registerContactsRoutes(app: Express) {
       const { jurisdiction } = req.params;
       const officials = await db.select()
         .from(politicians)
-        .where(eq(politicians.jurisdiction, jurisdiction))
+        .where(eq(politicians.constituency, jurisdiction))
         .orderBy(desc(politicians.createdAt));
       
       res.json({

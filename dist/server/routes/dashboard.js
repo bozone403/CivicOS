@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { db } from '../db.js';
-import { users, votes, bills, petitions, petitionSignatures, politicians, socialPosts, userActivities } from '../../shared/schema.js';
+import { users, votes, bills, petitions, petitionSignatures, politicians, socialPosts, userActivity } from '../../shared/schema.js';
 import { eq, and, count, desc, gte } from 'drizzle-orm';
 import { jwtAuth } from '../routes/auth.js';
 const router = Router();
@@ -41,14 +41,14 @@ router.get('/stats', jwtAuth, async (req, res) => {
         sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
         const recentActivities = await db
             .select({
-            id: userActivities.id,
-            type: userActivities.activityType,
-            activityData: userActivities.activityData,
-            timestamp: userActivities.createdAt,
+            id: userActivity.id,
+            type: userActivity.type,
+            activityData: userActivity.data,
+            timestamp: userActivity.createdAt,
         })
-            .from(userActivities)
-            .where(and(eq(userActivities.userId, userId), gte(userActivities.createdAt, sevenDaysAgo)))
-            .orderBy(desc(userActivities.createdAt))
+            .from(userActivity)
+            .where(and(eq(userActivity.userId, userId), gte(userActivity.createdAt, sevenDaysAgo)))
+            .orderBy(desc(userActivity.createdAt))
             .limit(5);
         // Get user's social posts count
         const socialPostsCount = await db

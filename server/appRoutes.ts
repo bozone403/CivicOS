@@ -19,7 +19,7 @@ import { registerPetitionRoutes } from "./routes/petitions.js";
 import { registerMessageRoutes } from "./routes/messages.js";
 
 import { registerPoliticiansRoutes } from "./routes/politicians.js";
-import { registerBillsRoutes } from "./routes/bills.js";
+// import { registerBillsRoutes } from "./routes/bills.js"; // Temporarily disabled
 import { registerNewsRoutes } from "./routes/news.js";
 import { registerFinanceRoutes } from "./routes/finance.js";
 import { registerContactsRoutes } from "./routes/contacts.js";
@@ -56,7 +56,7 @@ export async function registerRoutes(app: Express): Promise<void> {
   registerMessageRoutes(app);
 
   registerPoliticiansRoutes(app);
-  registerBillsRoutes(app);
+  // registerBillsRoutes(app); // Temporarily disabled
   registerNewsRoutes(app);
   registerFinanceRoutes(app);
   registerContactsRoutes(app);
