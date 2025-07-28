@@ -118,7 +118,7 @@ export function registerMembershipRoutes(app: Express) {
       const cancelUrl = `${process.env.FRONTEND_BASE_URL}/membership/cancel`;
       
       const session = await createCheckoutSession(
-        stripeCustomerId,
+        stripeCustomerId!,
         priceId,
         successUrl,
         cancelUrl

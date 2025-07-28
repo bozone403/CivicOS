@@ -117,10 +117,10 @@ router.post('/create-payment-intent', async (req, res) => {
   } catch (error) {
     logger.error('Error creating checkout session:', error);
     
-    if (error instanceof Stripe.errors.StripeError) {
+    if (error && typeof error === 'object' && 'message' in error) {
       res.status(400).json({
         success: false,
-        error: error.message
+        error: String(error.message)
       });
     } else {
       res.status(500).json({
