@@ -1,8 +1,11 @@
 import Stripe from 'stripe';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2025-05-28.basil',
-});
+// Initialize Stripe only if the secret key is provided
+const stripe = process.env.STRIPE_SECRET_KEY 
+  ? new Stripe(process.env.STRIPE_SECRET_KEY, {
+      apiVersion: '2025-05-28.basil',
+    })
+  : null;
 
 export interface MembershipPricing {
   id: string;
@@ -39,6 +42,10 @@ export const MEMBERSHIP_PRICING: MembershipPricing[] = [
 ];
 
 export async function createCustomer(email: string, name: string) {
+  if (!stripe) {
+    throw new Error('Stripe is not configured. Please set STRIPE_SECRET_KEY environment variable.');
+  }
+  
   try {
     const customer = await stripe.customers.create({
       email,
@@ -55,6 +62,10 @@ export async function createCustomer(email: string, name: string) {
 }
 
 export async function createSubscription(customerId: string, priceId: string) {
+  if (!stripe) {
+    throw new Error('Stripe is not configured. Please set STRIPE_SECRET_KEY environment variable.');
+  }
+  
   try {
     const subscription = await stripe.subscriptions.create({
       customer: customerId,
@@ -71,6 +82,10 @@ export async function createSubscription(customerId: string, priceId: string) {
 }
 
 export async function createCheckoutSession(customerId: string, priceId: string, successUrl: string, cancelUrl: string) {
+  if (!stripe) {
+    throw new Error('Stripe is not configured. Please set STRIPE_SECRET_KEY environment variable.');
+  }
+  
   try {
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
