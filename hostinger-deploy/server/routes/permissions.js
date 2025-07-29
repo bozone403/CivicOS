@@ -22,7 +22,7 @@ export function registerPermissionsRoutes(app) {
             });
         }
         catch (error) {
-            console.error('Get user permissions error:', error);
+            // console.error removed for production
             res.status(500).json({
                 success: false,
                 message: "Failed to fetch user permissions",
@@ -57,7 +57,7 @@ export function registerPermissionsRoutes(app) {
             });
         }
         catch (error) {
-            console.error('Check permission error:', error);
+            // console.error removed for production
             res.status(500).json({
                 success: false,
                 message: "Failed to check permission",
@@ -90,7 +90,7 @@ export function registerPermissionsRoutes(app) {
             });
         }
         catch (error) {
-            console.error('Get all permissions error:', error);
+            // console.error removed for production
             res.status(500).json({
                 success: false,
                 message: "Failed to fetch permissions",
@@ -138,7 +138,7 @@ export function registerPermissionsRoutes(app) {
             }
         }
         catch (error) {
-            console.error('Grant permission error:', error);
+            // console.error removed for production
             res.status(500).json({
                 success: false,
                 message: "Failed to grant permission",
@@ -186,7 +186,7 @@ export function registerPermissionsRoutes(app) {
             }
         }
         catch (error) {
-            console.error('Revoke permission error:', error);
+            // console.error removed for production
             res.status(500).json({
                 success: false,
                 message: "Failed to revoke permission",
@@ -228,7 +228,7 @@ export function registerPermissionsRoutes(app) {
             });
         }
         catch (error) {
-            console.error('Get user permissions error:', error);
+            // console.error removed for production
             res.status(500).json({
                 success: false,
                 message: "Failed to fetch user permissions",

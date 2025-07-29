@@ -124,7 +124,7 @@ export default function CivicSocialProfile() {
     return post.reactions?.find((r: any) => r.userId === user?.id)?.reaction || null;
   }
 
-  const handleReact = (post: any, emoji: string) => {
+  const handleReact = (_post: any, emoji: string) => {
     // This would typically call an API to react to a post
     toast({ title: "Reaction added!", description: `You reacted with ${emoji}` });
   };

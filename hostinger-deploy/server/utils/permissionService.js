@@ -28,7 +28,7 @@ export class PermissionService {
             return false;
         }
         catch (error) {
-            console.error('Permission check error:', error);
+            // console.error removed for production
             return false;
         }
     }
@@ -62,7 +62,7 @@ export class PermissionService {
             };
         }
         catch (error) {
-            console.error('Get user permissions error:', error);
+            // console.error removed for production
             return {
                 userId,
                 membershipType,
@@ -84,7 +84,7 @@ export class PermissionService {
             return perms;
         }
         catch (error) {
-            console.error('Get all permissions error:', error);
+            // console.error removed for production
             return [];
         }
     }
@@ -101,7 +101,7 @@ export class PermissionService {
             return perms;
         }
         catch (error) {
-            console.error('Get permissions by category error:', error);
+            // console.error removed for production
             return [];
         }
     }
@@ -121,7 +121,7 @@ export class PermissionService {
             return true;
         }
         catch (error) {
-            console.error('Grant permission error:', error);
+            // console.error removed for production
             return false;
         }
     }
@@ -137,7 +137,7 @@ export class PermissionService {
             return true;
         }
         catch (error) {
-            console.error('Revoke permission error:', error);
+            // console.error removed for production
             return false;
         }
     }

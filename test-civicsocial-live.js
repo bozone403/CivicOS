@@ -21,13 +21,13 @@ async function testEndpoint(name, url, method = 'GET', headers = {}, body = null
     console.log(`✅ ${name}: ${response.status} - ${data.substring(0, 100)}`);
     return { success: true, status: response.status, data };
   } catch (error) {
-    console.log(`❌ ${name}: ${error.message}`);
+    // console.log removed for production
     return { success: false, error: error.message };
   }
 }
 
 async function runTests() {
-  console.log('🧪 Testing CivicSocial endpoints on live server...\n');
+  // console.log removed for production
   
   // Test health endpoint
   await testEndpoint('Health Check', `${BASE_URL}/health`);
@@ -44,10 +44,10 @@ async function runTests() {
   await testEndpoint('Bills', `${BASE_URL}/api/bills`);
   await testEndpoint('News', `${BASE_URL}/api/news`);
   
-  console.log('\n📊 Test Summary:');
-  console.log('- All endpoints should return 401 for unauthorized requests');
-  console.log('- Social endpoints should exist and require authentication');
-  console.log('- Other API endpoints should be accessible');
+  // console.log removed for production
+  // console.log removed for production
+  // console.log removed for production
+  // console.log removed for production
 }
 
 runTests().catch(console.error); 

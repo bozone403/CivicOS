@@ -6,6 +6,7 @@ interface Config {
 }
 
 const getConfig = (): Config => {
+  // Force production mode - no localhost fallbacks
   const envApiUrl = (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_API_BASE_URL) ? import.meta.env.VITE_API_BASE_URL : undefined;
   
   if (envApiUrl) {
@@ -16,17 +17,7 @@ const getConfig = (): Config => {
     };
   }
   
-  // Use local server for development, production for live testing
-  const isLocalhost = typeof window !== 'undefined' && window.location.hostname === 'localhost';
-  
-  if (isLocalhost) {
-    return {
-      apiUrl: 'http://localhost:5001',
-      environment: 'development',
-      version: '1.0.1' // Cache busting version
-    };
-  }
-  
+  // Always use production API
   return {
     apiUrl: 'https://civicos.onrender.com',
     environment: 'production',

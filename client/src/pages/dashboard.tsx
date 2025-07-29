@@ -48,10 +48,17 @@ export default function Dashboard() {
     queryKey: ['/api/dashboard/stats'],
     queryFn: async () => {
       try {
+        // Try authenticated endpoint first
         const result = await apiRequest('/api/dashboard/stats', 'GET');
         return result;
       } catch (error) {
-        throw error;
+        // If authentication fails, try public endpoint
+        try {
+          const publicResult = await apiRequest('/api/dashboard/public-stats', 'GET');
+          return publicResult;
+        } catch (publicError) {
+          throw error; // Throw original error if both fail
+        }
       }
     },
     staleTime: 5 * 60 * 1000, // 5 minutes

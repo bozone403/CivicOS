@@ -6,6 +6,78 @@ import { jwtAuth } from '../routes/auth.js';
 
 const router = Router();
 
+// Public dashboard endpoint for testing (no auth required)
+router.get('/public', async (req, res) => {
+  try {
+    // Get public statistics
+    const activeBillsCount = await db
+      .select({ count: count() })
+      .from(bills)
+      .where(eq(bills.status, 'active'));
+
+    const politiciansCount = await db
+      .select({ count: count() })
+      .from(politicians);
+
+    const totalPetitionsCount = await db
+      .select({ count: count() })
+      .from(petitions);
+
+    res.json({
+      success: true,
+      publicStats: {
+        activeBills: activeBillsCount[0]?.count || 0,
+        totalPoliticians: politiciansCount[0]?.count || 0,
+        totalPetitions: totalPetitionsCount[0]?.count || 0,
+        platformStatus: 'operational',
+        lastUpdated: new Date().toISOString()
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ 
+      success: false, 
+      error: 'Failed to fetch public dashboard data',
+      details: (error as any)?.message || String(error)
+    });
+  }
+});
+
+// Public stats endpoint for unauthenticated users
+router.get('/public-stats', async (req, res) => {
+  try {
+    // Get public statistics that don't require user authentication
+    const activeBillsCount = await db
+      .select({ count: count() })
+      .from(bills)
+      .where(eq(bills.status, 'active'));
+
+    const politiciansCount = await db
+      .select({ count: count() })
+      .from(politicians);
+
+    const totalPetitionsCount = await db
+      .select({ count: count() })
+      .from(petitions);
+
+    res.json({
+      success: true,
+      totalVotes: 0,
+      activeBills: activeBillsCount[0]?.count || 0,
+      politiciansTracked: politiciansCount[0]?.count || 0,
+      petitionsSigned: 0,
+      civicPoints: 0,
+      trustScore: 100,
+      recentActivity: []
+    });
+  } catch (error) {
+    res.status(500).json({ 
+      success: false, 
+      error: 'Failed to fetch public stats',
+      details: (error as any)?.message || String(error)
+    });
+  }
+});
+
 // Get comprehensive dashboard statistics with real data
 router.get('/stats', jwtAuth, async (req, res) => {
   try {

@@ -37,7 +37,7 @@ export function registerAnnouncementsRoutes(app) {
             });
         }
         catch (error) {
-            console.error('Get announcements error:', error);
+            // console.error removed for production
             res.status(500).json({
                 success: false,
                 message: "Failed to fetch announcements",
@@ -71,7 +71,7 @@ export function registerAnnouncementsRoutes(app) {
             });
         }
         catch (error) {
-            console.error('Get announcement error:', error);
+            // console.error removed for production
             res.status(500).json({
                 success: false,
                 message: "Failed to fetch announcement",
@@ -122,7 +122,7 @@ export function registerAnnouncementsRoutes(app) {
             });
         }
         catch (error) {
-            console.error('Create announcement error:', error);
+            // console.error removed for production
             res.status(500).json({
                 success: false,
                 message: "Failed to create announcement",
@@ -203,7 +203,7 @@ export function registerAnnouncementsRoutes(app) {
             });
         }
         catch (error) {
-            console.error('Update announcement error:', error);
+            // console.error removed for production
             res.status(500).json({
                 success: false,
                 message: "Failed to update announcement",
@@ -261,7 +261,7 @@ export function registerAnnouncementsRoutes(app) {
             });
         }
         catch (error) {
-            console.error('Delete announcement error:', error);
+            // console.error removed for production
             res.status(500).json({
                 success: false,
                 message: "Failed to delete announcement",
@@ -298,7 +298,7 @@ export function registerAnnouncementsRoutes(app) {
             });
         }
         catch (error) {
-            console.error('Get user announcements error:', error);
+            // console.error removed for production
             res.status(500).json({
                 success: false,
                 message: "Failed to fetch user announcements",

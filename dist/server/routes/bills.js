@@ -94,10 +94,9 @@ export function registerBillsRoutes(app) {
                                 title: sampleBill.title,
                                 description: sampleBill.description,
                                 category: sampleBill.category,
-                                jurisdiction: sampleBill.jurisdiction,
                                 status: sampleBill.status,
-                                sponsor: sampleBill.sponsor,
-                                dateIntroduced: new Date()
+                                sponsorName: sampleBill.sponsor,
+                                introducedDate: new Date().toISOString().split('T')[0]
                             });
                         }
                         // Fetch the newly created bills
@@ -123,7 +122,9 @@ export function registerBillsRoutes(app) {
                 }).from(votes)
                     .where(and(eq(votes.userId, userId), eq(votes.itemType, 'bill')));
                 userVotesData.forEach(vote => {
-                    userVotes[vote.itemId.toString()] = vote.voteValue === 1 ? 'yes' : vote.voteValue === -1 ? 'no' : 'abstain';
+                    if (vote.itemId) {
+                        userVotes[vote.itemId.toString()] = vote.voteValue === 1 ? 'yes' : vote.voteValue === -1 ? 'no' : 'abstain';
+                    }
                 });
             }
             // Get vote statistics for all bills
@@ -237,10 +238,11 @@ export function registerBillsRoutes(app) {
                     userVote = userVoteResult.voteValue === 1 ? 'yes' : userVoteResult.voteValue === -1 ? 'no' : 'abstain';
                 }
             }
-            // Generate government URLs
-            const governmentUrl = `https://www.parl.ca/DocumentViewer/en/44-1/bill/${bill.billNumber}`;
-            const legiscanUrl = `https://legiscan.com/CA/bill/${bill.billNumber}/2025`;
-            const fullTextUrl = `https://www.parl.ca/DocumentViewer/en/44-1/bill/${bill.billNumber}/first-reading`;
+            // Generate government URLs (using title as identifier since billNumber doesn't exist)
+            const billIdentifier = bill.title.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+            const governmentUrl = `https://www.parl.ca/DocumentViewer/en/44-1/bill/${billIdentifier}`;
+            const legiscanUrl = `https://legiscan.com/CA/bill/${billIdentifier}/2025`;
+            const fullTextUrl = `https://www.parl.ca/DocumentViewer/en/44-1/bill/${billIdentifier}/first-reading`;
             res.json({
                 ...bill,
                 voteStats: voteStats.rows[0] || {
@@ -286,14 +288,12 @@ export function registerBillsRoutes(app) {
                 return res.status(400).json({ message: 'Search query required' });
             }
             const conditions = [
-                or(like(bills.title, `%${q}%`), like(bills.description, `%${q}%`), like(bills.billNumber, `%${q}%`), like(bills.sponsor, `%${q}%`))
+                or(like(bills.title, `%${q}%`), like(bills.description, `%${q}%`), like(bills.sponsorName, `%${q}%`))
             ];
             if (status) {
                 conditions.push(eq(bills.status, status));
             }
-            if (jurisdiction) {
-                conditions.push(eq(bills.jurisdiction, jurisdiction));
-            }
+            // jurisdiction field doesn't exist in bills table
             const results = await db
                 .select()
                 .from(bills)
@@ -381,7 +381,7 @@ export function registerBillsRoutes(app) {
             const sponsorBills = await db
                 .select()
                 .from(bills)
-                .where(eq(bills.sponsor, sponsor))
+                .where(eq(bills.sponsorName, sponsor))
                 .orderBy(desc(bills.createdAt));
             res.json(sponsorBills);
         }

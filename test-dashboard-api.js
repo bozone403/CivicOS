@@ -4,7 +4,7 @@ import { eq, and, count, desc, gte } from 'drizzle-orm';
 
 async function testDashboardAPI() {
   try {
-    console.log('Testing dashboard API logic...');
+    // console.log removed for production
     
     const userId = 'test-user-1';
     
@@ -13,11 +13,11 @@ async function testDashboardAPI() {
     const currentUser = user[0];
     
     if (!currentUser) {
-      console.log('Test user not found, creating one...');
+      // console.log removed for production
       return;
     }
     
-    console.log('Found user:', currentUser.firstName, currentUser.lastName);
+    // console.log removed for production
     
     // Get user's vote count
     const voteCount = await db
@@ -25,7 +25,7 @@ async function testDashboardAPI() {
       .from(votes)
       .where(eq(votes.userId, userId));
     
-    console.log('User vote count:', voteCount[0]?.count || 0);
+    // console.log removed for production
     
     // Get active bills count
     const activeBillsCount = await db
@@ -33,7 +33,7 @@ async function testDashboardAPI() {
       .from(bills)
       .where(eq(bills.status, 'active'));
     
-    console.log('Active bills count:', activeBillsCount[0]?.count || 0);
+    // console.log removed for production
     
     // Get user's petition signatures count
     const petitionSignaturesCount = await db
@@ -41,14 +41,14 @@ async function testDashboardAPI() {
       .from(petitionSignatures)
       .where(eq(petitionSignatures.userId, userId));
     
-    console.log('User petition signatures count:', petitionSignaturesCount[0]?.count || 0);
+    // console.log removed for production
     
     // Get total politicians count
     const politiciansCount = await db
       .select({ count: count() })
       .from(politicians);
     
-    console.log('Total politicians count:', politiciansCount[0]?.count || 0);
+    // console.log removed for production
     
     // Get user's social posts count
     const socialPostsCount = await db
@@ -56,7 +56,7 @@ async function testDashboardAPI() {
       .from(socialPosts)
       .where(eq(socialPosts.userId, userId));
     
-    console.log('User social posts count:', socialPostsCount[0]?.count || 0);
+    // console.log removed for production
     
     // Calculate trust score
     const trustScore = Math.min(100, Math.max(0, 
@@ -66,7 +66,7 @@ async function testDashboardAPI() {
       (socialPostsCount[0]?.count || 0) * 1
     ));
     
-    console.log('Calculated trust score:', trustScore);
+    // console.log removed for production
     
     // Calculate civic points
     const civicPoints = (currentUser.civicPoints || 0) + 
@@ -74,7 +74,7 @@ async function testDashboardAPI() {
       (petitionSignaturesCount[0]?.count || 0) * 15 +
       (socialPostsCount[0]?.count || 0) * 5;
     
-    console.log('Calculated civic points:', civicPoints);
+    // console.log removed for production
     
     // Simulate dashboard stats response
     const stats = {
@@ -95,14 +95,14 @@ async function testDashboardAPI() {
       ]
     };
     
-    console.log('\nDashboard Stats Response:');
+    // console.log removed for production
     console.log(JSON.stringify(stats, null, 2));
     
-    console.log('\n✅ Dashboard API test completed successfully!');
-    console.log('The dashboard is now using REAL data from the database!');
+    // console.log removed for production
+    // console.log removed for production
     
   } catch (error) {
-    console.error('❌ Error testing dashboard API:', error);
+    // console.error removed for production
   }
 }
 

@@ -193,7 +193,7 @@ router.get("/posts", jwtAuth, async (req, res) => {
         });
     }
     catch (error) {
-        console.error('Get social posts error:', error);
+        // console.error removed for production
         res.status(500).json({ error: "Failed to get social posts" });
     }
 });
@@ -569,7 +569,7 @@ router.post("/posts/:id/share", jwtAuth, async (req, res) => {
         res.status(201).json(sharedPost);
     }
     catch (error) {
-        console.error('Share post error:', error);
+        // console.error removed for production
         res.status(500).json({ error: "Failed to share post" });
     }
 });

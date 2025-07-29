@@ -341,13 +341,13 @@
   
   /* Social Status Colors */
   .online { color: var(--online); }
-  .bg-online { background-color: var(--online); }
+  .bg-green-500 { background-color: var(--online); }
   .away { color: var(--away); }
   .bg-away { background-color: var(--away); }
   .busy { color: var(--busy); }
   .bg-busy { background-color: var(--busy); }
   .offline { color: var(--offline); }
-  .bg-offline { background-color: var(--offline); }
+  .bg-gray-400 { background-color: var(--offline); }
   
   /* CivicSocial Typography */
   .social-heading-1 { @apply text-3xl font-bold; }
@@ -386,11 +386,11 @@
   
   /* Social Button Styles */
   .social-button-primary {
-    @apply bg-social-primary text-white hover:bg-social-primary/90 transition-colors;
+    @apply bg-social-primary text-white hover:bg-social-primary transition-colors;
   }
   
   .social-button-secondary {
-    @apply bg-social-secondary text-white hover:bg-social-secondary/90 transition-colors;
+    @apply bg-social-secondary text-white hover:bg-social-secondary transition-colors;
   }
   
   .social-button-accent {
@@ -403,7 +403,7 @@
   }
   
   .social-avatar-online {
-    @apply social-avatar border-online;
+    @apply social-avatar border-green-500;
   }
   
   .social-avatar-away {
@@ -415,7 +415,7 @@
   }
   
   .social-avatar-offline {
-    @apply social-avatar border-offline;
+    @apply social-avatar border-gray-400;
   }
   
   /* Social Badge Styles */

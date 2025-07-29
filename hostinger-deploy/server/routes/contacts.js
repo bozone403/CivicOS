@@ -126,10 +126,10 @@ export function registerContactsRoutes(app) {
             ];
             // Clear existing data
             await db.delete(politicians);
-            console.log('Cleared existing politicians data');
+            // console.log removed for production
             // Insert sample politicians
             const insertedPoliticians = await db.insert(politicians).values(samplePoliticians).returning();
-            console.log(`Successfully inserted ${insertedPoliticians.length} politicians`);
+            // console.log removed for production
             res.json({
                 success: true,
                 message: `Successfully populated ${insertedPoliticians.length} politicians`,
@@ -137,7 +137,7 @@ export function registerContactsRoutes(app) {
             });
         }
         catch (error) {
-            console.error('Error populating politicians:', error);
+            // console.error removed for production
             res.status(500).json({ error: 'Failed to populate politicians data' });
         }
     });

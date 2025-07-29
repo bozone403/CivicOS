@@ -244,7 +244,7 @@ export default function CivicSocialFeed() {
     likePostMutation.mutate(postId);
   };
 
-  const handleCommentPost = (postId: number) => {
+  const handleCommentPost = (_postId: number) => {
     // This would typically open a comment dialog
     // For now, we'll just show a toast
     toast({

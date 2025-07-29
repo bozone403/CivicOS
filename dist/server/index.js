@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import express from "express";
 import { registerRoutes } from "./appRoutes.js";
 import { fileURLToPath } from 'url';
