@@ -97,7 +97,7 @@ export function registerMessageRoutes(app: Express) {
 
       res.json(conversations.rows);
     } catch (error) {
-      console.error('Error fetching conversations:', error);
+      // console.error removed for production
       res.status(500).json({ error: 'Failed to fetch conversations' });
     }
   });

@@ -25,12 +25,7 @@ export default defineConfig({
   },
   server: {
     port: 5173,
-    proxy: {
-      '/api': {
-        target: 'http://localhost:3000',
-        changeOrigin: true,
-      },
-    },
+    // Production-only configuration - no localhost proxy
   },
   define: {
     // Make environment variables available to the client

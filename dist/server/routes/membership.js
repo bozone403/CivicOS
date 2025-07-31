@@ -101,7 +101,7 @@ export function registerMembershipRoutes(app) {
             });
         }
         catch (error) {
-            console.error('Membership checkout error:', error);
+            // console.error removed for production
             res.status(500).json({
                 success: false,
                 message: "Failed to create checkout session",
@@ -136,12 +136,12 @@ export function registerMembershipRoutes(app) {
                     await handlePaymentFailure(event.data.object);
                     break;
                 default:
-                    console.log(`Unhandled event type ${event.type}`);
+                // console.log removed for production
             }
             res.json({ received: true });
         }
         catch (error) {
-            console.error('Webhook error:', error);
+            // console.error removed for production
             res.status(400).json({ message: "Webhook error" });
         }
     });
@@ -177,7 +177,7 @@ export function registerMembershipRoutes(app) {
             });
         }
         catch (error) {
-            console.error('Membership status error:', error);
+            // console.error removed for production
             res.status(500).json({
                 success: false,
                 message: "Failed to get membership status",
@@ -228,7 +228,7 @@ export function registerMembershipRoutes(app) {
             });
         }
         catch (error) {
-            console.error('Membership cancellation error:', error);
+            // console.error removed for production
             res.status(500).json({
                 success: false,
                 message: "Failed to cancel membership",
@@ -247,7 +247,7 @@ async function handleSubscriptionUpdate(subscription) {
         const userResult = await db.select().from(users).where(eq(users.stripeCustomerId, customerId)).limit(1);
         const user = userResult[0];
         if (!user) {
-            console.error('User not found for customer:', customerId);
+            // console.error removed for production
             return;
         }
         // Determine membership type from price ID
@@ -285,7 +285,7 @@ async function handleSubscriptionUpdate(subscription) {
         });
     }
     catch (error) {
-        console.error('Error handling subscription update:', error);
+        // console.error removed for production
     }
 }
 async function handleSubscriptionCancellation(subscription) {
@@ -295,7 +295,7 @@ async function handleSubscriptionCancellation(subscription) {
         const userResult = await db.select().from(users).where(eq(users.stripeSubscriptionId, subscriptionId)).limit(1);
         const user = userResult[0];
         if (!user) {
-            console.error('User not found for subscription:', subscriptionId);
+            // console.error removed for production
             return;
         }
         // Update user membership
@@ -309,7 +309,7 @@ async function handleSubscriptionCancellation(subscription) {
             .where(eq(users.id, user.id));
     }
     catch (error) {
-        console.error('Error handling subscription cancellation:', error);
+        // console.error removed for production
     }
 }
 async function handlePaymentSuccess(invoice) {
@@ -319,7 +319,7 @@ async function handlePaymentSuccess(invoice) {
         const userResult = await db.select().from(users).where(eq(users.stripeCustomerId, customerId)).limit(1);
         const user = userResult[0];
         if (!user) {
-            console.error('User not found for customer:', customerId);
+            // console.error removed for production
             return;
         }
         // Update user membership status
@@ -331,7 +331,7 @@ async function handlePaymentSuccess(invoice) {
             .where(eq(users.id, user.id));
     }
     catch (error) {
-        console.error('Error handling payment success:', error);
+        // console.error removed for production
     }
 }
 async function handlePaymentFailure(invoice) {
@@ -341,7 +341,7 @@ async function handlePaymentFailure(invoice) {
         const userResult = await db.select().from(users).where(eq(users.stripeCustomerId, customerId)).limit(1);
         const user = userResult[0];
         if (!user) {
-            console.error('User not found for customer:', customerId);
+            // console.error removed for production
             return;
         }
         // Update user membership status
@@ -353,6 +353,6 @@ async function handlePaymentFailure(invoice) {
             .where(eq(users.id, user.id));
     }
     catch (error) {
-        console.error('Error handling payment failure:', error);
+        // console.error removed for production
     }
 }

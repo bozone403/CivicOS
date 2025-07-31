@@ -84,7 +84,7 @@ export function registerSocialRoutes(app: Router) {
         feed: postsWithUserInteraction
       });
     } catch (error) {
-      console.error('Error fetching social feed:', error);
+      // console.error removed for production
       res.status(500).json({ error: "Failed to fetch social feed" });
     }
   });
@@ -160,7 +160,7 @@ export function registerSocialRoutes(app: Router) {
         posts: postsWithStats
       });
     } catch (error) {
-      console.error('Error fetching user posts:', error);
+      // console.error removed for production
       res.status(500).json({ error: "Failed to fetch user posts" });
     }
   });
@@ -210,7 +210,7 @@ export function registerSocialRoutes(app: Router) {
         posts
       });
     } catch (error) {
-      console.error('Error fetching posts:', error);
+      // console.error removed for production
       res.status(500).json({ error: "Failed to fetch posts" });
     }
   });
@@ -254,7 +254,7 @@ export function registerSocialRoutes(app: Router) {
         posts
       });
     } catch (error) {
-      console.error('Error fetching user wall posts:', error);
+      // console.error removed for production
       res.status(500).json({ error: "Failed to fetch user wall posts" });
     }
   });
@@ -286,7 +286,7 @@ export function registerSocialRoutes(app: Router) {
         post: newPost[0]
       });
     } catch (error) {
-      console.error('Error creating post:', error);
+      // console.error removed for production
       res.status(500).json({ error: "Failed to create post" });
     }
   });
@@ -328,7 +328,7 @@ export function registerSocialRoutes(app: Router) {
         post: updatedPost
       });
     } catch (error) {
-      console.error('Error updating post:', error);
+      // console.error removed for production
       res.status(500).json({ error: "Failed to update post" });
     }
   });
@@ -366,7 +366,7 @@ export function registerSocialRoutes(app: Router) {
         message: "Post deleted successfully"
       });
     } catch (error) {
-      console.error('Error deleting post:', error);
+      // console.error removed for production
       res.status(500).json({ error: "Failed to delete post" });
     }
   });
@@ -414,7 +414,7 @@ export function registerSocialRoutes(app: Router) {
         });
       }
     } catch (error) {
-      console.error('Error liking post:', error);
+      // console.error removed for production
       res.status(500).json({ error: "Failed to like post" });
     }
   });
@@ -453,7 +453,7 @@ export function registerSocialRoutes(app: Router) {
         friends
       });
     } catch (error) {
-      console.error('Error fetching friends:', error);
+      // console.error removed for production
       res.status(500).json({ error: "Failed to fetch friends" });
     }
   });
@@ -518,7 +518,7 @@ export function registerSocialRoutes(app: Router) {
         message: `Friend ${action} completed`
       });
     } catch (error) {
-      console.error('Error with friend action:', error);
+      // console.error removed for production
       res.status(500).json({ error: "Failed to perform friend action" });
     }
   });
@@ -580,7 +580,7 @@ export function registerSocialRoutes(app: Router) {
         users: usersWithFriendStatus
       });
     } catch (error) {
-      console.error('Error searching users:', error);
+      // console.error removed for production
       res.status(500).json({ error: "Failed to search users" });
     }
   });
@@ -636,7 +636,7 @@ export function registerSocialRoutes(app: Router) {
         friendshipStatus: friendship.length > 0 ? friendship[0].status : null
       });
     } catch (error) {
-      console.error('Error fetching user profile:', error);
+      // console.error removed for production
       res.status(500).json({ error: "Failed to fetch user profile" });
     }
   });
@@ -664,7 +664,7 @@ export function registerSocialRoutes(app: Router) {
         message: "Profile updated successfully"
       });
     } catch (error) {
-      console.error('Error updating profile:', error);
+      // console.error removed for production
       res.status(500).json({ error: "Failed to update profile" });
     }
   });
@@ -701,7 +701,7 @@ export function registerSocialRoutes(app: Router) {
         messages
       });
     } catch (error) {
-      console.error('Error fetching messages:', error);
+      // console.error removed for production
       res.status(500).json({ error: "Failed to fetch messages" });
     }
   });
@@ -743,7 +743,7 @@ export function registerSocialRoutes(app: Router) {
         message: message[0]
       });
     } catch (error) {
-      console.error('Error sending message:', error);
+      // console.error removed for production
       res.status(500).json({ error: "Failed to send message" });
     }
   });
@@ -776,7 +776,7 @@ export function registerSocialRoutes(app: Router) {
         notifications: userNotifications
       });
     } catch (error) {
-      console.error('Error fetching notifications:', error);
+      // console.error removed for production
       res.status(500).json({ error: "Failed to fetch notifications" });
     }
   });
@@ -800,7 +800,7 @@ export function registerSocialRoutes(app: Router) {
         message: "Notification marked as read"
       });
     } catch (error) {
-      console.error('Error marking notification as read:', error);
+      // console.error removed for production
       res.status(500).json({ error: "Failed to mark notification as read" });
     }
   });
@@ -823,7 +823,7 @@ export function registerSocialRoutes(app: Router) {
         message: "All notifications marked as read"
       });
     } catch (error) {
-      console.error('Error marking all notifications as read:', error);
+      // console.error removed for production
       res.status(500).json({ error: "Failed to mark all notifications as read" });
     }
   });

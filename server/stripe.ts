@@ -4,7 +4,10 @@ let stripe: any = null;
 
 // Initialize Stripe lazily when needed
 async function initializeStripe() {
-  if (!process.env.STRIPE_SECRET_KEY) return null;
+  if (!process.env.STRIPE_SECRET_KEY) {
+    console.warn('Stripe not configured - payment features disabled');
+    return null;
+  }
   
   try {
     const stripeModule = await import('stripe');

@@ -131,7 +131,7 @@ export function registerUserRoutes(app: Express) {
         searchParams: { q, location, interests, civicLevel }
       });
     } catch (error) {
-      console.error('User search error:', error);
+      // console.error removed for production
       res.status(500).json({ error: "Failed to search users" });
     }
   });
@@ -208,7 +208,7 @@ export function registerUserRoutes(app: Express) {
 
       res.json(profile);
     } catch (error) {
-      console.error('Get current user profile error:', error);
+      // console.error removed for production
       res.status(500).json({ error: "Failed to get current user profile" });
     }
   });
@@ -331,7 +331,7 @@ export function registerUserRoutes(app: Express) {
 
       res.json({ profile });
     } catch (error) {
-      console.error('Get user profile by username error:', error);
+      // console.error removed for production
       res.status(500).json({ error: "Failed to get user profile" });
     }
   });
@@ -408,7 +408,7 @@ export function registerUserRoutes(app: Express) {
 
       res.json(profile);
     } catch (error) {
-      console.error('Get user profile error:', error);
+      // console.error removed for production
       res.status(500).json({ error: "Failed to get user profile" });
     }
   });
@@ -445,7 +445,7 @@ export function registerUserRoutes(app: Express) {
 
       res.json(stats);
     } catch (error) {
-      console.error('Get user stats error:', error);
+      // console.error removed for production
       res.status(500).json({ error: "Failed to get user stats" });
     }
   });
@@ -560,7 +560,7 @@ export function registerUserRoutes(app: Express) {
 
       res.json(profile);
     } catch (error) {
-      console.error('Get user profile error:', error);
+      // console.error removed for production
       res.status(500).json({ error: "Failed to get user profile" });
     }
   });
@@ -597,7 +597,7 @@ export function registerUserRoutes(app: Express) {
         }
       });
     } catch (error) {
-      console.error('Get user posts error:', error);
+      // console.error removed for production
       res.status(500).json({ error: "Failed to get user posts" });
     }
   });
@@ -631,7 +631,7 @@ export function registerUserRoutes(app: Express) {
         }
       });
     } catch (error) {
-      console.error('Get user activity error:', error);
+      // console.error removed for production
       res.status(500).json({ error: "Failed to get user activity" });
     }
   });
@@ -678,7 +678,7 @@ export function registerUserRoutes(app: Express) {
         total: formattedSuggestions.length
       });
     } catch (error) {
-      console.error('Get user suggestions error:', error);
+      // console.error removed for production
       res.status(500).json({ error: "Failed to get user suggestions" });
     }
   });

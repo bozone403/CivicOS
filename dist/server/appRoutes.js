@@ -117,10 +117,9 @@ export async function registerRoutes(app) {
     });
     // Serve static files from the frontend build (AFTER all API routes)
     const publicPath = path.join(process.cwd(), 'dist/public');
-    console.log('  - process.cwd():', process.cwd());
+    // Debug logging removed for production
     // Check if the directory exists
     if (fs.existsSync(publicPath)) {
-        console.log('  - Files in public path:', fs.readdirSync(publicPath));
         app.use(express.static(publicPath));
     }
     else {
