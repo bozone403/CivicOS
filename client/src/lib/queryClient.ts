@@ -28,7 +28,10 @@ export async function apiRequest(endpoint: string, method: string = 'GET', body?
   }
 
   try {
-    const fullUrl = `${config.apiUrl}${endpoint}`;
+    // Fix double slash issue by ensuring clean URL construction
+    const baseUrl = config.apiUrl.replace(/\/$/, ''); // Remove trailing slash
+    const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`; // Ensure leading slash
+    const fullUrl = `${baseUrl}${cleanEndpoint}`;
     console.log(`[API Debug] Making request to: ${fullUrl}`);
     const response = await fetch(fullUrl, options);
     
