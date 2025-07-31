@@ -13,7 +13,7 @@ const getConfig = (): Config => {
     return {
       apiUrl: envApiUrl,
       environment: 'production',
-      version: '1.0.1' // Cache busting version
+      version: '1.0.2' // Cache busting version - updated
     };
   }
   
@@ -21,7 +21,7 @@ const getConfig = (): Config => {
   return {
     apiUrl: 'https://civicos.onrender.com',
     environment: 'production',
-    version: '1.0.1' // Cache busting version
+    version: '1.0.2' // Cache busting version - updated
   };
 };
 
