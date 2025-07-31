@@ -28,7 +28,9 @@ export async function apiRequest(endpoint: string, method: string = 'GET', body?
   }
 
   try {
-    const response = await fetch(`${config.apiUrl}${endpoint}`, options);
+    const fullUrl = `${config.apiUrl}${endpoint}`;
+    console.log(`[API Debug] Making request to: ${fullUrl}`);
+    const response = await fetch(fullUrl, options);
     
     if (!response.ok) {
       // Handle authentication errors gracefully
