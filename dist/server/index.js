@@ -66,15 +66,16 @@ app.use((req, res, next) => {
         "https://www.civicos.ca",
         "http://civicos.ca",
         "http://www.civicos.ca",
+        "https://civicos.onrender.com",
         "https://afterhourshvac.me",
         "https://www.afterhourshvac.me",
         "http://afterhourshvac.me",
         "http://www.afterhourshvac.me",
         process.env.CORS_ORIGIN, // Custom CORS origin from env
     ].filter(Boolean);
-    // Allow all civicos.ca and afterhourshvac.me subdomains
+    // Allow all civicos.ca, civicos.onrender.com and afterhourshvac.me subdomains
     const origin = req.headers.origin;
-    const civicosRegex = /^https?:\/\/(.*\.)?civicos\.ca$/;
+    const civicosRegex = /^https?:\/\/(.*\.)?civicos\.(ca|onrender\.com)$/;
     const afterhourshvacRegex = /^https?:\/\/(.*\.)?afterhourshvac\.me$/;
     const isAllowed = origin && (allowedOrigins.includes(origin) || civicosRegex.test(origin) || afterhourshvacRegex.test(origin));
     // Debug CORS requests
