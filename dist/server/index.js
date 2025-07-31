@@ -90,7 +90,11 @@ app.use((req, res, next) => {
     }
     // Allow only trusted origins in production, strict in development
     if (process.env.NODE_ENV === 'production') {
-        if (isAllowed) {
+        // For now, allow the specific origin to fix login issue
+        if (origin === "https://civicos.onrender.com") {
+            res.header("Access-Control-Allow-Origin", origin);
+        }
+        else if (isAllowed) {
             res.header("Access-Control-Allow-Origin", origin);
         }
         else {
