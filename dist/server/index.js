@@ -83,6 +83,7 @@ app.use((req, res, next) => {
         console.log('[CORS Debug]', {
             origin,
             isAllowed,
+            allowedOrigins,
             path: req.path,
             method: req.method
         });
@@ -93,12 +94,13 @@ app.use((req, res, next) => {
             res.header("Access-Control-Allow-Origin", origin);
         }
         else {
-            res.header("Access-Control-Allow-Origin", "https://civicos.ca");
+            // Default to civicos.onrender.com for production
+            res.header("Access-Control-Allow-Origin", "https://civicos.onrender.com");
         }
     }
     else {
-        // Development: allow civicos.ca for testing
-        res.header("Access-Control-Allow-Origin", "https://civicos.ca");
+        // Development: allow civicos.onrender.com for testing
+        res.header("Access-Control-Allow-Origin", "https://civicos.onrender.com");
     }
     res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
     res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Authorization");
