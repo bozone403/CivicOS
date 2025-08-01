@@ -514,4 +514,20 @@ app.get("/api/admin/identity-review", jwtAuth, async (req, res) => {
   res.json({ message: "Admin endpoint" });
 });
 
+// Temporary admin endpoint to trigger migrations
+app.post('/api/admin/run-migrations', jwtAuth, async (req, res) => {
+  const user = req.user as JwtPayload;
+  if (!user || user.email !== process.env.ADMIN_EMAIL) {
+    return res.status(403).json({ message: 'Forbidden' });
+  }
+  try {
+    const { runMigrations } = await import('./migrate.js');
+    await runMigrations();
+    res.json({ message: 'Migrations completed successfully' });
+  } catch (error) {
+    logger.error({ msg: 'Error running migrations', error });
+    res.status(500).json({ message: 'Failed to run migrations', error: String(error) });
+  }
+});
+
 export { app };
