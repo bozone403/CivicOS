@@ -74,7 +74,7 @@ export async function registerRoutes(app: Express): Promise<void> {
   registerRightsRoutes(app);
   registerMembershipRoutes(app);
   
-  // registerAnnouncementsRoutes(app); // Temporarily disabled due to schema issue
+  registerAnnouncementsRoutes(app);
   registerPermissionsRoutes(app);
   
   registerSocialRoutes(app);

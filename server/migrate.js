@@ -8,7 +8,7 @@ const __dirname = path.dirname(__filename);
 
 async function runMigrations() {
   try {
-    console.log('Starting migration process...');
+    // console.log removed for production
     
     // Get all migration files
     const migrationsDir = path.join(__dirname, '../migrations');
@@ -16,27 +16,26 @@ async function runMigrations() {
       .filter(file => file.endsWith('.sql'))
       .sort(); // Sort to apply in order
     
-    console.log('Found migration files:', migrationFiles);
+    // console.log removed for production
     
     for (const migrationFile of migrationFiles) {
       try {
-        console.log('Running migration:', migrationFile);
         const migrationPath = path.join(migrationsDir, migrationFile);
         const migrationSQL = readFileSync(migrationPath, 'utf8');
         
         // Execute the migration
         await pool.query(migrationSQL);
         
-        console.log('Successfully ran migration:', migrationFile);
+        // console.log removed for production
       } catch (error) {
-        console.error('Error running migration:', migrationFile, error.message);
+        // console.error removed for production
         // Continue with other migrations even if one fails
       }
     }
     
-    console.log('Migration process completed');
+    // console.log removed for production
   } catch (error) {
-    console.error('Migration process failed:', error.message);
+    // console.error removed for production
     // Don't throw - let the application continue
   }
 }
