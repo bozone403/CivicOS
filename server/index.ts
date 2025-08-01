@@ -331,6 +331,17 @@ app.use('/api/ai', aiRoutes);
     logger.info({ msg: `Server running on port ${PORT}`, environment: process.env.NODE_ENV });
   });
   
+  // Run database migrations on startup
+  setTimeout(async () => {
+    try {
+      const { runMigrations } = await import('./migrate.js');
+      await runMigrations();
+      logger.info({ msg: "Database migrations completed successfully" });
+    } catch (error) {
+      logger.error({ msg: "Failed to run database migrations", error });
+    }
+  }, 5000); // Run migrations 5 seconds after server starts
+  
   // Initialize automatic government data sync (non-blocking)
   setTimeout(() => {
     try {
