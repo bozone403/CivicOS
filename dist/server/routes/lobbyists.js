@@ -1,14 +1,24 @@
 import { ResponseFormatter } from "../utils/responseFormatter.js";
+import jwt from "jsonwebtoken";
 // JWT Auth middleware
 function jwtAuth(req, res, next) {
-    // Simple JWT check for now
-    const token = req.headers.authorization?.replace('Bearer ', '');
-    if (!token) {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
         return ResponseFormatter.unauthorized(res, "Missing or invalid token");
     }
-    // For now, just check if token exists
-    req.user = { id: 'test-user-id' };
-    next();
+    try {
+        const token = authHeader.split(" ")[1];
+        const secret = process.env.SESSION_SECRET;
+        if (!secret) {
+            return ResponseFormatter.unauthorized(res, "Server configuration error");
+        }
+        const decoded = jwt.verify(token, secret);
+        req.user = decoded;
+        next();
+    }
+    catch (err) {
+        return ResponseFormatter.unauthorized(res, "Invalid or expired token");
+    }
 }
 export function registerLobbyistsRoutes(app) {
     // Get all lobbyists
