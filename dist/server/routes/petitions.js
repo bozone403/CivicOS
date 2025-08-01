@@ -25,242 +25,53 @@ function jwtAuth(req, res, next) {
     }
 }
 export function registerPetitionRoutes(app) {
-    // Sample petition data with real current petitions
-    const samplePetitions = [
-        {
-            id: 101,
-            title: "Independence for Alberta",
-            description: "Petition for Alberta to become an independent nation, separate from Canada. This petition calls for a referendum on Alberta's independence and the establishment of a sovereign Alberta nation with its own constitution, currency, and international relations.",
-            creator: "Alberta Independence Movement",
-            category: "Constitutional",
-            region: "Alberta",
-            targetSignatures: 50000,
-            currentSignatures: 28450,
-            daysLeft: 45,
-            status: "active",
-            urgency: "high",
-            verified: true,
-            image: "https://images.unsplash.com/photo-1559757148-5c350d0d3c56?w=800&h=400&fit=crop",
-            tags: ["Independence", "Alberta", "Constitutional", "Sovereignty"],
-            supporters: [
-                { name: "Alberta First Party", role: "Political Party", location: "Alberta" },
-                { name: "Western Canada Foundation", role: "Advocacy Group", location: "Western Canada" },
-                { name: "Alberta Sovereignty Network", role: "Grassroots Organization", location: "Alberta" }
-            ],
-            createdAt: "2025-01-15",
-            deadlineDate: "2025-09-15"
-        },
-        {
-            id: 102,
-            title: "Universal Pharmacare Now",
-            description: "Petition calling for the immediate implementation of universal pharmacare coverage for all Canadians. This would provide prescription drug coverage to every Canadian regardless of income or employment status.",
-            creator: "Canadian Health Coalition",
-            category: "Healthcare",
-            region: "National",
-            targetSignatures: 100000,
-            currentSignatures: 87650,
-            daysLeft: 30,
-            status: "active",
-            urgency: "high",
-            verified: true,
-            image: "https://images.unsplash.com/photo-1576091160399-112ba8d25d1f?w=800&h=400&fit=crop",
-            tags: ["Healthcare", "Pharmacare", "Universal Coverage", "Medicare"],
-            supporters: [
-                { name: "Canadian Medical Association", role: "Professional Association", location: "National" },
-                { name: "Canadian Nurses Association", role: "Professional Association", location: "National" },
-                { name: "Canadian Federation of Nurses Unions", role: "Labour Union", location: "National" }
-            ],
-            createdAt: "2025-01-10",
-            deadlineDate: "2025-08-10"
-        },
-        {
-            id: 103,
-            title: "Climate Emergency Declaration",
-            description: "Petition demanding the federal government declare a climate emergency and implement immediate, aggressive climate action policies including carbon pricing, renewable energy transition, and fossil fuel divestment.",
-            creator: "Climate Action Network Canada",
-            category: "Environment",
-            region: "National",
-            targetSignatures: 75000,
-            currentSignatures: 92340,
-            daysLeft: 20,
-            status: "active",
-            urgency: "critical",
-            verified: true,
-            image: "https://images.unsplash.com/photo-1569163139394-de4e4c5c5c5c?w=800&h=400&fit=crop",
-            tags: ["Climate Change", "Environment", "Emergency", "Green Energy"],
-            supporters: [
-                { name: "Greenpeace Canada", role: "Environmental Organization", location: "National" },
-                { name: "Sierra Club Canada", role: "Environmental Organization", location: "National" },
-                { name: "Canadian Youth Climate Coalition", role: "Youth Organization", location: "National" }
-            ],
-            createdAt: "2025-01-05",
-            deadlineDate: "2025-07-25"
-        },
-        {
-            id: 104,
-            title: "Repeal Bill C-11 (Online Streaming Act)",
-            description: "Petition to repeal Bill C-11, the Online Streaming Act, which critics argue gives the CRTC excessive control over internet content and threatens freedom of expression online.",
-            creator: "Digital Rights Coalition",
-            category: "Digital Rights",
-            region: "National",
-            targetSignatures: 50000,
-            currentSignatures: 45670,
-            daysLeft: 60,
-            status: "active",
-            urgency: "medium",
-            verified: true,
-            image: "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=800&h=400&fit=crop",
-            tags: ["Digital Rights", "Internet Freedom", "Censorship", "CRTC"],
-            supporters: [
-                { name: "OpenMedia", role: "Digital Rights Organization", location: "National" },
-                { name: "Canadian Internet Registration Authority", role: "Internet Organization", location: "National" },
-                { name: "Tech Freedom Canada", role: "Technology Advocacy", location: "National" }
-            ],
-            createdAt: "2025-01-20",
-            deadlineDate: "2025-10-20"
-        },
-        {
-            id: 105,
-            title: "Housing as a Human Right",
-            description: "Petition calling for housing to be recognized as a fundamental human right in Canada, with immediate action to address the housing crisis through rent controls, social housing, and tenant protections.",
-            creator: "Housing Rights Coalition",
-            category: "Housing",
-            region: "National",
-            targetSignatures: 100000,
-            currentSignatures: 123450,
-            daysLeft: 15,
-            status: "active",
-            urgency: "critical",
-            verified: true,
-            image: "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800&h=400&fit=crop",
-            tags: ["Housing", "Human Rights", "Affordable Housing", "Tenant Rights"],
-            supporters: [
-                { name: "Canadian Housing and Renewal Association", role: "Housing Organization", location: "National" },
-                { name: "ACORN Canada", role: "Tenant Organization", location: "National" },
-                { name: "Housing Rights Network", role: "Advocacy Group", location: "National" }
-            ],
-            createdAt: "2025-01-08",
-            deadlineDate: "2025-07-08"
-        },
-        {
-            id: 106,
-            title: "Reform First Past the Post Voting",
-            description: "Petition to replace Canada's first-past-the-post voting system with proportional representation to ensure every vote counts and better represent the diversity of Canadian political views.",
-            creator: "Fair Vote Canada",
-            category: "Electoral Reform",
-            region: "National",
-            targetSignatures: 75000,
-            currentSignatures: 67890,
-            daysLeft: 90,
-            status: "active",
-            urgency: "medium",
-            verified: true,
-            image: "https://images.unsplash.com/photo-1540910419892-4a36d2c3266c?w=800&h=400&fit=crop",
-            tags: ["Electoral Reform", "Proportional Representation", "Democracy", "Voting"],
-            supporters: [
-                { name: "Fair Vote Canada", role: "Electoral Reform Organization", location: "National" },
-                { name: "Canadian Electoral Reform Society", role: "Advocacy Group", location: "National" },
-                { name: "Democracy Watch", role: "Democracy Organization", location: "National" }
-            ],
-            createdAt: "2025-01-12",
-            deadlineDate: "2025-11-12"
-        },
-        {
-            id: 107,
-            title: "Protect Indigenous Languages",
-            description: "Petition calling for increased funding and support for Indigenous language preservation and revitalization programs across Canada, including mandatory Indigenous language education in schools.",
-            creator: "Indigenous Language Alliance",
-            category: "Indigenous Rights",
-            region: "National",
-            targetSignatures: 50000,
-            currentSignatures: 34560,
-            daysLeft: 120,
-            status: "active",
-            urgency: "medium",
-            verified: true,
-            image: "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&h=400&fit=crop",
-            tags: ["Indigenous Rights", "Language Preservation", "Cultural Heritage", "Education"],
-            supporters: [
-                { name: "Assembly of First Nations", role: "Indigenous Organization", location: "National" },
-                { name: "Indigenous Languages Institute", role: "Cultural Organization", location: "National" },
-                { name: "First Nations Education Council", role: "Education Organization", location: "National" }
-            ],
-            createdAt: "2025-01-18",
-            deadlineDate: "2025-12-18"
-        },
-        {
-            id: 108,
-            title: "Ban Single-Use Plastics Nationwide",
-            description: "Petition to implement a comprehensive nationwide ban on single-use plastics including bags, straws, cutlery, and packaging, with immediate implementation and strict enforcement.",
-            creator: "Plastic Free Canada",
-            category: "Environment",
-            region: "National",
-            targetSignatures: 75000,
-            currentSignatures: 89120,
-            daysLeft: 25,
-            status: "active",
-            urgency: "high",
-            verified: true,
-            image: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800&h=400&fit=crop",
-            tags: ["Environment", "Plastic Pollution", "Waste Reduction", "Ocean Protection"],
-            supporters: [
-                { name: "Ocean Conservancy Canada", role: "Environmental Organization", location: "National" },
-                { name: "Surfrider Foundation Canada", role: "Ocean Protection Organization", location: "National" },
-                { name: "Plastic Pollution Coalition Canada", role: "Environmental Advocacy", location: "National" }
-            ],
-            createdAt: "2025-01-14",
-            deadlineDate: "2025-08-14"
-        }
-    ];
     // Get all petitions
     app.get('/api/petitions', async (req, res) => {
+        const startTime = Date.now();
         try {
-            // Use sample data as primary source
-            let allPetitions = samplePetitions;
-            // Try to get additional petitions from database if needed
-            try {
-                const dbPetitions = await db
-                    .select({
-                    id: petitions.id,
-                    title: petitions.title,
-                    description: petitions.description,
-                    targetSignatures: petitions.targetSignatures,
-                    currentSignatures: petitions.currentSignatures,
-                    status: petitions.status,
-                    deadlineDate: petitions.deadlineDate,
-                    createdAt: petitions.createdAt,
-                    updatedAt: petitions.updatedAt,
-                    creatorId: petitions.creatorId,
-                    creator: sql `CONCAT(${users.firstName}, ' ', ${users.lastName})`
-                })
-                    .from(petitions)
-                    .leftJoin(users, eq(petitions.creatorId, users.id))
-                    .orderBy(desc(petitions.createdAt));
-                // Only add database petitions if they don't conflict with sample data
-                const sampleIds = new Set(samplePetitions.map(p => p.id));
-                const uniqueDbPetitions = dbPetitions.filter(p => !sampleIds.has(p.id));
-                allPetitions = [...samplePetitions, ...uniqueDbPetitions];
+            const { page = 1, limit = 10, status = 'active' } = req.query;
+            // Validate query parameters
+            const pageNum = Number(page);
+            const limitNum = Number(limit);
+            if (isNaN(pageNum) || pageNum < 1) {
+                return ResponseFormatter.badRequest(res, "Invalid page number");
             }
-            catch (dbError) {
-                // If database fails, just use sample data
-                allPetitions = samplePetitions;
+            if (isNaN(limitNum) || limitNum < 1 || limitNum > 100) {
+                return ResponseFormatter.badRequest(res, "Invalid limit (must be between 1 and 100)");
             }
-            // Calculate days left and add mock data for missing fields
+            const offset = (pageNum - 1) * limitNum;
+            // Build where conditions
+            let whereConditions = [eq(petitions.status, status)];
+            // Get petitions from database
+            const allPetitions = await db
+                .select({
+                id: petitions.id,
+                title: petitions.title,
+                description: petitions.description,
+                targetSignatures: petitions.targetSignatures,
+                currentSignatures: petitions.currentSignatures,
+                status: petitions.status,
+                deadlineDate: petitions.deadlineDate,
+                createdAt: petitions.createdAt,
+                updatedAt: petitions.updatedAt,
+                creatorId: petitions.creatorId,
+                creator: sql `CONCAT(${users.firstName}, ' ', ${users.lastName})`
+            })
+                .from(petitions)
+                .leftJoin(users, eq(petitions.creatorId, users.id))
+                .where(and(...whereConditions))
+                .orderBy(desc(petitions.createdAt))
+                .limit(limitNum)
+                .offset(offset);
+            // Calculate days left and add urgency for each petition
             const enrichedPetitions = allPetitions.map(petition => ({
                 ...petition,
                 daysLeft: petition.deadlineDate ?
                     Math.ceil((new Date(petition.deadlineDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)) : 30,
                 urgency: getUrgencyLevel(petition.currentSignatures || 0, petition.targetSignatures || 500),
-                verified: true,
-                category: petition.category || "Civic Engagement",
-                region: petition.region || "National",
-                image: petition.image || "https://images.unsplash.com/photo-1559757148-5c350d0d3c56?w=800&h=400&fit=crop",
-                tags: petition.tags || ["Civic Engagement", "Democracy", "Citizen Action"],
-                supporters: petition.supporters || [
-                    { name: "CivicOS Community", role: "Platform", location: "Canada" }
-                ]
+                verified: true
             }));
-            return ResponseFormatter.success(res, enrichedPetitions, "Petitions retrieved successfully", 200, enrichedPetitions.length);
+            return ResponseFormatter.success(res, enrichedPetitions, "Petitions retrieved successfully", 200, enrichedPetitions.length, undefined, Date.now() - startTime);
         }
         catch (error) {
             return ResponseFormatter.databaseError(res, `Failed to fetch petitions: ${error.message}`);
@@ -294,11 +105,9 @@ export function registerPetitionRoutes(app) {
             }
             catch (dbError) {
                 // If database fails, try to get from sample data
-                petition = samplePetitions.find(p => p.id === petitionId);
-            }
-            // If no database petition found, try sample data
-            if (!petition) {
-                petition = samplePetitions.find(p => p.id === petitionId);
+                // This part of the logic needs to be re-evaluated if sample data is removed
+                // For now, we'll return a 404 if no petition is found in the database
+                return ResponseFormatter.notFound(res, "Petition not found");
             }
             if (!petition) {
                 return ResponseFormatter.notFound(res, "Petition not found");
@@ -309,14 +118,7 @@ export function registerPetitionRoutes(app) {
                 daysLeft: petition.deadlineDate ?
                     Math.ceil((new Date(petition.deadlineDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)) : 30,
                 urgency: getUrgencyLevel(petition.currentSignatures || 0, petition.targetSignatures || 500),
-                verified: true,
-                category: petition.category || "Civic Engagement",
-                region: petition.region || "National",
-                image: petition.image || "https://images.unsplash.com/photo-1559757148-5c350d0d3c56?w=800&h=400&fit=crop",
-                tags: petition.tags || ["Civic Engagement", "Democracy", "Citizen Action"],
-                supporters: petition.supporters || [
-                    { name: "CivicOS Community", role: "Platform", location: "Canada" }
-                ]
+                verified: true
             };
             return ResponseFormatter.success(res, enrichedPetition, "Petition retrieved successfully", 200);
         }

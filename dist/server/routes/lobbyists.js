@@ -25,64 +25,8 @@ export function registerLobbyistsRoutes(app) {
     app.get('/api/lobbyists', async (req, res) => {
         const startTime = Date.now();
         try {
-            // Sample lobbyist data for demonstration
-            const allLobbyists = [
-                {
-                    id: 1,
-                    name: "Canadian Association of Petroleum Producers",
-                    type: "Industry Association",
-                    registrationDate: "2023-01-15",
-                    status: "active",
-                    primaryIssues: ["Energy Policy", "Climate Regulations", "Infrastructure"],
-                    totalSpending: 2500000,
-                    meetingsCount: 45,
-                    lastActivity: "2025-01-20"
-                },
-                {
-                    id: 2,
-                    name: "Canadian Medical Association",
-                    type: "Professional Association",
-                    registrationDate: "2022-06-10",
-                    status: "active",
-                    primaryIssues: ["Healthcare Funding", "Medical Training", "Drug Pricing"],
-                    totalSpending: 1800000,
-                    meetingsCount: 32,
-                    lastActivity: "2025-01-18"
-                },
-                {
-                    id: 3,
-                    name: "Canadian Bankers Association",
-                    type: "Industry Association",
-                    registrationDate: "2021-03-22",
-                    status: "active",
-                    primaryIssues: ["Financial Regulations", "Consumer Protection", "Digital Banking"],
-                    totalSpending: 3200000,
-                    meetingsCount: 67,
-                    lastActivity: "2025-01-22"
-                },
-                {
-                    id: 4,
-                    name: "Canadian Federation of Agriculture",
-                    type: "Industry Association",
-                    registrationDate: "2022-09-05",
-                    status: "active",
-                    primaryIssues: ["Agricultural Subsidies", "Trade Policy", "Climate Adaptation"],
-                    totalSpending: 950000,
-                    meetingsCount: 28,
-                    lastActivity: "2025-01-15"
-                },
-                {
-                    id: 5,
-                    name: "Canadian Labour Congress",
-                    type: "Labour Union",
-                    registrationDate: "2020-11-12",
-                    status: "active",
-                    primaryIssues: ["Workplace Safety", "Minimum Wage", "Pension Reform"],
-                    totalSpending: 2100000,
-                    meetingsCount: 41,
-                    lastActivity: "2025-01-19"
-                }
-            ];
+            // For now, return empty data - will be populated by real database integration
+            const allLobbyists = [];
             const processingTime = Date.now() - startTime;
             return ResponseFormatter.success(res, { lobbyists: allLobbyists }, "Lobbyists data retrieved successfully", 200, allLobbyists.length, undefined, processingTime);
         }
@@ -95,40 +39,8 @@ export function registerLobbyistsRoutes(app) {
         const startTime = Date.now();
         try {
             const { id } = req.params;
-            // Sample lobbyist data for demonstration
-            const lobbyistData = {
-                id: parseInt(id),
-                name: "Canadian Association of Petroleum Producers",
-                type: "Industry Association",
-                registrationDate: "2023-01-15",
-                status: "active",
-                primaryIssues: ["Energy Policy", "Climate Regulations", "Infrastructure"],
-                totalSpending: 2500000,
-                meetingsCount: 45,
-                lastActivity: "2025-01-20",
-                contactInfo: {
-                    address: "350 7th Avenue SW, Calgary, AB",
-                    phone: "403-267-1100",
-                    email: "info@capp.ca",
-                    website: "https://www.capp.ca"
-                },
-                recentMeetings: [
-                    {
-                        date: "2025-01-20",
-                        official: "Minister of Natural Resources",
-                        topic: "Energy transition policy",
-                        outcome: "Policy discussion"
-                    },
-                    {
-                        date: "2025-01-15",
-                        official: "Deputy Minister of Environment",
-                        topic: "Climate regulations",
-                        outcome: "Regulatory consultation"
-                    }
-                ]
-            };
-            const processingTime = Date.now() - startTime;
-            return ResponseFormatter.success(res, lobbyistData, "Lobbyist data retrieved successfully", 200, undefined, undefined, processingTime);
+            // For now, return empty data - will be populated by real database integration
+            return ResponseFormatter.notFound(res, "Lobbyist not found");
         }
         catch (error) {
             return ResponseFormatter.databaseError(res, `Failed to fetch lobbyist data: ${error.message}`);

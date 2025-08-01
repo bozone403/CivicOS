@@ -33,68 +33,12 @@ interface MemoryResponse {
 
 // Fallback data for when API fails
 const fallbackMemoryData: MemoryResponse = {
-  memory: [
-    {
-      id: 1,
-      politician: "Hon. Justin Trudeau",
-      promise: "Implement universal pharmacare by 2025",
-      date: "2023-10-15",
-      status: "in_progress",
-      category: "Healthcare",
-      source: "2023 Election Platform",
-      progress: 65,
-      notes: "Legislation introduced, awaiting parliamentary approval"
-    },
-    {
-      id: 2,
-      politician: "Hon. Pierre Poilievre",
-      promise: "Balance the federal budget within 4 years",
-      date: "2023-09-20",
-      status: "pending",
-      category: "Economy",
-      source: "Conservative Party Platform",
-      progress: 0,
-      notes: "Campaign promise, not yet in government"
-    },
-    {
-      id: 3,
-      politician: "Hon. Jagmeet Singh",
-      promise: "Implement wealth tax on fortunes over $10M",
-      date: "2023-11-05",
-      status: "proposed",
-      category: "Taxation",
-      source: "NDP Policy Platform",
-      progress: 25,
-      notes: "Bill introduced in Parliament, under debate"
-    },
-    {
-      id: 4,
-      politician: "Hon. Chrystia Freeland",
-      promise: "Reduce inflation to 2% target by end of 2024",
-      date: "2023-08-12",
-      status: "completed",
-      category: "Economy",
-      source: "Budget 2023",
-      progress: 100,
-      notes: "Target achieved, inflation at 1.8% as of December 2024"
-    },
-    {
-      id: 5,
-      politician: "Hon. Mark Holland",
-      promise: "Increase healthcare funding by $46B over 10 years",
-      date: "2023-07-30",
-      status: "in_progress",
-      category: "Healthcare",
-      source: "Health Accord Agreement",
-      progress: 40,
-      notes: "First tranche of funding delivered, negotiations ongoing"
-    }
-  ],
+  memory: [],
   pagination: {
     page: 1,
     limit: 20,
-    total: 5,
-    pages: 1
+    total: 0,
+    pages: 0
   }
 };
 

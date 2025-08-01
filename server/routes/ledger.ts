@@ -29,49 +29,8 @@ export function registerLedgerRoutes(app: Express) {
     const startTime = Date.now();
     
     try {
-      // Sample ledger data for demonstration
-      const ledgerEntries = [
-        {
-          id: 1,
-          type: "donation",
-          amount: 150.00,
-          description: "Campaign donation to local candidate",
-          category: "Political Donation",
-          date: "2025-07-20",
-          recipient: "Jane Smith Campaign",
-          status: "completed"
-        },
-        {
-          id: 2,
-          type: "expense",
-          amount: 75.50,
-          description: "Event ticket for political fundraiser",
-          category: "Event Attendance",
-          date: "2025-07-18",
-          recipient: "Democratic Party Fundraiser",
-          status: "completed"
-        },
-        {
-          id: 3,
-          type: "donation",
-          amount: 25.00,
-          description: "Monthly contribution to advocacy group",
-          category: "Advocacy Support",
-          date: "2025-07-15",
-          recipient: "Citizens for Democracy",
-          status: "completed"
-        },
-        {
-          id: 4,
-          type: "expense",
-          amount: 45.00,
-          description: "Political literature and materials",
-          category: "Campaign Materials",
-          date: "2025-07-12",
-          recipient: "Campaign Supply Store",
-          status: "completed"
-        }
-      ];
+      // For now, return empty data - will be populated by real database integration
+      const ledgerEntries: any[] = [];
       
       const processingTime = Date.now() - startTime;
       return ResponseFormatter.success(
@@ -93,56 +52,17 @@ export function registerLedgerRoutes(app: Express) {
     const startTime = Date.now();
     
     try {
-      // Sample civic ledger data for demonstration
+      // For now, return empty data - will be populated by real database integration
       const civicLedgerData = {
         summary: {
-          totalVotes: 12,
-          totalPetitions: 5,
-          totalActivities: 23,
-          totalPoints: 450
+          totalVotes: 0,
+          totalPetitions: 0,
+          totalActivities: 0,
+          totalPoints: 0
         },
-        votes: [
-          {
-            id: 1,
-            itemId: 101,
-            itemType: "bill",
-            voteValue: 1,
-            reasoning: "Supporting this bill as it aligns with democratic values",
-            timestamp: "2024-01-15T10:30:00Z"
-          },
-          {
-            id: 2,
-            itemId: 102,
-            itemType: "bill",
-            voteValue: -1,
-            reasoning: "Opposing this bill due to privacy concerns",
-            timestamp: "2024-01-14T14:20:00Z"
-          }
-        ],
-        petitions: [
-          {
-            id: 1,
-            petitionId: 201,
-            signedAt: "2024-01-10T09:15:00Z",
-            petition: {
-              title: "Support Electoral Reform",
-              description: "Petition to implement proportional representation",
-              currentSignatures: 15420,
-              targetSignatures: 10000
-            }
-          }
-        ],
-        activities: [
-          {
-            id: 1,
-            activityType: "vote",
-            entityId: 101,
-            entityType: "bill",
-            pointsEarned: 10,
-            details: { billTitle: "Democratic Reform Act" },
-            createdAt: "2024-01-15T10:30:00Z"
-          }
-        ]
+        votes: [],
+        petitions: [],
+        activities: []
       };
       
       const processingTime = Date.now() - startTime;
