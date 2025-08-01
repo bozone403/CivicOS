@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
@@ -506,6 +506,9 @@ export default function UserSearch() {
         <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>User Profile</DialogTitle>
+            <DialogDescription>
+              View user profile details and manage friendship status.
+            </DialogDescription>
           </DialogHeader>
           {selectedUser && (
             <div className="space-y-4">

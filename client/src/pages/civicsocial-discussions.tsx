@@ -440,6 +440,9 @@ export default function CivicSocialDiscussions() {
             <DialogContent className="max-w-2xl">
               <DialogHeader>
                 <DialogTitle>Reply to: {selectedPost.title}</DialogTitle>
+                <DialogDescription>
+                  Share your thoughts and contribute to this civic discussion.
+                </DialogDescription>
               </DialogHeader>
               <div className="space-y-4">
                 <div className="bg-gray-50 p-4 rounded-lg">

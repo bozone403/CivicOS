@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
@@ -251,6 +251,9 @@ export default function Announcements() {
             <DialogContent className="max-w-2xl">
               <DialogHeader>
                 <DialogTitle>Create New Announcement</DialogTitle>
+                <DialogDescription>
+                  Create a new announcement to share important information with the community.
+                </DialogDescription>
               </DialogHeader>
               <CreateAnnouncementForm 
                 onSubmit={handleCreateAnnouncement}
@@ -443,6 +446,9 @@ export default function Announcements() {
           <DialogContent className="max-w-2xl">
             <DialogHeader>
               <DialogTitle>Edit Announcement</DialogTitle>
+              <DialogDescription>
+                Update the announcement content and settings.
+              </DialogDescription>
             </DialogHeader>
             <EditAnnouncementForm 
               announcement={editingAnnouncement}
