@@ -30,7 +30,7 @@ export function registerMessageRoutes(app: Express) {
   app.get('/api/messages/unread/count', async (req: Request, res: Response) => {
     try {
       // Return proper array format for frontend
-      res.json([]);
+      res.json({ unreadCount: 0 });
     } catch (error) {
       // console.error removed for production
       res.status(500).json({ error: 'Failed to fetch unread count' });
