@@ -29,11 +29,8 @@ export function registerMessageRoutes(app: Express) {
   // Get unread message count for current user
   app.get('/api/messages/unread/count', async (req: Request, res: Response) => {
     try {
-      // For now, return default values without authentication
-      res.json({ 
-        unreadCount: 0,
-        message: "Messages endpoint working"
-      });
+      // Return proper array format for frontend
+      res.json([]);
     } catch (error) {
       // console.error removed for production
       res.status(500).json({ error: 'Failed to fetch unread count' });

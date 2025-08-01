@@ -25,12 +25,8 @@ function jwtAuth(req, res, next) {
 // Get notifications (temporarily without auth for testing)
 router.get("/", async (req, res) => {
     try {
-        // For now, return empty notifications array
-        res.json({
-            notifications: [],
-            unreadCount: 0,
-            message: "Notifications endpoint working"
-        });
+        // Return proper array format for frontend
+        res.json([]);
     }
     catch (error) {
         logger.error({ msg: 'Error fetching notifications', error: error instanceof Error ? error.message : String(error) });
