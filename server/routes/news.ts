@@ -4,6 +4,7 @@ import { newsArticles, propagandaDetection } from "../../shared/schema.js";
 import { eq, and, desc, sql, count, like, or, gte } from "drizzle-orm";
 import * as cheerio from "cheerio";
 import { ResponseFormatter } from "../utils/responseFormatter.js";
+import fetch from "node-fetch";
 
 // Political content filtering function
 function isPoliticalContent(title: string, description: string): boolean {

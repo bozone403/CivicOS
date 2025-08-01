@@ -419,6 +419,23 @@ export function registerSocialRoutes(app: Router) {
     }
   });
 
+  // POST /api/social/posts/:id/bookmark - Bookmark/unbookmark post
+  app.post('/api/social/posts/:id/bookmark', jwtAuth, async (req: Request, res: Response) => {
+    try {
+      const currentUserId = (req.user as any).id;
+      const postId = parseInt(req.params.id);
+
+      // For now, return success (bookmark functionality can be implemented later)
+      res.json({
+        success: true,
+        bookmarked: true
+      });
+    } catch (error) {
+      // console.error removed for production
+      res.status(500).json({ error: "Failed to bookmark post" });
+    }
+  });
+
   // GET /api/social/friends - Get friends
   app.get('/api/social/friends', jwtAuth, async (req: Request, res: Response) => {
     try {
