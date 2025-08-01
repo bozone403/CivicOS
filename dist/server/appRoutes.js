@@ -9,7 +9,7 @@ import path from "path";
 import { fileURLToPath } from 'url';
 import fs from 'fs';
 // Import modular route registrations
-import { registerAuthRoutes, jwtAuth } from "./routes/auth.js";
+import { registerAuthRoutes } from "./routes/auth.js";
 import { registerApiRoutes } from "./routes/api.js";
 import usersRoutes from "./routes/users.js";
 import { registerFriendRoutes } from "./routes/friends.js";
@@ -36,7 +36,7 @@ import { registerMembershipRoutes } from "./routes/membership.js";
 import { registerAnnouncementsRoutes } from "./routes/announcements.js";
 import { registerPermissionsRoutes } from "./routes/permissions.js";
 import { registerSocialRoutes } from "./routes/social.js";
-import votingRouter from "./routes/voting.js";
+import { registerVotingRoutes } from "./routes/voting.js";
 import donationsRouter from "./routes/donations.js";
 import foiRouter from "./routes/foi.js";
 const __filename = fileURLToPath(import.meta.url);
@@ -74,6 +74,7 @@ export async function registerRoutes(app) {
         res.json({ success: true, message: 'Test route working' });
     });
     registerSocialRoutes(app);
+    registerVotingRoutes(app);
     // FOI routes (no auth required)
     app.use("/api/foi", foiRouter);
     // Simple notifications routes (no auth required)
@@ -84,8 +85,6 @@ export async function registerRoutes(app) {
     app.use("/api/dashboard", dashboardRouter);
     // AI routes (free AI service using Ollama)
     app.use("/api/ai", aiRoutes);
-    // Voting routes (JWT protected)
-    app.use("/api/voting", jwtAuth, votingRouter);
     // Search routes (no auth required for search)
     app.use("/api/search", searchRouter);
     // Donations routes (no auth required for donations)

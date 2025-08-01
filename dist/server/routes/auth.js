@@ -313,18 +313,33 @@ export function registerAuthRoutes(app) {
             res.status(500).json({ message: err?.message || 'Login failed' });
         }
     });
-    // Auth user endpoint (temporarily without auth for testing)
-    app.get('/api/auth/user', async (req, res) => {
+    // Auth user endpoint (JWT protected)
+    app.get('/api/auth/user', jwtAuth, async (req, res) => {
         try {
-            // Return a default user object for testing
+            const userId = req.user?.id;
+            if (!userId) {
+                return res.status(401).json({ message: "Unauthorized" });
+            }
+            // Get user from database
+            const user = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+            if (user.length === 0) {
+                return res.status(404).json({ message: "User not found" });
+            }
+            const userData = user[0];
             res.json({
-                id: "test-user-id",
-                email: "test@example.com",
-                firstName: "Test",
-                lastName: "User",
-                civicLevel: "Registered",
-                trustScore: 100,
-                civicPoints: 0
+                id: userData.id,
+                email: userData.email,
+                firstName: userData.firstName,
+                lastName: userData.lastName,
+                username: userData.username,
+                membershipType: userData.membershipType,
+                civicLevel: userData.civicLevel,
+                trustScore: userData.trustScore,
+                civicPoints: userData.civicPoints,
+                profileCompletionPercentage: userData.profileCompletionPercentage,
+                verificationLevel: userData.verificationLevel,
+                createdAt: userData.createdAt,
+                updatedAt: userData.updatedAt
             });
         }
         catch (error) {

@@ -140,7 +140,6 @@
   "devDependencies": {
     "@playwright/test": "^1.54.1",
     "@tailwindcss/typography": "^0.5.15",
-    "@tailwindcss/vite": "^5.0.0",
     "@types/supertest": "^6.0.3",
     "@typescript-eslint/eslint-plugin": "^8.36.0",
     "@typescript-eslint/parser": "^8.36.0",
