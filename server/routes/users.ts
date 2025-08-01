@@ -3,6 +3,7 @@ import { db } from '../db.js';
 import { users } from '../../shared/schema.js';
 import { eq, and, desc, count, sql, or, inArray, ne, isNotNull, ilike } from 'drizzle-orm';
 import jwt from 'jsonwebtoken';
+import { socialPosts, userFriends, userActivity } from '../../shared/schema.js';
 
 // JWT Auth middleware
 function jwtAuth(req: any, res: any, next: any) {
@@ -168,21 +169,21 @@ export function registerUserRoutes(app: Express) {
       // Get user's social stats
       const [postsCount] = await db
         .select({ count: count() })
-        .from(sql`social_posts`)
-        .where(eq(sql`user_id`, currentUserId));
+        .from(socialPosts)
+        .where(eq(socialPosts.userId, user.id));
 
       const [friendsCount] = await db
         .select({ count: count() })
-        .from(sql`user_friends`)
+        .from(userFriends)
         .where(and(
-          eq(sql`user_id`, currentUserId),
-          eq(sql`status`, 'accepted')
+          eq(userFriends.userId, user.id),
+          eq(userFriends.status, 'accepted')
         ));
 
       const [activitiesCount] = await db
         .select({ count: count() })
-        .from(sql`user_activities`)
-        .where(eq(sql`user_id`, currentUserId));
+        .from(userActivity)
+        .where(eq(userActivity.userId, user.id));
 
       const profile = {
         id: user.id,
@@ -268,21 +269,21 @@ export function registerUserRoutes(app: Express) {
       // Get user's social stats
       const [postsCount] = await db
         .select({ count: count() })
-        .from(sql`social_posts`)
-        .where(eq(sql`user_id`, user.id));
+        .from(socialPosts)
+        .where(eq(socialPosts.userId, user.id));
 
       const [friendsCount] = await db
         .select({ count: count() })
-        .from(sql`user_friends`)
+        .from(userFriends)
         .where(and(
-          eq(sql`user_id`, user.id),
-          eq(sql`status`, 'accepted')
+          eq(userFriends.userId, user.id),
+          eq(userFriends.status, 'accepted')
         ));
 
       const [activitiesCount] = await db
         .select({ count: count() })
-        .from(sql`user_activities`)
-        .where(eq(sql`user_id`, user.id));
+        .from(userActivity)
+        .where(eq(userActivity.userId, user.id));
 
       const profile = {
         id: user.id,
@@ -368,21 +369,21 @@ export function registerUserRoutes(app: Express) {
       // Get user's social stats
       const [postsCount] = await db
         .select({ count: count() })
-        .from(sql`social_posts`)
-        .where(eq(sql`user_id`, userId));
+        .from(socialPosts)
+        .where(eq(socialPosts.userId, userId));
 
       const [friendsCount] = await db
         .select({ count: count() })
-        .from(sql`user_friends`)
+        .from(userFriends)
         .where(and(
-          eq(sql`user_id`, userId),
-          eq(sql`status`, 'accepted')
+          eq(userFriends.userId, userId),
+          eq(userFriends.status, 'accepted')
         ));
 
       const [activitiesCount] = await db
         .select({ count: count() })
-        .from(sql`user_activities`)
-        .where(eq(sql`user_id`, userId));
+        .from(userActivity)
+        .where(eq(userActivity.userId, userId));
 
       const profile = {
         id: user.id,
@@ -421,21 +422,21 @@ export function registerUserRoutes(app: Express) {
       // Get user's social stats
       const [postsCount] = await db
         .select({ count: count() })
-        .from(sql`social_posts`)
-        .where(eq(sql`user_id`, userId));
+        .from(socialPosts)
+        .where(eq(socialPosts.userId, userId));
 
       const [friendsCount] = await db
         .select({ count: count() })
-        .from(sql`user_friends`)
+        .from(userFriends)
         .where(and(
-          eq(sql`user_id`, userId),
-          eq(sql`status`, 'accepted')
+          eq(userFriends.userId, userId),
+          eq(userFriends.status, 'accepted')
         ));
 
       const [activitiesCount] = await db
         .select({ count: count() })
-        .from(sql`user_activities`)
-        .where(eq(sql`user_id`, userId));
+        .from(userActivity)
+        .where(eq(userActivity.userId, userId));
 
       const stats = {
         posts: postsCount?.count || 0,
@@ -483,51 +484,51 @@ export function registerUserRoutes(app: Express) {
       // Get user's social stats
       const [postsCount] = await db
         .select({ count: count() })
-        .from(sql`social_posts`)
-        .where(eq(sql`user_id`, userId));
+        .from(socialPosts)
+        .where(eq(socialPosts.userId, userId));
 
       const [friendsCount] = await db
         .select({ count: count() })
-        .from(sql`user_friends`)
+        .from(userFriends)
         .where(and(
-          eq(sql`user_id`, userId),
-          eq(sql`status`, 'accepted')
+          eq(userFriends.userId, userId),
+          eq(userFriends.status, 'accepted')
         ));
 
       const [activitiesCount] = await db
         .select({ count: count() })
-        .from(sql`user_activities`)
-        .where(eq(sql`user_id`, userId));
+        .from(userActivity)
+        .where(eq(userActivity.userId, userId));
 
       // Check if current user is friends with this user
       const [isFriend] = await db
         .select({ count: count() })
-        .from(sql`user_friends`)
+        .from(userFriends)
         .where(and(
           or(
-            and(eq(sql`user_id`, currentUserId), eq(sql`friend_id`, userId)),
-            and(eq(sql`user_id`, userId), eq(sql`friend_id`, currentUserId))
+            and(eq(userFriends.userId, currentUserId), eq(userFriends.friendId, userId)),
+            and(eq(userFriends.userId, userId), eq(userFriends.friendId, currentUserId))
           ),
-          eq(sql`status`, 'accepted')
+          eq(userFriends.status, 'accepted')
         ));
 
       // Check if there's a pending friend request
       const [pendingRequest] = await db
         .select({ count: count() })
-        .from(sql`user_friends`)
+        .from(userFriends)
         .where(and(
-          eq(sql`user_id`, currentUserId),
-          eq(sql`friend_id`, userId),
-          eq(sql`status`, 'pending')
+          eq(userFriends.userId, currentUserId),
+          eq(userFriends.friendId, userId),
+          eq(userFriends.status, 'pending')
         ));
 
       const [receivedRequest] = await db
         .select({ count: count() })
-        .from(sql`user_friends`)
+        .from(userFriends)
         .where(and(
-          eq(sql`user_id`, userId),
-          eq(sql`friend_id`, currentUserId),
-          eq(sql`status`, 'pending')
+          eq(userFriends.userId, userId),
+          eq(userFriends.friendId, currentUserId),
+          eq(userFriends.status, 'pending')
         ));
 
       const profile = {

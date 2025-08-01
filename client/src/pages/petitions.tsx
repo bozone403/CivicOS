@@ -472,7 +472,7 @@ export default function Petitions() {
               </div>
             </CardHeader>
             
-            <CardContent>
+            <CardContent className="pb-6">
               <p className="text-gray-600 text-sm mb-4 line-clamp-3">
                 {petition.description}
               </p>

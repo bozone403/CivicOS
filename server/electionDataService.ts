@@ -10,7 +10,7 @@ const CURRENT_CANADIAN_LEADERS = [
     position: "Prime Minister",
     jurisdiction: "Federal",
     imageUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/9/9f/Justin_Trudeau_2019.jpg/220px-Justin_Trudeau_2019.jpg",
-    bio: "Justin Trudeau is the 23rd Prime Minister of Canada, serving since 2015. He leads the Liberal Party of Canada and has focused on climate action, reconciliation with Indigenous peoples, and social progress.",
+    bio: "Justin Trudeau served as the 23rd Prime Minister of Canada from 2015-2025. He was replaced by Mark Carney in July 2025 and now serves as a Member of Parliament for Papineau.",
     keyPolicies: [
       "Climate action and carbon pricing",
       "Reconciliation with Indigenous peoples",

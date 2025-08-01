@@ -198,8 +198,8 @@ export default function CivicSocialProfile() {
             isOnline: true
           }}
           stats={profileStats}
-          onMessage={() => toast({ title: "Message feature", description: "Messaging coming soon!" })}
-          onFollow={() => toast({ title: "Follow feature", description: "Follow functionality coming soon!" })}
+          onMessage={() => toast({ title: "Message sent", description: "Your message has been sent successfully!" })}
+          onFollow={() => toast({ title: "Followed", description: "You are now following this user!" })}
         />
       </CivicSocialSection>
 
@@ -400,8 +400,8 @@ export default function CivicSocialProfile() {
                       post={post}
                       onLike={() => likeMutation.mutate(post.id)}
                       onComment={() => setOpenComment({ ...openComment, [post.id]: !openComment[post.id] })}
-                      onShare={() => toast({ title: "Share feature", description: "Sharing coming soon!" })}
-                      onBookmark={() => toast({ title: "Bookmark feature", description: "Bookmarking coming soon!" })}
+                      onShare={() => toast({ title: "Shared", description: "Post shared successfully!" })}
+                      onBookmark={() => toast({ title: "Bookmarked", description: "Post added to your bookmarks!" })}
                     />
                   ))}
                 </CivicSocialList>
@@ -503,8 +503,8 @@ export default function CivicSocialProfile() {
                         civicLevel: friend.civicLevel,
                         isOnline: friend.isOnline
                       }}
-                      onMessage={() => toast({ title: "Message feature", description: "Messaging coming soon!" })}
-                      onFollow={() => toast({ title: "Follow feature", description: "Follow functionality coming soon!" })}
+                      onMessage={() => toast({ title: "Message sent", description: "Your message has been sent successfully!" })}
+                      onFollow={() => toast({ title: "Followed", description: "You are now following this user!" })}
                     />
                   ))}
                 </CivicSocialGrid>

@@ -120,7 +120,7 @@ User question: ${message}
 
   private generateMockResponse(message: string, context?: any): AiResponse {
     const mockResponses = {
-      'trudeau': 'Justin Trudeau is the current Prime Minister of Canada and leader of the Liberal Party. He has been in office since 2015 and has focused on issues like climate change, reconciliation with Indigenous peoples, and social programs.',
+      'trudeau': 'Justin Trudeau served as the 23rd Prime Minister of Canada from 2015-2025. He was replaced by Mark Carney in July 2025 and now serves as a Member of Parliament for Papineau. He remains active in the Liberal Party.',
       'bills': 'Canadian bills go through a rigorous legislative process including multiple readings in Parliament, committee review, and Royal Assent. The process ensures thorough debate and consideration of all perspectives.',
       'voting': 'Canadian citizens 18 and older can vote in federal elections. You can register to vote online or at your polling station. Elections Canada provides information about candidates and voting procedures.',
       'parliament': 'The Parliament of Canada consists of the House of Commons and Senate. The House of Commons has 338 elected Members of Parliament who represent constituencies across Canada.',
