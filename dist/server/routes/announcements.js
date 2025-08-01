@@ -2,9 +2,10 @@ import { db } from '../db.js';
 import { announcements } from '../../shared/schema.js';
 import { jwtAuth } from './auth.js';
 import { PermissionService } from '../utils/permissionService.js';
-import { eq, and, desc } from 'drizzle-orm';
+import { eq, desc } from 'drizzle-orm';
 import { users } from '../../shared/schema.js';
 import { z } from 'zod';
+import { sql } from 'drizzle-orm';
 // Input validation schemas
 const createAnnouncementSchema = z.object({
     title: z.string().min(1, 'Title is required').max(200, 'Title too long'),
@@ -42,29 +43,29 @@ export function registerAnnouncementsRoutes(app) {
                 });
             }
             const offset = (pageNum - 1) * limitNum;
-            let whereConditions = [eq(announcements.status, status)];
-            if (priority) {
-                whereConditions.push(eq(announcements.priority, priority));
-            }
-            const results = await db
-                .select()
-                .from(announcements)
-                .where(and(...whereConditions))
-                .orderBy(desc(announcements.isPinned), desc(announcements.createdAt))
-                .limit(limitNum)
-                .offset(offset);
-            const total = await db
-                .select({ count: announcements.id })
-                .from(announcements)
-                .where(and(...whereConditions));
+            // Temporary simple query to avoid schema issues
+            const results = await db.execute(sql `
+      SELECT id, title, content, priority, is_active, author_id, author_name, 
+             author_membership_type, status, target_audience, is_pinned, 
+             views_count, published_at, expires_at, created_at, updated_at
+      FROM announcements 
+      WHERE status = ${status}
+      ORDER BY is_pinned DESC, created_at DESC
+      LIMIT ${limitNum} OFFSET ${offset}
+    `);
+            const total = await db.execute(sql `
+      SELECT COUNT(*) as count
+      FROM announcements 
+      WHERE status = ${status}
+    `);
             res.json({
                 success: true,
-                announcements: results,
+                announcements: results.rows,
                 pagination: {
                     page: pageNum,
                     limit: limitNum,
-                    total: total.length,
-                    totalPages: Math.ceil(total.length / limitNum)
+                    total: Number(total.rows[0]?.count) || 0,
+                    totalPages: Math.ceil((Number(total.rows[0]?.count) || 0) / limitNum)
                 }
             });
         }

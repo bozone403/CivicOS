@@ -287,6 +287,18 @@ app.use('/api/ai', aiRoutes);
     httpServer.listen(PORT, () => {
         logger.info({ msg: `Server running on port ${PORT}`, environment: process.env.NODE_ENV });
     });
+    // Run database migrations on startup
+    setTimeout(async () => {
+        try {
+            // Temporarily disabled due to TypeScript compilation issues
+            // const migrateModule = await import('./migrate.js') as any;
+            // await migrateModule.runMigrations();
+            logger.info({ msg: "Database migrations temporarily disabled" });
+        }
+        catch (error) {
+            logger.error({ msg: "Failed to run database migrations", error });
+        }
+    }, 5000); // Run migrations 5 seconds after server starts
     // Initialize automatic government data sync (non-blocking)
     setTimeout(() => {
         try {
@@ -452,5 +464,22 @@ app.get("/api/admin/identity-review", jwtAuth, async (req, res) => {
     }
     // Admin identity review endpoint
     res.json({ message: "Admin endpoint" });
+});
+// Temporary admin endpoint to trigger migrations
+app.post('/api/admin/run-migrations', jwtAuth, async (req, res) => {
+    const user = req.user;
+    if (!user || user.email !== process.env.ADMIN_EMAIL) {
+        return res.status(403).json({ message: 'Forbidden' });
+    }
+    try {
+        // Temporarily disabled due to TypeScript compilation issues
+        // const migrateModule = await import('./migrate.js') as any;
+        // await migrateModule.runMigrations();
+        res.json({ message: 'Migrations temporarily disabled' });
+    }
+    catch (error) {
+        logger.error({ msg: 'Error running migrations', error });
+        res.status(500).json({ message: 'Failed to run migrations', error: String(error) });
+    }
 });
 export { app };
