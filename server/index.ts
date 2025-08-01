@@ -14,6 +14,10 @@ import jwt from "jsonwebtoken";
 import pino from "pino";
 import { existsSync } from 'fs';
 
+// Import middleware
+import { basicRateLimit, authRateLimit, apiRateLimit } from './middleware/rateLimit.js';
+import { requestLogger, errorLogger, logger as appLogger } from './middleware/logging.js';
+
 // Import AI routes (updated)
 import aiRoutes from './routes/ai.js';
 
@@ -135,6 +139,14 @@ app.use((req, res, next) => {
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
+
+// Apply rate limiting and logging middleware
+app.use(basicRateLimit);
+app.use(requestLogger);
+
+// Apply specific rate limits to sensitive endpoints
+app.use('/api/auth', authRateLimit);
+app.use('/api/voting', apiRateLimit);
 
 app.use((req, res, next) => {
   logger.info({ method: req.method, url: req.url, ip: req.ip });
@@ -286,6 +298,8 @@ app.use('/api/ai', aiRoutes);
   const httpServer = createServer(app);
 
   // Global error handler (must be before static serving and SPA fallback)
+  app.use(errorLogger);
+  
   app.use((err: any, req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
     const message = err.message || "Internal Server Error";

@@ -1,404 +1,335 @@
-import express from 'express';
+import { Express, Request, Response } from 'express';
 import { db } from '../db.js';
-import { bills, votes, electoralCandidates, electoralVotes, users } from '../../shared/schema.js';
-import { eq, and, desc, sql } from 'drizzle-orm';
-import { aiService } from '../utils/aiService.js';
-import { ElectionDataService } from '../electionDataService.js';
+import { votingItems, votes, bills } from '../../shared/schema.js';
+import { eq, and, desc, asc, sql, count } from 'drizzle-orm';
+import { jwtAuth } from './auth.js';
+import { VotingSystem } from '../votingSystem.js';
+import { z } from 'zod';
 
-const router = express.Router();
-
-// Get all bills for voting
-router.get('/bills', async (req, res) => {
-  try {
-    const allBills = await db.select().from(bills).orderBy(desc(bills.createdAt));
-    res.json(allBills);
-  } catch (error) {
-    // console.error removed for production
-    res.status(500).json({ error: 'Failed to fetch bills' });
-  }
+// Input validation schemas
+const createVotingItemSchema = z.object({
+  title: z.string().min(1, 'Title is required').max(200, 'Title too long'),
+  description: z.string().min(1, 'Description is required').max(2000, 'Description too long'),
+  type: z.enum(['bill', 'petition', 'referendum', 'poll']),
+  options: z.array(z.object({
+    id: z.string(),
+    text: z.string(),
+    description: z.string().optional()
+  })).min(2, 'At least 2 options required'),
+  startDate: z.string().datetime(),
+  endDate: z.string().datetime(),
+  jurisdiction: z.enum(['federal', 'provincial', 'municipal']),
+  requiredQuorum: z.number().min(0).optional(),
+  eligibleVoters: z.array(z.string()).default(['all'])
 });
 
-// Get user's votes for bills
-router.get('/user-votes', async (req, res) => {
-  try {
-    const userId = (req as any).user?.id;
-    if (!userId) {
-      return res.status(401).json({ error: 'Authentication required' });
-    }
+const castVoteSchema = z.object({
+  optionId: z.string().min(1, 'Option ID is required')
+});
 
-    const userVotes = await db.select({
-      itemId: votes.itemId,
-      itemType: votes.itemType,
-      voteValue: votes.voteValue,
-      reasoning: votes.reasoning,
-      timestamp: votes.timestamp
-    }).from(votes)
-    .where(and(
-      eq(votes.userId, userId),
-      eq(votes.itemType, 'bill')
-    ))
-    .orderBy(desc(votes.timestamp));
+export function registerVotingRoutes(app: Express) {
+  const votingSystem = new VotingSystem();
 
-    // Convert to object format for easier lookup
-    const votesObject: Record<string, string> = {};
-    userVotes.forEach(vote => {
-      if (vote.itemId) {
-        votesObject[vote.itemId.toString()] = vote.voteValue === 1 ? 'yes' : vote.voteValue === -1 ? 'no' : 'abstain';
+  // GET /api/voting/active - Get active voting items
+  app.get('/api/voting/active', jwtAuth, async (req: Request, res: Response) => {
+    try {
+      const userId = (req.user as any)?.id;
+      if (!userId) {
+        return res.status(401).json({
+          success: false,
+          message: "Authentication required"
+        });
       }
-    });
 
-    res.json(votesObject);
-  } catch (error) {
-    // console.error removed for production
-    res.status(500).json({ error: 'Failed to fetch user votes' });
-  }
-});
+      const activeItems = await votingSystem.getActiveVotingItems(userId);
+      
+      // Add user's vote status to each item
+      const itemsWithVoteStatus = await Promise.all(
+        activeItems.map(async (item) => {
+          const hasVoted = await votingSystem.hasUserVoted(userId, item.id);
+          return {
+            ...item,
+            userHasVoted: hasVoted
+          };
+        })
+      );
 
-// Vote on a bill
-router.post('/bills/vote', async (req, res) => {
-  try {
-    const { billId, vote } = req.body;
-    const userId = (req as any).user?.id;
+      res.json({
+        success: true,
+        items: itemsWithVoteStatus,
+        total: itemsWithVoteStatus.length
+      });
 
-    if (!userId) {
-      return res.status(401).json({ error: 'Authentication required' });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: "Failed to fetch active voting items",
+        error: (error as any)?.message || String(error)
+      });
     }
+  });
 
-    if (!billId || !vote) {
-      return res.status(400).json({ error: 'Bill ID and vote are required' });
-    }
+  // GET /api/voting/:id - Get specific voting item
+  app.get('/api/voting/:id', jwtAuth, async (req: Request, res: Response) => {
+    try {
+      const userId = (req.user as any)?.id;
+      const itemId = parseInt(req.params.id);
 
-    // Check if user already voted on this bill
-    const existingVote = await db.select().from(votes)
-      .where(and(
-        eq(votes.userId, userId),
-        eq(votes.itemId, parseInt(billId)),
-        eq(votes.itemType, 'bill')
-      ));
+      if (isNaN(itemId)) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid voting item ID"
+        });
+      }
 
-    if (existingVote.length > 0) {
-      return res.status(400).json({ error: 'You have already voted on this bill' });
-    }
+      const [item] = await db
+        .select()
+        .from(votingItems)
+        .where(eq(votingItems.id, itemId))
+        .limit(1);
 
-    // Create verification ID and block hash
-    const verificationId = `vote_${userId}_${billId}_${Date.now()}`;
-    const blockHash = `hash_${verificationId}_${Math.random().toString(36)}`;
+      if (!item) {
+        return res.status(404).json({
+          success: false,
+          message: "Voting item not found"
+        });
+      }
 
-    // Insert vote
-    await db.insert(votes).values({
-      userId,
-      billId: parseInt(billId),
-      vote: vote,
-      reasoning: req.body.reasoning || null,
-      verificationId
-    });
-
-    res.json({ success: true, message: 'Vote recorded successfully' });
-  } catch (error) {
-    // console.error removed for production
-    res.status(500).json({ error: 'Failed to record vote' });
-  }
-});
-
-// Get bill with vote statistics
-router.get('/bills/:id', async (req, res) => {
-  try {
-    const { id } = req.params;
-    const userId = (req as any).user?.id;
-    
-    const [bill] = await db
-      .select()
-      .from(bills)
-      .where(eq(bills.id, parseInt(id)));
-
-    if (!bill) {
-      return res.status(404).json({ message: 'Bill not found' });
-    }
-
-    // Get vote statistics for this bill
-    const voteStats = await db.execute(sql`
-      SELECT 
-        COUNT(*) as total_votes,
-        COUNT(CASE WHEN vote_value = 1 THEN 1 END) as yes_votes,
-        COUNT(CASE WHEN vote_value = -1 THEN 1 END) as no_votes,
-        COUNT(CASE WHEN vote_value = 0 THEN 1 END) as abstentions
-      FROM votes 
-      WHERE item_id = ${parseInt(id)} AND item_type = 'bill'
-    `);
-
-    // Get user's vote if authenticated
-    let userVote: string | null = null;
-    if (userId) {
-      const [userVoteResult] = await db
-        .select({ voteValue: votes.voteValue })
+      const hasVoted = await votingSystem.hasUserVoted(userId, itemId);
+      const userVote = hasVoted ? await db
+        .select()
         .from(votes)
         .where(and(
           eq(votes.userId, userId),
-          eq(votes.itemId, parseInt(id)),
-          eq(votes.itemType, 'bill')
-        ));
+          eq(votes.itemId, itemId)
+        ))
+        .limit(1) : null;
+
+      res.json({
+        success: true,
+        item: {
+          ...item,
+          options: typeof item.options === 'string' ? JSON.parse(item.options) : item.options,
+          eligibleVoters: typeof item.eligibleVoters === 'string' ? JSON.parse(item.eligibleVoters) : item.eligibleVoters,
+          userHasVoted: hasVoted,
+          userVote: userVote?.[0] || null
+        }
+      });
+
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: "Failed to fetch voting item",
+        error: (error as any)?.message || String(error)
+      });
+    }
+  });
+
+  // POST /api/voting/:id/vote - Cast a vote
+  app.post('/api/voting/:id/vote', jwtAuth, async (req: Request, res: Response) => {
+    try {
+      const userId = (req.user as any)?.id;
+      const itemId = parseInt(req.params.id);
+
+      if (isNaN(itemId)) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid voting item ID"
+        });
+      }
+
+      // Validate input
+      const validationResult = castVoteSchema.safeParse(req.body);
+      if (!validationResult.success) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid input data",
+          errors: validationResult.error.errors
+        });
+      }
+
+      const { optionId } = validationResult.data;
+
+      // Check if user already voted
+      const hasVoted = await votingSystem.hasUserVoted(userId, itemId);
+      if (hasVoted) {
+        return res.status(400).json({
+          success: false,
+          message: "You have already voted on this item"
+        });
+      }
+
+      // Cast the vote
+      await votingSystem.castVote(userId, itemId, optionId);
+
+      res.json({
+        success: true,
+        message: "Vote cast successfully"
+      });
+
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: "Failed to cast vote",
+        error: (error as any)?.message || String(error)
+      });
+    }
+  });
+
+  // GET /api/voting/:id/results - Get voting results
+  app.get('/api/voting/:id/results', async (req: Request, res: Response) => {
+    try {
+      const itemId = parseInt(req.params.id);
+
+      if (isNaN(itemId)) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid voting item ID"
+        });
+      }
+
+      const results = await votingSystem.getVotingResults(itemId);
+
+      res.json({
+        success: true,
+        results
+      });
+
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: "Failed to fetch voting results",
+        error: (error as any)?.message || String(error)
+      });
+    }
+  });
+
+  // GET /api/voting/history - Get user's voting history
+  app.get('/api/voting/history', jwtAuth, async (req: Request, res: Response) => {
+    try {
+      const userId = (req.user as any)?.id;
+      const { page = 1, limit = 10 } = req.query;
       
-      if (userVoteResult) {
-        userVote = userVoteResult.voteValue === 1 ? 'yes' : userVoteResult.voteValue === -1 ? 'no' : 'abstain';
+      const pageNum = Number(page);
+      const limitNum = Number(limit);
+      const offset = (pageNum - 1) * limitNum;
+
+      const history = await votingSystem.getUserVotingHistory(userId);
+
+      res.json({
+        success: true,
+        history: history.slice(offset, offset + limitNum),
+        pagination: {
+          page: pageNum,
+          limit: limitNum,
+          total: history.length,
+          totalPages: Math.ceil(history.length / limitNum)
+        }
+      });
+
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: "Failed to fetch voting history",
+        error: (error as any)?.message || String(error)
+      });
+    }
+  });
+
+  // POST /api/voting/create - Create new voting item (admin only)
+  app.post('/api/voting/create', jwtAuth, async (req: Request, res: Response) => {
+    try {
+      const userId = (req.user as any)?.id;
+      
+      // TODO: Add admin permission check
+      // const isAdmin = await PermissionService.isAdmin(userId);
+      // if (!isAdmin) {
+      //   return res.status(403).json({
+      //     success: false,
+      //     message: "Admin permission required"
+      //   });
+      // }
+
+      // Validate input
+      const validationResult = createVotingItemSchema.safeParse(req.body);
+      if (!validationResult.success) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid input data",
+          errors: validationResult.error.errors
+        });
       }
+
+      const votingItem = validationResult.data;
+      const itemId = await votingSystem.createVotingItem({
+        ...votingItem,
+        startDate: new Date(votingItem.startDate),
+        endDate: new Date(votingItem.endDate),
+        status: 'active' // Add the missing status field
+      });
+
+      res.status(201).json({
+        success: true,
+        message: "Voting item created successfully",
+        itemId
+      });
+
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: "Failed to create voting item",
+        error: (error as any)?.message || String(error)
+      });
     }
+  });
 
-    // Generate government URLs based on bill number
-    const governmentUrl = `https://www.parl.ca/DocumentViewer/en/44-1/bill/${bill.billNumber}`;
-    const legiscanUrl = `https://legiscan.com/CA/bill/${bill.billNumber}/2025`;
-    const fullTextUrl = `https://www.parl.ca/DocumentViewer/en/44-1/bill/${bill.billNumber}/first-reading`;
+  // GET /api/voting/bills/:billId - Create voting for a specific bill
+  app.get('/api/voting/bills/:billId', jwtAuth, async (req: Request, res: Response) => {
+    try {
+      const userId = (req.user as any)?.id;
+      const billId = parseInt(req.params.billId);
 
-    res.json({
-      ...bill,
-      voteStats: voteStats.rows[0] || {
-        total_votes: 0,
-        yes_votes: 0,
-        no_votes: 0,
-        abstentions: 0
-      },
-      userVote,
-      governmentUrl,
-      legiscanUrl,
-      fullTextUrl,
-      // Add mock data for enhanced bill details
-      keyProvisions: [
-        "Establishes new regulatory framework",
-        "Increases funding for affected programs",
-        "Creates oversight mechanisms",
-        "Implements reporting requirements"
-      ],
-      amendments: [
-        "Amendment 1: Increased funding allocation",
-        "Amendment 2: Enhanced oversight provisions"
-      ],
-      fiscalNote: "Estimated $2.5B over 5 years with $1.8B in revenue",
-      regulatoryImpact: "New compliance requirements for affected industries"
-    });
-  } catch (error) {
-    // console.error removed for production
-    res.status(500).json({ error: 'Failed to fetch bill' });
-  }
-});
-
-// Get electoral candidates
-router.get('/electoral/candidates', async (req, res) => {
-  try {
-    // Populate candidates if they don't exist
-    await ElectionDataService.populateElectoralCandidates();
-    
-    // Get candidates with voting statistics
-    const candidates = await ElectionDataService.getElectoralCandidatesWithStats();
-    res.json(candidates);
-  } catch (error) {
-    // console.error removed for production
-    res.status(500).json({ error: 'Failed to fetch candidates' });
-  }
-});
-
-// Get electoral voting results
-router.get('/electoral/results', async (req, res) => {
-  try {
-    const results = await ElectionDataService.getElectoralResults();
-    res.json(results);
-  } catch (error) {
-    // console.error removed for production
-    res.status(500).json({ error: 'Failed to fetch electoral results' });
-  }
-});
-
-// Get electoral voting trends
-router.get('/electoral/trends', async (req, res) => {
-  try {
-    const trends = await ElectionDataService.getElectoralTrends();
-    res.json(trends);
-  } catch (error) {
-    // console.error removed for production
-    res.status(500).json({ error: 'Failed to fetch electoral trends' });
-  }
-});
-
-// Get user's electoral voting history
-router.get('/electoral/history', async (req, res) => {
-  try {
-    const userId = (req as any).user?.id;
-    if (!userId) {
-      return res.status(401).json({ error: 'Authentication required' });
-    }
-
-    const history = await ElectionDataService.getUserElectoralHistory(userId);
-    res.json(history);
-  } catch (error) {
-    // console.error removed for production
-    res.status(500).json({ error: 'Failed to fetch user electoral history' });
-  }
-});
-
-// Vote on electoral candidate
-router.post('/electoral/vote', async (req, res) => {
-  try {
-    const { candidateId, voteType, reasoning } = req.body;
-    const userId = (req as any).user?.id;
-
-    if (!userId) {
-      return res.status(401).json({ error: 'Authentication required' });
-    }
-
-    if (!candidateId || !voteType) {
-      return res.status(400).json({ error: 'Candidate ID and vote type are required' });
-    }
-
-    // Check if user already voted on this candidate
-    const existingVote = await db.select().from(electoralVotes)
-      .where(and(
-        eq(electoralVotes.userId, userId),
-        eq(electoralVotes.candidateId, candidateId)
-      ));
-
-    if (existingVote.length > 0) {
-      return res.status(400).json({ error: 'You have already voted on this candidate' });
-    }
-
-    // Create verification ID and block hash
-    const verificationId = `electoral_${userId}_${candidateId}_${Date.now()}`;
-    const blockHash = `hash_${verificationId}_${Math.random().toString(36)}`;
-
-    // Insert electoral vote
-    await db.insert(electoralVotes).values({
-      userId,
-      candidateId,
-      vote: voteType,
-      reasoning: reasoning || null
-    });
-
-    res.json({ success: true, message: 'Electoral vote recorded successfully' });
-  } catch (error) {
-    // console.error removed for production
-    res.status(500).json({ error: 'Failed to record electoral vote' });
-  }
-});
-
-// Get electoral voting results
-router.get('/electoral/results', async (req, res) => {
-  try {
-    const results = await db.execute(sql`
-      SELECT 
-        ec.id,
-        ec.name,
-        ec.party,
-        ec.position,
-        COUNT(ev.id) as total_votes,
-        COUNT(CASE WHEN ev.vote_type = 'preference' THEN 1 END) as preference_votes,
-        COUNT(CASE WHEN ev.vote_type = 'support' THEN 1 END) as support_votes,
-        COUNT(CASE WHEN ev.vote_type = 'oppose' THEN 1 END) as oppose_votes,
-        ec.trust_score
-      FROM electoral_candidates ec
-      LEFT JOIN electoral_votes ev ON ec.id = ev.candidate_id
-      GROUP BY ec.id, ec.name, ec.party, ec.position, ec.trust_score
-      ORDER BY total_votes DESC, ec.name
-    `);
-
-    res.json(results.rows);
-  } catch (error) {
-    // console.error removed for production
-    res.status(500).json({ error: 'Failed to fetch electoral results' });
-  }
-});
-
-// Get user's electoral votes
-router.get('/electoral/user-votes', async (req, res) => {
-  try {
-    const userId = (req as any).user?.id;
-    if (!userId) {
-      return res.status(401).json({ error: 'Authentication required' });
-    }
-
-    const userVotes = await db.select({
-      candidateId: electoralVotes.candidateId,
-      voteType: electoralVotes.voteType,
-      reasoning: electoralVotes.reasoning,
-      timestamp: electoralVotes.timestamp
-    }).from(electoralVotes)
-    .where(eq(electoralVotes.userId, userId))
-    .orderBy(desc(electoralVotes.timestamp));
-
-    res.json(userVotes);
-  } catch (error) {
-    // console.error removed for production
-    res.status(500).json({ error: 'Failed to fetch user votes' });
-  }
-});
-
-// Initialize electoral candidates (run once)
-router.post('/electoral/initialize', async (req, res) => {
-  try {
-    const candidates = [
-      {
-        name: "Mark Carney",
-        party: "Liberal Party",
-        position: "Prime Minister of Canada",
-        jurisdiction: "Federal",
-        bio: "Former Bank of Canada Governor and Bank of England Governor. Appointed Prime Minister in 2025, bringing significant financial expertise to government leadership.",
-        keyPolicies: ["Economic stability", "Climate action", "Financial regulation", "International cooperation"],
-        trustScore: "75.00"
-      },
-      {
-        name: "Pierre Poilievre",
-        party: "Conservative Party",
-        position: "Leader of the Opposition",
-        jurisdiction: "Federal",
-        bio: "Conservative Party leader known for his focus on economic issues, inflation concerns, and cryptocurrency advocacy.",
-        keyPolicies: ["Economic freedom", "Reduced government spending", "Digital currency", "Common sense policies"],
-        trustScore: "65.00"
-      },
-      {
-        name: "Yves-François Blanchet",
-        party: "Bloc Québécois",
-        position: "Party Leader",
-        jurisdiction: "Federal",
-        bio: "Leader of the Bloc Québécois, advocating for Quebec's interests and sovereignty within the Canadian federation.",
-        keyPolicies: ["Quebec sovereignty", "French language protection", "Provincial autonomy", "Cultural preservation"],
-        trustScore: "70.00"
-      },
-      {
-        name: "Don Davies",
-        party: "New Democratic Party",
-        position: "Interim Leader",
-        jurisdiction: "Federal",
-        bio: "Interim leader of the NDP, continuing the party's tradition of progressive policies and social justice advocacy.",
-        keyPolicies: ["Universal healthcare", "Social justice", "Climate action", "Workers' rights"],
-        trustScore: "72.00"
-      },
-      {
-        name: "Elizabeth May",
-        party: "Green Party",
-        position: "Party Leader",
-        jurisdiction: "Federal",
-        bio: "Long-time leader of the Green Party, environmental advocate, and former MP for Saanich—Gulf Islands.",
-        keyPolicies: ["Climate emergency", "Environmental protection", "Social justice", "Electoral reform"],
-        trustScore: "78.00"
+      if (isNaN(billId)) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid bill ID"
+        });
       }
-    ];
 
-    // Check if candidates already exist
-    const existingCandidates = await db.select().from(electoralCandidates);
-    if (existingCandidates.length > 0) {
-      return res.json({ message: 'Candidates already initialized' });
+      // Get bill details
+      const [bill] = await db
+        .select()
+        .from(bills)
+        .where(eq(bills.id, billId))
+        .limit(1);
+
+      if (!bill) {
+        return res.status(404).json({
+          success: false,
+          message: "Bill not found"
+        });
+      }
+
+      // Create voting item for the bill
+      const votingItemId = await votingSystem.createBillVote(billId, userId);
+
+      res.json({
+        success: true,
+        message: "Bill voting created successfully",
+        votingItemId,
+        bill: {
+          id: bill.id,
+          title: bill.title,
+          description: bill.description
+        }
+      });
+
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: "Failed to create bill voting",
+        error: (error as any)?.message || String(error)
+      });
     }
-
-    // Insert candidates
-    for (const candidate of candidates) {
-      await db.insert(electoralCandidates).values(candidate);
-    }
-
-    res.json({ success: true, message: 'Electoral candidates initialized successfully' });
-  } catch (error) {
-    // console.error removed for production
-    res.status(500).json({ error: 'Failed to initialize candidates' });
-  }
-});
-
-export default router;
-
-export function registerVotingRoutes(app: express.Application) {
-  app.use('/api/voting', router);
+  });
 } 
