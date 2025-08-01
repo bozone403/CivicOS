@@ -59,7 +59,24 @@ export function registerAnnouncementsRoutes(app: Express) {
     }
 
     const results = await db
-      .select()
+      .select({
+        id: announcements.id,
+        title: announcements.title,
+        content: announcements.content,
+        priority: announcements.priority,
+        isActive: announcements.isActive,
+        authorId: announcements.authorId,
+        authorName: announcements.authorName,
+        authorMembershipType: announcements.authorMembershipType,
+        status: announcements.status,
+        targetAudience: announcements.targetAudience,
+        isPinned: announcements.isPinned,
+        viewsCount: announcements.viewsCount,
+        publishedAt: announcements.publishedAt,
+        expiresAt: announcements.expiresAt,
+        createdAt: announcements.createdAt,
+        updatedAt: announcements.updatedAt
+      })
       .from(announcements)
       .where(and(...whereConditions))
       .orderBy(desc(announcements.isPinned), desc(announcements.createdAt))
