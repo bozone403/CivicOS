@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { 
   Search, 
   ExternalLink, 
@@ -557,6 +557,9 @@ export default function News() {
               <>
               <DialogHeader>
                   <DialogTitle className="text-xl">{selectedArticle.title}</DialogTitle>
+                  <DialogDescription>
+                    Read the full article and view additional details.
+                  </DialogDescription>
               </DialogHeader>
                 
                 <div className="space-y-4">

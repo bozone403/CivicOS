@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Building2, Crown, DollarSign, TrendingUp, TrendingDown, AlertTriangle, Search, ExternalLink } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
@@ -532,6 +532,9 @@ export default function FinancePage() {
                   <DialogTitle className="text-xl">
                     {selectedRecord.politician} - Campaign Finance {selectedRecord.year}
                   </DialogTitle>
+                  <DialogDescription>
+                    View detailed campaign finance information, donations, expenses, and compliance data.
+                  </DialogDescription>
                 </DialogHeader>
                 
                 <div className="space-y-6">

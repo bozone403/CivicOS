@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { 
   Vote, 
   Clock, 
@@ -859,6 +859,9 @@ export default function Voting() {
                     </Badge>
                     {selectedBill.title}
                   </DialogTitle>
+                  <DialogDescription>
+                    View bill details, provisions, voting information, and official government sources.
+                  </DialogDescription>
                 </DialogHeader>
                 
                 <div className="space-y-6">

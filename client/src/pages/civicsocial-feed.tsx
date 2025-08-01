@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
@@ -481,6 +481,9 @@ export default function CivicSocialFeed() {
         <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>Create a New Post</DialogTitle>
+            <DialogDescription>
+              Share your thoughts, ideas, or updates with the civic community.
+            </DialogDescription>
           </DialogHeader>
           
           <form onSubmit={handleCreatePost} className="space-y-4">
