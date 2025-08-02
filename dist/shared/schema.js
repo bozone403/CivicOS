@@ -183,14 +183,9 @@ export const socialComments = pgTable("social_comments", {
     userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
     postId: integer("post_id").notNull().references(() => socialPosts.id, { onDelete: "cascade" }),
     content: text("content").notNull(),
+    parentCommentId: integer("parent_comment_id"),
     createdAt: timestamp("created_at").defaultNow(),
     updatedAt: timestamp("updated_at").defaultNow(),
-    parentId: integer("parent_id"),
-    isEdited: boolean("is_edited").default(false),
-    editedAt: timestamp("edited_at"),
-    moderationStatus: varchar("moderation_status").default("approved"),
-    moderatedAt: timestamp("moderated_at"),
-    moderatedBy: varchar("moderated_by"),
 });
 // Social likes table
 export const socialLikes = pgTable("social_likes", {
