@@ -274,9 +274,7 @@ export function registerSocialRoutes(app: Router) {
         content: content.trim(),
         imageUrl,
         type,
-        visibility,
-        createdAt: new Date(),
-        updatedAt: new Date()
+        visibility
       }).returning();
 
       // Activity tracking can be added later

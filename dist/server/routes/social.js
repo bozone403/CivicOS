@@ -242,9 +242,7 @@ export function registerSocialRoutes(app) {
                 content: content.trim(),
                 imageUrl,
                 type,
-                visibility,
-                createdAt: new Date(),
-                updatedAt: new Date()
+                visibility
             }).returning();
             // Activity tracking can be added later
             res.json({
