@@ -271,10 +271,7 @@ export function registerSocialRoutes(app: Router) {
 
       const newPost = await db.insert(socialPosts).values({
         userId: currentUserId,
-        content: content.trim(),
-        imageUrl,
-        type,
-        visibility
+        content: content.trim()
       }).returning();
 
       // Activity tracking can be added later
