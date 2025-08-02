@@ -51,10 +51,7 @@ export async function apiRequest(endpoint: string, method: string = 'GET', body?
           };
         }
         if (endpoint === '/api/notifications') {
-          return {
-            notifications: [],
-            unreadCount: 0
-          };
+          return [];
         }
         if (endpoint === '/api/social/posts') {
           return {

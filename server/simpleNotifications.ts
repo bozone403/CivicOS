@@ -30,10 +30,7 @@ function jwtAuth(req: any, res: any, next: any) {
 router.get("/", async (req: any, res) => {
   try {
     // Return proper array format for frontend
-    res.json({
-      notifications: [],
-      unreadCount: 0
-    });
+    res.json([]);
   } catch (error) {
     logger.error({ msg: 'Error fetching notifications', error: error instanceof Error ? error.message : String(error) });
     res.status(500).json({ message: "Failed to fetch notifications" });
