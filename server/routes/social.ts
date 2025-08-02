@@ -445,9 +445,7 @@ export function registerSocialRoutes(app: Router) {
       const comment = await db.insert(socialComments).values({
         postId,
         userId: currentUserId,
-        content: content.trim(),
-        parentId: parentCommentId || null,
-        createdAt: new Date()
+        content: content.trim()
       }).returning();
 
       res.json({
@@ -455,7 +453,7 @@ export function registerSocialRoutes(app: Router) {
         comment: comment[0]
       });
     } catch (error) {
-      // console.error removed for production
+      console.error('Comment creation error:', error);
       res.status(500).json({ error: "Failed to add comment" });
     }
   });
@@ -474,9 +472,7 @@ export function registerSocialRoutes(app: Router) {
       const comment = await db.insert(socialComments).values({
         postId,
         userId: currentUserId,
-        content: content.trim(),
-        parentId: parentCommentId || null,
-        createdAt: new Date()
+        content: content.trim()
       }).returning();
 
       res.json({
@@ -484,7 +480,7 @@ export function registerSocialRoutes(app: Router) {
         comment: comment[0]
       });
     } catch (error) {
-      // console.error removed for production
+      console.error('Comment creation error:', error);
       res.status(500).json({ error: "Failed to add comment" });
     }
   });
