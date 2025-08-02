@@ -988,10 +988,7 @@ export function registerSocialRoutes(app: Router) {
       await db
         .update(notifications)
         .set({ isRead: true })
-        .where(and(
-          eq(notifications.userId, currentUserId),
-          eq(notifications.isRead, false)
-        ));
+        .where(eq(notifications.userId, currentUserId));
 
       res.json({
         success: true,
@@ -999,7 +996,219 @@ export function registerSocialRoutes(app: Router) {
       });
     } catch (error) {
       // console.error removed for production
-      res.status(500).json({ error: "Failed to mark all notifications as read" });
+      res.status(500).json({ error: "Failed to mark notifications as read" });
+    }
+  });
+
+  // POST /api/upload/image - Upload image for posts
+  app.post('/api/upload/image', jwtAuth, async (req: Request, res: Response) => {
+    try {
+      const currentUserId = (req.user as any).id;
+      
+      // For now, return a mock image URL since we don't have file storage configured
+      // In production, this would upload to a service like AWS S3 or Cloudinary
+      const mockImageUrl = `https://picsum.photos/800/600?random=${Date.now()}`;
+      
+      res.json({
+        success: true,
+        imageUrl: mockImageUrl,
+        message: "Image uploaded successfully"
+      });
+    } catch (error) {
+      console.error('Image upload error:', error);
+      res.status(500).json({ error: "Failed to upload image" });
+    }
+  });
+
+  // GET /api/social/posts/user/:username - Get posts by username (frontend compatibility)
+  app.get('/api/social/posts/user/:username', async (req: Request, res: Response) => {
+    try {
+      const { username } = req.params;
+      const { limit = 20, offset = 0 } = req.query;
+
+      // First try to find user by username
+      const [user] = await db
+        .select({ id: users.id })
+        .from(users)
+        .where(eq(users.username, username))
+        .limit(1);
+
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      // Get posts by user ID
+      const posts = await db
+        .select({
+          id: socialPosts.id,
+          content: socialPosts.content,
+          imageUrl: socialPosts.imageUrl,
+          type: socialPosts.type,
+          createdAt: socialPosts.createdAt,
+          updatedAt: socialPosts.updatedAt,
+          userId: socialPosts.userId,
+          visibility: socialPosts.visibility,
+          user: {
+            id: users.id,
+            firstName: users.firstName,
+            lastName: users.lastName,
+            profileImageUrl: users.profileImageUrl,
+            civicLevel: users.civicLevel,
+            isVerified: users.isVerified,
+          }
+        })
+        .from(socialPosts)
+        .leftJoin(users, eq(socialPosts.userId, users.id))
+        .where(eq(socialPosts.userId, user.id))
+        .orderBy(desc(socialPosts.createdAt))
+        .limit(parseInt(limit as string))
+        .offset(parseInt(offset as string));
+
+      res.json({
+        success: true,
+        posts
+      });
+    } catch (error) {
+      console.error('User posts error:', error);
+      res.status(500).json({ error: "Failed to fetch user posts" });
+    }
+  });
+
+  // POST /api/social/follow - Follow a user
+  app.post('/api/social/follow', jwtAuth, async (req: Request, res: Response) => {
+    try {
+      const currentUserId = (req.user as any).id;
+      const { userId } = req.body;
+
+      if (!userId) {
+        return res.status(400).json({ error: "User ID is required" });
+      }
+
+      if (currentUserId === userId) {
+        return res.status(400).json({ error: "You cannot follow yourself" });
+      }
+
+      // Check if already following
+      const existingFollow = await db
+        .select()
+        .from(userFriends)
+        .where(and(
+          eq(userFriends.userId, currentUserId),
+          eq(userFriends.friendId, userId),
+          eq(userFriends.status, 'accepted')
+        ))
+        .limit(1);
+
+      if (existingFollow.length > 0) {
+        return res.status(400).json({ error: "Already following this user" });
+      }
+
+      // Create follow relationship
+      await db.insert(userFriends).values({
+        userId: currentUserId,
+        friendId: userId,
+        status: 'accepted',
+        createdAt: new Date()
+      });
+
+      res.json({
+        success: true,
+        message: "Successfully followed user"
+      });
+    } catch (error) {
+      console.error('Follow error:', error);
+      res.status(500).json({ error: "Failed to follow user" });
+    }
+  });
+
+  // DELETE /api/social/follow - Unfollow a user
+  app.delete('/api/social/follow/:userId', jwtAuth, async (req: Request, res: Response) => {
+    try {
+      const currentUserId = (req.user as any).id;
+      const { userId } = req.params;
+
+      if (currentUserId === userId) {
+        return res.status(400).json({ error: "You cannot unfollow yourself" });
+      }
+
+      // Remove follow relationship
+      await db
+        .delete(userFriends)
+        .where(and(
+          eq(userFriends.userId, currentUserId),
+          eq(userFriends.friendId, userId),
+          eq(userFriends.status, 'accepted')
+        ));
+
+      res.json({
+        success: true,
+        message: "Successfully unfollowed user"
+      });
+    } catch (error) {
+      console.error('Unfollow error:', error);
+      res.status(500).json({ error: "Failed to unfollow user" });
+    }
+  });
+
+  // GET /api/social/followers/:userId - Get user's followers
+  app.get('/api/social/followers/:userId', async (req: Request, res: Response) => {
+    try {
+      const { userId } = req.params;
+
+      const followers = await db
+        .select({
+          id: users.id,
+          firstName: users.firstName,
+          lastName: users.lastName,
+          profileImageUrl: users.profileImageUrl,
+          civicLevel: users.civicLevel,
+          isVerified: users.isVerified,
+        })
+        .from(users)
+        .leftJoin(userFriends, eq(users.id, userFriends.userId))
+        .where(and(
+          eq(userFriends.friendId, userId),
+          eq(userFriends.status, 'accepted')
+        ));
+
+      res.json({
+        success: true,
+        followers
+      });
+    } catch (error) {
+      console.error('Followers error:', error);
+      res.status(500).json({ error: "Failed to fetch followers" });
+    }
+  });
+
+  // GET /api/social/following/:userId - Get users that a user is following
+  app.get('/api/social/following/:userId', async (req: Request, res: Response) => {
+    try {
+      const { userId } = req.params;
+
+      const following = await db
+        .select({
+          id: users.id,
+          firstName: users.firstName,
+          lastName: users.lastName,
+          profileImageUrl: users.profileImageUrl,
+          civicLevel: users.civicLevel,
+          isVerified: users.isVerified,
+        })
+        .from(users)
+        .leftJoin(userFriends, eq(users.id, userFriends.friendId))
+        .where(and(
+          eq(userFriends.userId, userId),
+          eq(userFriends.status, 'accepted')
+        ));
+
+      res.json({
+        success: true,
+        following
+      });
+    } catch (error) {
+      console.error('Following error:', error);
+      res.status(500).json({ error: "Failed to fetch following" });
     }
   });
 } 
