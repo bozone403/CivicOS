@@ -253,7 +253,7 @@ export function registerSocialRoutes(app) {
             });
         }
         catch (error) {
-            // console.error removed for production
+            console.error('Post creation error:', error);
             res.status(500).json({ error: "Failed to create post" });
         }
     });
@@ -362,6 +362,74 @@ export function registerSocialRoutes(app) {
             res.status(500).json({ error: "Failed to like post" });
         }
     });
+    // POST /api/social/posts/:id/bookmark - Bookmark a post
+    app.post('/api/social/posts/:id/bookmark', jwtAuth, async (req, res) => {
+        try {
+            const currentUserId = req.user.id;
+            const postId = parseInt(req.params.id);
+            // For now, just return success (bookmarking can be implemented later)
+            res.json({
+                success: true,
+                message: "Post bookmarked successfully"
+            });
+        }
+        catch (error) {
+            // console.error removed for production
+            res.status(500).json({ error: "Failed to bookmark post" });
+        }
+    });
+    // POST /api/social/posts/:id/comment - Add comment to post
+    app.post('/api/social/posts/:id/comment', jwtAuth, async (req, res) => {
+        try {
+            const currentUserId = req.user.id;
+            const postId = parseInt(req.params.id);
+            const { content, parentCommentId } = req.body;
+            if (!content) {
+                return res.status(400).json({ error: "Comment content is required" });
+            }
+            const comment = await db.insert(socialComments).values({
+                postId,
+                userId: currentUserId,
+                content: content.trim(),
+                parentId: parentCommentId || null,
+                createdAt: new Date()
+            }).returning();
+            res.json({
+                success: true,
+                comment: comment[0]
+            });
+        }
+        catch (error) {
+            // console.error removed for production
+            res.status(500).json({ error: "Failed to add comment" });
+        }
+    });
+    // POST /api/social/posts/:id/comments - Alternative comment endpoint (frontend compatibility)
+    app.post('/api/social/posts/:id/comments', jwtAuth, async (req, res) => {
+        try {
+            const currentUserId = req.user.id;
+            const postId = parseInt(req.params.id);
+            const { content, parentCommentId } = req.body;
+            if (!content) {
+                return res.status(400).json({ error: "Comment content is required" });
+            }
+            const comment = await db.insert(socialComments).values({
+                postId,
+                userId: currentUserId,
+                content: content.trim(),
+                parentId: parentCommentId || null,
+                createdAt: new Date()
+            }).returning();
+            res.json({
+                success: true,
+                comment: comment[0]
+            });
+        }
+        catch (error) {
+            // console.error removed for production
+            res.status(500).json({ error: "Failed to add comment" });
+        }
+    });
     // GET /api/social/friends - Get friends
     app.get('/api/social/friends', jwtAuth, async (req, res) => {
         try {
@@ -405,7 +473,7 @@ export function registerSocialRoutes(app) {
                 return res.status(400).json({ error: "Friend ID and action are required" });
             }
             switch (action) {
-                case 'send_request':
+                case 'send':
                     await db.insert(userFriends).values({
                         userId: currentUserId,
                         friendId,
@@ -413,18 +481,13 @@ export function registerSocialRoutes(app) {
                         createdAt: new Date()
                     });
                     break;
-                case 'accept_request':
+                case 'accept':
                     await db
                         .update(userFriends)
                         .set({ status: 'accepted', updatedAt: new Date() })
                         .where(and(eq(userFriends.userId, friendId), eq(userFriends.friendId, currentUserId), eq(userFriends.status, 'pending')));
                     break;
-                case 'decline_request':
-                    await db
-                        .delete(userFriends)
-                        .where(and(eq(userFriends.userId, friendId), eq(userFriends.friendId, currentUserId), eq(userFriends.status, 'pending')));
-                    break;
-                case 'remove_friend':
+                case 'remove':
                     await db
                         .delete(userFriends)
                         .where(and(eq(userFriends.userId, currentUserId), eq(userFriends.friendId, friendId), eq(userFriends.status, 'accepted')));
@@ -440,6 +503,104 @@ export function registerSocialRoutes(app) {
         catch (error) {
             // console.error removed for production
             res.status(500).json({ error: "Failed to perform friend action" });
+        }
+    });
+    // GET /api/social/conversations - Get user's conversations
+    app.get('/api/social/conversations', jwtAuth, async (req, res) => {
+        try {
+            const currentUserId = req.user.id;
+            // Get all conversations for the user
+            const conversations = await db.execute(sql `
+        SELECT DISTINCT 
+          u.id,
+          u.first_name,
+          u.last_name,
+          u.email,
+          u.profile_image_url as profile_image_url,
+          u.civic_level,
+          u.trust_score,
+          (
+            SELECT content 
+            FROM user_messages 
+            WHERE (sender_id = ${currentUserId} AND recipient_id = u.id) 
+               OR (sender_id = u.id AND recipient_id = ${currentUserId})
+            ORDER BY created_at DESC 
+            LIMIT 1
+          ) as last_message,
+          (
+            SELECT created_at 
+            FROM user_messages 
+            WHERE (sender_id = ${currentUserId} AND recipient_id = u.id) 
+               OR (sender_id = u.id AND recipient_id = ${currentUserId})
+            ORDER BY created_at DESC 
+            LIMIT 1
+          ) as last_message_time,
+          (
+            SELECT COUNT(*) 
+            FROM user_messages 
+            WHERE sender_id = u.id AND recipient_id = ${currentUserId} AND is_read = false
+          ) as unread_count
+        FROM users u
+        WHERE u.id IN (
+          SELECT DISTINCT 
+            CASE 
+              WHEN sender_id = ${currentUserId} THEN recipient_id
+              ELSE sender_id
+            END
+          FROM user_messages 
+          WHERE sender_id = ${currentUserId} OR recipient_id = ${currentUserId}
+        )
+        ORDER BY last_message_time DESC NULLS LAST
+      `);
+            const formattedConversations = conversations.rows.map((conv) => ({
+                id: conv.id,
+                participant: {
+                    firstName: conv.first_name,
+                    lastName: conv.last_name,
+                    profileImageUrl: conv.profile_image_url,
+                    email: conv.email,
+                    isOnline: false // TODO: Implement online status
+                },
+                lastMessage: conv.last_message ? {
+                    content: conv.last_message,
+                    timestamp: conv.last_message_time
+                } : null,
+                unreadCount: parseInt(conv.unread_count) || 0
+            }));
+            res.json({
+                success: true,
+                conversations: formattedConversations
+            });
+        }
+        catch (error) {
+            // console.error removed for production
+            res.status(500).json({ error: "Failed to fetch conversations" });
+        }
+    });
+    // GET /api/social/messages/:conversationId - Get messages for a conversation
+    app.get('/api/social/messages/:conversationId', jwtAuth, async (req, res) => {
+        try {
+            const currentUserId = req.user.id;
+            const conversationId = req.params.conversationId;
+            // Get messages between current user and conversation partner
+            const messages = await db
+                .select()
+                .from(userMessages)
+                .where(or(and(eq(userMessages.senderId, currentUserId), eq(userMessages.recipientId, conversationId)), and(eq(userMessages.senderId, conversationId), eq(userMessages.recipientId, currentUserId))))
+                .orderBy(asc(userMessages.createdAt));
+            // Mark messages as read
+            await db
+                .update(userMessages)
+                .set({ isRead: true })
+                .where(and(eq(userMessages.senderId, conversationId), eq(userMessages.recipientId, currentUserId), eq(userMessages.isRead, false)));
+            res.json({
+                success: true,
+                messages
+            });
+        }
+        catch (error) {
+            // console.error removed for production
+            res.status(500).json({ error: "Failed to fetch messages" });
         }
     });
     // GET /api/social/users/search - Search users

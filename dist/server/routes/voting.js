@@ -243,48 +243,78 @@ export function registerVotingRoutes(app) {
             });
         }
     });
-    // GET /api/voting/bills/:billId - Create voting for a specific bill
+    // Get voting item by bill ID
     app.get('/api/voting/bills/:billId', jwtAuth, async (req, res) => {
         try {
+            const { billId } = req.params;
             const userId = req.user?.id;
-            const billId = parseInt(req.params.billId);
-            if (isNaN(billId)) {
-                return res.status(400).json({
-                    success: false,
-                    message: "Invalid bill ID"
-                });
+            // Get bill information
+            const bill = await db.select().from(bills).where(eq(bills.id, parseInt(billId))).limit(1);
+            if (bill.length === 0) {
+                return res.status(404).json({ message: "Bill not found" });
             }
-            // Get bill details
-            const [bill] = await db
-                .select()
-                .from(bills)
-                .where(eq(bills.id, billId))
-                .limit(1);
-            if (!bill) {
-                return res.status(404).json({
-                    success: false,
-                    message: "Bill not found"
-                });
+            // Get user's vote if authenticated
+            let userVote = null;
+            if (userId) {
+                const vote = await db
+                    .select()
+                    .from(votes)
+                    .where(and(eq(votes.billId, parseInt(billId)), eq(votes.userId, userId)))
+                    .limit(1);
+                userVote = vote.length > 0 ? vote[0] : null;
             }
-            // Create voting item for the bill
-            const votingItemId = await votingSystem.createBillVote(billId, userId);
             res.json({
                 success: true,
-                message: "Bill voting created successfully",
-                votingItemId,
-                bill: {
-                    id: bill.id,
-                    title: bill.title,
-                    description: bill.description
-                }
+                bill: bill[0],
+                userVote
             });
         }
         catch (error) {
-            res.status(500).json({
-                success: false,
-                message: "Failed to create bill voting",
-                error: error?.message || String(error)
+            res.status(500).json({ message: "Failed to fetch bill voting data", error: error?.message || String(error) });
+        }
+    });
+    // Get electoral candidates
+    app.get('/api/voting/electoral/candidates', async (req, res) => {
+        try {
+            // For now, return empty array (electoral candidates can be implemented later)
+            res.json({
+                success: true,
+                candidates: []
             });
+        }
+        catch (error) {
+            res.status(500).json({ message: "Failed to fetch electoral candidates", error: error?.message || String(error) });
+        }
+    });
+    // Get electoral results
+    app.get('/api/voting/electoral/results', async (req, res) => {
+        try {
+            const { votingItemId } = req.query;
+            if (!votingItemId) {
+                return res.status(400).json({ message: "Invalid voting item ID" });
+            }
+            // For now, return empty results (electoral results can be implemented later)
+            res.json({
+                success: true,
+                results: []
+            });
+        }
+        catch (error) {
+            res.status(500).json({ message: "Failed to fetch electoral results", error: error?.message || String(error) });
+        }
+    });
+    // Get user's electoral votes
+    app.get('/api/voting/electoral/user-votes', jwtAuth, async (req, res) => {
+        try {
+            const userId = req.user?.id;
+            // For now, return empty array (electoral user votes can be implemented later)
+            res.json({
+                success: true,
+                userVotes: []
+            });
+        }
+        catch (error) {
+            res.status(500).json({ message: "Failed to fetch user electoral votes", error: error?.message || String(error) });
         }
     });
 }
