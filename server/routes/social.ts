@@ -1029,13 +1029,22 @@ export function registerSocialRoutes(app: Router) {
       const { limit = 20, offset = 0 } = req.query;
 
       // First try to find user by username
-      const [user] = await db
+      let user = await db
         .select({ id: users.id })
         .from(users)
         .where(eq(users.username, username))
         .limit(1);
 
-      if (!user) {
+      // If not found by username, try by ID (for backward compatibility)
+      if (user.length === 0) {
+        user = await db
+          .select({ id: users.id })
+          .from(users)
+          .where(eq(users.id, username))
+          .limit(1);
+      }
+
+      if (user.length === 0) {
         return res.status(404).json({ error: "User not found" });
       }
 
@@ -1061,7 +1070,7 @@ export function registerSocialRoutes(app: Router) {
         })
         .from(socialPosts)
         .leftJoin(users, eq(socialPosts.userId, users.id))
-        .where(eq(socialPosts.userId, user.id))
+        .where(eq(socialPosts.userId, user[0].id))
         .orderBy(desc(socialPosts.createdAt))
         .limit(parseInt(limit as string))
         .offset(parseInt(offset as string));
