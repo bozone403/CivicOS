@@ -1222,4 +1222,175 @@ export function registerSocialRoutes(app: Router) {
       res.status(500).json({ error: "Failed to fetch following" });
     }
   });
+
+  // PUT /api/social/comments/:commentId - Edit a comment
+  app.put('/api/social/comments/:commentId', jwtAuth, async (req: Request, res: Response) => {
+    try {
+      const currentUserId = (req.user as any).id;
+      const { commentId } = req.params;
+      const { content } = req.body;
+
+      if (!content || content.trim().length === 0) {
+        return res.status(400).json({ error: "Comment content is required" });
+      }
+
+      // Get the comment to check ownership
+      const [comment] = await db
+        .select()
+        .from(socialComments)
+        .where(eq(socialComments.id, parseInt(commentId)))
+        .limit(1);
+
+      if (!comment) {
+        return res.status(404).json({ error: "Comment not found" });
+      }
+
+      // Check if user owns the comment
+      if (comment.userId !== currentUserId) {
+        return res.status(403).json({ error: "You can only edit your own comments" });
+      }
+
+      // Update the comment
+      const [updatedComment] = await db
+        .update(socialComments)
+        .set({
+          content: content.trim(),
+          updatedAt: new Date()
+        })
+        .where(eq(socialComments.id, parseInt(commentId)))
+        .returning();
+
+      res.json({
+        success: true,
+        message: "Comment updated successfully",
+        comment: updatedComment
+      });
+    } catch (error) {
+      console.error('Comment edit error:', error);
+      res.status(500).json({ error: "Failed to edit comment" });
+    }
+  });
+
+  // DELETE /api/social/comments/:commentId - Delete a comment
+  app.delete('/api/social/comments/:commentId', jwtAuth, async (req: Request, res: Response) => {
+    try {
+      const currentUserId = (req.user as any).id;
+      const { commentId } = req.params;
+
+      // Get the comment to check ownership
+      const [comment] = await db
+        .select()
+        .from(socialComments)
+        .where(eq(socialComments.id, parseInt(commentId)))
+        .limit(1);
+
+      if (!comment) {
+        return res.status(404).json({ error: "Comment not found" });
+      }
+
+      // Check if user owns the comment
+      if (comment.userId !== currentUserId) {
+        return res.status(403).json({ error: "You can only delete your own comments" });
+      }
+
+      // Delete the comment
+      await db
+        .delete(socialComments)
+        .where(eq(socialComments.id, parseInt(commentId)));
+
+      res.json({
+        success: true,
+        message: "Comment deleted successfully"
+      });
+    } catch (error) {
+      console.error('Comment delete error:', error);
+      res.status(500).json({ error: "Failed to delete comment" });
+    }
+  });
+
+  // PUT /api/social/posts/:postId - Edit a post
+  app.put('/api/social/posts/:postId', jwtAuth, async (req: Request, res: Response) => {
+    try {
+      const currentUserId = (req.user as any).id;
+      const { postId } = req.params;
+      const { content, visibility } = req.body;
+
+      if (!content || content.trim().length === 0) {
+        return res.status(400).json({ error: "Post content is required" });
+      }
+
+      // Get the post to check ownership
+      const [post] = await db
+        .select()
+        .from(socialPosts)
+        .where(eq(socialPosts.id, parseInt(postId)))
+        .limit(1);
+
+      if (!post) {
+        return res.status(404).json({ error: "Post not found" });
+      }
+
+      // Check if user owns the post
+      if (post.userId !== currentUserId) {
+        return res.status(403).json({ error: "You can only edit your own posts" });
+      }
+
+      // Update the post
+      const [updatedPost] = await db
+        .update(socialPosts)
+        .set({
+          content: content.trim(),
+          visibility: visibility || post.visibility,
+          updatedAt: new Date()
+        })
+        .where(eq(socialPosts.id, parseInt(postId)))
+        .returning();
+
+      res.json({
+        success: true,
+        message: "Post updated successfully",
+        post: updatedPost
+      });
+    } catch (error) {
+      console.error('Post edit error:', error);
+      res.status(500).json({ error: "Failed to edit post" });
+    }
+  });
+
+  // DELETE /api/social/posts/:postId - Delete a post
+  app.delete('/api/social/posts/:postId', jwtAuth, async (req: Request, res: Response) => {
+    try {
+      const currentUserId = (req.user as any).id;
+      const { postId } = req.params;
+
+      // Get the post to check ownership
+      const [post] = await db
+        .select()
+        .from(socialPosts)
+        .where(eq(socialPosts.id, parseInt(postId)))
+        .limit(1);
+
+      if (!post) {
+        return res.status(404).json({ error: "Post not found" });
+      }
+
+      // Check if user owns the post
+      if (post.userId !== currentUserId) {
+        return res.status(403).json({ error: "You can only delete your own posts" });
+      }
+
+      // Delete the post (this will cascade delete comments and likes)
+      await db
+        .delete(socialPosts)
+        .where(eq(socialPosts.id, parseInt(postId)));
+
+      res.json({
+        success: true,
+        message: "Post deleted successfully"
+      });
+    } catch (error) {
+      console.error('Post delete error:', error);
+      res.status(500).json({ error: "Failed to delete post" });
+    }
+  });
 } 
