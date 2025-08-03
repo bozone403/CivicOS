@@ -233,13 +233,33 @@ export function registerSocialRoutes(app) {
     app.post('/api/social/posts', jwtAuth, async (req, res) => {
         try {
             const currentUserId = req.user.id;
-            const { content, imageUrl, type = 'post', visibility = 'public' } = req.body;
+            const { content, imageUrl, type = 'post', visibility = 'public', targetUserId } = req.body;
             if (!content) {
                 return res.status(400).json({ error: "Content is required" });
             }
+            // If posting on someone else's profile, validate the target user exists
+            if (targetUserId && targetUserId !== currentUserId) {
+                const [targetUser] = await db
+                    .select()
+                    .from(users)
+                    .where(eq(users.id, targetUserId))
+                    .limit(1);
+                if (!targetUser) {
+                    return res.status(404).json({ error: "Target user not found" });
+                }
+                // Check if the target user allows posts on their profile
+                // For now, we'll allow it, but this could be a user preference later
+            }
             const newPost = await db.insert(socialPosts).values({
                 userId: currentUserId,
-                content: content.trim()
+                content: content.trim(),
+                type,
+                visibility,
+                // Store target user ID in a custom field or use a different approach
+                // For now, we'll add it to the content or use a special format
+                ...(targetUserId && targetUserId !== currentUserId && {
+                    content: `${content.trim()} [Posted on ${targetUserId}'s profile]`
+                })
             }).returning();
             // Activity tracking can be added later
             res.json({
@@ -1096,81 +1116,6 @@ export function registerSocialRoutes(app) {
         catch (error) {
             console.error('Comment delete error:', error);
             res.status(500).json({ error: "Failed to delete comment" });
-        }
-    });
-    // PUT /api/social/posts/:postId - Edit a post
-    app.put('/api/social/posts/:postId', jwtAuth, async (req, res) => {
-        try {
-            const currentUserId = req.user.id;
-            const { postId } = req.params;
-            const { content, visibility } = req.body;
-            if (!content || content.trim().length === 0) {
-                return res.status(400).json({ error: "Post content is required" });
-            }
-            // Get the post to check ownership
-            const [post] = await db
-                .select()
-                .from(socialPosts)
-                .where(eq(socialPosts.id, parseInt(postId)))
-                .limit(1);
-            if (!post) {
-                return res.status(404).json({ error: "Post not found" });
-            }
-            // Check if user owns the post
-            if (post.userId !== currentUserId) {
-                return res.status(403).json({ error: "You can only edit your own posts" });
-            }
-            // Update the post
-            const [updatedPost] = await db
-                .update(socialPosts)
-                .set({
-                content: content.trim(),
-                visibility: visibility || post.visibility,
-                updatedAt: new Date()
-            })
-                .where(eq(socialPosts.id, parseInt(postId)))
-                .returning();
-            res.json({
-                success: true,
-                message: "Post updated successfully",
-                post: updatedPost
-            });
-        }
-        catch (error) {
-            console.error('Post edit error:', error);
-            res.status(500).json({ error: "Failed to edit post" });
-        }
-    });
-    // DELETE /api/social/posts/:postId - Delete a post
-    app.delete('/api/social/posts/:postId', jwtAuth, async (req, res) => {
-        try {
-            const currentUserId = req.user.id;
-            const { postId } = req.params;
-            // Get the post to check ownership
-            const [post] = await db
-                .select()
-                .from(socialPosts)
-                .where(eq(socialPosts.id, parseInt(postId)))
-                .limit(1);
-            if (!post) {
-                return res.status(404).json({ error: "Post not found" });
-            }
-            // Check if user owns the post
-            if (post.userId !== currentUserId) {
-                return res.status(403).json({ error: "You can only delete your own posts" });
-            }
-            // Delete the post (this will cascade delete comments and likes)
-            await db
-                .delete(socialPosts)
-                .where(eq(socialPosts.id, parseInt(postId)));
-            res.json({
-                success: true,
-                message: "Post deleted successfully"
-            });
-        }
-        catch (error) {
-            console.error('Post delete error:', error);
-            res.status(500).json({ error: "Failed to delete post" });
         }
     });
 }

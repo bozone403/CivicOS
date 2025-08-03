@@ -51,6 +51,7 @@ export function registerUserRoutes(app: Express) {
           or(
             ilike(users.firstName, searchTerm),
             ilike(users.lastName, searchTerm),
+            ilike(users.username, searchTerm),
             ilike(users.email, searchTerm),
             ilike(users.city, searchTerm),
             ilike(users.province, searchTerm)
@@ -79,6 +80,7 @@ export function registerUserRoutes(app: Express) {
       const searchResults = await db
         .select({
           id: users.id,
+          username: users.username,
           firstName: users.firstName,
           lastName: users.lastName,
           email: users.email,
@@ -106,6 +108,7 @@ export function registerUserRoutes(app: Express) {
       // Format results for frontend
       const formattedResults = searchResults.map(user => ({
         id: user.id,
+        username: user.username,
         firstName: user.firstName,
         lastName: user.lastName,
         email: user.email,
@@ -118,7 +121,7 @@ export function registerUserRoutes(app: Express) {
         joinedAt: user.createdAt,
         displayName: user.firstName && user.lastName 
           ? `${user.firstName} ${user.lastName}` 
-          : user.firstName || user.email?.split('@')[0] || 'Anonymous User'
+          : user.firstName || user.username || 'Anonymous User'
       }));
 
       res.json({

@@ -101,6 +101,7 @@ interface User {
     receivedRequest: boolean;
     canSendRequest: boolean;
   };
+  username?: string; // Added for username
 }
 
 interface SearchParams {
@@ -239,99 +240,109 @@ export default function UserSearch() {
   };
 
   const UserCard = ({ user }: { user: User }) => (
-    <Card className="mb-4 hover:shadow-md transition-shadow">
-      <CardContent className="p-4">
-        <div className="flex items-start justify-between">
-          <div className="flex items-center gap-3">
-            <Avatar className="w-12 h-12">
-              <AvatarImage src={user.profileImageUrl} />
-              <AvatarFallback className="bg-blue-600">
-                {user.displayName[0]?.toUpperCase()}
-              </AvatarFallback>
-            </Avatar>
-            <div className="flex-1">
-              <div className="flex items-center gap-2 mb-1">
-                <h3 className="font-semibold">{user.displayName}</h3>
-                {user.isVerified && (
-                  <Badge variant="secondary">
-                    <Star className="w-3 h-3 mr-1" />
-                    Verified
-                  </Badge>
-                )}
-                <Badge className={`text-xs ${getCivicLevelColor(user.civicLevel || '')}`}>
-                  {user.civicLevel || 'Registered'}
+    <Card className="hover:shadow-lg transition-shadow duration-200">
+      <CardContent className="p-6">
+        <div className="flex items-start space-x-4">
+          <Avatar className="h-16 w-16">
+            <AvatarImage src={user.profileImageUrl} alt={user.displayName} />
+            <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white text-lg font-semibold">
+              {user.displayName.split(' ').map(n => n[0]).join('').toUpperCase()}
+            </AvatarFallback>
+          </Avatar>
+          
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center space-x-2 mb-2">
+              <h3 className="text-lg font-semibold text-gray-900 truncate">
+                {user.displayName}
+              </h3>
+              {user.isVerified && (
+                <Badge variant="secondary" className="bg-blue-100 text-blue-800">
+                  <Check className="w-3 h-3 mr-1" />
+                  Verified
                 </Badge>
-              </div>
-              
-              {user.location && (
-                <div className="flex items-center gap-1 text-sm text-gray-600 mb-1">
-                  <MapPin className="w-3 h-3" />
-                  {user.location}
-                </div>
-              )}
-              
-              {user.stats && (
-                <div className="flex items-center gap-4 text-xs text-gray-500">
-                  <span>{user.stats.posts} posts</span>
-                  <span>{user.stats.friends} friends</span>
-                  <span>{user.stats.activities} activities</span>
-                </div>
               )}
             </div>
-          </div>
-          
-          <div className="flex items-center gap-2">
-            {user.friendship && (
-              <>
-                {user.friendship.isFriend ? (
-                  <Button variant="outline" size="sm" disabled>
-                    <UserCheck className="w-4 h-4 mr-1" />
-                    Friends
-                  </Button>
-                ) : user.friendship.pendingRequest ? (
-                  <Button variant="outline" size="sm" disabled>
-                    <Clock className="w-4 h-4 mr-1" />
-                    Request Sent
-                  </Button>
-                ) : user.friendship.receivedRequest ? (
-                  <div className="flex gap-1">
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={() => handleFriendAction(user.id, 'accept')}
-                    >
-                      <Check className="w-4 h-4 mr-1" />
-                      Accept
-                    </Button>
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={() => handleFriendAction(user.id, 'reject')}
-                    >
-                      <X className="w-4 h-4 mr-1" />
-                      Decline
-                    </Button>
-                  </div>
-                ) : user.friendship.canSendRequest ? (
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={() => handleFriendAction(user.id, 'send')}
-                  >
-                    <UserPlus className="w-4 h-4 mr-1" />
-                    Add Friend
-                  </Button>
-                ) : null}
-              </>
+            
+            <div className="flex items-center space-x-2 mb-2">
+              <span className="text-sm text-gray-500">@{user.username || 'user'}</span>
+              {user.civicLevel && (
+                <Badge variant="outline" className={getCivicLevelColor(user.civicLevel)}>
+                  {user.civicLevel}
+                </Badge>
+              )}
+            </div>
+            
+            {user.bio && (
+              <p className="text-sm text-gray-600 mb-3 line-clamp-2">
+                {user.bio}
+              </p>
             )}
             
-            <Button 
-              variant="ghost" 
-              size="sm"
-              onClick={() => setSelectedUser(user)}
-            >
-              <MoreHorizontal className="w-4 h-4" />
-            </Button>
+            {user.location && (
+              <div className="flex items-center text-sm text-gray-500 mb-3">
+                <MapPin className="w-4 h-4 mr-1" />
+                {user.location}
+              </div>
+            )}
+            
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-4 text-sm text-gray-500">
+                <span>Joined {user.joinedAt ? formatTimeAgo(user.joinedAt) : 'recently'}</span>
+                {user.stats && (
+                  <>
+                    <span>{user.stats.posts} posts</span>
+                    <span>{user.stats.friends} friends</span>
+                  </>
+                )}
+              </div>
+              
+              <div className="flex items-center space-x-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleFriendAction(user.id, 'send')}
+                  disabled={user.friendship?.isFriend || user.friendship?.pendingRequest}
+                >
+                  {user.friendship?.isFriend ? (
+                    <>
+                      <UserCheck className="w-4 h-4 mr-1" />
+                      Friends
+                    </>
+                  ) : user.friendship?.pendingRequest ? (
+                    <>
+                      <Clock className="w-4 h-4 mr-1" />
+                      Pending
+                    </>
+                  ) : (
+                    <>
+                      <UserPlus className="w-4 h-4 mr-1" />
+                      Add Friend
+                    </>
+                  )}
+                </Button>
+                
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleSendMessage(user.id, 'Hello! I found you on CivicOS.')}
+                >
+                  <MessageSquare className="w-4 h-4 mr-1" />
+                  Message
+                </Button>
+                
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    const profileUrl = user.username ? `/profile/${user.username}` : `/profile/${user.id}`;
+                    window.open(profileUrl, '_blank');
+                  }}
+                >
+                  <ExternalLink className="w-4 h-4 mr-1" />
+                  View Profile
+                </Button>
+              </div>
+            </div>
           </div>
         </div>
       </CardContent>

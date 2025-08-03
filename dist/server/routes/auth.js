@@ -33,6 +33,34 @@ export function jwtAuth(req, res, next) {
     }
 }
 export function registerAuthRoutes(app) {
+    // Function to generate unique username
+    async function generateUniqueUsername(firstName, lastName, email) {
+        // Create base username from first and last name
+        const baseUsername = `${firstName.toLowerCase()}${lastName.toLowerCase()}`.replace(/[^a-z0-9]/g, '');
+        // Check if base username exists
+        const existingUser = await db
+            .select({ username: users.username })
+            .from(users)
+            .where(eq(users.username, baseUsername))
+            .limit(1);
+        if (existingUser.length === 0) {
+            return baseUsername;
+        }
+        // If base username exists, try with numbers
+        for (let i = 1; i <= 999; i++) {
+            const usernameWithNumber = `${baseUsername}${i}`;
+            const existingUserWithNumber = await db
+                .select({ username: users.username })
+                .from(users)
+                .where(eq(users.username, usernameWithNumber))
+                .limit(1);
+            if (existingUserWithNumber.length === 0) {
+                return usernameWithNumber;
+            }
+        }
+        // If all attempts fail, use email-based username with timestamp
+        return `${email.split('@')[0]}_${Date.now()}`;
+    }
     // Environment check endpoint
     app.get("/api/auth/env-check", async (req, res) => {
         try {
@@ -111,7 +139,7 @@ export function registerAuthRoutes(app) {
             const profileCompletionPercentage = Math.round((completedFields / totalFields) * 100);
             const userData = {
                 id: userId,
-                username: email.split('@')[0] + '_' + Date.now(), // Generate username from email
+                username: await generateUniqueUsername(firstName, lastName, email),
                 email,
                 password: hashedPassword,
                 firstName,

@@ -5,7 +5,6 @@ import { PermissionService } from '../utils/permissionService.js';
 import { eq, desc } from 'drizzle-orm';
 import { users } from '../../shared/schema.js';
 import { z } from 'zod';
-import { sql } from 'drizzle-orm';
 // Input validation schemas
 const createAnnouncementSchema = z.object({
     title: z.string().min(1, 'Title is required').max(200, 'Title too long'),
@@ -43,29 +42,43 @@ export function registerAnnouncementsRoutes(app) {
                 });
             }
             const offset = (pageNum - 1) * limitNum;
-            // Temporary simple query to avoid schema issues
-            const results = await db.execute(sql `
-      SELECT id, title, content, priority, is_active, author_id, author_name, 
-             author_membership_type, status, target_audience, is_pinned, 
-             views_count, published_at, expires_at, created_at, updated_at
-      FROM announcements 
-      WHERE status = ${status}
-      ORDER BY is_pinned DESC, created_at DESC
-      LIMIT ${limitNum} OFFSET ${offset}
-    `);
-            const total = await db.execute(sql `
-      SELECT COUNT(*) as count
-      FROM announcements 
-      WHERE status = ${status}
-    `);
+            // Use proper schema-based query
+            const results = await db
+                .select({
+                id: announcements.id,
+                title: announcements.title,
+                content: announcements.content,
+                priority: announcements.priority,
+                isActive: announcements.isActive,
+                authorId: announcements.authorId,
+                authorName: announcements.authorName,
+                authorMembershipType: announcements.authorMembershipType,
+                status: announcements.status,
+                targetAudience: announcements.targetAudience,
+                isPinned: announcements.isPinned,
+                viewsCount: announcements.viewsCount,
+                publishedAt: announcements.publishedAt,
+                expiresAt: announcements.expiresAt,
+                createdAt: announcements.createdAt,
+                updatedAt: announcements.updatedAt
+            })
+                .from(announcements)
+                .where(eq(announcements.status, status))
+                .orderBy(desc(announcements.isPinned), desc(announcements.createdAt))
+                .limit(limitNum)
+                .offset(offset);
+            const total = await db
+                .select({ count: announcements.id })
+                .from(announcements)
+                .where(eq(announcements.status, status));
             res.json({
                 success: true,
-                announcements: results.rows,
+                announcements: results,
                 pagination: {
                     page: pageNum,
                     limit: limitNum,
-                    total: Number(total.rows[0]?.count) || 0,
-                    totalPages: Math.ceil((Number(total.rows[0]?.count) || 0) / limitNum)
+                    total: total.length,
+                    totalPages: Math.ceil(total.length / limitNum)
                 }
             });
         }
