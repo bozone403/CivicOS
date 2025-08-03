@@ -1,7 +1,7 @@
 import React, { useState, useRef } from "react";
 import { Card, CardContent } from "../components/ui/card";
 import { Button } from "../components/ui/button";
-import { useCivicSocialFeed, useCivicSocialPost, useCivicSocialLike, useCivicSocialComment, useCivicSocialNotify, useCivicSocialFriends } from "../hooks/useCivicSocial";
+import { useCivicSocialFeed, useCivicSocialPost, useCivicSocialLike, useCivicSocialComment, useCivicSocialNotify, useCivicSocialFriends, useCivicSocialFollow } from "../hooks/useCivicSocial";
 import { useAuth } from "../hooks/useAuth";
 import { useToast } from "../hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
@@ -67,19 +67,17 @@ export default function CivicSocialProfile() {
     },
   });
 
-  const followMutation = useMutation({
-    mutationFn: async (userId: string) => apiRequest('/api/social/follow', 'POST', { userId }),
-    onSuccess: () => {
-      toast({ title: "Followed", description: "You are now following this user!" });
-      queryClient.invalidateQueries({ queryKey: ['civicSocialFriends'] });
-    },
-    onError: (error) => {
-      toast({ title: "Error", description: error.message || "Failed to follow user.", variant: "destructive" });
-    }
-  });
+  const followMutation = useCivicSocialFollow();
 
   const handleFollow = (userId: string) => {
-    followMutation.mutate(userId);
+    followMutation.mutate(userId, {
+      onSuccess: () => {
+        toast({ title: "Followed", description: "You are now following this user!" });
+      },
+      onError: (error) => {
+        toast({ title: "Error", description: error.message || "Failed to follow user.", variant: "destructive" });
+      }
+    });
   };
 
   // Only show posts by this user (type-safe string comparison)

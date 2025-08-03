@@ -225,13 +225,12 @@ export function useCivicSocialSendMessage() {
   });
 }
 
-// Create notification
+// Notifications
 export function useCivicSocialNotify() {
-  const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (notification: { userId: string | number; type: string; title: string; message: string; link?: string }) => {
+    mutationFn: async (notification: any) => {
       const token = getToken();
-      const res = await fetch(`${API_BASE}/api/notifications`, {
+      const res = await fetch(`${API_BASE}/api/social/notifications`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -242,6 +241,82 @@ export function useCivicSocialNotify() {
       if (!res.ok) throw new Error("Failed to send notification");
       return res.json();
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["/api/notifications"] }),
+  });
+}
+
+// Follow functionality
+export function useCivicSocialFollow() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (userId: string) => {
+      const token = getToken();
+      const res = await fetch(`${API_BASE}/api/social/follow`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ userId }),
+      });
+      if (!res.ok) throw new Error("Failed to follow user");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["civicSocialFriends"] });
+      queryClient.invalidateQueries({ queryKey: ["civicSocialFeed"] });
+    },
+  });
+}
+
+export function useCivicSocialUnfollow() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (userId: string) => {
+      const token = getToken();
+      const res = await fetch(`${API_BASE}/api/social/follow/${userId}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      if (!res.ok) throw new Error("Failed to unfollow user");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["civicSocialFriends"] });
+      queryClient.invalidateQueries({ queryKey: ["civicSocialFeed"] });
+    },
+  });
+}
+
+export function useCivicSocialFollowers(userId: string) {
+  return useQuery({
+    queryKey: ["civicSocialFollowers", userId],
+    queryFn: async () => {
+      const token = getToken();
+      const res = await fetch(`${API_BASE}/api/social/followers/${userId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error("Failed to fetch followers");
+      const data = await res.json();
+      return data.followers || [];
+    },
+    enabled: !!userId,
+  });
+}
+
+export function useCivicSocialFollowing(userId: string) {
+  return useQuery({
+    queryKey: ["civicSocialFollowing", userId],
+    queryFn: async () => {
+      const token = getToken();
+      const res = await fetch(`${API_BASE}/api/social/following/${userId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error("Failed to fetch following");
+      const data = await res.json();
+      return data.following || [];
+    },
+    enabled: !!userId,
   });
 } 

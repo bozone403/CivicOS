@@ -247,6 +247,7 @@ export default function CivicSocialFeed() {
   const handleCommentPost = (postId: number) => {
     // Open comment dialog or implement comment functionality
     // For now, we'll just show a success message
+    console.log('Commenting on post:', postId);
     toast({
       title: "Comment posted",
       description: "Your comment has been posted successfully!",
