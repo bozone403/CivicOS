@@ -46,7 +46,6 @@ export function registerAnnouncementsRoutes(app) {
             // Use fallback query that works with existing database schema
             const results = await db.execute(sql `
       SELECT id, title, content, priority, 
-             COALESCE(is_active, true) as is_active,
              author_id, author_name, author_membership_type, 
              status, target_audience, is_pinned, 
              views_count, published_at, expires_at, 
