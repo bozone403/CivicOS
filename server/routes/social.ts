@@ -263,15 +263,38 @@ export function registerSocialRoutes(app: Router) {
   app.post('/api/social/posts', jwtAuth, async (req: Request, res: Response) => {
     try {
       const currentUserId = (req.user as any).id;
-      const { content, imageUrl, type = 'post', visibility = 'public' } = req.body;
+      const { content, imageUrl, type = 'post', visibility = 'public', targetUserId } = req.body;
 
       if (!content) {
         return res.status(400).json({ error: "Content is required" });
       }
 
+      // If posting on someone else's profile, validate the target user exists
+      if (targetUserId && targetUserId !== currentUserId) {
+        const [targetUser] = await db
+          .select()
+          .from(users)
+          .where(eq(users.id, targetUserId))
+          .limit(1);
+
+        if (!targetUser) {
+          return res.status(404).json({ error: "Target user not found" });
+        }
+
+        // Check if the target user allows posts on their profile
+        // For now, we'll allow it, but this could be a user preference later
+      }
+
       const newPost = await db.insert(socialPosts).values({
         userId: currentUserId,
-        content: content.trim()
+        content: content.trim(),
+        type,
+        visibility,
+        // Store target user ID in a custom field or use a different approach
+        // For now, we'll add it to the content or use a special format
+        ...(targetUserId && targetUserId !== currentUserId && {
+          content: `${content.trim()} [Posted on ${targetUserId}'s profile]`
+        })
       }).returning();
 
       // Activity tracking can be added later
