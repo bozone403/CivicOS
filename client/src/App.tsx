@@ -17,7 +17,6 @@ const Auth = lazy(() => import("@/pages/auth"));
 const Register = lazy(() => import("@/pages/Register"));
 const Dashboard = lazy(() => import("@/pages/dashboard"));
 const Profile = lazy(() => import("@/pages/profile"));
-const PersonalProfile = lazy(() => import("@/pages/personal-profile"));
 const PublicProfile = lazy(() => import("@/pages/profile/[username]"));
 const Settings = lazy(() => import("@/pages/settings"));
 const News = lazy(() => import("@/pages/news"));
@@ -51,7 +50,6 @@ const CivicSocialFriends = lazy(() => import("@/pages/civicsocial-friends"));
 const CivicSocialDiscussions = lazy(() => import("@/pages/civicsocial-discussions"));
 const CivicSocialMessages = lazy(() => import("@/pages/civicsocial-messages"));
 const UserSearch = lazy(() => import("@/pages/user-search"));
-const Social = lazy(() => import("@/pages/social"));
 
 // Other pages
 const About = lazy(() => import("@/pages/about"));
@@ -455,14 +453,6 @@ export default function App() {
                     <ProtectedRoute>
                       <Layout>
                         <UserSearch />
-                      </Layout>
-                    </ProtectedRoute>
-                  </Route>
-                  
-                  <Route path="/social">
-                    <ProtectedRoute>
-                      <Layout>
-                        <Social />
                       </Layout>
                     </ProtectedRoute>
                   </Route>
