@@ -711,6 +711,7 @@ export function registerSocialRoutes(app: Router) {
       const searchResults = await db
         .select({
           id: users.id,
+          username: users.username,
           firstName: users.firstName,
           lastName: users.lastName,
           profileImageUrl: users.profileImageUrl,
@@ -724,6 +725,7 @@ export function registerSocialRoutes(app: Router) {
             or(
               sql`${users.firstName} ILIKE ${`%${q}%`}`,
               sql`${users.lastName} ILIKE ${`%${q}%`}`,
+              sql`${users.username} ILIKE ${`%${q}%`}`,
               sql`CONCAT(${users.firstName}, ' ', ${users.lastName}) ILIKE ${`%${q}%`}`
             )
           )

@@ -605,6 +605,7 @@ export function registerSocialRoutes(app) {
             const searchResults = await db
                 .select({
                 id: users.id,
+                username: users.username,
                 firstName: users.firstName,
                 lastName: users.lastName,
                 profileImageUrl: users.profileImageUrl,
@@ -612,7 +613,7 @@ export function registerSocialRoutes(app) {
                 isVerified: users.isVerified,
             })
                 .from(users)
-                .where(and(ne(users.id, currentUserId), or(sql `${users.firstName} ILIKE ${`%${q}%`}`, sql `${users.lastName} ILIKE ${`%${q}%`}`, sql `CONCAT(${users.firstName}, ' ', ${users.lastName}) ILIKE ${`%${q}%`}`)))
+                .where(and(ne(users.id, currentUserId), or(sql `${users.firstName} ILIKE ${`%${q}%`}`, sql `${users.lastName} ILIKE ${`%${q}%`}`, sql `${users.username} ILIKE ${`%${q}%`}`, sql `CONCAT(${users.firstName}, ' ', ${users.lastName}) ILIKE ${`%${q}%`}`)))
                 .limit(10);
             // Check friend status for each user
             const usersWithFriendStatus = await Promise.all(searchResults.map(async (user) => {
