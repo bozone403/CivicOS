@@ -67,6 +67,21 @@ export default function CivicSocialProfile() {
     },
   });
 
+  const followMutation = useMutation({
+    mutationFn: async (userId: string) => apiRequest('/api/social/follow', 'POST', { userId }),
+    onSuccess: () => {
+      toast({ title: "Followed", description: "You are now following this user!" });
+      queryClient.invalidateQueries({ queryKey: ['civicSocialFriends'] });
+    },
+    onError: (error) => {
+      toast({ title: "Error", description: error.message || "Failed to follow user.", variant: "destructive" });
+    }
+  });
+
+  const handleFollow = (userId: string) => {
+    followMutation.mutate(userId);
+  };
+
   // Only show posts by this user (type-safe string comparison)
   const userPosts = feed ? feed.filter((post: any) => String(post.userId) === String(user?.id)) : [];
 
@@ -199,7 +214,7 @@ export default function CivicSocialProfile() {
           }}
           stats={profileStats}
           onMessage={() => toast({ title: "Message sent", description: "Your message has been sent successfully!" })}
-          onFollow={() => toast({ title: "Followed", description: "You are now following this user!" })}
+          onFollow={() => handleFollow(user?.id || '')}
         />
       </CivicSocialSection>
 
@@ -504,7 +519,7 @@ export default function CivicSocialProfile() {
                         isOnline: friend.isOnline
                       }}
                       onMessage={() => toast({ title: "Message sent", description: "Your message has been sent successfully!" })}
-                      onFollow={() => toast({ title: "Followed", description: "You are now following this user!" })}
+                      onFollow={() => handleFollow(friend.id)}
                     />
                   ))}
                 </CivicSocialGrid>
