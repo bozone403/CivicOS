@@ -10,7 +10,8 @@ import {
   notifications, 
   userActivity, 
   socialShares, 
-  socialBookmarks 
+  socialBookmarks,
+  userFollows
 } from "../../shared/schema.js";
 import { eq, and, or, desc, asc, gte, ne, inArray, count, sql } from "drizzle-orm";
 import jwt from "jsonwebtoken";
@@ -1021,6 +1022,35 @@ export function registerSocialRoutes(app: Router) {
     } catch (error) {
       console.error('User stats error:', error);
       res.status(500).json({ error: "Failed to fetch user stats" });
+    }
+  });
+
+  // POST /api/social/follow - Follow a user
+  app.post('/api/social/follow', jwtAuth, async (req: Request, res: Response) => {
+    try {
+      const userId = (req.user as any)?.id;
+      const { followId } = req.body;
+
+      if (!userId || !followId) {
+        return res.status(400).json({ error: "User ID and follow ID are required" });
+      }
+
+      // Check if already following
+      const existingFollow = await db.select().from(userFollows).where(
+        and(eq(userFollows.userId, userId), eq(userFollows.followId, followId))
+      ).limit(1);
+
+      if (existingFollow.length > 0) {
+        return res.status(400).json({ error: "Already following this user" });
+      }
+
+      // Insert follow relationship
+      await db.insert(userFollows).values({ userId, followId });
+
+      res.json({ success: true, message: "User followed successfully" });
+    } catch (error) {
+      console.error('Follow user error:', error);
+      res.status(500).json({ error: "Failed to follow user" });
     }
   });
 } 

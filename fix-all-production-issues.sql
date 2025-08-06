@@ -258,51 +258,109 @@ CREATE INDEX IF NOT EXISTS idx_file_uploads_user ON file_uploads(user_id);
 CREATE INDEX IF NOT EXISTS idx_votes_user ON votes(user_id);
 CREATE INDEX IF NOT EXISTS idx_votes_item ON votes(voting_item_id);
 
--- Add foreign key constraints
-ALTER TABLE social_messages ADD CONSTRAINT IF NOT EXISTS fk_social_messages_sender 
-  FOREIGN KEY (sender_id) REFERENCES users(id) ON DELETE CASCADE;
+-- Skip existing constraints
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM information_schema.table_constraints WHERE table_name='social_messages' AND constraint_name='fk_social_messages_sender') THEN
+    ALTER TABLE social_messages ADD CONSTRAINT fk_social_messages_sender 
+      FOREIGN KEY (sender_id) REFERENCES users(id) ON DELETE CASCADE;
+  END IF;
 
-ALTER TABLE social_messages ADD CONSTRAINT IF NOT EXISTS fk_social_messages_recipient 
-  FOREIGN KEY (recipient_id) REFERENCES users(id) ON DELETE CASCADE;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.table_constraints WHERE table_name='social_messages' AND constraint_name='fk_social_messages_recipient') THEN
+    ALTER TABLE social_messages ADD CONSTRAINT fk_social_messages_recipient 
+      FOREIGN KEY (recipient_id) REFERENCES users(id) ON DELETE CASCADE;
+  END IF;
 
-ALTER TABLE social_notifications ADD CONSTRAINT IF NOT EXISTS fk_social_notifications_user 
-  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.table_constraints WHERE table_name='social_notifications' AND constraint_name='fk_social_notifications_user') THEN
+    ALTER TABLE social_notifications ADD CONSTRAINT fk_social_notifications_user 
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;
+  END IF;
 
-ALTER TABLE social_activities ADD CONSTRAINT IF NOT EXISTS fk_social_activities_user 
-  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.table_constraints WHERE table_name='social_activities' AND constraint_name='fk_social_activities_user') THEN
+    ALTER TABLE social_activities ADD CONSTRAINT fk_social_activities_user 
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;
+  END IF;
 
-ALTER TABLE social_bookmarks ADD CONSTRAINT IF NOT EXISTS fk_social_bookmarks_user 
-  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.table_constraints WHERE table_name='social_bookmarks' AND constraint_name='fk_social_bookmarks_user') THEN
+    ALTER TABLE social_bookmarks ADD CONSTRAINT fk_social_bookmarks_user 
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;
+  END IF;
 
-ALTER TABLE social_bookmarks ADD CONSTRAINT IF NOT EXISTS fk_social_bookmarks_post 
-  FOREIGN KEY (post_id) REFERENCES social_posts(id) ON DELETE CASCADE;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.table_constraints WHERE table_name='social_bookmarks' AND constraint_name='fk_social_bookmarks_post') THEN
+    ALTER TABLE social_bookmarks ADD CONSTRAINT fk_social_bookmarks_post 
+      FOREIGN KEY (post_id) REFERENCES social_posts(id) ON DELETE CASCADE;
+  END IF;
 
-ALTER TABLE social_shares ADD CONSTRAINT IF NOT EXISTS fk_social_shares_user 
-  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.table_constraints WHERE table_name='social_shares' AND constraint_name='fk_social_shares_user') THEN
+    ALTER TABLE social_shares ADD CONSTRAINT fk_social_shares_user 
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;
+  END IF;
 
-ALTER TABLE social_shares ADD CONSTRAINT IF NOT EXISTS fk_social_shares_post 
-  FOREIGN KEY (post_id) REFERENCES social_posts(id) ON DELETE CASCADE;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.table_constraints WHERE table_name='social_shares' AND constraint_name='fk_social_shares_post') THEN
+    ALTER TABLE social_shares ADD CONSTRAINT fk_social_shares_post 
+      FOREIGN KEY (post_id) REFERENCES social_posts(id) ON DELETE CASCADE;
+  END IF;
 
-ALTER TABLE identity_verifications ADD CONSTRAINT IF NOT EXISTS fk_identity_verifications_user 
-  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.table_constraints WHERE table_name='identity_verifications' AND constraint_name='fk_identity_verifications_user') THEN
+    ALTER TABLE identity_verifications ADD CONSTRAINT fk_identity_verifications_user 
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;
+  END IF;
 
-ALTER TABLE user_permissions ADD CONSTRAINT IF NOT EXISTS fk_user_permissions_user 
-  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.table_constraints WHERE table_name='user_permissions' AND constraint_name='fk_user_permissions_user') THEN
+    ALTER TABLE user_permissions ADD CONSTRAINT fk_user_permissions_user 
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;
+  END IF;
 
-ALTER TABLE user_membership_history ADD CONSTRAINT IF NOT EXISTS fk_user_membership_history_user 
-  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.table_constraints WHERE table_name='user_membership_history' AND constraint_name='fk_user_membership_history_user') THEN
+    ALTER TABLE user_membership_history ADD CONSTRAINT fk_user_membership_history_user 
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;
+  END IF;
 
-ALTER TABLE payments ADD CONSTRAINT IF NOT EXISTS fk_payments_user 
-  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.table_constraints WHERE table_name='payments' AND constraint_name='fk_payments_user') THEN
+    ALTER TABLE payments ADD CONSTRAINT fk_payments_user 
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;
+  END IF;
 
-ALTER TABLE file_uploads ADD CONSTRAINT IF NOT EXISTS fk_file_uploads_user 
-  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.table_constraints WHERE table_name='file_uploads' AND constraint_name='fk_file_uploads_user') THEN
+    ALTER TABLE file_uploads ADD CONSTRAINT fk_file_uploads_user 
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;
+  END IF;
 
-ALTER TABLE votes ADD CONSTRAINT IF NOT EXISTS fk_votes_user 
-  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.table_constraints WHERE table_name='votes' AND constraint_name='fk_votes_user') THEN
+    ALTER TABLE votes ADD CONSTRAINT fk_votes_user 
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;
+  END IF;
 
-ALTER TABLE votes ADD CONSTRAINT IF NOT EXISTS fk_votes_item 
-  FOREIGN KEY (voting_item_id) REFERENCES voting_items(id) ON DELETE CASCADE;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.table_constraints WHERE table_name='votes' AND constraint_name='fk_votes_item') THEN
+    ALTER TABLE votes ADD CONSTRAINT fk_votes_item 
+      FOREIGN KEY (voting_item_id) REFERENCES voting_items(id) ON DELETE CASCADE;
+  END IF;
+
+END $$;
+
+-- Fix ambiguous column reference
+DO $$
+DECLARE
+  tbl_name TEXT;
+  expected_tables TEXT[] := ARRAY[
+    'social_conversations', 'social_messages', 'social_notifications', 
+    'social_activities', 'social_bookmarks', 'social_shares',
+    'system_health', 'analytics_events', 'identity_verifications',
+    'user_permissions', 'permissions', 'user_membership_history',
+    'payments', 'file_uploads', 'webhooks', 'development_logs',
+    'voting_items', 'votes', 'news_articles', 'legal_documents',
+    'government_integrity', 'events'
+  ];
+BEGIN
+  FOREACH tbl_name IN ARRAY expected_tables
+  LOOP
+    IF NOT EXISTS (SELECT FROM information_schema.tables WHERE table_name = tbl_name) THEN
+      RAISE NOTICE 'Table % does not exist', tbl_name;
+    ELSE
+      RAISE NOTICE 'Table % exists', tbl_name;
+    END IF;
+  END LOOP;
+END $$;
 
 -- Insert default data
 INSERT INTO permissions (name, description, category) VALUES 
@@ -315,26 +373,10 @@ INSERT INTO permissions (name, description, category) VALUES
 ('manage_system', 'Can manage system settings', 'admin')
 ON CONFLICT (name) DO NOTHING;
 
--- Verify table creation
+-- Ensure voting_item_id column exists in votes table
 DO $$
-DECLARE
-  table_name TEXT;
-  expected_tables TEXT[] := ARRAY[
-    'social_conversations', 'social_messages', 'social_notifications', 
-    'social_activities', 'social_bookmarks', 'social_shares',
-    'system_health', 'analytics_events', 'identity_verifications',
-    'user_permissions', 'permissions', 'user_membership_history',
-    'payments', 'file_uploads', 'webhooks', 'development_logs',
-    'voting_items', 'votes', 'news_articles', 'legal_documents',
-    'government_integrity', 'events'
-  ];
 BEGIN
-  FOREACH table_name IN ARRAY expected_tables
-  LOOP
-    IF NOT EXISTS (SELECT FROM information_schema.tables WHERE table_name = table_name) THEN
-      RAISE NOTICE 'Table % does not exist', table_name;
-    ELSE
-      RAISE NOTICE 'Table % exists', table_name;
-    END IF;
-  END LOOP;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='votes' AND column_name='voting_item_id') THEN
+    ALTER TABLE votes ADD COLUMN voting_item_id INTEGER;
+  END IF;
 END $$; 

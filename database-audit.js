@@ -186,10 +186,10 @@ async function testEndpoint(endpoint, method = 'GET', headers = {}, body = null)
 }
 
 async function runDatabaseAudit() {
-  console.log('🔍 COMPREHENSIVE DATABASE AUDIT\n');
+  // console.log removed for production
   
   // Get authentication token
-  console.log('📋 Step 1: Getting authentication token...');
+  // console.log removed for production
   const registerResult = await testEndpoint('/api/auth/register', 'POST', {}, {
     email: `audit${Date.now()}@civicos.com`,
     password: 'auditpass123',
@@ -201,16 +201,16 @@ async function runDatabaseAudit() {
   let token = null;
   if (registerResult.success) {
     token = registerResult.data.token;
-    console.log('✅ Authentication token obtained');
+    // console.log removed for production
   } else {
-    console.log('❌ Failed to get authentication token');
-    console.log(`   Error: ${registerResult.error}`);
+    // console.log removed for production
+    // console.log removed for production
   }
   
   const authHeaders = token ? { 'Authorization': `Bearer ${token}` } : {};
   
   // Test database functionality through API endpoints
-  console.log('\n📋 Step 2: Testing Database Tables Through API Endpoints:');
+  // console.log removed for production
   
   const databaseTests = [
     {
@@ -330,7 +330,7 @@ async function runDatabaseAudit() {
   const results = [];
   
   for (const test of databaseTests) {
-    console.log(`\nTesting ${test.name}...`);
+    // console.log removed for production
     const result = await testEndpoint(test.endpoint, test.method, test.headers, test.body);
     
     const status = result.success ? '✅' : '❌';
@@ -340,7 +340,7 @@ async function runDatabaseAudit() {
     console.log(`${status} ${test.name}: ${result.success ? 'Working' : 'Broken'} (Expected: ${test.expected ? 'Working' : 'Broken'}) ${match}`);
     
     if (!result.success) {
-      console.log(`   Error: ${result.error}`);
+      // console.log removed for production
     }
     
     results.push({
@@ -352,27 +352,27 @@ async function runDatabaseAudit() {
   }
   
   // Summary
-  console.log('\n📊 DATABASE AUDIT SUMMARY:');
-  console.log('=====================================');
+  // console.log removed for production
+  // console.log removed for production
   
   const working = results.filter(r => r.working).length;
   const broken = results.filter(r => !r.working).length;
   const unexpected = results.filter(r => r.working !== r.expected).length;
   
-  console.log(`Total Tables Tested: ${results.length}`);
-  console.log(`✅ Working: ${working}`);
-  console.log(`❌ Broken: ${broken}`);
-  console.log(`⚠️  Unexpected Results: ${unexpected}`);
+  // console.log removed for production
+  // console.log removed for production
+  // console.log removed for production
+  // console.log removed for production
   
-  console.log('\n🔍 BROKEN TABLES/ENDPOINTS:');
-  console.log('=====================================');
+  // console.log removed for production
+  // console.log removed for production
   results.filter(r => !r.working).forEach(r => {
-    console.log(`❌ ${r.name}: ${r.error}`);
+    // console.log removed for production
   });
   
-  console.log('\n🎯 MISSING DATABASE TABLES:');
-  console.log('=====================================');
-  console.log('Based on the audit, these tables are likely missing from the production database:');
+  // console.log removed for production
+  // console.log removed for production
+  // console.log removed for production
   console.log('- social_likes (causing like functionality to fail)');
   console.log('- social_comments (causing comment functionality to fail)');
   console.log('- news_articles (causing news functionality to fail)');
@@ -380,14 +380,14 @@ async function runDatabaseAudit() {
   console.log('- announcements (causing announcements to fail)');
   console.log('- Various government integrity tables (procurement, corruption, leaks, etc.)');
   
-  console.log('\n🔧 RECOMMENDED ACTIONS:');
-  console.log('=====================================');
-  console.log('1. Apply all pending database migrations to production');
-  console.log('2. Check if social_likes and social_comments tables exist');
-  console.log('3. Verify news_articles table structure');
-  console.log('4. Ensure petitions table is properly migrated');
-  console.log('5. Fix announcements table schema mismatch');
-  console.log('6. Implement missing government integrity endpoints');
+  // console.log removed for production
+  // console.log removed for production
+  // console.log removed for production
+  // console.log removed for production
+  // console.log removed for production
+  // console.log removed for production
+  // console.log removed for production
+  // console.log removed for production
 }
 
 runDatabaseAudit().catch(console.error); 

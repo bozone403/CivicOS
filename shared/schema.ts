@@ -671,6 +671,18 @@ export const votingItems = pgTable("voting_items", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// User follows table
+export const userFollows = pgTable("user_follows", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull(),
+  followId: varchar("follow_id").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+},
+(table) => [
+  index("IDX_user_follows_user_id").on(table.userId),
+  index("IDX_user_follows_follow_id").on(table.followId)
+]);
+
 // Create schemas for validation
 export const insertUserSchema = createInsertSchema(users);
 export const insertPoliticianSchema = createInsertSchema(politicians);

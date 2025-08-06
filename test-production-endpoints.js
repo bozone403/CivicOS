@@ -40,10 +40,10 @@ async function testEndpoint(endpoint, method = 'GET', headers = {}) {
 }
 
 async function runTests() {
-  console.log('🔍 Testing CivicOS Production Endpoints\n');
+  // console.log removed for production
   
   // Test public endpoints
-  console.log('📋 Testing Public Endpoints:');
+  // console.log removed for production
   
   const publicEndpoints = [
     '/api/auth/env-check',
@@ -53,13 +53,13 @@ async function runTests() {
   ];
   
   for (const endpoint of publicEndpoints) {
-    console.log(`\nTesting ${endpoint}...`);
+    // console.log removed for production
     const result = await testEndpoint(endpoint);
     if (result.success) {
-      console.log(`✅ ${endpoint} - WORKING`);
+      // console.log removed for production
     } else {
-      console.log(`❌ ${endpoint} - FAILED`);
-      console.log(`   Error: ${result.error}`);
+      // console.log removed for production
+      // console.log removed for production
     }
   }
   
@@ -76,22 +76,22 @@ async function runTests() {
   ];
   
   for (const endpoint of authEndpoints) {
-    console.log(`\nTesting ${endpoint}...`);
+    // console.log removed for production
     const result = await testEndpoint(endpoint);
     if (result.status === 401) {
-      console.log(`✅ ${endpoint} - CORRECTLY REQUIRES AUTH`);
+      // console.log removed for production
     } else if (result.success) {
-      console.log(`✅ ${endpoint} - WORKING`);
+      // console.log removed for production
     } else {
-      console.log(`❌ ${endpoint} - UNEXPECTED ERROR`);
-      console.log(`   Status: ${result.status}, Error: ${result.error}`);
+      // console.log removed for production
+      // console.log removed for production
     }
   }
   
-  console.log('\n🎯 Summary:');
-  console.log('- Public endpoints should work without authentication');
-  console.log('- Authenticated endpoints should return 401 without valid token');
-  console.log('- This is normal behavior for a secure API');
+  // console.log removed for production
+  // console.log removed for production
+  // console.log removed for production
+  // console.log removed for production
 }
 
 runTests().catch(console.error); 
