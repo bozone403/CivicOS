@@ -373,8 +373,11 @@ export function registerSocialRoutes(app) {
             }
         }
         catch (error) {
-            // console.error removed for production
-            res.status(500).json({ error: "Failed to like post" });
+            console.error('Like post error:', error);
+            res.status(500).json({
+                error: "Failed to like post",
+                details: error instanceof Error ? error.message : String(error)
+            });
         }
     });
     // POST /api/social/posts/:id/bookmark - Bookmark a post
@@ -414,7 +417,10 @@ export function registerSocialRoutes(app) {
         }
         catch (error) {
             console.error('Comment creation error:', error);
-            res.status(500).json({ error: "Failed to add comment" });
+            res.status(500).json({
+                error: "Failed to add comment",
+                details: error instanceof Error ? error.message : String(error)
+            });
         }
     });
     // POST /api/social/posts/:id/comments - Alternative comment endpoint (frontend compatibility)

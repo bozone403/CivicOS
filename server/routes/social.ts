@@ -432,8 +432,11 @@ export function registerSocialRoutes(app: Router) {
         });
       }
     } catch (error) {
-      // console.error removed for production
-      res.status(500).json({ error: "Failed to like post" });
+      console.error('Like post error:', error);
+      res.status(500).json({ 
+        error: "Failed to like post",
+        details: error instanceof Error ? error.message : String(error)
+      });
     }
   });
 
@@ -477,7 +480,10 @@ export function registerSocialRoutes(app: Router) {
       });
     } catch (error) {
       console.error('Comment creation error:', error);
-      res.status(500).json({ error: "Failed to add comment" });
+      res.status(500).json({ 
+        error: "Failed to add comment",
+        details: error instanceof Error ? error.message : String(error)
+      });
     }
   });
 
