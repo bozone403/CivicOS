@@ -5,11 +5,16 @@ async function comprehensiveProductionAudit() {
   
   // Step 1: Setup authentication
   console.log('📋 Step 1: Setting up authentication...');
+  
+  // Try to register a new user
+  const timestamp = Date.now();
+  const testEmail = `audit${timestamp}@civicos.com`;
+  
   const registerResult = await fetch(`${API_BASE}/api/auth/register`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      email: `audit${Date.now()}@civicos.com`,
+      email: testEmail,
       password: 'auditpass123',
       firstName: 'Audit',
       lastName: 'Test',
@@ -21,10 +26,27 @@ async function comprehensiveProductionAudit() {
   if (registerResult.ok) {
     const userData = await registerResult.json();
     token = userData.token;
-    console.log('✅ Authentication successful');
+    console.log('✅ Registration successful');
   } else {
-    console.log('❌ Authentication failed');
-    return;
+    // Try to login with existing user
+    console.log('📋 Trying to login with existing user...');
+    const loginResult = await fetch(`${API_BASE}/api/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email: 'testuser2@example.com',
+        password: 'password123'
+      })
+    });
+    
+    if (loginResult.ok) {
+      const loginData = await loginResult.json();
+      token = loginData.token;
+      console.log('✅ Login successful');
+    } else {
+      console.log('❌ Authentication failed');
+      return;
+    }
   }
   
   const headers = { 
