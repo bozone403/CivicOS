@@ -2,24 +2,13 @@ import express from 'express';
 import { db } from '../db.js';
 import { sql } from 'drizzle-orm';
 import pino from 'pino';
+import { initializeStripe } from '../stripe.js';
 
 const logger = pino();
 const router = express.Router();
 
-// Initialize Stripe only if the secret key is provided
-let Stripe: any = null;
+// Initialize Stripe lazily when needed
 let stripe: any = null;
-
-if (process.env.STRIPE_SECRET_KEY) {
-  try {
-    Stripe = require('stripe');
-    stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-      apiVersion: '2025-05-28.basil',
-    });
-  } catch (error) {
-    logger.warn('Stripe import failed:', error);
-  }
-}
 
 // Get donation total
 router.get('/total', async (req, res) => {
@@ -60,6 +49,11 @@ router.post('/create-payment-intent', async (req, res) => {
         success: false,
         error: 'Donation amount must be between $1 and $10,000 CAD'
       });
+    }
+
+    // Initialize Stripe if not already done
+    if (!stripe) {
+      stripe = await initializeStripe();
     }
 
     // Check if Stripe is properly configured
@@ -139,6 +133,11 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
   let event;
 
   try {
+    // Initialize Stripe if not already done
+    if (!stripe) {
+      stripe = await initializeStripe();
+    }
+
     if (!stripe) {
       logger.warn('Stripe not configured, skipping webhook processing');
       return res.status(400).json({ error: 'Stripe not configured' });

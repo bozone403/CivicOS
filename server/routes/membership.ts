@@ -3,14 +3,17 @@ import { db } from "../db.js";
 import { users, userMembershipHistory } from "../../shared/schema.js";
 import { eq } from "drizzle-orm";
 import { jwtAuth } from "./auth.js";
-import { 
-  createCustomer, 
-  createCheckoutSession, 
-  getSubscription, 
+import { z } from "zod";
+import {
+  createCustomer,
+  createSubscription,
+  createCheckoutSession,
   cancelSubscription,
   updateSubscription,
-  MEMBERSHIP_PRICING 
+  getSubscription,
+  MEMBERSHIP_PRICING,
 } from "../stripe.js";
+import { initializeStripe } from "../stripe.js";
 
 export function registerMembershipRoutes(app: Express) {
   
@@ -151,7 +154,10 @@ export function registerMembershipRoutes(app: Express) {
       }
 
       // Verify webhook signature
-      const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+      const stripe = await initializeStripe();
+      if (!stripe) {
+        return res.status(400).json({ message: "Stripe not configured" });
+      }
       const event = stripe.webhooks.constructEvent(req.body, sig, endpointSecret);
 
       // Handle the event

@@ -2,7 +2,8 @@ import { db } from "../db.js";
 import { users, userMembershipHistory } from "../../shared/schema.js";
 import { eq } from "drizzle-orm";
 import { jwtAuth } from "./auth.js";
-import { createCustomer, createCheckoutSession, cancelSubscription, MEMBERSHIP_PRICING } from "../stripe.js";
+import { createCustomer, createCheckoutSession, cancelSubscription, MEMBERSHIP_PRICING, } from "../stripe.js";
+import { initializeStripe } from "../stripe.js";
 export function registerMembershipRoutes(app) {
     // Get membership types and pricing
     app.get("/api/membership/types", async (req, res) => {
@@ -118,7 +119,10 @@ export function registerMembershipRoutes(app) {
                 return res.status(400).json({ message: "Missing signature or webhook secret" });
             }
             // Verify webhook signature
-            const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+            const stripe = await initializeStripe();
+            if (!stripe) {
+                return res.status(400).json({ message: "Stripe not configured" });
+            }
             const event = stripe.webhooks.constructEvent(req.body, sig, endpointSecret);
             // Handle the event
             switch (event.type) {
