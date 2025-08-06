@@ -1028,16 +1028,20 @@ export function registerSocialRoutes(app: Router) {
   // POST /api/social/follow - Follow a user
   app.post('/api/social/follow', jwtAuth, async (req: Request, res: Response) => {
     try {
-      const userId = (req.user as any)?.id;
-      const { followId } = req.body;
+      const followerId = (req.user as any)?.id;
+      const { userId: followingId } = req.body;
 
-      if (!userId || !followId) {
+      if (!followerId || !followingId) {
         return res.status(400).json({ error: "User ID and follow ID are required" });
+      }
+
+      if (followerId === followingId) {
+        return res.status(400).json({ error: "Cannot follow yourself" });
       }
 
       // Check if already following
       const existingFollow = await db.select().from(userFollows).where(
-        and(eq(userFollows.userId, userId), eq(userFollows.followId, followId))
+        and(eq(userFollows.userId, followerId), eq(userFollows.followId, followingId))
       ).limit(1);
 
       if (existingFollow.length > 0) {
@@ -1045,12 +1049,91 @@ export function registerSocialRoutes(app: Router) {
       }
 
       // Insert follow relationship
-      await db.insert(userFollows).values({ userId, followId });
+      await db.insert(userFollows).values({ 
+        userId: followerId, 
+        followId: followingId 
+      });
 
       res.json({ success: true, message: "User followed successfully" });
     } catch (error) {
       console.error('Follow user error:', error);
       res.status(500).json({ error: "Failed to follow user" });
+    }
+  });
+
+  // DELETE /api/social/follow/:userId - Unfollow a user
+  app.delete('/api/social/follow/:userId', jwtAuth, async (req: Request, res: Response) => {
+    try {
+      const followerId = (req.user as any)?.id;
+      const followingId = req.params.userId;
+
+      if (!followerId || !followingId) {
+        return res.status(400).json({ error: "User ID and follow ID are required" });
+      }
+
+      // Delete follow relationship
+      const result = await db.delete(userFollows).where(
+        and(eq(userFollows.userId, followerId), eq(userFollows.followId, followingId))
+      );
+
+      if (result.rowCount === 0) {
+        return res.status(404).json({ error: "Not following this user" });
+      }
+
+      res.json({ success: true, message: "User unfollowed successfully" });
+    } catch (error) {
+      console.error('Unfollow user error:', error);
+      res.status(500).json({ error: "Failed to unfollow user" });
+    }
+  });
+
+  // GET /api/social/followers/:userId - Get user's followers
+  app.get('/api/social/followers/:userId', jwtAuth, async (req: Request, res: Response) => {
+    try {
+      const userId = req.params.userId;
+
+      const followers = await db
+        .select({
+          id: users.id,
+          firstName: users.firstName,
+          lastName: users.lastName,
+          profileImageUrl: users.profileImageUrl,
+          civicLevel: users.civicLevel,
+          isVerified: users.isVerified,
+        })
+        .from(userFollows)
+        .leftJoin(users, eq(userFollows.userId, users.id))
+        .where(eq(userFollows.followId, userId));
+
+      res.json({ success: true, followers });
+    } catch (error) {
+      console.error('Get followers error:', error);
+      res.status(500).json({ error: "Failed to fetch followers" });
+    }
+  });
+
+  // GET /api/social/following/:userId - Get users that this user is following
+  app.get('/api/social/following/:userId', jwtAuth, async (req: Request, res: Response) => {
+    try {
+      const userId = req.params.userId;
+
+      const following = await db
+        .select({
+          id: users.id,
+          firstName: users.firstName,
+          lastName: users.lastName,
+          profileImageUrl: users.profileImageUrl,
+          civicLevel: users.civicLevel,
+          isVerified: users.isVerified,
+        })
+        .from(userFollows)
+        .leftJoin(users, eq(userFollows.followId, users.id))
+        .where(eq(userFollows.userId, userId));
+
+      res.json({ success: true, following });
+    } catch (error) {
+      console.error('Get following error:', error);
+      res.status(500).json({ error: "Failed to fetch following" });
     }
   });
 } 

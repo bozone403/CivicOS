@@ -28,7 +28,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { formatDistanceToNow } from "date-fns";
-import { useParams, useNavigate } from "react-router-dom";
+import { useLocation } from "wouter";
 
 interface Conversation {
   otherUserId: string;
@@ -67,8 +67,7 @@ interface UserSearchResult {
 }
 
 export function MessagingSystem() {
-  const { conversationId } = useParams<{ conversationId: string }>();
-  const navigate = useNavigate();
+  const [location, setLocation] = useLocation();
   const { user: currentUser, isAuthenticated } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();

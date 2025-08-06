@@ -26,7 +26,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { formatDistanceToNow } from "date-fns";
-import { useNavigate } from "react-router-dom";
+import { useLocation } from "wouter";
 
 interface Friend {
   id: number;
@@ -57,7 +57,7 @@ interface UserSearchResult {
 }
 
 export function FriendsManager() {
-  const navigate = useNavigate();
+  const [location, setLocation] = useLocation();
   const { isAuthenticated } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -255,7 +255,7 @@ export function FriendsManager() {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => navigate(`/profile/${user.id}`)}
+                        onClick={() => setLocation(`/profile/${user.id}`)}
                       >
                         <MessageCircle className="h-4 w-4" />
                       </Button>
@@ -341,7 +341,7 @@ export function FriendsManager() {
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => navigate(`/messages/${friend.friendId}`)}
+                            onClick={() => setLocation(`/messages/${friend.friendId}`)}
                           >
                             <MessageCircle className="h-4 w-4 mr-1" />
                             Message
@@ -349,7 +349,7 @@ export function FriendsManager() {
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => navigate(`/profile/${friend.friendId}`)}
+                            onClick={() => setLocation(`/profile/${friend.friendId}`)}
                           >
                             View Profile
                           </Button>

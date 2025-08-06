@@ -32,7 +32,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { formatDistanceToNow } from "date-fns";
-import { useParams, useNavigate } from "react-router-dom";
+import { useLocation } from "wouter";
 
 interface UserProfileData {
   id: string;
@@ -75,12 +75,14 @@ interface SocialPost {
 }
 
 export function UserProfile() {
-  const { userId } = useParams<{ userId: string }>();
-  const navigate = useNavigate();
+  const [location, setLocation] = useLocation();
   const { user: currentUser, isAuthenticated } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
+  // Extract userId from URL path
+  const userId = location.split('/').pop() || currentUser?.id;
+
   const [isEditMode, setIsEditMode] = useState(false);
   const [editForm, setEditForm] = useState({
     firstName: "",
@@ -264,7 +266,7 @@ export function UserProfile() {
                   )}
                   <Button
                     variant="outline"
-                    onClick={() => navigate(`/messages/${userId}`)}
+                    onClick={() => setLocation(`/messages/${userId}`)}
                   >
                     <MessageCircle className="h-4 w-4 mr-2" />
                     Message
