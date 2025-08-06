@@ -59,6 +59,11 @@ export async function apiRequest(endpoint: string, method: string = 'GET', body?
             totalPosts: 0
           };
         }
+        if (endpoint === '/api/social/feed') {
+          return {
+            feed: []
+          };
+        }
         if (endpoint === '/api/voting/electoral/candidates') {
           return {
             candidates: [],

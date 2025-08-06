@@ -52,6 +52,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const validateToken = async () => {
     try {
       const token = localStorage.getItem('civicos-jwt');
+      if (!token) {
+        setUser(null);
+        setIsLoading(false);
+        return;
+      }
+      
       const response = await apiRequest('/api/auth/user', 'GET');
       
       // The backend returns user data directly, not wrapped in a 'user' property

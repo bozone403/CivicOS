@@ -22,13 +22,33 @@ export function useCivicSocialFeed() {
     queryKey: ["civicSocialFeed"],
     queryFn: async () => {
       const token = getToken();
+      if (!token) {
+        throw new Error("Authentication required");
+      }
+      
       const res = await fetch(`${API_BASE}/api/social/feed`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      if (!res.ok) throw new Error("Failed to fetch feed");
+      
+      if (!res.ok) {
+        if (res.status === 401 || res.status === 403) {
+          // Clear invalid token
+          localStorage.removeItem('civicos-jwt');
+          throw new Error("Authentication required");
+        }
+        throw new Error("Failed to fetch feed");
+      }
+      
       const data = await res.json();
       // Backend returns { feed: [...] }
       return data.feed || [];
+    },
+    retry: (failureCount, error) => {
+      // Don't retry authentication errors
+      if (error.message === "Authentication required") {
+        return false;
+      }
+      return failureCount < 3;
     },
   });
 }
