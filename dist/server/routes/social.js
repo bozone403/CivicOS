@@ -1,10 +1,8 @@
 import { db } from "../db.js";
 import { users, socialPosts, socialComments, socialLikes, userFriends, userMessages, notifications, userActivity, socialShares, socialBookmarks } from "../../shared/schema.js";
-import { eq, and, or, desc, asc, ne } from "drizzle-orm";
-import { sql } from "drizzle-orm";
+import { eq, and, or, desc, asc, count, sql } from "drizzle-orm";
 import jwt from "jsonwebtoken";
-import { count } from "drizzle-orm";
-// JWT Auth middleware
+// Enhanced JWT Auth middleware
 function jwtAuth(req, res, next) {
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
@@ -25,18 +23,20 @@ function jwtAuth(req, res, next) {
     }
 }
 export function registerSocialRoutes(app) {
-    // GET /api/social/feed - Get social feed
+    // ===== CORE SOCIAL FEED ENDPOINTS =====
+    // GET /api/social/feed - Enhanced social feed with proper error handling
     app.get('/api/social/feed', jwtAuth, async (req, res) => {
         try {
             const currentUserId = req.user.id;
             const { limit = 20, offset = 0 } = req.query;
-            // Get posts from friends and public posts
+            // Get posts with user data and interaction status
             const feedPosts = await db
                 .select({
                 id: socialPosts.id,
                 content: socialPosts.content,
                 imageUrl: socialPosts.imageUrl,
                 type: socialPosts.type,
+                visibility: socialPosts.visibility,
                 createdAt: socialPosts.createdAt,
                 updatedAt: socialPosts.updatedAt,
                 userId: socialPosts.userId,
@@ -55,8 +55,19 @@ export function registerSocialRoutes(app) {
                 .orderBy(desc(socialPosts.createdAt))
                 .limit(parseInt(limit))
                 .offset(parseInt(offset));
-            // Check if current user has liked each post
-            const postsWithUserInteraction = await Promise.all(feedPosts.map(async (post) => {
+            // Get interaction counts and user interaction status
+            const postsWithInteractions = await Promise.all(feedPosts.map(async (post) => {
+                // Get likes count
+                const likesCount = await db
+                    .select({ count: count() })
+                    .from(socialLikes)
+                    .where(eq(socialLikes.postId, post.id));
+                // Get comments count
+                const commentsCount = await db
+                    .select({ count: count() })
+                    .from(socialComments)
+                    .where(eq(socialComments.postId, post.id));
+                // Check if current user liked
                 const userLike = await db
                     .select()
                     .from(socialLikes)
@@ -64,35 +75,82 @@ export function registerSocialRoutes(app) {
                     .limit(1);
                 return {
                     ...post,
+                    likesCount: likesCount[0]?.count || 0,
+                    commentsCount: commentsCount[0]?.count || 0,
                     isLiked: userLike.length > 0,
                     user: post.user
                 };
             }));
             res.json({
                 success: true,
-                feed: postsWithUserInteraction
+                feed: postsWithInteractions
             });
         }
         catch (error) {
-            // console.error removed for production
+            console.error('Social feed error:', error);
             res.status(500).json({ error: "Failed to fetch social feed" });
         }
     });
-    // GET /api/social/posts/user/:username - Get posts by username
+    // POST /api/social/posts - Enhanced post creation
+    app.post('/api/social/posts', jwtAuth, async (req, res) => {
+        try {
+            const currentUserId = req.user.id;
+            const { content, type = 'text', visibility = 'public', imageUrl } = req.body;
+            if (!content || content.trim().length === 0) {
+                return res.status(400).json({ error: "Post content is required" });
+            }
+            const post = await db.insert(socialPosts).values({
+                userId: currentUserId,
+                content: content.trim(),
+                type,
+                visibility,
+                imageUrl: imageUrl || null
+            }).returning();
+            // Get user data for response
+            const [user] = await db
+                .select({
+                id: users.id,
+                firstName: users.firstName,
+                lastName: users.lastName,
+                profileImageUrl: users.profileImageUrl,
+                civicLevel: users.civicLevel,
+                isVerified: users.isVerified,
+            })
+                .from(users)
+                .where(eq(users.id, currentUserId))
+                .limit(1);
+            res.json({
+                success: true,
+                post: {
+                    ...post[0],
+                    user,
+                    likesCount: 0,
+                    commentsCount: 0,
+                    isLiked: false
+                }
+            });
+        }
+        catch (error) {
+            console.error('Create post error:', error);
+            res.status(500).json({ error: "Failed to create post" });
+        }
+    });
+    // GET /api/social/posts/user/:username - Enhanced user posts
     app.get('/api/social/posts/user/:username', async (req, res) => {
         try {
             const { username } = req.params;
             const { limit = 20, offset = 0 } = req.query;
             // Get user by username
             const [user] = await db
-                .select({ id: users.id })
+                .select({ id: users.id, firstName: users.firstName, lastName: users.lastName })
                 .from(users)
-                .where(eq(users.username, username));
+                .where(eq(users.username, username))
+                .limit(1);
             if (!user) {
                 return res.status(404).json({ error: "User not found" });
             }
-            // Get posts by user
-            const userPosts = await db
+            // Get user's posts
+            const posts = await db
                 .select({
                 id: socialPosts.id,
                 content: socialPosts.content,
@@ -102,243 +160,45 @@ export function registerSocialRoutes(app) {
                 createdAt: socialPosts.createdAt,
                 updatedAt: socialPosts.updatedAt,
                 userId: socialPosts.userId,
-                user: {
-                    id: users.id,
-                    username: users.username,
-                    firstName: users.firstName,
-                    lastName: users.lastName,
-                    profileImageUrl: users.profileImageUrl,
-                    civicLevel: users.civicLevel,
-                    isVerified: users.isVerified,
-                }
             })
                 .from(socialPosts)
-                .leftJoin(users, eq(socialPosts.userId, users.id))
                 .where(eq(socialPosts.userId, user.id))
                 .orderBy(desc(socialPosts.createdAt))
                 .limit(parseInt(limit))
                 .offset(parseInt(offset));
-            // Get like counts for each post
-            const postsWithStats = await Promise.all(userPosts.map(async (post) => {
-                const [likesCount] = await db
+            // Get interaction counts for each post
+            const postsWithCounts = await Promise.all(posts.map(async (post) => {
+                const likesCount = await db
                     .select({ count: count() })
                     .from(socialLikes)
                     .where(eq(socialLikes.postId, post.id));
-                const [commentsCount] = await db
+                const commentsCount = await db
                     .select({ count: count() })
                     .from(socialComments)
                     .where(eq(socialComments.postId, post.id));
                 return {
                     ...post,
-                    likesCount: likesCount?.count || 0,
-                    commentsCount: commentsCount?.count || 0,
-                    isLiked: false // Will be set by frontend if user is logged in
+                    likesCount: likesCount[0]?.count || 0,
+                    commentsCount: commentsCount[0]?.count || 0,
+                    user: {
+                        id: user.id,
+                        firstName: user.firstName,
+                        lastName: user.lastName
+                    }
                 };
             }));
             res.json({
                 success: true,
-                posts: postsWithStats
+                posts: postsWithCounts
             });
         }
         catch (error) {
-            // console.error removed for production
+            console.error('User posts error:', error);
             res.status(500).json({ error: "Failed to fetch user posts" });
         }
     });
-    // GET /api/social/posts - Get posts
-    app.get('/api/social/posts', jwtAuth, async (req, res) => {
-        try {
-            const { limit = 20, offset = 0, userId } = req.query;
-            let whereCondition;
-            if (userId) {
-                whereCondition = and(eq(socialPosts.userId, userId), eq(socialPosts.visibility, 'public'));
-            }
-            else {
-                whereCondition = eq(socialPosts.visibility, 'public');
-            }
-            const posts = await db
-                .select({
-                id: socialPosts.id,
-                content: socialPosts.content,
-                imageUrl: socialPosts.imageUrl,
-                type: socialPosts.type,
-                createdAt: socialPosts.createdAt,
-                updatedAt: socialPosts.updatedAt,
-                userId: socialPosts.userId,
-                user: {
-                    id: users.id,
-                    firstName: users.firstName,
-                    lastName: users.lastName,
-                    profileImageUrl: users.profileImageUrl,
-                    civicLevel: users.civicLevel,
-                    isVerified: users.isVerified,
-                }
-            })
-                .from(socialPosts)
-                .leftJoin(users, eq(socialPosts.userId, users.id))
-                .where(whereCondition)
-                .orderBy(desc(socialPosts.createdAt))
-                .limit(parseInt(limit))
-                .offset(parseInt(offset));
-            res.json({
-                success: true,
-                posts
-            });
-        }
-        catch (error) {
-            // console.error removed for production
-            res.status(500).json({ error: "Failed to fetch posts" });
-        }
-    });
-    // GET /api/social/wall/:userId - Get user's wall posts
-    app.get('/api/social/wall/:userId', jwtAuth, async (req, res) => {
-        try {
-            const { userId } = req.params;
-            const { limit = 20, offset = 0 } = req.query;
-            const posts = await db
-                .select({
-                id: socialPosts.id,
-                content: socialPosts.content,
-                imageUrl: socialPosts.imageUrl,
-                type: socialPosts.type,
-                createdAt: socialPosts.createdAt,
-                updatedAt: socialPosts.updatedAt,
-                userId: socialPosts.userId,
-                user: {
-                    id: users.id,
-                    firstName: users.firstName,
-                    lastName: users.lastName,
-                    profileImageUrl: users.profileImageUrl,
-                    civicLevel: users.civicLevel,
-                    isVerified: users.isVerified,
-                }
-            })
-                .from(socialPosts)
-                .leftJoin(users, eq(socialPosts.userId, users.id))
-                .where(and(eq(socialPosts.userId, userId), eq(socialPosts.visibility, 'public')))
-                .orderBy(desc(socialPosts.createdAt))
-                .limit(parseInt(limit))
-                .offset(parseInt(offset));
-            res.json({
-                success: true,
-                posts
-            });
-        }
-        catch (error) {
-            // console.error removed for production
-            res.status(500).json({ error: "Failed to fetch user wall posts" });
-        }
-    });
-    // POST /api/social/posts - Create post
-    app.post('/api/social/posts', jwtAuth, async (req, res) => {
-        try {
-            const currentUserId = req.user.id;
-            const { content, imageUrl, type = 'post', visibility = 'public', targetUserId } = req.body;
-            if (!content) {
-                return res.status(400).json({ error: "Content is required" });
-            }
-            // If posting on someone else's profile, validate the target user exists
-            if (targetUserId && targetUserId !== currentUserId) {
-                const [targetUser] = await db
-                    .select()
-                    .from(users)
-                    .where(eq(users.id, targetUserId))
-                    .limit(1);
-                if (!targetUser) {
-                    return res.status(404).json({ error: "Target user not found" });
-                }
-                // Check if the target user allows posts on their profile
-                // For now, we'll allow it, but this could be a user preference later
-            }
-            const newPost = await db.insert(socialPosts).values({
-                userId: currentUserId,
-                content: content.trim(),
-                type,
-                visibility,
-                // Store target user ID in a custom field or use a different approach
-                // For now, we'll add it to the content or use a special format
-                ...(targetUserId && targetUserId !== currentUserId && {
-                    content: `${content.trim()} [Posted on ${targetUserId}'s profile]`
-                })
-            }).returning();
-            // Activity tracking can be added later
-            res.json({
-                success: true,
-                post: newPost[0]
-            });
-        }
-        catch (error) {
-            console.error('Post creation error:', error);
-            res.status(500).json({ error: "Failed to create post" });
-        }
-    });
-    // PUT /api/social/posts/:id - Update post
-    app.put('/api/social/posts/:id', jwtAuth, async (req, res) => {
-        try {
-            const currentUserId = req.user.id;
-            const postId = parseInt(req.params.id);
-            const { content, imageUrl, visibility } = req.body;
-            // Check if post exists and belongs to current user
-            const [existingPost] = await db
-                .select()
-                .from(socialPosts)
-                .where(and(eq(socialPosts.id, postId), eq(socialPosts.userId, currentUserId)));
-            if (!existingPost) {
-                return res.status(404).json({ error: "Post not found or you don't have permission to edit it" });
-            }
-            // Update post
-            const [updatedPost] = await db
-                .update(socialPosts)
-                .set({
-                content: content || existingPost.content,
-                imageUrl: imageUrl || existingPost.imageUrl,
-                visibility: visibility || existingPost.visibility,
-                updatedAt: new Date()
-            })
-                .where(eq(socialPosts.id, postId))
-                .returning();
-            res.json({
-                success: true,
-                post: updatedPost
-            });
-        }
-        catch (error) {
-            // console.error removed for production
-            res.status(500).json({ error: "Failed to update post" });
-        }
-    });
-    // DELETE /api/social/posts/:id - Delete post
-    app.delete('/api/social/posts/:id', jwtAuth, async (req, res) => {
-        try {
-            const currentUserId = req.user.id;
-            const postId = parseInt(req.params.id);
-            // Check if post exists and belongs to current user
-            const [existingPost] = await db
-                .select()
-                .from(socialPosts)
-                .where(and(eq(socialPosts.id, postId), eq(socialPosts.userId, currentUserId)));
-            if (!existingPost) {
-                return res.status(404).json({ error: "Post not found or you don't have permission to delete it" });
-            }
-            // Soft delete by updating content
-            await db
-                .update(socialPosts)
-                .set({
-                content: "[This post has been deleted]",
-                updatedAt: new Date()
-            })
-                .where(eq(socialPosts.id, postId));
-            res.json({
-                success: true,
-                message: "Post deleted successfully"
-            });
-        }
-        catch (error) {
-            // console.error removed for production
-            res.status(500).json({ error: "Failed to delete post" });
-        }
-    });
-    // FIXED: Enhanced like post endpoint
+    // ===== INTERACTION ENDPOINTS =====
+    // POST /api/social/posts/:id/like - Enhanced like system
     app.post('/api/social/posts/:id/like', jwtAuth, async (req, res) => {
         try {
             const userId = req.user?.id;
@@ -357,7 +217,7 @@ export function registerSocialRoutes(app) {
             if (existingLike.length > 0) {
                 // Unlike
                 await db.delete(socialLikes).where(and(eq(socialLikes.postId, postId), eq(socialLikes.userId, userId)));
-                res.json({ success: true, liked: false });
+                res.json({ success: true, liked: false, message: "Post unliked" });
             }
             else {
                 // Like
@@ -366,34 +226,15 @@ export function registerSocialRoutes(app) {
                     userId,
                     reaction
                 });
-                res.json({ success: true, liked: true });
+                res.json({ success: true, liked: true, message: "Post liked" });
             }
         }
         catch (error) {
             console.error('Like post error:', error);
-            res.status(500).json({
-                error: "Failed to like post",
-                details: error instanceof Error ? error.message : String(error)
-            });
+            res.status(500).json({ error: "Failed to like post" });
         }
     });
-    // POST /api/social/posts/:id/bookmark - Bookmark a post
-    app.post('/api/social/posts/:id/bookmark', jwtAuth, async (req, res) => {
-        try {
-            const currentUserId = req.user.id;
-            const postId = parseInt(req.params.id);
-            // For now, just return success (bookmarking can be implemented later)
-            res.json({
-                success: true,
-                message: "Post bookmarked successfully"
-            });
-        }
-        catch (error) {
-            // console.error removed for production
-            res.status(500).json({ error: "Failed to bookmark post" });
-        }
-    });
-    // FIXED: Enhanced comment endpoint
+    // POST /api/social/posts/:id/comment - Enhanced comment system
     app.post('/api/social/posts/:id/comment', jwtAuth, async (req, res) => {
         try {
             const userId = req.user?.id;
@@ -415,48 +256,171 @@ export function registerSocialRoutes(app) {
                 userId,
                 content: content.trim()
             }).returning();
+            // Get user data for response
+            const [user] = await db
+                .select({
+                id: users.id,
+                firstName: users.firstName,
+                lastName: users.lastName,
+                profileImageUrl: users.profileImageUrl,
+            })
+                .from(users)
+                .where(eq(users.id, userId))
+                .limit(1);
             res.json({
                 success: true,
-                comment: comment[0]
+                comment: {
+                    ...comment[0],
+                    user
+                }
             });
         }
         catch (error) {
             console.error('Comment error:', error);
-            res.status(500).json({
-                error: "Failed to add comment",
-                details: error instanceof Error ? error.message : String(error)
-            });
+            res.status(500).json({ error: "Failed to add comment" });
         }
     });
-    // POST /api/social/posts/:id/comments - Alternative comment endpoint (frontend compatibility)
-    app.post('/api/social/posts/:id/comments', jwtAuth, async (req, res) => {
+    // ===== MESSAGING SYSTEM =====
+    // GET /api/social/conversations - Enhanced conversations
+    app.get('/api/social/conversations', jwtAuth, async (req, res) => {
         try {
-            const currentUserId = req.user.id;
-            const postId = parseInt(req.params.id);
-            const { content, parentCommentId } = req.body;
-            if (!content) {
-                return res.status(400).json({ error: "Comment content is required" });
+            const userId = req.user?.id;
+            if (!userId) {
+                return res.status(401).json({ error: "Authentication required" });
             }
-            const comment = await db.insert(socialComments).values({
-                postId,
-                userId: currentUserId,
+            // Get conversations where user is sender or recipient
+            const conversations = await db
+                .select({
+                otherUserId: sql `CASE 
+            WHEN ${userMessages.senderId} = ${userId} THEN ${userMessages.recipientId}
+            ELSE ${userMessages.senderId}
+          END`,
+                lastMessage: userMessages.content,
+                lastMessageAt: userMessages.createdAt,
+                unreadCount: sql `COUNT(CASE WHEN ${userMessages.isRead} = false AND ${userMessages.recipientId} = ${userId} THEN 1 END)`
+            })
+                .from(userMessages)
+                .where(or(eq(userMessages.senderId, userId), eq(userMessages.recipientId, userId)))
+                .groupBy(sql `CASE 
+          WHEN ${userMessages.senderId} = ${userId} THEN ${userMessages.recipientId}
+          ELSE ${userMessages.senderId}
+        END`, userMessages.content, userMessages.createdAt)
+                .orderBy(desc(userMessages.createdAt));
+            // Get user data for each conversation
+            const conversationsWithUsers = await Promise.all(conversations.map(async (conv) => {
+                const [user] = await db
+                    .select({
+                    id: users.id,
+                    firstName: users.firstName,
+                    lastName: users.lastName,
+                    profileImageUrl: users.profileImageUrl,
+                    civicLevel: users.civicLevel,
+                })
+                    .from(users)
+                    .where(eq(users.id, conv.otherUserId))
+                    .limit(1);
+                return {
+                    ...conv,
+                    otherUser: user
+                };
+            }));
+            res.json({
+                success: true,
+                conversations: conversationsWithUsers
+            });
+        }
+        catch (error) {
+            console.error('Conversations error:', error);
+            res.status(500).json({ error: "Failed to fetch conversations" });
+        }
+    });
+    // GET /api/social/messages - Enhanced messages
+    app.get('/api/social/messages', jwtAuth, async (req, res) => {
+        try {
+            const userId = req.user?.id;
+            const { otherUserId } = req.query;
+            if (!userId) {
+                return res.status(401).json({ error: "Authentication required" });
+            }
+            if (!otherUserId) {
+                return res.status(400).json({ error: "otherUserId is required" });
+            }
+            // Get messages between users
+            const messages = await db
+                .select({
+                id: userMessages.id,
+                senderId: userMessages.senderId,
+                recipientId: userMessages.recipientId,
+                content: userMessages.content,
+                isRead: userMessages.isRead,
+                createdAt: userMessages.createdAt,
+            })
+                .from(userMessages)
+                .where(or(and(eq(userMessages.senderId, userId), eq(userMessages.recipientId, otherUserId)), and(eq(userMessages.senderId, otherUserId), eq(userMessages.recipientId, userId))))
+                .orderBy(asc(userMessages.createdAt));
+            // Mark messages as read
+            await db
+                .update(userMessages)
+                .set({ isRead: true })
+                .where(and(eq(userMessages.recipientId, userId), eq(userMessages.senderId, otherUserId), eq(userMessages.isRead, false)));
+            res.json({
+                success: true,
+                messages
+            });
+        }
+        catch (error) {
+            console.error('Messages error:', error);
+            res.status(500).json({ error: "Failed to fetch messages" });
+        }
+    });
+    // POST /api/social/messages - Enhanced send message
+    app.post('/api/social/messages', jwtAuth, async (req, res) => {
+        try {
+            const userId = req.user?.id;
+            const { recipientId, content } = req.body;
+            if (!userId) {
+                return res.status(401).json({ error: "Authentication required" });
+            }
+            if (!recipientId || !content) {
+                return res.status(400).json({ error: "recipientId and content are required" });
+            }
+            if (userId === recipientId) {
+                return res.status(400).json({ error: "Cannot message yourself" });
+            }
+            // Check if recipient exists
+            const [recipient] = await db
+                .select({ id: users.id })
+                .from(users)
+                .where(eq(users.id, recipientId))
+                .limit(1);
+            if (!recipient) {
+                return res.status(404).json({ error: "Recipient not found" });
+            }
+            // Send message
+            const message = await db.insert(userMessages).values({
+                senderId: userId,
+                recipientId,
                 content: content.trim()
             }).returning();
             res.json({
                 success: true,
-                comment: comment[0]
+                message: message[0]
             });
         }
         catch (error) {
-            console.error('Comment creation error:', error);
-            res.status(500).json({ error: "Failed to add comment" });
+            console.error('Send message error:', error);
+            res.status(500).json({ error: "Failed to send message" });
         }
     });
-    // GET /api/social/friends - Get friends
+    // ===== FRIENDS SYSTEM =====
+    // GET /api/social/friends - Enhanced friends list
     app.get('/api/social/friends', jwtAuth, async (req, res) => {
         try {
-            const currentUserId = req.user.id;
+            const userId = req.user?.id;
             const { status = 'accepted' } = req.query;
+            if (!userId) {
+                return res.status(401).json({ error: "Authentication required" });
+            }
             const friends = await db
                 .select({
                 id: userFriends.id,
@@ -475,642 +439,18 @@ export function registerSocialRoutes(app) {
             })
                 .from(userFriends)
                 .leftJoin(users, eq(userFriends.friendId, users.id))
-                .where(and(eq(userFriends.userId, currentUserId), eq(userFriends.status, status)));
+                .where(and(eq(userFriends.userId, userId), eq(userFriends.status, status)));
             res.json({
                 success: true,
                 friends
             });
         }
         catch (error) {
-            // console.error removed for production
+            console.error('Friends error:', error);
             res.status(500).json({ error: "Failed to fetch friends" });
         }
     });
-    // POST /api/social/friends - Friend actions
-    app.post('/api/social/friends', jwtAuth, async (req, res) => {
-        try {
-            const currentUserId = req.user.id;
-            const { friendId, action } = req.body;
-            if (!friendId || !action) {
-                return res.status(400).json({ error: "Friend ID and action are required" });
-            }
-            switch (action) {
-                case 'send':
-                    await db.insert(userFriends).values({
-                        userId: currentUserId,
-                        friendId,
-                        status: 'pending',
-                        createdAt: new Date()
-                    });
-                    break;
-                case 'accept':
-                    await db
-                        .update(userFriends)
-                        .set({ status: 'accepted', updatedAt: new Date() })
-                        .where(and(eq(userFriends.userId, friendId), eq(userFriends.friendId, currentUserId), eq(userFriends.status, 'pending')));
-                    break;
-                case 'remove':
-                    await db
-                        .delete(userFriends)
-                        .where(and(eq(userFriends.userId, currentUserId), eq(userFriends.friendId, friendId), eq(userFriends.status, 'accepted')));
-                    break;
-                default:
-                    return res.status(400).json({ error: "Invalid action" });
-            }
-            res.json({
-                success: true,
-                message: `Friend ${action} completed`
-            });
-        }
-        catch (error) {
-            // console.error removed for production
-            res.status(500).json({ error: "Failed to perform friend action" });
-        }
-    });
-    // GET /api/social/conversations - Get user's conversations
-    app.get('/api/social/conversations', jwtAuth, async (req, res) => {
-        try {
-            const currentUserId = req.user.id;
-            // Get all conversations for the user
-            const conversations = await db.execute(sql `
-        SELECT DISTINCT 
-          u.id,
-          u.first_name,
-          u.last_name,
-          u.email,
-          u.profile_image_url as profile_image_url,
-          u.civic_level,
-          u.trust_score,
-          (
-            SELECT content 
-            FROM user_messages 
-            WHERE (sender_id = ${currentUserId} AND recipient_id = u.id) 
-               OR (sender_id = u.id AND recipient_id = ${currentUserId})
-            ORDER BY created_at DESC 
-            LIMIT 1
-          ) as last_message,
-          (
-            SELECT created_at 
-            FROM user_messages 
-            WHERE (sender_id = ${currentUserId} AND recipient_id = u.id) 
-               OR (sender_id = u.id AND recipient_id = ${currentUserId})
-            ORDER BY created_at DESC 
-            LIMIT 1
-          ) as last_message_time,
-          (
-            SELECT COUNT(*) 
-            FROM user_messages 
-            WHERE sender_id = u.id AND recipient_id = ${currentUserId} AND is_read = false
-          ) as unread_count
-        FROM users u
-        WHERE u.id IN (
-          SELECT DISTINCT 
-            CASE 
-              WHEN sender_id = ${currentUserId} THEN recipient_id
-              ELSE sender_id
-            END
-          FROM user_messages 
-          WHERE sender_id = ${currentUserId} OR recipient_id = ${currentUserId}
-        )
-        ORDER BY last_message_time DESC NULLS LAST
-      `);
-            const formattedConversations = conversations.rows.map((conv) => ({
-                id: conv.id,
-                participant: {
-                    firstName: conv.first_name,
-                    lastName: conv.last_name,
-                    profileImageUrl: conv.profile_image_url,
-                    email: conv.email,
-                    isOnline: false // TODO: Implement online status
-                },
-                lastMessage: conv.last_message ? {
-                    content: conv.last_message,
-                    timestamp: conv.last_message_time
-                } : null,
-                unreadCount: parseInt(conv.unread_count) || 0
-            }));
-            res.json({
-                success: true,
-                conversations: formattedConversations
-            });
-        }
-        catch (error) {
-            // console.error removed for production
-            res.status(500).json({ error: "Failed to fetch conversations" });
-        }
-    });
-    // GET /api/social/messages/:conversationId - Get messages for a conversation
-    app.get('/api/social/messages/:conversationId', jwtAuth, async (req, res) => {
-        try {
-            const currentUserId = req.user.id;
-            const conversationId = req.params.conversationId;
-            // Get messages between current user and conversation partner
-            const messages = await db
-                .select()
-                .from(userMessages)
-                .where(or(and(eq(userMessages.senderId, currentUserId), eq(userMessages.recipientId, conversationId)), and(eq(userMessages.senderId, conversationId), eq(userMessages.recipientId, currentUserId))))
-                .orderBy(asc(userMessages.createdAt));
-            // Mark messages as read
-            await db
-                .update(userMessages)
-                .set({ isRead: true })
-                .where(and(eq(userMessages.senderId, conversationId), eq(userMessages.recipientId, currentUserId), eq(userMessages.isRead, false)));
-            res.json({
-                success: true,
-                messages
-            });
-        }
-        catch (error) {
-            // console.error removed for production
-            res.status(500).json({ error: "Failed to fetch messages" });
-        }
-    });
-    // GET /api/social/users/search - Search users
-    app.get('/api/social/users/search', jwtAuth, async (req, res) => {
-        try {
-            const currentUserId = req.user.id;
-            const { q } = req.query;
-            if (!q || q.length < 2) {
-                return res.status(400).json({ error: "Search query must be at least 2 characters" });
-            }
-            const searchResults = await db
-                .select({
-                id: users.id,
-                username: users.username,
-                firstName: users.firstName,
-                lastName: users.lastName,
-                profileImageUrl: users.profileImageUrl,
-                civicLevel: users.civicLevel,
-                isVerified: users.isVerified,
-            })
-                .from(users)
-                .where(and(ne(users.id, currentUserId), or(sql `${users.firstName} ILIKE ${`%${q}%`}`, sql `${users.lastName} ILIKE ${`%${q}%`}`, sql `${users.username} ILIKE ${`%${q}%`}`, sql `CONCAT(${users.firstName}, ' ', ${users.lastName}) ILIKE ${`%${q}%`}`)))
-                .limit(10);
-            // Check friend status for each user
-            const usersWithFriendStatus = await Promise.all(searchResults.map(async (user) => {
-                const friendship = await db
-                    .select()
-                    .from(userFriends)
-                    .where(and(eq(userFriends.userId, currentUserId), eq(userFriends.friendId, user.id)))
-                    .limit(1);
-                return {
-                    ...user,
-                    isFriend: friendship.length > 0 && friendship[0].status === 'accepted',
-                    friendStatus: friendship.length > 0 ? friendship[0].status : null
-                };
-            }));
-            res.json({
-                success: true,
-                users: usersWithFriendStatus
-            });
-        }
-        catch (error) {
-            // console.error removed for production
-            res.status(500).json({ error: "Failed to search users" });
-        }
-    });
-    // GET /api/social/profile/:userId - Get user profile
-    app.get('/api/social/profile/:userId', jwtAuth, async (req, res) => {
-        try {
-            const currentUserId = req.user.id;
-            const { userId } = req.params;
-            // Get user profile
-            const user = await db
-                .select()
-                .from(users)
-                .where(eq(users.id, userId))
-                .limit(1);
-            if (!user.length) {
-                return res.status(404).json({ error: "User not found" });
-            }
-            // Get user stats
-            const postsCount = await db
-                .select({ count: sql `count(*)` })
-                .from(socialPosts)
-                .where(eq(socialPosts.userId, userId));
-            const friendsCount = await db
-                .select({ count: sql `count(*)` })
-                .from(userFriends)
-                .where(and(eq(userFriends.userId, userId), eq(userFriends.status, 'accepted')));
-            // Check friendship status
-            const friendship = await db
-                .select()
-                .from(userFriends)
-                .where(and(eq(userFriends.userId, currentUserId), eq(userFriends.friendId, userId)))
-                .limit(1);
-            res.json({
-                success: true,
-                profile: user[0],
-                stats: {
-                    postsCount: postsCount[0]?.count || 0,
-                    friendsCount: friendsCount[0]?.count || 0
-                },
-                friendshipStatus: friendship.length > 0 ? friendship[0].status : null
-            });
-        }
-        catch (error) {
-            // console.error removed for production
-            res.status(500).json({ error: "Failed to fetch user profile" });
-        }
-    });
-    // PUT /api/social/profile - Update profile
-    app.put('/api/social/profile', jwtAuth, async (req, res) => {
-        try {
-            const currentUserId = req.user.id;
-            const { firstName, lastName, city, province, country } = req.body;
-            const updateData = {};
-            if (firstName)
-                updateData.firstName = firstName;
-            if (lastName)
-                updateData.lastName = lastName;
-            if (city !== undefined)
-                updateData.city = city;
-            if (province !== undefined)
-                updateData.province = province;
-            if (country !== undefined)
-                updateData.country = country;
-            await db
-                .update(users)
-                .set(updateData)
-                .where(eq(users.id, currentUserId));
-            res.json({
-                success: true,
-                message: "Profile updated successfully"
-            });
-        }
-        catch (error) {
-            // console.error removed for production
-            res.status(500).json({ error: "Failed to update profile" });
-        }
-    });
-    // NEW: Messages endpoint
-    app.get('/api/social/messages', jwtAuth, async (req, res) => {
-        try {
-            const userId = req.user?.id;
-            const { otherUserId } = req.query;
-            if (!userId) {
-                return res.status(401).json({ error: "Authentication required" });
-            }
-            if (!otherUserId) {
-                return res.status(400).json({ error: "otherUserId is required" });
-            }
-            // Get messages between users
-            const messages = await db.select().from(userMessages).where(or(and(eq(userMessages.senderId, userId), eq(userMessages.recipientId, otherUserId)), and(eq(userMessages.senderId, otherUserId), eq(userMessages.recipientId, userId)))).orderBy(asc(userMessages.createdAt));
-            res.json({
-                success: true,
-                messages
-            });
-        }
-        catch (error) {
-            console.error('Messages error:', error);
-            res.status(500).json({ error: "Failed to fetch messages" });
-        }
-    });
-    // NEW: Send message endpoint
-    app.post('/api/social/messages', jwtAuth, async (req, res) => {
-        try {
-            const userId = req.user?.id;
-            const { recipientId, content } = req.body;
-            if (!userId) {
-                return res.status(401).json({ error: "Authentication required" });
-            }
-            if (!recipientId || !content) {
-                return res.status(400).json({ error: "recipientId and content are required" });
-            }
-            // Get or create conversation
-            // Send message directly
-            const message = await db.insert(userMessages).values({
-                senderId: userId,
-                recipientId,
-                content: content.trim()
-            }).returning();
-            res.json({
-                success: true,
-                message: message[0]
-            });
-        }
-        catch (error) {
-            console.error('Send message error:', error);
-            res.status(500).json({ error: "Failed to send message" });
-        }
-    });
-    // NEW: Notifications endpoint
-    app.get('/api/social/notifications', jwtAuth, async (req, res) => {
-        try {
-            const userId = req.user?.id;
-            if (!userId) {
-                return res.status(401).json({ error: "Authentication required" });
-            }
-            const userNotifications = await db.select().from(notifications).where(eq(notifications.userId, userId)).orderBy(desc(notifications.createdAt)).limit(50);
-            res.json({
-                success: true,
-                notifications: userNotifications
-            });
-        }
-        catch (error) {
-            console.error('Notifications error:', error);
-            res.status(500).json({ error: "Failed to fetch notifications" });
-        }
-    });
-    // NEW: Mark notification read endpoint
-    app.put('/api/social/notifications/:id/read', jwtAuth, async (req, res) => {
-        try {
-            const currentUserId = req.user.id;
-            const notificationId = parseInt(req.params.id);
-            await db
-                .update(notifications)
-                .set({ isRead: true })
-                .where(and(eq(notifications.id, notificationId), eq(notifications.userId, currentUserId)));
-            res.json({
-                success: true,
-                message: "Notification marked as read"
-            });
-        }
-        catch (error) {
-            // console.error removed for production
-            res.status(500).json({ error: "Failed to mark notification as read" });
-        }
-    });
-    // PUT /api/social/notifications/read-all - Mark all notifications as read
-    app.put('/api/social/notifications/read-all', jwtAuth, async (req, res) => {
-        try {
-            const currentUserId = req.user.id;
-            await db
-                .update(notifications)
-                .set({ isRead: true })
-                .where(eq(notifications.userId, currentUserId));
-            res.json({
-                success: true,
-                message: "All notifications marked as read"
-            });
-        }
-        catch (error) {
-            // console.error removed for production
-            res.status(500).json({ error: "Failed to mark notifications as read" });
-        }
-    });
-    // POST /api/upload/image - Upload image for posts
-    app.post('/api/upload/image', jwtAuth, async (req, res) => {
-        try {
-            const currentUserId = req.user.id;
-            // For now, return a mock image URL since we don't have file storage configured
-            // In production, this would upload to a service like AWS S3 or Cloudinary
-            const mockImageUrl = `https://picsum.photos/800/600?random=${Date.now()}`;
-            res.json({
-                success: true,
-                imageUrl: mockImageUrl,
-                message: "Image uploaded successfully"
-            });
-        }
-        catch (error) {
-            console.error('Image upload error:', error);
-            res.status(500).json({ error: "Failed to upload image" });
-        }
-    });
-    // GET /api/social/posts/user/:username - Get posts by username (frontend compatibility)
-    app.get('/api/social/posts/user/:username', async (req, res) => {
-        try {
-            const { username } = req.params;
-            const { limit = 20, offset = 0 } = req.query;
-            // First try to find user by username
-            let user = await db
-                .select({ id: users.id })
-                .from(users)
-                .where(eq(users.username, username))
-                .limit(1);
-            // If not found by username, try by ID (for backward compatibility)
-            if (user.length === 0) {
-                user = await db
-                    .select({ id: users.id })
-                    .from(users)
-                    .where(eq(users.id, username))
-                    .limit(1);
-            }
-            if (user.length === 0) {
-                return res.status(404).json({ error: "User not found" });
-            }
-            // Get posts by user ID
-            const posts = await db
-                .select({
-                id: socialPosts.id,
-                content: socialPosts.content,
-                imageUrl: socialPosts.imageUrl,
-                type: socialPosts.type,
-                createdAt: socialPosts.createdAt,
-                updatedAt: socialPosts.updatedAt,
-                userId: socialPosts.userId,
-                visibility: socialPosts.visibility,
-                user: {
-                    id: users.id,
-                    firstName: users.firstName,
-                    lastName: users.lastName,
-                    profileImageUrl: users.profileImageUrl,
-                    civicLevel: users.civicLevel,
-                    isVerified: users.isVerified,
-                }
-            })
-                .from(socialPosts)
-                .leftJoin(users, eq(socialPosts.userId, users.id))
-                .where(eq(socialPosts.userId, user[0].id))
-                .orderBy(desc(socialPosts.createdAt))
-                .limit(parseInt(limit))
-                .offset(parseInt(offset));
-            res.json({
-                success: true,
-                posts
-            });
-        }
-        catch (error) {
-            console.error('User posts error:', error);
-            res.status(500).json({ error: "Failed to fetch user posts" });
-        }
-    });
-    // POST /api/social/follow - Follow a user
-    app.post('/api/social/follow', jwtAuth, async (req, res) => {
-        try {
-            const currentUserId = req.user.id;
-            const { userId } = req.body;
-            if (!userId) {
-                return res.status(400).json({ error: "User ID is required" });
-            }
-            if (currentUserId === userId) {
-                return res.status(400).json({ error: "You cannot follow yourself" });
-            }
-            // Check if already following
-            const existingFollow = await db
-                .select()
-                .from(userFriends)
-                .where(and(eq(userFriends.userId, currentUserId), eq(userFriends.friendId, userId), eq(userFriends.status, 'accepted')))
-                .limit(1);
-            if (existingFollow.length > 0) {
-                return res.status(400).json({ error: "Already following this user" });
-            }
-            // Create follow relationship
-            await db.insert(userFriends).values({
-                userId: currentUserId,
-                friendId: userId,
-                status: 'accepted',
-                createdAt: new Date()
-            });
-            res.json({
-                success: true,
-                message: "Successfully followed user"
-            });
-        }
-        catch (error) {
-            console.error('Follow error:', error);
-            res.status(500).json({ error: "Failed to follow user" });
-        }
-    });
-    // DELETE /api/social/follow - Unfollow a user
-    app.delete('/api/social/follow/:userId', jwtAuth, async (req, res) => {
-        try {
-            const currentUserId = req.user.id;
-            const { userId } = req.params;
-            if (currentUserId === userId) {
-                return res.status(400).json({ error: "You cannot unfollow yourself" });
-            }
-            // Remove follow relationship
-            await db
-                .delete(userFriends)
-                .where(and(eq(userFriends.userId, currentUserId), eq(userFriends.friendId, userId), eq(userFriends.status, 'accepted')));
-            res.json({
-                success: true,
-                message: "Successfully unfollowed user"
-            });
-        }
-        catch (error) {
-            console.error('Unfollow error:', error);
-            res.status(500).json({ error: "Failed to unfollow user" });
-        }
-    });
-    // GET /api/social/followers/:userId - Get user's followers
-    app.get('/api/social/followers/:userId', async (req, res) => {
-        try {
-            const { userId } = req.params;
-            const followers = await db
-                .select({
-                id: users.id,
-                firstName: users.firstName,
-                lastName: users.lastName,
-                profileImageUrl: users.profileImageUrl,
-                civicLevel: users.civicLevel,
-                isVerified: users.isVerified,
-            })
-                .from(users)
-                .leftJoin(userFriends, eq(users.id, userFriends.userId))
-                .where(and(eq(userFriends.friendId, userId), eq(userFriends.status, 'accepted')));
-            res.json({
-                success: true,
-                followers
-            });
-        }
-        catch (error) {
-            console.error('Followers error:', error);
-            res.status(500).json({ error: "Failed to fetch followers" });
-        }
-    });
-    // GET /api/social/following/:userId - Get users that a user is following
-    app.get('/api/social/following/:userId', async (req, res) => {
-        try {
-            const { userId } = req.params;
-            const following = await db
-                .select({
-                id: users.id,
-                firstName: users.firstName,
-                lastName: users.lastName,
-                profileImageUrl: users.profileImageUrl,
-                civicLevel: users.civicLevel,
-                isVerified: users.isVerified,
-            })
-                .from(users)
-                .leftJoin(userFriends, eq(users.id, userFriends.friendId))
-                .where(and(eq(userFriends.userId, userId), eq(userFriends.status, 'accepted')));
-            res.json({
-                success: true,
-                following
-            });
-        }
-        catch (error) {
-            console.error('Following error:', error);
-            res.status(500).json({ error: "Failed to fetch following" });
-        }
-    });
-    // PUT /api/social/comments/:commentId - Edit a comment
-    app.put('/api/social/comments/:commentId', jwtAuth, async (req, res) => {
-        try {
-            const currentUserId = req.user.id;
-            const { commentId } = req.params;
-            const { content } = req.body;
-            if (!content || content.trim().length === 0) {
-                return res.status(400).json({ error: "Comment content is required" });
-            }
-            // Get the comment to check ownership
-            const [comment] = await db
-                .select()
-                .from(socialComments)
-                .where(eq(socialComments.id, parseInt(commentId)))
-                .limit(1);
-            if (!comment) {
-                return res.status(404).json({ error: "Comment not found" });
-            }
-            // Check if user owns the comment
-            if (comment.userId !== currentUserId) {
-                return res.status(403).json({ error: "You can only edit your own comments" });
-            }
-            // Update the comment
-            const [updatedComment] = await db
-                .update(socialComments)
-                .set({
-                content: content.trim(),
-                updatedAt: new Date()
-            })
-                .where(eq(socialComments.id, parseInt(commentId)))
-                .returning();
-            res.json({
-                success: true,
-                message: "Comment updated successfully",
-                comment: updatedComment
-            });
-        }
-        catch (error) {
-            console.error('Comment edit error:', error);
-            res.status(500).json({ error: "Failed to edit comment" });
-        }
-    });
-    // DELETE /api/social/comments/:commentId - Delete a comment
-    app.delete('/api/social/comments/:commentId', jwtAuth, async (req, res) => {
-        try {
-            const currentUserId = req.user.id;
-            const { commentId } = req.params;
-            // Get the comment to check ownership
-            const [comment] = await db
-                .select()
-                .from(socialComments)
-                .where(eq(socialComments.id, parseInt(commentId)))
-                .limit(1);
-            if (!comment) {
-                return res.status(404).json({ error: "Comment not found" });
-            }
-            // Check if user owns the comment
-            if (comment.userId !== currentUserId) {
-                return res.status(403).json({ error: "You can only delete your own comments" });
-            }
-            // Delete the comment
-            await db
-                .delete(socialComments)
-                .where(eq(socialComments.id, parseInt(commentId)));
-            res.json({
-                success: true,
-                message: "Comment deleted successfully"
-            });
-        }
-        catch (error) {
-            console.error('Comment delete error:', error);
-            res.status(500).json({ error: "Failed to delete comment" });
-        }
-    });
-    // NEW: Add friend endpoint
+    // POST /api/social/friends - Enhanced add friend
     app.post('/api/social/friends', jwtAuth, async (req, res) => {
         try {
             const userId = req.user?.id;
@@ -1123,6 +463,15 @@ export function registerSocialRoutes(app) {
             }
             if (userId === friendId) {
                 return res.status(400).json({ error: "Cannot add yourself as friend" });
+            }
+            // Check if friend exists
+            const [friend] = await db
+                .select({ id: users.id })
+                .from(users)
+                .where(eq(users.id, friendId))
+                .limit(1);
+            if (!friend) {
+                return res.status(404).json({ error: "User not found" });
             }
             // Check if already friends
             const existingFriendship = await db.select().from(userFriends).where(or(and(eq(userFriends.userId, userId), eq(userFriends.friendId, friendId)), and(eq(userFriends.userId, friendId), eq(userFriends.friendId, userId)))).limit(1);
@@ -1145,7 +494,7 @@ export function registerSocialRoutes(app) {
             res.status(500).json({ error: "Failed to add friend" });
         }
     });
-    // NEW: Accept friend endpoint
+    // POST /api/social/friends/accept - Enhanced accept friend
     app.post('/api/social/friends/accept', jwtAuth, async (req, res) => {
         try {
             const userId = req.user?.id;
@@ -1158,56 +507,84 @@ export function registerSocialRoutes(app) {
             }
             // Update friendship status
             await db.update(userFriends).set({ status: 'accepted' }).where(and(eq(userFriends.userId, friendId), eq(userFriends.friendId, userId)));
-            res.json({ success: true });
+            res.json({ success: true, message: "Friend request accepted" });
         }
         catch (error) {
             console.error('Accept friend error:', error);
             res.status(500).json({ error: "Failed to accept friend" });
         }
     });
-    // NEW: Follow user endpoint
-    app.post('/api/social/follow', jwtAuth, async (req, res) => {
+    // ===== NOTIFICATIONS SYSTEM =====
+    // GET /api/social/notifications - Enhanced notifications
+    app.get('/api/social/notifications', jwtAuth, async (req, res) => {
         try {
             const userId = req.user?.id;
-            const { userId: targetUserId } = req.body;
             if (!userId) {
                 return res.status(401).json({ error: "Authentication required" });
             }
-            if (!targetUserId) {
-                return res.status(400).json({ error: "userId is required" });
-            }
-            if (userId === targetUserId) {
-                return res.status(400).json({ error: "Cannot follow yourself" });
-            }
-            // Check if already following
-            const existingFollow = await db.select().from(userFriends).where(and(eq(userFriends.userId, userId), eq(userFriends.friendId, targetUserId))).limit(1);
-            if (existingFollow.length > 0) {
-                // Unfollow
-                await db.delete(userFriends).where(and(eq(userFriends.userId, userId), eq(userFriends.friendId, targetUserId)));
-                res.json({ success: true, following: false });
-            }
-            else {
-                // Follow
-                await db.insert(userFriends).values({
-                    userId,
-                    friendId: targetUserId
-                });
-                res.json({ success: true, following: true });
-            }
+            const userNotifications = await db
+                .select({
+                id: notifications.id,
+                type: notifications.type,
+                title: notifications.title,
+                message: notifications.message,
+                isRead: notifications.isRead,
+                data: notifications.data,
+                sourceModule: notifications.sourceModule,
+                sourceId: notifications.sourceId,
+                createdAt: notifications.createdAt,
+            })
+                .from(notifications)
+                .where(eq(notifications.userId, userId))
+                .orderBy(desc(notifications.createdAt))
+                .limit(50);
+            res.json({
+                success: true,
+                notifications: userNotifications
+            });
         }
         catch (error) {
-            console.error('Follow user error:', error);
-            res.status(500).json({ error: "Failed to follow user" });
+            console.error('Notifications error:', error);
+            res.status(500).json({ error: "Failed to fetch notifications" });
         }
     });
-    // NEW: User activity endpoint
+    // POST /api/social/notifications/:id/read - Enhanced mark read
+    app.post('/api/social/notifications/:id/read', jwtAuth, async (req, res) => {
+        try {
+            const userId = req.user?.id;
+            const notificationId = parseInt(req.params.id);
+            if (!userId) {
+                return res.status(401).json({ error: "Authentication required" });
+            }
+            await db.update(notifications).set({ isRead: true }).where(and(eq(notifications.id, notificationId), eq(notifications.userId, userId)));
+            res.json({ success: true, message: "Notification marked as read" });
+        }
+        catch (error) {
+            console.error('Mark notification read error:', error);
+            res.status(500).json({ error: "Failed to mark notification as read" });
+        }
+    });
+    // ===== ACTIVITY TRACKING =====
+    // GET /api/social/activity - Enhanced user activity
     app.get('/api/social/activity', jwtAuth, async (req, res) => {
         try {
             const userId = req.user?.id;
             if (!userId) {
                 return res.status(401).json({ error: "Authentication required" });
             }
-            const activities = await db.select().from(userActivity).where(eq(userActivity.userId, userId)).orderBy(desc(userActivity.createdAt)).limit(20);
+            const activities = await db
+                .select({
+                id: userActivity.id,
+                type: userActivity.type,
+                description: userActivity.description,
+                data: userActivity.data,
+                pointsEarned: userActivity.pointsEarned,
+                createdAt: userActivity.createdAt,
+            })
+                .from(userActivity)
+                .where(eq(userActivity.userId, userId))
+                .orderBy(desc(userActivity.createdAt))
+                .limit(20);
             res.json({
                 success: true,
                 activities
@@ -1218,53 +595,32 @@ export function registerSocialRoutes(app) {
             res.status(500).json({ error: "Failed to fetch user activity" });
         }
     });
-    // NEW: User stats endpoint
-    app.get('/api/social/stats', jwtAuth, async (req, res) => {
-        try {
-            const userId = req.user?.id;
-            if (!userId) {
-                return res.status(401).json({ error: "Authentication required" });
-            }
-            // Return default stats since socialUserStats table doesn't exist yet
-            const stats = {
-                postsCount: 0,
-                commentsCount: 0,
-                likesReceived: 0,
-                likesGiven: 0,
-                friendsCount: 0,
-                followersCount: 0,
-                followingCount: 0,
-                bookmarksCount: 0,
-                sharesCount: 0
-            };
-            res.json({
-                success: true,
-                stats: stats || {
-                    postsCount: 0,
-                    commentsCount: 0,
-                    likesReceived: 0,
-                    likesGiven: 0,
-                    friendsCount: 0,
-                    followersCount: 0,
-                    followingCount: 0,
-                    bookmarksCount: 0,
-                    sharesCount: 0
-                }
-            });
-        }
-        catch (error) {
-            console.error('User stats error:', error);
-            res.status(500).json({ error: "Failed to fetch user stats" });
-        }
-    });
-    // NEW: Bookmarks endpoint
+    // ===== CONTENT MANAGEMENT =====
+    // GET /api/social/bookmarks - Enhanced bookmarks
     app.get('/api/social/bookmarks', jwtAuth, async (req, res) => {
         try {
             const userId = req.user?.id;
             if (!userId) {
                 return res.status(401).json({ error: "Authentication required" });
             }
-            const bookmarks = await db.select().from(socialBookmarks).where(eq(socialBookmarks.userId, userId)).orderBy(desc(socialBookmarks.bookmarkedAt));
+            const bookmarks = await db
+                .select({
+                id: socialBookmarks.id,
+                postId: socialBookmarks.postId,
+                bookmarkedAt: socialBookmarks.bookmarkedAt,
+                post: {
+                    id: socialPosts.id,
+                    content: socialPosts.content,
+                    imageUrl: socialPosts.imageUrl,
+                    type: socialPosts.type,
+                    createdAt: socialPosts.createdAt,
+                    userId: socialPosts.userId,
+                }
+            })
+                .from(socialBookmarks)
+                .leftJoin(socialPosts, eq(socialBookmarks.postId, socialPosts.id))
+                .where(eq(socialBookmarks.userId, userId))
+                .orderBy(desc(socialBookmarks.bookmarkedAt));
             res.json({
                 success: true,
                 bookmarks
@@ -1275,7 +631,7 @@ export function registerSocialRoutes(app) {
             res.status(500).json({ error: "Failed to fetch bookmarks" });
         }
     });
-    // NEW: Add bookmark endpoint
+    // POST /api/social/bookmarks - Enhanced add bookmark
     app.post('/api/social/bookmarks', jwtAuth, async (req, res) => {
         try {
             const userId = req.user?.id;
@@ -1286,12 +642,17 @@ export function registerSocialRoutes(app) {
             if (!postId) {
                 return res.status(400).json({ error: "postId is required" });
             }
+            // Check if post exists
+            const post = await db.select().from(socialPosts).where(eq(socialPosts.id, postId)).limit(1);
+            if (post.length === 0) {
+                return res.status(404).json({ error: "Post not found" });
+            }
             // Check if already bookmarked
             const existingBookmark = await db.select().from(socialBookmarks).where(and(eq(socialBookmarks.userId, userId), eq(socialBookmarks.postId, postId))).limit(1);
             if (existingBookmark.length > 0) {
                 // Remove bookmark
                 await db.delete(socialBookmarks).where(and(eq(socialBookmarks.userId, userId), eq(socialBookmarks.postId, postId)));
-                res.json({ success: true, bookmarked: false });
+                res.json({ success: true, bookmarked: false, message: "Bookmark removed" });
             }
             else {
                 // Add bookmark
@@ -1299,7 +660,7 @@ export function registerSocialRoutes(app) {
                     userId,
                     postId
                 });
-                res.json({ success: true, bookmarked: true });
+                res.json({ success: true, bookmarked: true, message: "Post bookmarked" });
             }
         }
         catch (error) {
@@ -1307,14 +668,32 @@ export function registerSocialRoutes(app) {
             res.status(500).json({ error: "Failed to bookmark post" });
         }
     });
-    // NEW: Shares endpoint
+    // GET /api/social/shares - Enhanced shares
     app.get('/api/social/shares', jwtAuth, async (req, res) => {
         try {
             const userId = req.user?.id;
             if (!userId) {
                 return res.status(401).json({ error: "Authentication required" });
             }
-            const shares = await db.select().from(socialShares).where(eq(socialShares.userId, userId)).orderBy(desc(socialShares.sharedAt));
+            const shares = await db
+                .select({
+                id: socialShares.id,
+                postId: socialShares.postId,
+                platform: socialShares.platform,
+                sharedAt: socialShares.sharedAt,
+                post: {
+                    id: socialPosts.id,
+                    content: socialPosts.content,
+                    imageUrl: socialPosts.imageUrl,
+                    type: socialPosts.type,
+                    createdAt: socialPosts.createdAt,
+                    userId: socialPosts.userId,
+                }
+            })
+                .from(socialShares)
+                .leftJoin(socialPosts, eq(socialShares.postId, socialPosts.id))
+                .where(eq(socialShares.userId, userId))
+                .orderBy(desc(socialShares.sharedAt));
             res.json({
                 success: true,
                 shares
@@ -1325,12 +704,12 @@ export function registerSocialRoutes(app) {
             res.status(500).json({ error: "Failed to fetch shares" });
         }
     });
-    // NEW: Share post endpoint
+    // POST /api/social/posts/:id/share - Enhanced share post
     app.post('/api/social/posts/:id/share', jwtAuth, async (req, res) => {
         try {
             const userId = req.user?.id;
             const postId = parseInt(req.params.id);
-            const { platform } = req.body;
+            const { platform = 'internal' } = req.body;
             if (!userId) {
                 return res.status(401).json({ error: "Authentication required" });
             }
@@ -1343,16 +722,120 @@ export function registerSocialRoutes(app) {
             const share = await db.insert(socialShares).values({
                 userId,
                 postId,
-                platform: platform || 'internal'
+                platform
             }).returning();
             res.json({
                 success: true,
-                share: share[0]
+                share: share[0],
+                message: "Post shared successfully"
             });
         }
         catch (error) {
             console.error('Share post error:', error);
             res.status(500).json({ error: "Failed to share post" });
+        }
+    });
+    // ===== USER SEARCH AND PROFILES =====
+    // GET /api/social/users/search - Enhanced user search
+    app.get('/api/social/users/search', jwtAuth, async (req, res) => {
+        try {
+            const userId = req.user?.id;
+            const { q } = req.query;
+            if (!userId) {
+                return res.status(401).json({ error: "Authentication required" });
+            }
+            if (!q || q.length < 2) {
+                return res.status(400).json({ error: "Search query must be at least 2 characters" });
+            }
+            const searchResults = await db
+                .select({
+                id: users.id,
+                firstName: users.firstName,
+                lastName: users.lastName,
+                username: users.username,
+                profileImageUrl: users.profileImageUrl,
+                civicLevel: users.civicLevel,
+                isVerified: users.isVerified,
+            })
+                .from(users)
+                .where(or(sql `${users.firstName} ILIKE ${`%${q}%`}`, sql `${users.lastName} ILIKE ${`%${q}%`}`, sql `${users.username} ILIKE ${`%${q}%`}`))
+                .limit(20);
+            // Check friendship status for each result
+            const resultsWithFriendship = await Promise.all(searchResults.map(async (user) => {
+                const friendship = await db.select().from(userFriends).where(or(and(eq(userFriends.userId, userId), eq(userFriends.friendId, user.id)), and(eq(userFriends.userId, user.id), eq(userFriends.friendId, userId)))).limit(1);
+                return {
+                    ...user,
+                    isFriend: friendship.length > 0,
+                    friendStatus: friendship[0]?.status || null
+                };
+            }));
+            res.json({
+                success: true,
+                users: resultsWithFriendship
+            });
+        }
+        catch (error) {
+            console.error('User search error:', error);
+            res.status(500).json({ error: "Failed to search users" });
+        }
+    });
+    // ===== USER STATS =====
+    // GET /api/social/stats - Enhanced user stats
+    app.get('/api/social/stats', jwtAuth, async (req, res) => {
+        try {
+            const userId = req.user?.id;
+            if (!userId) {
+                return res.status(401).json({ error: "Authentication required" });
+            }
+            // Get various counts
+            const postsCount = await db
+                .select({ count: count() })
+                .from(socialPosts)
+                .where(eq(socialPosts.userId, userId));
+            const commentsCount = await db
+                .select({ count: count() })
+                .from(socialComments)
+                .where(eq(socialComments.userId, userId));
+            const likesGiven = await db
+                .select({ count: count() })
+                .from(socialLikes)
+                .where(eq(socialLikes.userId, userId));
+            const likesReceived = await db
+                .select({ count: count() })
+                .from(socialLikes)
+                .leftJoin(socialPosts, eq(socialLikes.postId, socialPosts.id))
+                .where(eq(socialPosts.userId, userId));
+            const friendsCount = await db
+                .select({ count: count() })
+                .from(userFriends)
+                .where(and(eq(userFriends.userId, userId), eq(userFriends.status, 'accepted')));
+            const bookmarksCount = await db
+                .select({ count: count() })
+                .from(socialBookmarks)
+                .where(eq(socialBookmarks.userId, userId));
+            const sharesCount = await db
+                .select({ count: count() })
+                .from(socialShares)
+                .where(eq(socialShares.userId, userId));
+            const stats = {
+                postsCount: postsCount[0]?.count || 0,
+                commentsCount: commentsCount[0]?.count || 0,
+                likesReceived: likesReceived[0]?.count || 0,
+                likesGiven: likesGiven[0]?.count || 0,
+                friendsCount: friendsCount[0]?.count || 0,
+                followersCount: 0, // TODO: Implement follow system
+                followingCount: 0, // TODO: Implement follow system
+                bookmarksCount: bookmarksCount[0]?.count || 0,
+                sharesCount: sharesCount[0]?.count || 0
+            };
+            res.json({
+                success: true,
+                stats
+            });
+        }
+        catch (error) {
+            console.error('User stats error:', error);
+            res.status(500).json({ error: "Failed to fetch user stats" });
         }
     });
 }
