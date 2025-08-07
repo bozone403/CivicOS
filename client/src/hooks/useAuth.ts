@@ -75,8 +75,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     retryDelay: 1000,
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 10 * 60 * 1000, // 10 minutes
-    enabled: !!localStorage.getItem('civicos-jwt'),
+    enabled: false, // Disable by default, will be enabled when token is available
   });
+
+  // Check for token and enable query when token is available
+  useEffect(() => {
+    const token = localStorage.getItem('civicos-jwt');
+    if (token) {
+      // Trigger the query when token is available
+      refreshUser();
+    } else {
+      setIsLoading(false);
+    }
+  }, []);
 
   // Login mutation
   const loginMutation = useMutation({
@@ -159,14 +170,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     queryClient.setQueryData(['auth-user'], response);
     return response as User;
   };
-
-  // Handle initial loading state
-  useEffect(() => {
-    const token = localStorage.getItem('civicos-jwt');
-    if (!token) {
-      setIsLoading(false);
-    }
-  }, []);
 
   // Handle user error and loading state
   useEffect(() => {
