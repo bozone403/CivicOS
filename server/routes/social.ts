@@ -19,7 +19,7 @@ import pino from "pino";
 
 const logger = pino();
 
-// Enhanced JWT Auth middleware
+// Use centralized JWT Auth middleware
 function jwtAuth(req: any, res: any, next: any) {
   const authHeader = req.headers.authorization;
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
@@ -31,10 +31,24 @@ function jwtAuth(req: any, res: any, next: any) {
     if (!secret) {
       return res.status(500).json({ error: "Server configuration error" });
     }
-    const decoded = jwt.verify(token, secret);
+    
+    // Enhanced JWT verification with proper options
+    const decoded = jwt.verify(token, secret, {
+      algorithms: ['HS256'],
+      issuer: 'civicos',
+      audience: 'civicos-users',
+      clockTolerance: 30,
+    }) as any;
+    
+    // Additional validation
+    if (!decoded.id || !decoded.email) {
+      return res.status(401).json({ error: "Invalid token payload" });
+    }
+    
     req.user = decoded;
     next();
   } catch (err) {
+    logger.error('JWT verification failed:', err);
     return res.status(401).json({ error: "Invalid or expired token" });
   }
 }
@@ -168,6 +182,8 @@ export function registerSocialRoutes(app: Express) {
       const currentUserId = (req.user as any).id;
       const { limit = 20, offset = 0 } = req.query;
 
+      logger.info('Fetching social feed for user:', currentUserId);
+
       // Get posts with user data and interaction status
       const feedPosts = await db
         .select({
@@ -195,48 +211,67 @@ export function registerSocialRoutes(app: Express) {
         .limit(parseInt(limit as string))
         .offset(parseInt(offset as string));
 
+      logger.info('Found posts:', feedPosts.length);
+
       // Get interaction counts and user interaction status
       const postsWithInteractions = await Promise.all(
         feedPosts.map(async (post) => {
-          // Get likes count
-          const likesCount = await db
-            .select({ count: count() })
-            .from(socialLikes)
-            .where(eq(socialLikes.postId, post.id));
+          try {
+            // Get likes count
+            const likesCount = await db
+              .select({ count: count() })
+              .from(socialLikes)
+              .where(eq(socialLikes.postId, post.id));
 
-          // Get comments count
-          const commentsCount = await db
-            .select({ count: count() })
-            .from(socialComments)
-            .where(eq(socialComments.postId, post.id));
+            // Get comments count
+            const commentsCount = await db
+              .select({ count: count() })
+              .from(socialComments)
+              .where(eq(socialComments.postId, post.id));
 
-          // Check if current user liked
-          const userLike = await db
-            .select()
-            .from(socialLikes)
-            .where(and(
-              eq(socialLikes.postId, post.id),
-              eq(socialLikes.userId, currentUserId)
-            ))
-            .limit(1);
+            // Check if current user liked
+            const userLike = await db
+              .select()
+              .from(socialLikes)
+              .where(and(
+                eq(socialLikes.postId, post.id),
+                eq(socialLikes.userId, currentUserId)
+              ))
+              .limit(1);
 
-          return {
-            ...post,
-            likesCount: likesCount[0]?.count || 0,
-            commentsCount: commentsCount[0]?.count || 0,
-            isLiked: userLike.length > 0,
-            user: post.user
-          };
+            return {
+              ...post,
+              likesCount: likesCount[0]?.count || 0,
+              commentsCount: commentsCount[0]?.count || 0,
+              isLiked: userLike.length > 0,
+              user: post.user
+            };
+          } catch (error) {
+            logger.error('Error processing post interactions:', error);
+            return {
+              ...post,
+              likesCount: 0,
+              commentsCount: 0,
+              isLiked: false,
+              user: post.user
+            };
+          }
         })
       );
+
+      logger.info('Returning posts with interactions:', postsWithInteractions.length);
 
       res.json({
         success: true,
         feed: postsWithInteractions
       });
     } catch (error) {
-      console.error('Social feed error:', error);
-      res.status(500).json({ error: "Failed to fetch social feed" });
+      logger.error('Social feed error:', error);
+      res.status(500).json({ 
+        success: false,
+        error: "Failed to fetch social feed",
+        message: error instanceof Error ? error.message : 'Unknown error'
+      });
     }
   });
 
@@ -467,6 +502,8 @@ export function registerSocialRoutes(app: Express) {
         return res.status(401).json({ error: "Authentication required" });
       }
 
+      logger.info('Fetching conversations for user:', userId);
+
       // Simplified query to get unique conversation partners
       const conversations = await db
         .select({
@@ -494,6 +531,8 @@ export function registerSocialRoutes(app: Express) {
         }
         return acc;
       }, [] as typeof conversations);
+
+      logger.info('Found unique conversations:', uniqueConversations.length);
 
       // Get user data for each conversation
       const conversationsWithUsers = await Promise.all(
@@ -524,20 +563,26 @@ export function registerSocialRoutes(app: Express) {
               );
 
             return {
-              ...conv,
-              otherUser: user || null,
-              unreadCount: unreadCount[0]?.count || 0
+              id: conv.otherUserId,
+              participant: user,
+              lastMessage: conv.lastMessage,
+              lastMessageAt: conv.lastMessageAt,
+              unreadCount: unreadCount[0]?.count || 0,
             };
-          } catch (userError) {
-            logger.error('Error fetching user data for conversation:', userError);
+          } catch (error) {
+            logger.error('Error processing conversation:', error);
             return {
-              ...conv,
-              otherUser: null,
-              unreadCount: 0
+              id: conv.otherUserId,
+              participant: null,
+              lastMessage: conv.lastMessage,
+              lastMessageAt: conv.lastMessageAt,
+              unreadCount: 0,
             };
           }
         })
       );
+
+      logger.info('Returning conversations with users:', conversationsWithUsers.length);
 
       res.json({
         success: true,
@@ -743,7 +788,10 @@ export function registerSocialRoutes(app: Express) {
         return res.status(401).json({ error: "Authentication required" });
       }
 
-      const friends = await db
+      logger.info('Fetching friends for user:', userId, 'status:', status);
+
+      // Get friends where user is the requester
+      const friendsAsRequester = await db
         .select({
           id: userFriends.id,
           userId: userFriends.userId,
@@ -768,13 +816,101 @@ export function registerSocialRoutes(app: Express) {
           )
         );
 
+      // Get friends where user is the recipient
+      const friendsAsRecipient = await db
+        .select({
+          id: userFriends.id,
+          userId: userFriends.friendId,
+          friendId: userFriends.userId,
+          status: userFriends.status,
+          createdAt: userFriends.createdAt,
+          friend: {
+            id: users.id,
+            firstName: users.firstName,
+            lastName: users.lastName,
+            profileImageUrl: users.profileImageUrl,
+            civicLevel: users.civicLevel,
+            isVerified: users.isVerified,
+          }
+        })
+        .from(userFriends)
+        .leftJoin(users, eq(userFriends.userId, users.id))
+        .where(
+          and(
+            eq(userFriends.friendId, userId),
+            eq(userFriends.status, status as string)
+          )
+        );
+
+      // Combine both lists
+      const allFriends = [...friendsAsRequester, ...friendsAsRecipient];
+
+      // Get pending requests
+      const pendingReceived = await db
+        .select({
+          id: userFriends.id,
+          userId: userFriends.userId,
+          friendId: userFriends.friendId,
+          status: userFriends.status,
+          createdAt: userFriends.createdAt,
+          friend: {
+            id: users.id,
+            firstName: users.firstName,
+            lastName: users.lastName,
+            profileImageUrl: users.profileImageUrl,
+            civicLevel: users.civicLevel,
+            isVerified: users.isVerified,
+          }
+        })
+        .from(userFriends)
+        .leftJoin(users, eq(userFriends.userId, users.id))
+        .where(
+          and(
+            eq(userFriends.friendId, userId),
+            eq(userFriends.status, 'pending')
+          )
+        );
+
+      const pendingSent = await db
+        .select({
+          id: userFriends.id,
+          userId: userFriends.userId,
+          friendId: userFriends.friendId,
+          status: userFriends.status,
+          createdAt: userFriends.createdAt,
+          friend: {
+            id: users.id,
+            firstName: users.firstName,
+            lastName: users.lastName,
+            profileImageUrl: users.profileImageUrl,
+            civicLevel: users.civicLevel,
+            isVerified: users.isVerified,
+          }
+        })
+        .from(userFriends)
+        .leftJoin(users, eq(userFriends.friendId, users.id))
+        .where(
+          and(
+            eq(userFriends.userId, userId),
+            eq(userFriends.status, 'pending')
+          )
+        );
+
+      logger.info('Found friends:', allFriends.length, 'pending received:', pendingReceived.length, 'pending sent:', pendingSent.length);
+
       res.json({
         success: true,
-        friends
+        friends: allFriends,
+        received: pendingReceived,
+        sent: pendingSent
       });
     } catch (error) {
-      console.error('Friends error:', error);
-      res.status(500).json({ error: "Failed to fetch friends" });
+      logger.error('Friends error:', error);
+      res.status(500).json({ 
+        success: false,
+        error: "Failed to fetch friends",
+        message: error instanceof Error ? error.message : 'Unknown error'
+      });
     }
   });
 
