@@ -1,4 +1,4 @@
-import { Router, Request, Response } from "express";
+import { Express, Request, Response, Router } from "express";
 import { db } from "../db.js";
 import { 
   users, 
@@ -39,7 +39,7 @@ function jwtAuth(req: any, res: any, next: any) {
   }
 }
 
-export function registerSocialRoutes(app: Router) {
+export function registerSocialRoutes(app: Express) {
   
   // ===== CORE SOCIAL FEED ENDPOINTS =====
   
