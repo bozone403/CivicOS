@@ -27,7 +27,11 @@ function generateToken(user: any) {
   return jwt.sign(
     { id: user.id, email: user.email },
     JWT_SECRET as string,
-    { expiresIn: '7d' }
+    { 
+      expiresIn: '7d',
+      issuer: 'civicos',
+      audience: 'civicos-users'
+    }
   );
 }
 
@@ -420,7 +424,7 @@ export function registerAuthRoutes(app: Express) {
       if (!req.file) {
         return res.status(400).json({ message: "No file uploaded" });
       }
-      const userId = req.user && req.user.id;
+      const userId = (req.user as JwtPayload)?.id;
       if (!userId) {
         return res.status(401).json({ message: "Unauthorized" });
       }

@@ -15,7 +15,11 @@ function generateToken(user) {
     if (!JWT_SECRET) {
         throw new Error("JWT_SECRET not configured");
     }
-    return jwt.sign({ id: user.id, email: user.email }, JWT_SECRET, { expiresIn: '7d' });
+    return jwt.sign({ id: user.id, email: user.email }, JWT_SECRET, {
+        expiresIn: '7d',
+        issuer: 'civicos',
+        audience: 'civicos-users'
+    });
 }
 export function jwtAuth(req, res, next) {
     const authHeader = req.headers.authorization;
@@ -334,7 +338,7 @@ export function registerAuthRoutes(app) {
             if (!req.file) {
                 return res.status(400).json({ message: "No file uploaded" });
             }
-            const userId = req.user && req.user.id;
+            const userId = req.user?.id;
             if (!userId) {
                 return res.status(401).json({ message: "Unauthorized" });
             }
