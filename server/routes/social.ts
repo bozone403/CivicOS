@@ -553,7 +553,7 @@ export function registerSocialRoutes(app: Express) {
     }
   });
 
-  // GET /api/social/messages - Enhanced messages
+  // GET /api/social/messages - Enhanced messages (with query parameter)
   app.get('/api/social/messages', jwtAuth, async (req: Request, res: Response) => {
     try {
       const userId = (req.user as any)?.id;
@@ -619,8 +619,6 @@ export function registerSocialRoutes(app: Express) {
       });
     }
   });
-
-  // GET /api/social/messages/:conversationId - Get messages for a specific conversation
   app.get('/api/social/messages/:conversationId', jwtAuth, async (req: Request, res: Response) => {
     try {
       const userId = (req.user as any)?.id;
