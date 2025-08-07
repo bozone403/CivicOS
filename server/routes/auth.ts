@@ -18,6 +18,10 @@ if (!JWT_SECRET) {
 interface JwtPayload {
   id: string;
   email: string;
+  exp: number;
+  iat: number;
+  iss?: string;
+  aud?: string;
 }
 
 function generateToken(user: any) {
@@ -42,7 +46,32 @@ export function jwtAuth(req: any, res: any, next: any) {
   }
   try {
     const token = authHeader.split(" ")[1];
-    const decoded = jwt.verify(token, JWT_SECRET as string) as JwtPayload;
+    
+    // Verify token with enhanced security
+    const decoded = jwt.verify(token, JWT_SECRET as string, {
+      algorithms: ['HS256'],
+      issuer: 'civicos',
+      audience: 'civicos-users',
+      clockTolerance: 30, // 30 seconds tolerance for clock skew
+    }) as JwtPayload;
+    
+    // Additional validation
+    if (!decoded.id || !decoded.email) {
+      return res.status(401).json({ 
+        message: "Invalid token payload",
+        code: "INVALID_PAYLOAD"
+      });
+    }
+    
+    // Check if token is expired (with 5 minute buffer)
+    const now = Math.floor(Date.now() / 1000);
+    if (decoded.exp < now - 300) {
+      return res.status(401).json({ 
+        message: "Token expired",
+        code: "TOKEN_EXPIRED"
+      });
+    }
+    
     req.user = decoded;
     next();
   } catch (err) {
