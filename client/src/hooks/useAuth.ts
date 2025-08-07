@@ -1,7 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
-
-
 
 export interface User {
   id: string;
@@ -19,178 +18,175 @@ export interface User {
   verificationStatus?: string;
   createdAt?: string;
   updatedAt?: string;
+  followersCount?: number;
+  followingCount?: number;
+  postsCount?: number;
+  civicPoints?: number;
 }
 
 interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (email: string, password: string) => Promise<void>;
-  register: (email: string, password: string, firstName: string, lastName: string) => Promise<void>;
+  login: (credentials: { email: string; password: string }) => Promise<User>;
+  register: (userData: { email: string; password: string; firstName: string; lastName: string }) => Promise<User>;
   logout: () => void;
-  updateProfile: (updates: Partial<User>) => Promise<void>;
+  updateProfile: (updates: Partial<User>) => Promise<User>;
   createUserProfile: (userData: Partial<User>) => Promise<User>;
+  refreshUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-
-
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
+  const queryClient = useQueryClient();
   const [isLoading, setIsLoading] = useState(true);
 
+  // Unified user query with proper error handling
+  const { 
+    data: user, 
+    isLoading: isUserLoading, 
+    error: userError,
+    refetch: refreshUser 
+  } = useQuery({
+    queryKey: ['auth-user'],
+    queryFn: async () => {
+      const token = localStorage.getItem('civicos-jwt');
+      if (!token) {
+        throw new Error('No token found');
+      }
+
+      try {
+        const response = await apiRequest('/api/auth/user', 'GET');
+        
+        if (!response || !response.id) {
+          throw new Error('Invalid user data');
+        }
+
+        return response as User;
+      } catch (error) {
+        // Clear invalid token
+        localStorage.removeItem('civicos-jwt');
+        throw error;
+      }
+    },
+    retry: 1,
+    retryDelay: 1000,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes
+    enabled: !!localStorage.getItem('civicos-jwt'),
+  });
+
+  // Login mutation
+  const loginMutation = useMutation({
+    mutationFn: async (credentials: { email: string; password: string }) => {
+      const response = await apiRequest('/api/auth/login', 'POST', credentials);
+      
+      if (!response.token) {
+        throw new Error('No token received from server');
+      }
+      
+      localStorage.setItem('civicos-jwt', response.token);
+      return response.user as User;
+    },
+    onSuccess: (userData) => {
+      queryClient.setQueryData(['auth-user'], userData);
+      setIsLoading(false);
+    },
+    onError: (error) => {
+      console.error('Login failed:', error);
+      localStorage.removeItem('civicos-jwt');
+      queryClient.setQueryData(['auth-user'], null);
+      setIsLoading(false);
+    },
+  });
+
+  // Register mutation
+  const registerMutation = useMutation({
+    mutationFn: async (userData: { 
+      email: string; 
+      password: string; 
+      firstName: string; 
+      lastName: string 
+    }) => {
+      const response = await apiRequest('/api/auth/register', 'POST', userData);
+      
+      if (!response.token) {
+        throw new Error('No token received from server');
+      }
+      
+      localStorage.setItem('civicos-jwt', response.token);
+      return response.user as User;
+    },
+    onSuccess: (userData) => {
+      queryClient.setQueryData(['auth-user'], userData);
+      setIsLoading(false);
+    },
+    onError: (error) => {
+      console.error('Registration failed:', error);
+      localStorage.removeItem('civicos-jwt');
+      queryClient.setQueryData(['auth-user'], null);
+      setIsLoading(false);
+    },
+  });
+
+  // Update profile mutation
+  const updateProfileMutation = useMutation({
+    mutationFn: async (updates: Partial<User>) => {
+      const response = await apiRequest('/api/users/profile', 'PUT', updates);
+      return response as User;
+    },
+    onSuccess: (updatedUser) => {
+      queryClient.setQueryData(['auth-user'], updatedUser);
+    },
+    onError: (error) => {
+      console.error('Profile update failed:', error);
+    },
+  });
+
+  // Logout function
+  const logout = () => {
+    localStorage.removeItem('civicos-jwt');
+    queryClient.setQueryData(['auth-user'], null);
+    queryClient.clear(); // Clear all cached data
+    setIsLoading(false);
+  };
+
+  // Create user profile
+  const createUserProfile = async (userData: Partial<User>): Promise<User> => {
+    const response = await apiRequest('/api/users/profile', 'POST', userData);
+    queryClient.setQueryData(['auth-user'], response);
+    return response as User;
+  };
+
+  // Handle initial loading state
   useEffect(() => {
-    const token = localStorage.getItem('civicos-jwt');
-    if (token) {
-      validateToken();
-    } else {
+    if (!localStorage.getItem('civicos-jwt')) {
       setIsLoading(false);
     }
   }, []);
 
-  const validateToken = async () => {
-    try {
-      const token = localStorage.getItem('civicos-jwt');
-      if (!token) {
-        setUser(null);
-        setIsLoading(false);
-        return;
-      }
-      
-      const response = await apiRequest('/api/auth/user', 'GET');
-      
-      // The backend returns user data directly, not wrapped in a 'user' property
-      if (response && response.id && response.email) {
-        setUser(response);
-        await ensureUserProfile(response);
-      } else {
-        // Clear invalid token
-        localStorage.removeItem('civicos-jwt');
-        setUser(null);
-      }
-    } catch (error) {
-      // Clear invalid token on any error
+  // Handle user error
+  useEffect(() => {
+    if (userError) {
+      console.error('User authentication error:', userError);
       localStorage.removeItem('civicos-jwt');
-      setUser(null);
-    } finally {
       setIsLoading(false);
     }
-  };
+  }, [userError]);
 
-  const ensureUserProfile = async (userData: User) => {
-    try {
-      if (!userData.firstName || !userData.lastName || !userData.bio) {
-        const profileData = {
-          firstName: userData.firstName || userData.email?.split('@')[0] || 'User',
-          lastName: userData.lastName || '',
-          bio: userData.bio || 'New CivicOS user. Join me in building a better democracy!',
-          city: userData.city || '',
-          province: userData.province || '',
-          civicLevel: userData.civicLevel || 'Registered',
-          trustScore: userData.trustScore || '100.00',
-          isVerified: userData.isVerified || false,
-        };
-        await updateProfile(profileData);
-      }
-    } catch (error) {
-      // console.error removed for production
-    }
-  };
-
-  const login = async (email: string, password: string) => {
-    try {
-      const response = await apiRequest('/api/auth/login', 'POST', { email, password });
-      if (response.token) {
-        localStorage.setItem('civicos-jwt', response.token);
-        if (response.user) {
-          setUser(response.user);
-          await ensureUserProfile(response.user);
-        }
-        // Force a re-validation to ensure state is consistent
-        setTimeout(() => {
-          validateToken();
-        }, 100);
-      }
-    } catch (error) {
-      throw error;
-    }
-  };
-
-  const register = async (email: string, password: string, firstName: string, lastName: string) => {
-    try {
-      const response = await apiRequest('/api/auth/register', 'POST', { 
-        email, 
-        password, 
-        firstName, 
-        lastName 
-      });
-      
-      if (response.token) {
-        localStorage.setItem('civicos-jwt', response.token);
-        
-        const userData = {
-          id: response.user?.id || email,
-          email,
-          firstName,
-          lastName,
-          bio: `New CivicOS user. Join me in building a better democracy!`,
-          civicLevel: 'Registered',
-          trustScore: '100.00',
-          isVerified: false,
-        };
-        
-        setUser(userData);
-        await createUserProfile(userData);
-      }
-    } catch (error) {
-      // console.error removed for production
-      throw error;
-    }
-  };
-
-  const createUserProfile = async (userData: Partial<User>): Promise<User> => {
-    try {
-      const response = await apiRequest('/api/users/profile', 'POST', userData);
-      if (response.user) {
-        setUser(response.user);
-        return response.user;
-      }
-      throw new Error('Failed to create user profile');
-    } catch (error) {
-      // console.error removed for production
-      throw error;
-    }
-  };
-
-  const updateProfile = async (updates: Partial<User>) => {
-    try {
-      const response = await apiRequest('/api/users/profile', 'PUT', updates);
-      if (response.user) {
-        setUser(response.user);
-      }
-    } catch (error) {
-      // console.error removed for production
-      throw error;
-    }
-  };
-
-  const logout = () => {
-    localStorage.removeItem('civicos-jwt');
-    setUser(null);
-  };
-
-  const isAuthenticated = !!user && !isLoading;
-
-  const value = {
-    user,
-    isAuthenticated,
-    isLoading,
-    login,
-    register,
+  const value: AuthContextType = {
+    user: user || null,
+    isAuthenticated: !!user,
+    isLoading: isLoading || isUserLoading,
+    login: loginMutation.mutateAsync,
+    register: registerMutation.mutateAsync,
     logout,
-    updateProfile,
+    updateProfile: updateProfileMutation.mutateAsync,
     createUserProfile,
+    refreshUser: async () => {
+      await refreshUser();
+    },
   };
 
   return React.createElement(AuthContext.Provider, { value }, children);

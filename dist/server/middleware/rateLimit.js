@@ -1,117 +1,50 @@
-import rateLimit from 'express-rate-limit';
-// Basic rate limiter for all routes
-export const basicRateLimit = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 100, // Limit each IP to 100 requests per windowMs
-    message: {
-        error: 'Too many requests from this IP, please try again later.',
-        retryAfter: '15 minutes'
-    },
-    standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
-    legacyHeaders: false, // Disable the `X-RateLimit-*` headers
-    handler: (req, res) => {
-        res.status(429).json({
-            success: false,
-            message: 'Too many requests from this IP, please try again later.',
-            retryAfter: '15 minutes'
-        });
-    }
-});
-// Stricter rate limiter for authentication routes
-export const authRateLimit = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 5, // Limit each IP to 5 auth requests per windowMs
-    message: {
-        error: 'Too many authentication attempts from this IP, please try again later.',
-        retryAfter: '15 minutes'
-    },
+import rateLimit from "express-rate-limit";
+import pino from "pino";
+const logger = pino();
+// Unified rate limiting configuration
+export const createRateLimit = (windowMs, max, message = 'Too many requests, please try again later.', skipSuccessfulRequests = false) => rateLimit({
+    windowMs,
+    max,
+    message: { error: message },
     standardHeaders: true,
     legacyHeaders: false,
+    skipSuccessfulRequests,
     handler: (req, res) => {
-        res.status(429).json({
-            success: false,
-            message: 'Too many authentication attempts from this IP, please try again later.',
-            retryAfter: '15 minutes'
+        logger.warn('Rate limit exceeded', {
+            ip: req.ip,
+            path: req.path,
+            userAgent: req.get('User-Agent'),
+            timestamp: new Date().toISOString()
         });
-    }
-});
-// Rate limiter for API endpoints
-export const apiRateLimit = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 200, // Limit each IP to 200 API requests per windowMs
-    message: {
-        error: 'Too many API requests from this IP, please try again later.',
-        retryAfter: '15 minutes'
+        res.status(429).json({ error: message });
     },
-    standardHeaders: true,
-    legacyHeaders: false,
-    handler: (req, res) => {
-        res.status(429).json({
-            success: false,
-            message: 'Too many API requests from this IP, please try again later.',
-            retryAfter: '15 minutes'
-        });
+    keyGenerator: (req) => {
+        // Use user ID if authenticated, otherwise IP
+        return req.user?.id || req.ip;
     }
 });
-// Rate limiter for voting endpoints
-export const votingRateLimit = rateLimit({
-    windowMs: 60 * 60 * 1000, // 1 hour
-    max: 10, // Limit each IP to 10 voting requests per hour
-    message: {
-        error: 'Too many voting attempts from this IP, please try again later.',
-        retryAfter: '1 hour'
-    },
-    standardHeaders: true,
-    legacyHeaders: false,
-    handler: (req, res) => {
-        res.status(429).json({
-            success: false,
-            message: 'Too many voting attempts from this IP, please try again later.',
-            retryAfter: '1 hour'
-        });
-    }
-});
-// Rate limiter for posting content
-export const postingRateLimit = rateLimit({
-    windowMs: 60 * 60 * 1000, // 1 hour
-    max: 20, // Limit each IP to 20 posts per hour
-    message: {
-        error: 'Too many posts from this IP, please try again later.',
-        retryAfter: '1 hour'
-    },
-    standardHeaders: true,
-    legacyHeaders: false,
-    handler: (req, res) => {
-        res.status(429).json({
-            success: false,
-            message: 'Too many posts from this IP, please try again later.',
-            retryAfter: '1 hour'
-        });
-    }
-});
-// Dynamic rate limiter based on user authentication
-export const dynamicRateLimit = (req, res, next) => {
-    const isAuthenticated = req.headers.authorization && req.headers.authorization.startsWith('Bearer ');
-    if (isAuthenticated) {
-        // Authenticated users get higher limits
-        return rateLimit({
-            windowMs: 15 * 60 * 1000,
-            max: 500,
-            message: {
-                error: 'Too many requests, please try again later.',
-                retryAfter: '15 minutes'
-            }
-        })(req, res, next);
-    }
-    else {
-        // Unauthenticated users get lower limits
-        return rateLimit({
-            windowMs: 15 * 60 * 1000,
-            max: 50,
-            message: {
-                error: 'Too many requests, please try again later.',
-                retryAfter: '15 minutes'
-            }
-        })(req, res, next);
-    }
-};
+// Specific rate limit configurations
+export const authRateLimit = createRateLimit(15 * 60 * 1000, // 15 minutes
+5, // 5 requests per window
+'Too many authentication attempts, please try again later.', true // Skip successful requests
+);
+export const apiRateLimit = createRateLimit(15 * 60 * 1000, // 15 minutes
+200, // 200 requests per window
+'API rate limit exceeded, please try again later.');
+export const socialRateLimit = createRateLimit(15 * 60 * 1000, // 15 minutes
+100, // 100 requests per window
+'Social feature rate limit exceeded, please try again later.');
+export const votingRateLimit = createRateLimit(15 * 60 * 1000, // 15 minutes
+50, // 50 requests per window
+'Voting rate limit exceeded, please try again later.');
+export const uploadRateLimit = createRateLimit(15 * 60 * 1000, // 15 minutes
+10, // 10 uploads per window
+'Upload rate limit exceeded, please try again later.');
+// Admin rate limit (more permissive)
+export const adminRateLimit = createRateLimit(15 * 60 * 1000, // 15 minutes
+500, // 500 requests per window
+'Admin rate limit exceeded, please try again later.');
+// Development rate limit (very permissive)
+export const devRateLimit = createRateLimit(15 * 60 * 1000, // 15 minutes
+1000, // 1000 requests per window
+'Development rate limit exceeded, please try again later.');

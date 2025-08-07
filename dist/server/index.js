@@ -12,7 +12,7 @@ import helmet from "helmet";
 import jwt from "jsonwebtoken";
 import pino from "pino";
 // Import middleware
-import { basicRateLimit, authRateLimit, apiRateLimit } from './middleware/rateLimit.js';
+import { authRateLimit, apiRateLimit, socialRateLimit, votingRateLimit } from './middleware/rateLimit.js';
 import { requestLogger, errorLogger } from './middleware/logging.js';
 // Import AI routes (updated)
 import aiRoutes from './routes/ai.js';
@@ -34,23 +34,60 @@ if (!process.env.SESSION_SECRET) {
 const JWT_SECRET = process.env.SESSION_SECRET;
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+// Enhanced JWT authentication middleware
 function jwtAuth(req, res, next) {
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
-        return res.status(401).json({ message: "Missing or invalid token" });
+        return res.status(401).json({
+            message: "Missing or invalid token",
+            code: "MISSING_TOKEN"
+        });
     }
     try {
         const token = authHeader.split(" ")[1];
-        const decoded = jwt.verify(token, JWT_SECRET);
+        // Verify token with enhanced security
+        const decoded = jwt.verify(token, JWT_SECRET, {
+            algorithms: ['HS256'],
+            issuer: 'civicos',
+            audience: 'civicos-users',
+            clockTolerance: 30, // 30 seconds tolerance for clock skew
+        });
+        // Additional validation
+        if (!decoded.id || !decoded.email) {
+            return res.status(401).json({
+                message: "Invalid token payload",
+                code: "INVALID_PAYLOAD"
+            });
+        }
+        // Check if token is expired (with 5 minute buffer)
+        const now = Math.floor(Date.now() / 1000);
+        if (decoded.exp < now - 300) {
+            return res.status(401).json({
+                message: "Token expired",
+                code: "TOKEN_EXPIRED"
+            });
+        }
         req.user = decoded;
         next();
     }
     catch (err) {
-        return res.status(401).json({ message: "Invalid or expired token" });
+        logger.error('JWT verification failed', {
+            error: err instanceof Error ? err.message : 'Unknown error',
+            token: authHeader.substring(0, 20) + '...' // Log first 20 chars for debugging
+        });
+        return res.status(401).json({
+            message: "Invalid or expired token",
+            code: "INVALID_TOKEN"
+        });
     }
 }
 const app = express();
 app.set('trust proxy', 1); // Trust first proxy (Render, Heroku, etc.)
+// Add JwtPayload type for req.user
+// interface JwtPayload {
+//   id: string;
+//   email: string;
+// }
 // Simple health check endpoint
 app.get('/health', (req, res) => {
     res.json({
@@ -122,11 +159,12 @@ app.use((req, res, next) => {
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 // Apply rate limiting and logging middleware
-app.use(basicRateLimit);
 app.use(requestLogger);
 // Apply specific rate limits to sensitive endpoints
 app.use('/api/auth', authRateLimit);
-app.use('/api/voting', apiRateLimit);
+app.use('/api/social', socialRateLimit);
+app.use('/api/voting', votingRateLimit);
+app.use('/api', apiRateLimit);
 app.use((req, res, next) => {
     logger.info({ method: req.method, url: req.url, ip: req.ip });
     next();

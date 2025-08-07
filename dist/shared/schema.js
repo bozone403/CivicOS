@@ -1,4 +1,4 @@
-import { pgTable, text, varchar, timestamp, jsonb, index, serial, integer, boolean, decimal, date, } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, timestamp, jsonb, index, serial, integer, boolean, decimal, date, primaryKey, } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 // Session storage table
 export const sessions = pgTable("sessions", {
@@ -132,6 +132,13 @@ export const users = pgTable("users", {
     profileLastUpdated: timestamp("profile_last_updated"),
     profileVisibility: varchar("profile_visibility").default("public"),
     profileCompletionPercentage: integer("profile_completion_percentage").default(0),
+    // Social metrics
+    followersCount: integer("followers_count").default(0),
+    followingCount: integer("following_count").default(0),
+    postsCount: integer("posts_count").default(0),
+    commentsCount: integer("comments_count").default(0),
+    likesCount: integer("likes_count").default(0),
+    sharesCount: integer("shares_count").default(0),
     createdAt: timestamp("created_at").defaultNow(),
     updatedAt: timestamp("updated_at").defaultNow(),
     accountStatus: varchar("account_status").default("active"),
@@ -612,12 +619,14 @@ export const votingItems = pgTable("voting_items", {
 // User follows table
 export const userFollows = pgTable("user_follows", {
     id: serial("id").primaryKey(),
-    userId: varchar("user_id").notNull(),
-    followId: varchar("follow_id").notNull(),
+    userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    followId: varchar("follow_id").notNull().references(() => users.id, { onDelete: "cascade" }),
     createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (table) => [
+    primaryKey(table.userId, table.followId), // Prevent duplicate follows
     index("IDX_user_follows_user_id").on(table.userId),
-    index("IDX_user_follows_follow_id").on(table.followId)
+    index("IDX_user_follows_follow_id").on(table.followId),
+    index("IDX_user_follows_created_at").on(table.createdAt),
 ]);
 // Create schemas for validation
 export const insertUserSchema = createInsertSchema(users);

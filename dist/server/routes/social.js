@@ -2,6 +2,8 @@ import { db } from "../db.js";
 import { users, socialPosts, socialComments, socialLikes, userFriends, userMessages, notifications, userActivity, socialShares, socialBookmarks, userFollows } from "../../shared/schema.js";
 import { eq, and, or, desc, asc, count, sql } from "drizzle-orm";
 import jwt from "jsonwebtoken";
+import pino from "pino";
+const logger = pino();
 // Enhanced JWT Auth middleware
 function jwtAuth(req, res, next) {
     const authHeader = req.headers.authorization;
@@ -842,47 +844,86 @@ export function registerSocialRoutes(app) {
     app.post('/api/social/follow', jwtAuth, async (req, res) => {
         try {
             const followerId = req.user?.id;
-            const { userId: followingId } = req.body;
+            const { userId: followingId } = req.body; // Frontend sends userId, map to followingId
             if (!followerId || !followingId) {
-                return res.status(400).json({ error: "User ID and follow ID are required" });
+                return res.status(400).json({
+                    error: "User ID and follow ID are required",
+                    code: "MISSING_PARAMETERS"
+                });
             }
             if (followerId === followingId) {
-                return res.status(400).json({ error: "Cannot follow yourself" });
+                return res.status(400).json({
+                    error: "Cannot follow yourself",
+                    code: "SELF_FOLLOW"
+                });
             }
             // Check if already following
             const existingFollow = await db.select().from(userFollows).where(and(eq(userFollows.userId, followerId), eq(userFollows.followId, followingId))).limit(1);
             if (existingFollow.length > 0) {
-                return res.status(400).json({ error: "Already following this user" });
+                return res.status(400).json({
+                    error: "Already following this user",
+                    code: "ALREADY_FOLLOWING"
+                });
             }
             // Insert follow relationship
             await db.insert(userFollows).values({
                 userId: followerId,
                 followId: followingId
             });
-            res.json({ success: true, message: "User followed successfully" });
+            // Note: Follower counts will be updated via database triggers or computed fields
+            // For now, we'll rely on the user_follows table for accurate counts
+            res.json({
+                success: true,
+                message: "User followed successfully",
+                data: {
+                    followerId,
+                    followingId,
+                    followedAt: new Date()
+                }
+            });
         }
         catch (error) {
             console.error('Follow user error:', error);
             res.status(500).json({ error: "Failed to follow user" });
         }
     });
-    // DELETE /api/social/follow/:userId - Unfollow a user
-    app.delete('/api/social/follow/:userId', jwtAuth, async (req, res) => {
+    // DELETE /api/social/unfollow - Unfollow a user
+    app.delete('/api/social/unfollow', jwtAuth, async (req, res) => {
         try {
             const followerId = req.user?.id;
-            const followingId = req.params.userId;
+            const { userId: followingId } = req.body; // Frontend sends userId, map to followingId
             if (!followerId || !followingId) {
-                return res.status(400).json({ error: "User ID and follow ID are required" });
+                return res.status(400).json({
+                    error: "User ID and follow ID are required",
+                    code: "MISSING_PARAMETERS"
+                });
             }
             // Delete follow relationship
             const result = await db.delete(userFollows).where(and(eq(userFollows.userId, followerId), eq(userFollows.followId, followingId)));
             if (result.rowCount === 0) {
-                return res.status(404).json({ error: "Not following this user" });
+                return res.status(400).json({
+                    error: "Not following this user",
+                    code: "NOT_FOLLOWING"
+                });
             }
-            res.json({ success: true, message: "User unfollowed successfully" });
+            // Note: Follower counts will be updated via database triggers or computed fields
+            // For now, we'll rely on the user_follows table for accurate counts
+            res.json({
+                success: true,
+                message: "User unfollowed successfully",
+                data: {
+                    followerId,
+                    followingId,
+                    unfollowedAt: new Date()
+                }
+            });
         }
         catch (error) {
-            console.error('Unfollow user error:', error);
+            logger.error('Unfollow user error:', {
+                error: error instanceof Error ? error.message : 'Unknown error',
+                followerId: req.user?.id,
+                followingId: req.body.userId
+            });
             res.status(500).json({ error: "Failed to unfollow user" });
         }
     });

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useLocation } from 'wouter';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -74,7 +74,8 @@ interface SocialPost {
 }
 
 export default function PublicProfile() {
-  const { username } = useParams<{ username: string }>();
+  const [location] = useLocation();
+  const username = location.split('/').pop(); // Extract username from URL
   const { user: currentUser } = useAuth();
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState('posts');
