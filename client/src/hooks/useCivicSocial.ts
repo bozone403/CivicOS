@@ -40,8 +40,8 @@ export function useCivicSocialFeed() {
       }
       
       const data = await res.json();
-      // Backend returns { feed: [...] }
-      return data.feed || [];
+      // Backend returns { success: true, feed: [...] }
+      return data.success ? (data.feed || []) : [];
     },
     retry: (failureCount, error) => {
       // Don't retry authentication errors
@@ -76,6 +76,7 @@ export function useCivicSocialPost() {
 
 // Add comment
 export function useCivicSocialComment() {
+  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({ postId, ...comment }: any) => {
       const token = getToken();
@@ -90,6 +91,7 @@ export function useCivicSocialComment() {
       if (!res.ok) throw new Error("Failed to add comment");
       return res.json();
     },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["civicSocialFeed"] }),
   });
 }
 
@@ -97,41 +99,62 @@ export function useCivicSocialComment() {
 export function useCivicSocialLike() {
   const queryClient = useQueryClient();
   return useMutation({
-    // Accepts: ({ postId, reaction })
-    mutationFn: async ({ postId, reaction }: { postId: number, reaction: string }) => {
+    mutationFn: async ({ postId, reaction = "like" }: any) => {
       const token = getToken();
       const res = await fetch(`${API_BASE}/api/social/posts/${postId}/like`, {
         method: "POST",
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
         body: JSON.stringify({ reaction }),
       });
-      if (!res.ok) throw new Error("Failed to react to post");
+      if (!res.ok) throw new Error("Failed to like post");
       return res.json();
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["civicSocialFeed"] }),
   });
 }
 
-// Friends
+// Friends system
 export function useCivicSocialFriends() {
   return useQuery({
     queryKey: ["civicSocialFriends"],
     queryFn: async () => {
       const token = getToken();
+      if (!token) {
+        throw new Error("Authentication required");
+      }
+      
       const res = await fetch(`${API_BASE}/api/social/friends`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      if (!res.ok) throw new Error("Failed to fetch friends");
-      return res.json();
+      
+      if (!res.ok) {
+        if (res.status === 401 || res.status === 403) {
+          localStorage.removeItem('civicos-jwt');
+          throw new Error("Authentication required");
+        }
+        throw new Error("Failed to fetch friends");
+      }
+      
+      const data = await res.json();
+      return data.success ? data : { friends: [], received: [], sent: [] };
+    },
+    retry: (failureCount, error) => {
+      if (error.message === "Authentication required") {
+        return false;
+      }
+      return failureCount < 3;
     },
   });
 }
 
-// Add friend mutation
+// Add friend
 export function useCivicSocialAddFriend() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ friendId }: { friendId: number }) => {
+    mutationFn: async ({ friendId }: any) => {
       const token = getToken();
       const res = await fetch(`${API_BASE}/api/social/friends`, {
         method: "POST",
@@ -139,9 +162,9 @@ export function useCivicSocialAddFriend() {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ friendId, action: "send" }),
+        body: JSON.stringify({ friendId }),
       });
-      if (!res.ok) throw new Error("Failed to send friend request");
+      if (!res.ok) throw new Error("Failed to add friend");
       return res.json();
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["civicSocialFriends"] }),
@@ -152,15 +175,15 @@ export function useCivicSocialAddFriend() {
 export function useCivicSocialAcceptFriend() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ friendId }: { friendId: number }) => {
+    mutationFn: async ({ friendId }: any) => {
       const token = getToken();
-      const res = await fetch(`${API_BASE}/api/social/friends`, {
+      const res = await fetch(`${API_BASE}/api/social/friends/accept`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ friendId, action: "accept" }),
+        body: JSON.stringify({ friendId }),
       });
       if (!res.ok) throw new Error("Failed to accept friend request");
       return res.json();
@@ -169,19 +192,19 @@ export function useCivicSocialAcceptFriend() {
   });
 }
 
-// Remove/unfriend
+// Remove friend
 export function useCivicSocialRemoveFriend() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ friendId }: { friendId: number }) => {
+    mutationFn: async ({ friendId }: any) => {
       const token = getToken();
-      const res = await fetch(`${API_BASE}/api/social/friends`, {
-        method: "POST",
+      const res = await fetch(`${API_BASE}/api/social/friends/remove`, {
+        method: "DELETE",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ friendId, action: "remove" }),
+        body: JSON.stringify({ friendId }),
       });
       if (!res.ok) throw new Error("Failed to remove friend");
       return res.json();
@@ -196,11 +219,30 @@ export function useCivicSocialConversations() {
     queryKey: ["civicSocialConversations"],
     queryFn: async () => {
       const token = getToken();
+      if (!token) {
+        throw new Error("Authentication required");
+      }
+      
       const res = await fetch(`${API_BASE}/api/social/conversations`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      if (!res.ok) throw new Error("Failed to fetch conversations");
-      return res.json();
+      
+      if (!res.ok) {
+        if (res.status === 401 || res.status === 403) {
+          localStorage.removeItem('civicos-jwt');
+          throw new Error("Authentication required");
+        }
+        throw new Error("Failed to fetch conversations");
+      }
+      
+      const data = await res.json();
+      return data.success ? (data.conversations || []) : [];
+    },
+    retry: (failureCount, error) => {
+      if (error.message === "Authentication required") {
+        return false;
+      }
+      return failureCount < 3;
     },
   });
 }
@@ -210,14 +252,35 @@ export function useCivicSocialMessages(conversationId: string) {
   return useQuery({
     queryKey: ["civicSocialMessages", conversationId],
     queryFn: async () => {
+      if (!conversationId) return [];
+      
       const token = getToken();
+      if (!token) {
+        throw new Error("Authentication required");
+      }
+      
       const res = await fetch(`${API_BASE}/api/social/messages/${conversationId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      if (!res.ok) throw new Error("Failed to fetch messages");
-      return res.json();
+      
+      if (!res.ok) {
+        if (res.status === 401 || res.status === 403) {
+          localStorage.removeItem('civicos-jwt');
+          throw new Error("Authentication required");
+        }
+        throw new Error("Failed to fetch messages");
+      }
+      
+      const data = await res.json();
+      return data.success ? (data.messages || []) : [];
     },
     enabled: !!conversationId,
+    retry: (failureCount, error) => {
+      if (error.message === "Authentication required") {
+        return false;
+      }
+      return failureCount < 3;
+    },
   });
 }
 
@@ -225,7 +288,7 @@ export function useCivicSocialMessages(conversationId: string) {
 export function useCivicSocialSendMessage() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ content, receiverId }: { content: string; receiverId: string }) => {
+    mutationFn: async ({ recipientId, content }: any) => {
       const token = getToken();
       const res = await fetch(`${API_BASE}/api/social/messages`, {
         method: "POST",
@@ -233,7 +296,7 @@ export function useCivicSocialSendMessage() {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ content, receiverId }),
+        body: JSON.stringify({ recipientId, content }),
       });
       if (!res.ok) throw new Error("Failed to send message");
       return res.json();
@@ -248,7 +311,7 @@ export function useCivicSocialSendMessage() {
 // Notifications
 export function useCivicSocialNotify() {
   return useMutation({
-    mutationFn: async (notification: any) => {
+    mutationFn: async ({ userId, type, title, message }: any) => {
       const token = getToken();
       const res = await fetch(`${API_BASE}/api/social/notifications`, {
         method: "POST",
@@ -256,7 +319,7 @@ export function useCivicSocialNotify() {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify(notification),
+        body: JSON.stringify({ userId, type, title, message }),
       });
       if (!res.ok) throw new Error("Failed to send notification");
       return res.json();
@@ -264,11 +327,11 @@ export function useCivicSocialNotify() {
   });
 }
 
-// Follow functionality
+// Follow/Unfollow system
 export function useCivicSocialFollow() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (userId: string) => {
+    mutationFn: async ({ followingId }: any) => {
       const token = getToken();
       const res = await fetch(`${API_BASE}/api/social/follow`, {
         method: "POST",
@@ -276,14 +339,14 @@ export function useCivicSocialFollow() {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ userId }),
+        body: JSON.stringify({ followingId }),
       });
       if (!res.ok) throw new Error("Failed to follow user");
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["civicSocialFriends"] });
       queryClient.invalidateQueries({ queryKey: ["civicSocialFeed"] });
+      queryClient.invalidateQueries({ queryKey: ["civicSocialFriends"] });
     },
   });
 }
@@ -291,37 +354,95 @@ export function useCivicSocialFollow() {
 export function useCivicSocialUnfollow() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (userId: string) => {
+    mutationFn: async ({ followingId }: any) => {
       const token = getToken();
-      const res = await fetch(`${API_BASE}/api/social/follow/${userId}`, {
+      const res = await fetch(`${API_BASE}/api/social/unfollow`, {
         method: "DELETE",
         headers: {
+          "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
+        body: JSON.stringify({ followingId }),
       });
       if (!res.ok) throw new Error("Failed to unfollow user");
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["civicSocialFriends"] });
       queryClient.invalidateQueries({ queryKey: ["civicSocialFeed"] });
+      queryClient.invalidateQueries({ queryKey: ["civicSocialFriends"] });
     },
   });
 }
 
+// User search
+export function useCivicSocialUserSearch(query: string) {
+  return useQuery({
+    queryKey: ["civicSocialUserSearch", query],
+    queryFn: async () => {
+      if (!query || query.length < 2) return [];
+      
+      const token = getToken();
+      if (!token) {
+        throw new Error("Authentication required");
+      }
+      
+      const res = await fetch(`${API_BASE}/api/social/users/search?q=${encodeURIComponent(query)}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      
+      if (!res.ok) {
+        if (res.status === 401 || res.status === 403) {
+          localStorage.removeItem('civicos-jwt');
+          throw new Error("Authentication required");
+        }
+        throw new Error("Failed to search users");
+      }
+      
+      const data = await res.json();
+      return data.success ? (data.users || []) : [];
+    },
+    enabled: !!query && query.length >= 2,
+    retry: (failureCount, error) => {
+      if (error.message === "Authentication required") {
+        return false;
+      }
+      return failureCount < 3;
+    },
+  });
+}
+
+// Followers/Following
 export function useCivicSocialFollowers(userId: string) {
   return useQuery({
     queryKey: ["civicSocialFollowers", userId],
     queryFn: async () => {
       const token = getToken();
+      if (!token) {
+        throw new Error("Authentication required");
+      }
+      
       const res = await fetch(`${API_BASE}/api/social/followers/${userId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      if (!res.ok) throw new Error("Failed to fetch followers");
+      
+      if (!res.ok) {
+        if (res.status === 401 || res.status === 403) {
+          localStorage.removeItem('civicos-jwt');
+          throw new Error("Authentication required");
+        }
+        throw new Error("Failed to fetch followers");
+      }
+      
       const data = await res.json();
-      return data.followers || [];
+      return data.success ? (data.followers || []) : [];
     },
     enabled: !!userId,
+    retry: (failureCount, error) => {
+      if (error.message === "Authentication required") {
+        return false;
+      }
+      return failureCount < 3;
+    },
   });
 }
 
@@ -330,13 +451,31 @@ export function useCivicSocialFollowing(userId: string) {
     queryKey: ["civicSocialFollowing", userId],
     queryFn: async () => {
       const token = getToken();
+      if (!token) {
+        throw new Error("Authentication required");
+      }
+      
       const res = await fetch(`${API_BASE}/api/social/following/${userId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      if (!res.ok) throw new Error("Failed to fetch following");
+      
+      if (!res.ok) {
+        if (res.status === 401 || res.status === 403) {
+          localStorage.removeItem('civicos-jwt');
+          throw new Error("Authentication required");
+        }
+        throw new Error("Failed to fetch following");
+      }
+      
       const data = await res.json();
-      return data.following || [];
+      return data.success ? (data.following || []) : [];
     },
     enabled: !!userId,
+    retry: (failureCount, error) => {
+      if (error.message === "Authentication required") {
+        return false;
+      }
+      return failureCount < 3;
+    },
   });
 } 

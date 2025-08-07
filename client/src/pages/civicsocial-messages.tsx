@@ -25,7 +25,9 @@ import {
   Settings,
   Users,
   Heart,
-  Share2
+  Share2,
+  Plus,
+  X
 } from "lucide-react";
 
 interface Message {
@@ -66,38 +68,25 @@ export default function CivicSocialMessages() {
   const [searchQuery, setSearchQuery] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [showNewConversation, setShowNewConversation] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<any>(null);
 
   // Fetch conversations
-  const { data: conversations = [] } = useQuery<Conversation[]>({
-    queryKey: ['/api/social/conversations'],
+  const { data: conversations = [], isLoading: conversationsLoading } = useQuery<Conversation[]>({
+    queryKey: ['civicSocialConversations'],
     queryFn: async () => {
-      const response = await fetch('/api/social/conversations', {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('civicos-jwt')}`,
-        },
-      });
-      if (!response.ok) {
-        throw new Error('Failed to fetch conversations');
-      }
-      return response.json();
+      const response = await apiRequest('/api/social/conversations', 'GET');
+      return response.success ? response.conversations : [];
     },
     staleTime: 30000, // 30 seconds
   });
 
   // Fetch messages for selected conversation
-  const { data: messages = [] } = useQuery<Message[]>({
-    queryKey: ['/api/social/messages', selectedConversation],
+  const { data: messages = [], isLoading: messagesLoading } = useQuery<Message[]>({
+    queryKey: ['civicSocialMessages', selectedConversation],
     queryFn: async () => {
       if (!selectedConversation) return [];
-      const response = await fetch(`/api/social/messages/${selectedConversation}`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('civicos-jwt')}`,
-        },
-      });
-      if (!response.ok) {
-        throw new Error('Failed to fetch messages');
-      }
-      return response.json();
+      const response = await apiRequest(`/api/social/messages/${selectedConversation}`, 'GET');
+      return response.success ? response.messages : [];
     },
     enabled: !!selectedConversation,
     staleTime: 10000, // 10 seconds
@@ -105,33 +94,18 @@ export default function CivicSocialMessages() {
 
   // Send message mutation
   const sendMessageMutation = useMutation({
-    mutationFn: async (content: string) => {
-      const response = await fetch('/api/social/messages', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('civicos-jwt')}`,
-        },
-        body: JSON.stringify({
-          content,
-          receiverId: selectedConversation,
-          conversationId: selectedConversation
-        }),
-      });
-      if (!response.ok) {
-        throw new Error('Failed to send message');
-      }
-      return response.json();
+    mutationFn: async ({ recipientId, content }: { recipientId: string; content: string }) => {
+      return apiRequest('/api/social/messages', 'POST', { recipientId, content });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/social/messages', selectedConversation] });
-      queryClient.invalidateQueries({ queryKey: ['/api/social/conversations'] });
+      queryClient.invalidateQueries({ queryKey: ['civicSocialMessages', selectedConversation] });
+      queryClient.invalidateQueries({ queryKey: ['civicSocialConversations'] });
       setNewMessage("");
     },
-    onError: (error: any) => {
+    onError: () => {
       toast({
-        title: "Failed to send message",
-        description: error.message || "Please try again",
+        title: "Error",
+        description: "Failed to send message",
         variant: "destructive"
       });
     }
@@ -139,13 +113,16 @@ export default function CivicSocialMessages() {
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
   const handleSendMessage = () => {
     if (!newMessage.trim() || !selectedConversation) return;
-    
-    sendMessageMutation.mutate(newMessage);
+
+    sendMessageMutation.mutate({
+      recipientId: selectedConversation,
+      content: newMessage.trim()
+    });
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -155,39 +132,39 @@ export default function CivicSocialMessages() {
     }
   };
 
-  const filteredConversations = conversations.filter(conv => 
-    conv.participant?.firstName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    conv.participant?.lastName.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const getDisplayName = (conversation: Conversation) => {
+    if (conversation.participant) {
+      return `${conversation.participant.firstName || ''} ${conversation.participant.lastName || ''}`.trim() || conversation.participant.email;
+    }
+    return "Unknown User";
+  };
 
-  const selectedConversationData = conversations.find(conv => conv.id === selectedConversation);
+  const getAvatarFallback = (conversation: Conversation) => {
+    if (conversation.participant) {
+      const firstName = conversation.participant.firstName || '';
+      const lastName = conversation.participant.lastName || '';
+      return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase() || conversation.participant.email.charAt(0).toUpperCase();
+    }
+    return "?";
+  };
 
   return (
-    <div className="h-screen flex bg-gray-50">
+    <div className="flex h-screen bg-white">
       {/* Conversations Sidebar */}
-      <div className="w-80 bg-white border-r border-gray-200 flex flex-col">
-        {/* Header */}
-        <div className="p-4 border-b border-gray-200">
+      <div className="w-80 border-r border-gray-200 bg-gray-50">
+        <div className="p-4 border-b border-gray-200 bg-white">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-bold">Messages</h2>
-            <Dialog open={showNewConversation} onOpenChange={setShowNewConversation}>
-              <DialogTrigger asChild>
-                <Button size="sm" variant="outline">
-                  <UserPlus className="w-4 h-4" />
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>New Conversation</DialogTitle>
-                  <DialogDescription>Start a new conversation with another user</DialogDescription>
-                </DialogHeader>
-                <div className="space-y-4">
-                  <Input placeholder="Search users..." />
-                  {/* User list would go here */}
-                </div>
-              </DialogContent>
-            </Dialog>
+            <h2 className="text-xl font-semibold text-gray-900">Messages</h2>
+            <Button
+              size="sm"
+              onClick={() => setShowNewConversation(true)}
+              className="flex items-center gap-2"
+            >
+              <Plus className="w-4 h-4" />
+              New
+            </Button>
           </div>
+          
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
             <Input
@@ -199,98 +176,97 @@ export default function CivicSocialMessages() {
           </div>
         </div>
 
-        {/* Conversations List */}
-        <ScrollArea className="flex-1">
-          <div className="space-y-1 p-2">
-            {filteredConversations.length === 0 ? (
-              <div className="text-center py-8 text-gray-500">
-                <MessageCircle className="w-12 h-12 mx-auto mb-2 text-gray-300" />
-                <p>No conversations yet</p>
-                <p className="text-sm">Add friends to start messaging</p>
-              </div>
-            ) : (
-              filteredConversations.map((conversation) => (
-                <div
-                  key={conversation.id}
-                  onClick={() => setSelectedConversation(conversation.id)}
-                  className={`p-3 rounded-lg cursor-pointer transition-colors ${
-                    selectedConversation === conversation.id
-                      ? "bg-blue-50 border border-blue-200"
-                      : "hover:bg-gray-50"
-                  }`}
-                >
-                  <div className="flex items-center space-x-3">
-                    <div className="relative">
-                      <Avatar className="w-12 h-12">
-                        <AvatarImage src={conversation.participant?.profileImageUrl} />
-                        <AvatarFallback>
-                          {conversation.participant?.firstName?.[0]}{conversation.participant?.lastName?.[0]}
-                        </AvatarFallback>
-                      </Avatar>
-                      {conversation.participant?.isOnline && (
-                        <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 border-2 border-white rounded-full" />
-                      )}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between">
-                        <h3 className="font-semibold text-sm truncate">
-                          {conversation.participant?.firstName} {conversation.participant?.lastName}
-                        </h3>
-                        {conversation.lastMessage && (
-                          <span className="text-xs text-gray-500">
-                            {new Date(conversation.lastMessage.timestamp).toLocaleTimeString([], { 
-                              hour: '2-digit', 
-                              minute: '2-digit' 
-                            })}
-                          </span>
-                        )}
-                      </div>
-                      <p className="text-sm text-gray-600 truncate">
-                        {conversation.lastMessage?.content || "No messages yet"}
-                      </p>
-                      {conversation.unreadCount > 0 && (
-                        <Badge variant="secondary" className="mt-1">
-                          {conversation.unreadCount}
-                        </Badge>
-                      )}
+        <ScrollArea className="h-[calc(100vh-120px)]">
+          {conversationsLoading ? (
+            <div className="p-4">
+              <div className="space-y-3">
+                {[...Array(5)].map((_, i) => (
+                  <div key={i} className="flex items-center space-x-3">
+                    <div className="w-10 h-10 bg-gray-200 rounded-full animate-pulse" />
+                    <div className="flex-1 space-y-2">
+                      <div className="h-4 bg-gray-200 rounded animate-pulse" />
+                      <div className="h-3 bg-gray-200 rounded w-2/3 animate-pulse" />
                     </div>
                   </div>
-                </div>
-              ))
-            )}
-          </div>
+                ))}
+              </div>
+            </div>
+          ) : conversations.length === 0 ? (
+            <div className="p-4 text-center text-gray-500">
+              <MessageCircle className="w-12 h-12 mx-auto mb-2 text-gray-300" />
+              <p>No conversations yet</p>
+              <p className="text-sm">Start a conversation to begin messaging</p>
+            </div>
+          ) : (
+            <div className="p-2">
+              {conversations
+                .filter(conv => 
+                  getDisplayName(conv).toLowerCase().includes(searchQuery.toLowerCase())
+                )
+                .map((conversation) => (
+                  <div
+                    key={conversation.id}
+                    onClick={() => setSelectedConversation(conversation.id)}
+                    className={`flex items-center space-x-3 p-3 rounded-lg cursor-pointer transition-colors ${
+                      selectedConversation === conversation.id
+                        ? 'bg-blue-50 border border-blue-200'
+                        : 'hover:bg-gray-100'
+                    }`}
+                  >
+                    <div className="relative">
+                      <Avatar className="w-10 h-10">
+                        <AvatarImage src={conversation.participant?.profileImageUrl} />
+                        <AvatarFallback>{getAvatarFallback(conversation)}</AvatarFallback>
+                      </Avatar>
+                      {conversation.participant?.isOnline && (
+                        <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 border-2 border-white rounded-full" />
+                      )}
+                    </div>
+                    
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between">
+                        <p className="text-sm font-medium text-gray-900 truncate">
+                          {getDisplayName(conversation)}
+                        </p>
+                        {conversation.unreadCount > 0 && (
+                          <Badge variant="destructive" className="text-xs">
+                            {conversation.unreadCount}
+                          </Badge>
+                        )}
+                      </div>
+                      <p className="text-xs text-gray-500 truncate">
+                        {typeof conversation.lastMessage === 'string' 
+                          ? conversation.lastMessage 
+                          : conversation.lastMessage?.content || "No messages yet"}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+            </div>
+          )}
         </ScrollArea>
       </div>
 
       {/* Messages Area */}
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 flex flex-col bg-white">
         {selectedConversation ? (
           <>
-            {/* Messages Header */}
+            {/* Conversation Header */}
             <div className="p-4 border-b border-gray-200 bg-white">
               <div className="flex items-center space-x-3">
-                <Avatar className="w-10 h-10">
-                  <AvatarImage src={selectedConversationData?.participant?.profileImageUrl} />
+                <Avatar className="w-8 h-8">
+                  <AvatarImage src={conversations.find(c => c.id === selectedConversation)?.participant?.profileImageUrl} />
                   <AvatarFallback>
-                    {selectedConversationData?.participant?.firstName?.[0]}{selectedConversationData?.participant?.lastName?.[0]}
+                    {getAvatarFallback(conversations.find(c => c.id === selectedConversation) || {} as Conversation)}
                   </AvatarFallback>
                 </Avatar>
                 <div className="flex-1">
-                  <h3 className="font-semibold">
-                    {selectedConversationData?.participant?.firstName} {selectedConversationData?.participant?.lastName}
+                  <h3 className="font-medium text-gray-900">
+                    {getDisplayName(conversations.find(c => c.id === selectedConversation) || {} as Conversation)}
                   </h3>
-                  <div className="flex items-center space-x-2">
-                    {selectedConversationData?.participant?.isOnline ? (
-                      <>
-                        <div className="w-2 h-2 bg-green-500 rounded-full" />
-                        <span className="text-sm text-green-600">Online</span>
-                      </>
-                    ) : (
-                      <span className="text-sm text-gray-500">Offline</span>
-                    )}
-                  </div>
+                  <p className="text-sm text-gray-500">Active now</p>
                 </div>
-                <div className="flex space-x-2">
+                <div className="flex items-center space-x-2">
                   <Button size="sm" variant="ghost">
                     <Phone className="w-4 h-4" />
                   </Button>
@@ -305,55 +281,52 @@ export default function CivicSocialMessages() {
             </div>
 
             {/* Messages */}
-            <ScrollArea className="flex-1 p-4">
-              <div className="space-y-4">
-                {messages.length === 0 ? (
-                  <div className="text-center py-8 text-gray-500">
-                    <MessageCircle className="w-12 h-12 mx-auto mb-2 text-gray-300" />
-                    <p>No messages yet</p>
-                    <p className="text-sm">Start the conversation!</p>
-                  </div>
-                ) : (
-                  messages.map((message) => {
-                    const isOwnMessage = message.senderId === user?.id;
-                    return (
-                      <div
-                        key={message.id}
-                        className={`flex ${isOwnMessage ? 'justify-end' : 'justify-start'}`}
-                      >
-                        <div className={`flex items-end space-x-2 max-w-xs lg:max-w-md ${isOwnMessage ? 'flex-row-reverse space-x-reverse' : ''}`}>
-                          {!isOwnMessage && (
-                            <Avatar className="w-8 h-8">
-                              <AvatarImage src={message.sender?.profileImageUrl} />
-                              <AvatarFallback>
-                                {message.sender?.firstName?.[0]}{message.sender?.lastName?.[0]}
-                              </AvatarFallback>
-                            </Avatar>
-                          )}
-                          <div
-                            className={`px-4 py-2 rounded-lg ${
-                              isOwnMessage
-                                ? 'bg-blue-500 text-white'
-                                : 'bg-gray-100 text-gray-900'
-                            }`}
-                          >
-                            <p className="text-sm">{message.content}</p>
-                            <p className={`text-xs mt-1 ${
-                              isOwnMessage ? 'text-blue-100' : 'text-gray-500'
-                            }`}>
-                              {new Date(message.timestamp).toLocaleTimeString([], { 
-                                hour: '2-digit', 
-                                minute: '2-digit' 
-                              })}
-                            </p>
-                          </div>
-                        </div>
+            <ScrollArea className="flex-1 p-4 bg-gray-50">
+              {messagesLoading ? (
+                <div className="space-y-4">
+                  {[...Array(5)].map((_, i) => (
+                    <div key={i} className={`flex ${i % 2 === 0 ? 'justify-end' : 'justify-start'}`}>
+                      <div className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
+                        i % 2 === 0 ? 'bg-blue-500 text-white' : 'bg-white border'
+                      }`}>
+                        <div className="h-4 bg-gray-200 rounded animate-pulse" />
                       </div>
-                    );
-                  })
-                )}
-                <div ref={messagesEndRef} />
-              </div>
+                    </div>
+                  ))}
+                </div>
+              ) : messages.length === 0 ? (
+                <div className="text-center text-gray-500 py-8">
+                  <MessageCircle className="w-12 h-12 mx-auto mb-2 text-gray-300" />
+                  <p>No messages yet</p>
+                  <p className="text-sm">Start the conversation!</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {messages.map((message) => (
+                    <div
+                      key={message.id}
+                      className={`flex ${message.senderId === user?.id ? 'justify-end' : 'justify-start'}`}
+                    >
+                      <div className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
+                        message.senderId === user?.id
+                          ? 'bg-blue-500 text-white'
+                          : 'bg-white border border-gray-200'
+                      }`}>
+                        <p className="text-sm">{message.content}</p>
+                        <p className={`text-xs mt-1 ${
+                          message.senderId === user?.id ? 'text-blue-100' : 'text-gray-500'
+                        }`}>
+                          {new Date(message.timestamp).toLocaleTimeString([], { 
+                            hour: '2-digit', 
+                            minute: '2-digit' 
+                          })}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                  <div ref={messagesEndRef} />
+                </div>
+              )}
             </ScrollArea>
 
             {/* Message Input */}
@@ -374,7 +347,7 @@ export default function CivicSocialMessages() {
                     value={newMessage}
                     onChange={(e) => setNewMessage(e.target.value)}
                     onKeyPress={handleKeyPress}
-                    className="w-full"
+                    disabled={sendMessageMutation.isPending}
                   />
                 </div>
                 <Button
@@ -388,16 +361,42 @@ export default function CivicSocialMessages() {
             </div>
           </>
         ) : (
-          /* Empty State */
-          <div className="flex-1 flex items-center justify-center">
-            <div className="text-center">
-              <MessageCircle className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">No conversation selected</h3>
-              <p className="text-gray-500">Choose a conversation from the sidebar to start messaging</p>
+          <div className="flex-1 flex items-center justify-center bg-gray-50">
+            <div className="text-center text-gray-500">
+              <MessageCircle className="w-16 h-16 mx-auto mb-4 text-gray-300" />
+              <h3 className="text-lg font-medium mb-2">Select a conversation</h3>
+              <p className="text-sm">Choose a conversation from the sidebar to start messaging</p>
             </div>
           </div>
         )}
       </div>
+
+      {/* New Conversation Dialog */}
+      <Dialog open={showNewConversation} onOpenChange={setShowNewConversation}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>New Conversation</DialogTitle>
+            <DialogDescription>
+              Start a new conversation with another user
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+              <Input
+                placeholder="Search users..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+            {/* User search results would go here */}
+            <div className="text-center text-gray-500">
+              <p>User search functionality coming soon...</p>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 } 
