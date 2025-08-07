@@ -162,12 +162,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // Handle initial loading state
   useEffect(() => {
-    if (!localStorage.getItem('civicos-jwt')) {
+    const token = localStorage.getItem('civicos-jwt');
+    if (!token) {
       setIsLoading(false);
     }
   }, []);
 
-  // Handle user error
+  // Handle user error and loading state
   useEffect(() => {
     if (userError) {
       console.error('User authentication error:', userError);
@@ -175,6 +176,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setIsLoading(false);
     }
   }, [userError]);
+
+  // Handle loading state when query completes (success or error)
+  useEffect(() => {
+    if (!isUserLoading) {
+      setIsLoading(false);
+    }
+  }, [isUserLoading]);
 
   const value: AuthContextType = {
     user: user || null,
