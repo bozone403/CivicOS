@@ -35,42 +35,51 @@ export async function apiRequest(endpoint: string, method: string = 'GET', body?
     console.log(`[API Debug] Making request to: ${fullUrl}`);
     const response = await fetch(fullUrl, options);
     
-    if (!response.ok) {
-      // Handle authentication errors gracefully
-      if (response.status === 401 || response.status === 403) {
-        // For certain endpoints, return fallback data instead of throwing
-        if (endpoint === '/api/dashboard/stats') {
-          return {
-            totalVotes: 0,
-            activeBills: 0,
-            politiciansTracked: 0,
-            petitionsSigned: 0,
-            civicPoints: 0,
-            trustScore: 100,
-            recentActivity: []
-          };
+          if (!response.ok) {
+        // Handle authentication errors gracefully
+        if (response.status === 401 || response.status === 403) {
+          // For certain endpoints, return fallback data instead of throwing
+          if (endpoint === '/api/dashboard/stats') {
+            return {
+              totalVotes: 0,
+              activeBills: 0,
+              politiciansTracked: 0,
+              petitionsSigned: 0,
+              civicPoints: 0,
+              trustScore: 100,
+              recentActivity: []
+            };
+          }
+          if (endpoint === '/api/notifications') {
+            return [];
+          }
+          if (endpoint === '/api/social/posts') {
+            return {
+              posts: [],
+              totalPosts: 0
+            };
+          }
+          if (endpoint === '/api/social/feed') {
+            return {
+              feed: []
+            };
+          }
+          if (endpoint === '/api/voting/electoral/candidates') {
+            return {
+              candidates: [],
+              totalCandidates: 0
+            };
+          }
+          if (endpoint === '/api/auth/user') {
+            // Return null for auth user when not authenticated
+            return null;
+          }
+          if (endpoint === '/api/messages/unread/count') {
+            return {
+              unreadCount: 0
+            };
+          }
         }
-        if (endpoint === '/api/notifications') {
-          return [];
-        }
-        if (endpoint === '/api/social/posts') {
-          return {
-            posts: [],
-            totalPosts: 0
-          };
-        }
-        if (endpoint === '/api/social/feed') {
-          return {
-            feed: []
-          };
-        }
-        if (endpoint === '/api/voting/electoral/candidates') {
-          return {
-            candidates: [],
-            totalCandidates: 0
-          };
-        }
-      }
       
       const errorData = await response.json().catch(() => ({ message: 'Request failed' }));
       throw new Error(errorData.message || `HTTP ${response.status}`);
