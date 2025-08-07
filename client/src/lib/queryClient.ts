@@ -79,6 +79,18 @@ export async function apiRequest(endpoint: string, method: string = 'GET', body?
               unreadCount: 0
             };
           }
+          if (endpoint === '/api/social/conversations') {
+            return {
+              success: true,
+              conversations: []
+            };
+          }
+          if (endpoint === '/api/social/messages') {
+            return {
+              success: true,
+              messages: []
+            };
+          }
         }
       
       const errorData = await response.json().catch(() => ({ message: 'Request failed' }));

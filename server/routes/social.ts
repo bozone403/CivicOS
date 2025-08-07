@@ -467,7 +467,7 @@ export function registerSocialRoutes(app: Express) {
         return res.status(401).json({ error: "Authentication required" });
       }
 
-      // Get conversations where user is sender or recipient
+      // Simplified query to get unique conversation partners
       const conversations = await db
         .select({
           otherUserId: sql<string>`CASE 
@@ -476,7 +476,6 @@ export function registerSocialRoutes(app: Express) {
           END`,
           lastMessage: userMessages.content,
           lastMessageAt: userMessages.createdAt,
-          unreadCount: sql<number>`COUNT(CASE WHEN ${userMessages.isRead} = false AND ${userMessages.recipientId} = ${userId} THEN 1 END)`
         })
         .from(userMessages)
         .where(
@@ -485,31 +484,58 @@ export function registerSocialRoutes(app: Express) {
             eq(userMessages.recipientId, userId)
           )
         )
-        .groupBy(sql`CASE 
-          WHEN ${userMessages.senderId} = ${userId} THEN ${userMessages.recipientId}
-          ELSE ${userMessages.senderId}
-        END`, userMessages.content, userMessages.createdAt)
-        .orderBy(desc(userMessages.createdAt));
+        .orderBy(desc(userMessages.createdAt))
+        .limit(50); // Limit to prevent performance issues
+
+      // Get unique conversations by otherUserId
+      const uniqueConversations = conversations.reduce((acc, conv) => {
+        if (!acc.find(c => c.otherUserId === conv.otherUserId)) {
+          acc.push(conv);
+        }
+        return acc;
+      }, [] as typeof conversations);
 
       // Get user data for each conversation
       const conversationsWithUsers = await Promise.all(
-        conversations.map(async (conv) => {
-          const [user] = await db
-            .select({
-              id: users.id,
-              firstName: users.firstName,
-              lastName: users.lastName,
-              profileImageUrl: users.profileImageUrl,
-              civicLevel: users.civicLevel,
-            })
-            .from(users)
-            .where(eq(users.id, conv.otherUserId))
-            .limit(1);
+        uniqueConversations.map(async (conv) => {
+          try {
+            const [user] = await db
+              .select({
+                id: users.id,
+                firstName: users.firstName,
+                lastName: users.lastName,
+                profileImageUrl: users.profileImageUrl,
+                civicLevel: users.civicLevel,
+              })
+              .from(users)
+              .where(eq(users.id, conv.otherUserId))
+              .limit(1);
 
-          return {
-            ...conv,
-            otherUser: user
-          };
+            // Get unread count for this conversation
+            const unreadCount = await db
+              .select({ count: count() })
+              .from(userMessages)
+              .where(
+                and(
+                  eq(userMessages.recipientId, userId),
+                  eq(userMessages.senderId, conv.otherUserId),
+                  eq(userMessages.isRead, false)
+                )
+              );
+
+            return {
+              ...conv,
+              otherUser: user || null,
+              unreadCount: unreadCount[0]?.count || 0
+            };
+          } catch (userError) {
+            logger.error('Error fetching user data for conversation:', userError);
+            return {
+              ...conv,
+              otherUser: null,
+              unreadCount: 0
+            };
+          }
         })
       );
 
@@ -518,8 +544,12 @@ export function registerSocialRoutes(app: Express) {
         conversations: conversationsWithUsers
       });
     } catch (error) {
-      console.error('Conversations error:', error);
-      res.status(500).json({ error: "Failed to fetch conversations" });
+      logger.error('Conversations error:', error);
+      res.status(500).json({ 
+        success: false,
+        error: "Failed to fetch conversations",
+        message: error instanceof Error ? error.message : 'Unknown error'
+      });
     }
   });
 
@@ -554,27 +584,39 @@ export function registerSocialRoutes(app: Express) {
             and(eq(userMessages.senderId, otherUserId as string), eq(userMessages.recipientId, userId))
           )
         )
-        .orderBy(asc(userMessages.createdAt));
+        .orderBy(asc(userMessages.createdAt))
+        .limit(100); // Limit to prevent performance issues
 
-      // Mark messages as read
-      await db
-        .update(userMessages)
-        .set({ isRead: true })
-        .where(
-          and(
-            eq(userMessages.recipientId, userId),
-            eq(userMessages.senderId, otherUserId as string),
-            eq(userMessages.isRead, false)
-          )
-        );
+      // Mark messages as read (only if there are messages)
+      if (messages.length > 0) {
+        try {
+          await db
+            .update(userMessages)
+            .set({ isRead: true })
+            .where(
+              and(
+                eq(userMessages.recipientId, userId),
+                eq(userMessages.senderId, otherUserId as string),
+                eq(userMessages.isRead, false)
+              )
+            );
+        } catch (updateError) {
+          logger.error('Error marking messages as read:', updateError);
+          // Don't fail the request if marking as read fails
+        }
+      }
 
       res.json({
         success: true,
         messages
       });
     } catch (error) {
-      console.error('Messages error:', error);
-      res.status(500).json({ error: "Failed to fetch messages" });
+      logger.error('Messages error:', error);
+      res.status(500).json({ 
+        success: false,
+        error: "Failed to fetch messages",
+        message: error instanceof Error ? error.message : 'Unknown error'
+      });
     }
   });
 
