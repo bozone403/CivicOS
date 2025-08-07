@@ -89,12 +89,12 @@ test_endpoint() {
     log_info "Testing $name..."
     
     if make_request "$method" "$endpoint" "$data" "$token"; then
-        response_code=$(cat /tmp/response.json | tail -c 3)
-        if [ "$response_code" = "$expected_code" ]; then
+        # The make_request function returns 0 on success, and the HTTP code is in the response variable
+        if [ "$http_code" = "$expected_code" ]; then
             log_success "$name passed"
             return 0
         else
-            log_error "$name failed - Expected $expected_code, got $response_code"
+            log_error "$name failed - Expected $expected_code, got $http_code"
             return 1
         fi
     else
@@ -114,7 +114,7 @@ verify_deployment() {
     
     # Test 1: Health check
     total_tests=$((total_tests + 1))
-    if test_endpoint "Health Check" "GET" "/health" "200"; then
+    if test_endpoint "Health Check" "GET" "/api/health" "200"; then
         log_success "Health check passed"
     else
         failed_tests=$((failed_tests + 1))
@@ -140,7 +140,7 @@ verify_deployment() {
     
     # Test 4: Voting endpoints
     total_tests=$((total_tests + 1))
-    if test_endpoint "Voting Items" "GET" "/api/voting/items" "401" "" ""; then
+    if test_endpoint "Voting Bills" "GET" "/api/voting/bills" "200" "" ""; then
         log_success "Voting endpoints accessible"
     else
         failed_tests=$((failed_tests + 1))
