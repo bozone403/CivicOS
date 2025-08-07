@@ -620,6 +620,73 @@ export function registerSocialRoutes(app: Express) {
     }
   });
 
+  // GET /api/social/messages/:conversationId - Get messages for a specific conversation
+  app.get('/api/social/messages/:conversationId', jwtAuth, async (req: Request, res: Response) => {
+    try {
+      const userId = (req.user as any)?.id;
+      const conversationId = req.params.conversationId;
+
+      if (!userId) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
+
+      if (!conversationId) {
+        return res.status(400).json({ error: "Conversation ID is required" });
+      }
+
+      // Get messages between users
+      const messages = await db
+        .select({
+          id: userMessages.id,
+          senderId: userMessages.senderId,
+          recipientId: userMessages.recipientId,
+          content: userMessages.content,
+          isRead: userMessages.isRead,
+          createdAt: userMessages.createdAt,
+        })
+        .from(userMessages)
+        .where(
+          or(
+            and(eq(userMessages.senderId, userId), eq(userMessages.recipientId, conversationId)),
+            and(eq(userMessages.senderId, conversationId), eq(userMessages.recipientId, userId))
+          )
+        )
+        .orderBy(asc(userMessages.createdAt))
+        .limit(100); // Limit to prevent performance issues
+
+      // Mark messages as read (only if there are messages)
+      if (messages.length > 0) {
+        try {
+          await db
+            .update(userMessages)
+            .set({ isRead: true })
+            .where(
+              and(
+                eq(userMessages.recipientId, userId),
+                eq(userMessages.senderId, conversationId),
+                eq(userMessages.isRead, false)
+              )
+            );
+        } catch (updateError) {
+          logger.error('Error marking messages as read:', updateError);
+          // Don't fail the request if marking as read fails
+        }
+      }
+
+      res.json({
+        success: true,
+        messages
+      });
+    } catch (error) {
+      logger.error('Messages error:', error);
+      res.status(500).json({ 
+        success: false,
+        error: "Failed to fetch messages",
+        message: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
   // POST /api/social/messages - Enhanced send message
   app.post('/api/social/messages', jwtAuth, async (req: Request, res: Response) => {
     try {
