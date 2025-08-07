@@ -5,6 +5,7 @@ import { apiRequest } from '@/lib/queryClient';
 export interface User {
   id: string;
   email: string;
+  username: string;
   firstName?: string;
   lastName?: string;
   profileImageUrl?: string;
@@ -12,7 +13,7 @@ export interface User {
   city?: string;
   province?: string;
   civicLevel?: string;
-  trustScore?: string;
+  trustScore?: number;
   isVerified?: boolean;
   isAdmin?: boolean;
   verificationStatus?: string;
