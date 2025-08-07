@@ -26,6 +26,111 @@ function jwtAuth(req, res, next) {
 }
 export function registerSocialRoutes(app) {
     // ===== CORE SOCIAL FEED ENDPOINTS =====
+    // GET /api/social/posts - Main posts endpoint (alias for feed)
+    app.get('/api/social/posts', jwtAuth, async (req, res) => {
+        try {
+            const currentUserId = req.user.id;
+            const { limit = 20, offset = 0, userId } = req.query;
+            const feedPosts = await db
+                .select({
+                id: socialPosts.id,
+                content: socialPosts.content,
+                imageUrl: socialPosts.imageUrl,
+                type: socialPosts.type,
+                visibility: socialPosts.visibility,
+                createdAt: socialPosts.createdAt,
+                updatedAt: socialPosts.updatedAt,
+                userId: socialPosts.userId,
+                user: {
+                    id: users.id,
+                    firstName: users.firstName,
+                    lastName: users.lastName,
+                    profileImageUrl: users.profileImageUrl,
+                    civicLevel: users.civicLevel,
+                    isVerified: users.isVerified,
+                }
+            })
+                .from(socialPosts)
+                .leftJoin(users, eq(socialPosts.userId, users.id))
+                .where(eq(socialPosts.visibility, 'public'))
+                .orderBy(desc(socialPosts.createdAt))
+                .limit(parseInt(limit))
+                .offset(parseInt(offset));
+            // Get interaction counts and user interaction status
+            const postsWithInteractions = await Promise.all(feedPosts.map(async (post) => {
+                // Get likes count
+                const likesCount = await db
+                    .select({ count: count() })
+                    .from(socialLikes)
+                    .where(eq(socialLikes.postId, post.id));
+                // Get comments count
+                const commentsCount = await db
+                    .select({ count: count() })
+                    .from(socialComments)
+                    .where(eq(socialComments.postId, post.id));
+                // Check if current user liked
+                const userLike = await db
+                    .select()
+                    .from(socialLikes)
+                    .where(and(eq(socialLikes.postId, post.id), eq(socialLikes.userId, currentUserId)))
+                    .limit(1);
+                return {
+                    ...post,
+                    likesCount: likesCount[0]?.count || 0,
+                    commentsCount: commentsCount[0]?.count || 0,
+                    isLiked: userLike.length > 0,
+                };
+            }));
+            res.json({
+                success: true,
+                posts: postsWithInteractions,
+                totalPosts: feedPosts.length,
+            });
+        }
+        catch (error) {
+            logger.error('Error fetching social posts:', error);
+            res.status(500).json({
+                success: false,
+                message: "Failed to fetch social posts",
+                error: error instanceof Error ? error.message : 'Unknown error'
+            });
+        }
+    });
+    // POST /api/social/posts - Create new post
+    app.post('/api/social/posts', jwtAuth, async (req, res) => {
+        try {
+            const currentUserId = req.user.id;
+            const { content, imageUrl, type = 'post', visibility = 'public' } = req.body;
+            if (!content || content.trim().length === 0) {
+                return res.status(400).json({
+                    success: false,
+                    message: "Post content is required"
+                });
+            }
+            const newPost = await db.insert(socialPosts).values({
+                userId: currentUserId,
+                content: content.trim(),
+                imageUrl,
+                type,
+                visibility,
+                createdAt: new Date(),
+                updatedAt: new Date(),
+            }).returning();
+            res.status(201).json({
+                success: true,
+                message: "Post created successfully",
+                post: newPost[0]
+            });
+        }
+        catch (error) {
+            logger.error('Error creating social post:', error);
+            res.status(500).json({
+                success: false,
+                message: "Failed to create post",
+                error: error instanceof Error ? error.message : 'Unknown error'
+            });
+        }
+    });
     // GET /api/social/feed - Enhanced social feed with proper error handling
     app.get('/api/social/feed', jwtAuth, async (req, res) => {
         try {
