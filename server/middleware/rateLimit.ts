@@ -5,8 +5,8 @@ const logger = pino();
 
 // Unified rate limiting configuration
 export const createRateLimit = (
-  windowMs: number, 
-  max: number, 
+  windowMs: number,
+  max: number,
   message: string = 'Too many requests, please try again later.',
   skipSuccessfulRequests: boolean = false
 ) => rateLimit({
@@ -26,8 +26,14 @@ export const createRateLimit = (
     res.status(429).json({ error: message });
   },
   keyGenerator: (req) => {
-    // Use user ID if authenticated, otherwise IP
-    return (req as any).user?.id || req.ip;
+    // Use user ID if authenticated, otherwise use a safe IP key
+    const userId = (req as any).user?.id;
+    if (userId) {
+      return userId;
+    }
+    // For IPv6 safety, use a hash or simplified key
+    const ip = req.ip || req.connection.remoteAddress || 'unknown';
+    return ip.includes(':') ? ip.split(':')[0] : ip;
   }
 });
 

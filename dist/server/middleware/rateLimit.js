@@ -19,8 +19,14 @@ export const createRateLimit = (windowMs, max, message = 'Too many requests, ple
         res.status(429).json({ error: message });
     },
     keyGenerator: (req) => {
-        // Use user ID if authenticated, otherwise IP
-        return req.user?.id || req.ip;
+        // Use user ID if authenticated, otherwise use a safe IP key
+        const userId = req.user?.id;
+        if (userId) {
+            return userId;
+        }
+        // For IPv6 safety, use a hash or simplified key
+        const ip = req.ip || req.connection.remoteAddress || 'unknown';
+        return ip.includes(':') ? ip.split(':')[0] : ip;
     }
 });
 // Specific rate limit configurations
