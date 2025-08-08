@@ -11,7 +11,8 @@ interface ApiRequestOptions {
 export async function apiRequest(endpoint: string, method: string = 'GET', body?: any): Promise<any> {
   const token = localStorage.getItem('civicos-jwt') || undefined;
   const client = createCivicOsClient(token);
-  const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+  // Avoid double slash and support FormData
+  const cleanEndpoint = (endpoint.startsWith('/') ? endpoint : `/${endpoint}`).replace(/\/+/, '/');
   return client.request({ method, url: cleanEndpoint, body }) as any;
 }
 

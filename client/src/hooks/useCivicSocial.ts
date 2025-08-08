@@ -5,7 +5,8 @@ function getToken() {
   return localStorage.getItem('civicos-jwt') || '';
 }
 
-const API_BASE = config.apiUrl;
+// Normalize base to avoid double slashes
+const API_BASE = config.apiUrl.replace(/\/+$/, "");
 
 // Post shape:
 // {

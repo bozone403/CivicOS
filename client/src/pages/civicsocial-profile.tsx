@@ -70,7 +70,7 @@ export default function CivicSocialProfile() {
   const followMutation = useCivicSocialFollow();
 
   const handleFollow = (userId: string) => {
-    followMutation.mutate(userId, {
+    followMutation.mutate({ followingId: userId }, {
       onSuccess: () => {
         toast({ title: "Followed", description: "You are now following this user!" });
       },

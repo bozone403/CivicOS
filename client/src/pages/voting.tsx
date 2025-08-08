@@ -306,7 +306,7 @@ export default function Voting() {
         throw new Error("Please log in to vote");
       }
       
-      const response = await apiRequest('/api/voting/bills/vote', 'POST', {
+      const response = await apiRequest('/api/voting/vote', 'POST', {
         billId,
         vote,
         reasoning: `User voted ${vote} on bill ${billId}`

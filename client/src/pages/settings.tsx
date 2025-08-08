@@ -317,9 +317,9 @@ export default function Settings() {
                 )}
 
                 <div className="space-y-2">
-                  <Label htmlFor="currentPassword">Current Password</Label>
+                  <Label htmlFor="currentPasswordInput">Current Password</Label>
                   <Input
-                    id="currentPassword"
+                    id="currentPasswordInput"
                     type="password"
                     value={passwordForm.currentPassword}
                     onChange={(e) => setPasswordForm(prev => ({ ...prev, currentPassword: e.target.value }))}
@@ -330,9 +330,9 @@ export default function Settings() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="newPassword">New Password</Label>
+                  <Label htmlFor="newPasswordInput">New Password</Label>
                   <Input
-                    id="newPassword"
+                    id="newPasswordInput"
                     type="password"
                     value={passwordForm.newPassword}
                     onChange={(e) => setPasswordForm(prev => ({ ...prev, newPassword: e.target.value }))}
@@ -343,9 +343,9 @@ export default function Settings() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="confirmPassword">Confirm New Password</Label>
+                  <Label htmlFor="confirmPasswordInput">Confirm New Password</Label>
                   <Input
-                    id="confirmPassword"
+                    id="confirmPasswordInput"
                     type="password"
                     value={passwordForm.confirmPassword}
                     onChange={(e) => setPasswordForm(prev => ({ ...prev, confirmPassword: e.target.value }))}
@@ -498,25 +498,25 @@ export default function Settings() {
             <CardContent className="space-y-4">
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
-                  <Label htmlFor="province">Province/Territory</Label>
+                    <Label htmlFor="provinceInput">Province/Territory</Label>
                   <Input
-                    id="province"
+                      id="provinceInput"
                     placeholder="Select your province"
                     defaultValue="Ontario"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="riding">Federal Riding</Label>
+                    <Label htmlFor="ridingInput">Federal Riding</Label>
                   <Input
-                    id="riding"
+                      id="ridingInput"
                     placeholder="Enter your riding"
                   />
                 </div>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="municipality">Municipality</Label>
+                <Label htmlFor="municipalityInput">Municipality</Label>
                 <Input
-                  id="municipality"
+                  id="municipalityInput"
                   placeholder="Enter your city/town"
                 />
               </div>

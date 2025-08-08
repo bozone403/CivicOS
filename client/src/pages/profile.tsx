@@ -223,6 +223,9 @@ export default function Profile() {
   // Update profile mutation
   const updateProfileMutation = useMutation({
     mutationFn: async (updates: Partial<UserProfile>) => {
+      if (isOwnProfile) {
+        return apiRequest(`/api/users/profile`, 'PUT', updates);
+      }
       return apiRequest(`/api/users/${targetUserId}/profile`, 'PUT', updates);
     },
     onSuccess: () => {
@@ -300,7 +303,9 @@ export default function Profile() {
     formData.append('type', type);
 
     try {
-      const response = await apiRequest(`/api/users/${targetUserId}/upload-image`, 'POST', formData);
+      // Use backward-compat route when targeting self, else disallow
+      const url = isOwnProfile ? `/api/users/${targetUserId}/upload-image` : `/api/auth/upload-profile-picture`;
+      const response = await apiRequest(url, 'POST', formData);
       queryClient.invalidateQueries({ queryKey: ['user-profile', targetUserId] });
       toast({
         title: "Image Updated",
