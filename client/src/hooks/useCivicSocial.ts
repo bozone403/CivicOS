@@ -60,16 +60,29 @@ export function useCivicSocialPost() {
   return useMutation({
     mutationFn: async (post: any) => {
       const token = getToken();
+      // Sanitize payload to match server schema
+      const payload: any = {
+        content: String(post?.content ?? '').trim(),
+        type: post?.type || 'text',
+        visibility: post?.visibility || 'public',
+      };
+      if (post?.imageUrl && typeof post.imageUrl === 'string') {
+        payload.imageUrl = post.imageUrl;
+      }
       const res = await fetch(`${API_BASE}/api/social/posts`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify(post),
+        body: JSON.stringify(payload),
       });
-      if (!res.ok) throw new Error("Failed to create post");
-      return res.json();
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        const msg = data?.message || data?.error || 'Failed to create post';
+        throw new Error(msg);
+      }
+      return data;
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["civicSocialFeed"] }),
   });

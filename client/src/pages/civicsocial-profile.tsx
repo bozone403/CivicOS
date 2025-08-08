@@ -98,18 +98,21 @@ export default function CivicSocialProfile() {
 
   const handlePost = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!content.trim() && !image) return;
+    if (!content.trim() && !image) {
+      toast({ title: "Nothing to post", description: "Add text or an image.", variant: "destructive" });
+      return;
+    }
     let imageUrl = null;
     if (image) {
       imageUrl = imagePreview;
     }
-    postMutation.mutate({ content, userId: user?.id, displayName, imageUrl }, {
+    postMutation.mutate({ content, imageUrl }, {
       onSuccess: () => {
         toast({ title: "Post created!", description: "Your post was added to your wall." });
         queryClient.invalidateQueries({ queryKey: ['civicSocialFeed'] });
       },
-      onError: (error) => {
-        toast({ title: "Error posting", description: error.message || "Failed to post.", variant: "destructive" });
+      onError: (error: any) => {
+        toast({ title: "Error posting", description: error?.message || "Failed to post.", variant: "destructive" });
       },
     });
     setContent("");
