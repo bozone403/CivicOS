@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import { useLocation } from 'wouter';
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -63,6 +64,7 @@ export default function CivicSocialMessages() {
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [location] = useLocation();
   const [selectedConversation, setSelectedConversation] = useState<string | null>(null);
   const [newMessage, setNewMessage] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
@@ -115,6 +117,15 @@ export default function CivicSocialMessages() {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+
+  // Deep-link: open conversation by ?recipientId=
+  useEffect(() => {
+    const params = new URLSearchParams(location.split('?')[1] || '');
+    const recipientId = params.get('recipientId');
+    if (recipientId) {
+      setSelectedConversation(recipientId);
+    }
+  }, [location]);
 
   const handleSendMessage = () => {
     if (!newMessage.trim() || !selectedConversation) return;

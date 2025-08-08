@@ -25,6 +25,7 @@ import { apiRequest } from '@/lib/queryClient';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { UnifiedSocialPost } from '@/components/UnifiedSocialPost';
+import { useCivicSocialFollow } from '@/hooks/useCivicSocial';
 
 interface UserProfile {
   id: string;
@@ -75,10 +76,12 @@ interface SocialPost {
 
 export default function PublicProfile() {
   const [location] = useLocation();
+  const [, navigate] = useLocation();
   const username = location.split('/').pop(); // Extract username from URL
   const { user: currentUser } = useAuth();
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState('posts');
+  const followMutation = useCivicSocialFollow();
 
   // Fetch user profile
   const { data: profile, isLoading: isLoadingProfile } = useQuery<UserProfile>({
@@ -237,6 +240,29 @@ export default function PublicProfile() {
                 <Share2 className="w-4 h-4 mr-2" />
                 Share Profile
               </Button>
+              {currentUser?.id !== profile.id && (
+                <>
+                  <Button
+                    variant="default"
+                    size="sm"
+                    onClick={() => navigate(`/civicsocial/messages?recipientId=${encodeURIComponent(profile.id)}`)}
+                  >
+                    <MessageSquare className="w-4 h-4 mr-2" />
+                    Message
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => followMutation.mutate({ followingId: profile.id }, {
+                      onSuccess: () => toast({ title: 'Followed', description: `You are now following @${profile.username}` }),
+                      onError: (e: any) => toast({ title: 'Follow failed', description: e?.message || 'Could not follow user', variant: 'destructive' })
+                    })}
+                  >
+                    <Users className="w-4 h-4 mr-2" />
+                    Follow
+                  </Button>
+                </>
+              )}
             </div>
           </div>
         </CardContent>
