@@ -425,4 +425,30 @@ export function registerRightsRoutes(app: Express) {
       return ResponseFormatter.databaseError(res, `Failed to fetch rights statistics: ${(error as Error).message}`);
     }
   });
+
+  // Provincial rights (placeholder curated)
+  app.get('/api/rights/provincial', async (req: Request, res: Response) => {
+    try {
+      const { province = 'all' } = req.query as { province?: string };
+      const all = [
+        { id: 'on-human-rights', province: 'Ontario', title: 'Ontario Human Rights Code', category: 'Human Rights', description: 'Prohibits discrimination in Ontario', plainLanguage: 'Equal treatment and anti-discrimination protections', examples: ['Housing discrimination', 'Employment equity'], relatedCharter: [15] },
+        { id: 'qc-charter', province: 'Quebec', title: 'Charter of the French Language', category: 'Language', description: 'French language protections in Quebec', plainLanguage: 'French language rights and obligations', examples: ['Signage rules', 'Workplace language'], relatedCharter: [16] }
+      ];
+      const filtered = province === 'all' ? all : all.filter(r => r.province === province);
+      return ResponseFormatter.success(res, filtered, 'Provincial rights retrieved', 200, filtered.length);
+    } catch (error) {
+      return ResponseFormatter.databaseError(res, `Failed to fetch provincial rights: ${(error as Error).message}`);
+    }
+  });
+
+  // Geolocation to province (very rough ip/user-agent placeholder)
+  app.get('/api/location/province', async (req: Request, res: Response) => {
+    try {
+      // Default to Ontario if unknown to avoid blocking UI
+      const province = 'Ontario';
+      res.json(province);
+    } catch {
+      res.json('Ontario');
+    }
+  });
 } 

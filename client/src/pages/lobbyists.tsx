@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -10,6 +12,17 @@ import { Eye, Users, Building, Search, Filter, ExternalLink, AlertTriangle } fro
 export default function LobbyistsPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterSector, setFilterSector] = useState("all");
+  const { data: lobbyists = [], isLoading } = useQuery<any[]>({
+    queryKey: ["/api/lobbyists"],
+    queryFn: async () => {
+      const res = await apiRequest('/api/lobbyists', 'GET');
+      if (res && typeof res === 'object' && 'data' in res) {
+        return Array.isArray(res.data?.lobbyists) ? res.data.lobbyists : Array.isArray(res.data) ? res.data : [];
+      }
+      return Array.isArray(res?.lobbyists) ? res.lobbyists : Array.isArray(res) ? res : [];
+    },
+    staleTime: 5 * 60 * 1000,
+  });
 
   // Remove the lobbyistData and influenceNetworkData arrays and replace with API data only
   // const lobbyistData = [...];
@@ -113,20 +126,44 @@ export default function LobbyistsPage() {
           </div>
 
           <div className="grid gap-6">
-            {/* Use API data only. If no data, show fallback UI. */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-xl">No lobbyist data available</CardTitle>
-                <CardDescription>
-                  Please ensure the API is running and providing data.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground">
-                  The lobbyist data is currently not loaded. This might be due to an issue with the API connection or data availability.
-                </p>
-              </CardContent>
-            </Card>
+            {isLoading && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-xl">Loading lobbyists…</CardTitle>
+                </CardHeader>
+              </Card>
+            )}
+            {!isLoading && lobbyists.length === 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-xl">No lobbyist data available</CardTitle>
+                  <CardDescription>
+                    No registry records matched your filters.
+                  </CardDescription>
+                </CardHeader>
+              </Card>
+            )}
+            {!isLoading && lobbyists.length > 0 && lobbyists
+              .filter((l) => (filterSector === 'all' || (l.sectors || []).includes(filterSector)) &&
+                              (searchTerm.trim() === '' || (l.name || '').toLowerCase().includes(searchTerm.toLowerCase())))
+              .map((l) => (
+                <Card key={l.id} className="hover:shadow-lg transition-shadow">
+                  <CardHeader>
+                    <CardTitle className="text-lg">{l.name}</CardTitle>
+                    <CardDescription>
+                      Meetings this year: {l.meetingsThisYear || 0}
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex flex-wrap gap-2">
+                      {(l.sectors || []).map((s: string) => (
+                        <Badge key={s} variant="outline">{s}</Badge>
+                      ))}
+                      {l.compliance && <Badge className="text-xs" variant="secondary">{l.compliance}</Badge>}
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
           </div>
         </TabsContent>
 
