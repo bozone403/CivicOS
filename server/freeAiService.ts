@@ -109,6 +109,11 @@ User: ${message}
 
 CivicOS:`;
 
+    // No-key fallback: simple deterministic assistant
+    if (!this.baseUrl || !this.defaultModel) {
+      const location = context?.userLocation ? ` in ${context.userLocation}` : '';
+      return `CivicOS: I can help with Canadian civic topics${location}. Ask about voting, bills, rights, or contacting officials. You said: "${message}".`;
+    }
     return this.generateResponse(fullPrompt, { temperature: 0.7 });
   }
 
@@ -145,6 +150,26 @@ ${context?.politicalParty ? `Political Party: ${context.politicalParty}` : ''}
 News Content:
 ${newsContent}`;
 
+    // No-key heuristic analysis
+    if (!this.baseUrl || !this.defaultModel) {
+      const text = newsContent || '';
+      const cleaned = text.replace(/\s+/g, ' ').trim();
+      const sentences = cleaned.split(/(?<=[.!?])\s+/).filter(Boolean).slice(0, 5);
+      const summary = sentences.slice(0, 2).join(' ');
+      const keyWords = ['corruption','ethics','budget','deficit','tax','health','education','environment','rights','privacy','security','trade'];
+      const keyPoints = keyWords
+        .filter(k => cleaned.toLowerCase().includes(k))
+        .slice(0, 5)
+        .map(k => `Mentions ${k}`);
+      const positive = ['benefit','improve','growth','success','increase','reduce emissions','expand'];
+      const negative = ['concern','decline','risk','fraud','overrun','delay','cut'];
+      const posCount = positive.reduce((n, w) => n + (cleaned.toLowerCase().includes(w) ? 1 : 0), 0);
+      const negCount = negative.reduce((n, w) => n + (cleaned.toLowerCase().includes(w) ? 1 : 0), 0);
+      const sentiment = posCount > negCount ? 'positive' : (negCount > posCount ? 'negative' : 'neutral' as const);
+      const civicImpact = cleaned.toLowerCase().includes('bill') ? 'Potential legislative impact' : 'General public interest';
+      const relatedIssues = keyPoints.map(p => p.replace('Mentions ', ''));
+      return { summary: summary || cleaned.substring(0, 160), keyPoints: keyPoints.length ? keyPoints : ['No salient keywords detected'], sentiment, civicImpact, relatedIssues };
+    }
     const response = await this.generateResponse(systemPrompt, { temperature: 0.5 });
     
     try {
@@ -200,6 +225,18 @@ ${context?.budget ? `Budget: ${context.budget}` : ''}
 Policy Content:
 ${policyContent}`;
 
+    if (!this.baseUrl || !this.defaultModel) {
+      const text = policyContent || '';
+      const cleaned = text.replace(/\s+/g, ' ').trim();
+      const summary = cleaned.substring(0, 200);
+      const prosDict = ['efficiency','access','affordable','transparency','safety','jobs','innovation'];
+      const consDict = ['cost','privacy','risk','bias','delay','overrun','tax'];
+      const pros = prosDict.filter(k => cleaned.toLowerCase().includes(k)).slice(0, 5);
+      const cons = consDict.filter(k => cleaned.toLowerCase().includes(k)).slice(0, 5);
+      const impact = context?.jurisdiction ? `Impact at ${context.jurisdiction} level` : 'General impact';
+      const recommendations = ['Conduct stakeholder consultations','Publish implementation timeline','Define measurable outcomes'];
+      return { summary, pros: pros.length? pros: ['Potential benefits'], cons: cons.length? cons: ['Potential risks'], impact, recommendations };
+    }
     const response = await this.generateResponse(systemPrompt, { temperature: 0.6 });
     
     try {
@@ -244,6 +281,17 @@ Provide your analysis in this exact JSON format:
 Data:
 ${JSON.stringify(data, null, 2)}`;
 
+    if (!this.baseUrl || !this.defaultModel) {
+      const ua = Array.isArray(data.userActivity) ? data.userActivity.length : 0;
+      const tt = Array.isArray(data.trendingTopics) ? data.trendingTopics.slice(0,3) : [];
+      const insights = [
+        ua > 20 ? 'High user engagement detected' : 'Moderate user engagement',
+        tt.length ? `Trending topics: ${tt.join(', ')}` : 'No trending topics provided'
+      ];
+      const recommendations = ['Encourage participation with timely notifications','Highlight local issues to increase relevance'];
+      const trends = tt.length ? tt : ['Engagement stable'];
+      return { insights, recommendations, trends };
+    }
     const response = await this.generateResponse(systemPrompt, { temperature: 0.7 });
     
     try {

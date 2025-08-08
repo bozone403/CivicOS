@@ -1,5 +1,6 @@
 import { db } from "./db.js";
 import { sql } from "drizzle-orm";
+import * as cheerio from 'cheerio';
 
 /**
  * Government API integrations for authentic Canadian data
@@ -13,15 +14,24 @@ export class GovernmentAPIService {
    */
   async fetchParliamentOpenData() {
     try {
-      // MPs data from Parliament API
-      const mpsResponse = await fetch('https://www.ourcommons.ca/members/en/search/xml');
-      if (mpsResponse.ok) {
-        const mpsData = await mpsResponse.text();
-        await this.processParliamentMPs(mpsData);
+      // MPs JSON endpoint (public)
+      const mpsJson = await fetch('https://www.ourcommons.ca/members/en/search?output=JSON');
+      if (mpsJson.ok) {
+        const data = await mpsJson.json();
+        // TODO: map and upsert MPs into DB
       }
-      // Bills data from Parliament API
+      // Bills page: extract bill titles quickly with cheerio as a fallback
       const billsResponse = await fetch('https://www.parl.ca/legisinfo/en/bills');
-      // No further logic for billsResponse yet
+      if (billsResponse.ok) {
+        const html = await billsResponse.text();
+        const $ = cheerio.load(html);
+        const bills: string[] = [];
+        $('a').each((_i, el) => {
+          const t = $(el).text().trim();
+          if (/^(C|S)-\d+/.test(t)) bills.push(t);
+        });
+        // TODO: upsert minimal bill list to DB for display
+      }
     } catch (error) {
       // console.error removed for production
     }
@@ -33,9 +43,13 @@ export class GovernmentAPIService {
    */
   async fetchStatisticsCanada() {
     try {
-      // Population and demographic data
-      const popResponse = await fetch('https://www150.statcan.gc.ca/t1/wds/rest/getDataFromVectorsAndLatestNPeriods');
-      // No further logic for popResponse yet
+      // Example: CPI series vector v41690973 (index)
+      const url = 'https://www150.statcan.gc.ca/t1/wds/rest/getDataFromVectorsAndLatestNPeriods?vectors=v41690973&latestN=1';
+      const res = await fetch(url);
+      if (res.ok) {
+        const json = await res.json();
+        // TODO: persist CPI latest value to DB for dashboard
+      }
     } catch (error) {
       // console.error removed for production
     }
@@ -47,9 +61,12 @@ export class GovernmentAPIService {
    */
   async fetchOpenGovernmentData() {
     try {
-      // Government spending data
-      const spendingResponse = await fetch('https://open.canada.ca/data/api/action/package_search?q=spending');
-      // No further logic for spendingResponse yet
+      // Procurement-related datasets
+      const spendingResponse = await fetch('https://open.canada.ca/data/api/action/package_search?q=contract+awards&rows=5');
+      if (spendingResponse.ok) {
+        const json = await spendingResponse.json();
+        // TODO: map a few top results into transparency cards
+      }
     } catch (error) {
       // console.error removed for production
     }
