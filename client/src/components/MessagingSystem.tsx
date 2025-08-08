@@ -83,9 +83,10 @@ export function MessagingSystem() {
   const { data: conversations = [] } = useQuery<Conversation[]>({
     queryKey: ["conversations"],
     queryFn: async () => {
-      const response = await apiRequest("/api/social/conversations", "GET");
+      const response = await apiRequest("/api/social/conversations?limit=30", "GET");
       return response?.conversations || [];
     },
+    refetchInterval: 30000,
     enabled: isAuthenticated,
   });
 
@@ -93,9 +94,10 @@ export function MessagingSystem() {
   const { data: messages = [] } = useQuery<Message[]>({
     queryKey: ["messages", selectedConversation?.otherUserId],
     queryFn: async () => {
-      const response = await apiRequest(`/api/social/messages?otherUserId=${selectedConversation?.otherUserId}`, "GET");
+      const response = await apiRequest(`/api/social/messages?otherUserId=${selectedConversation?.otherUserId}&limit=100`, "GET");
       return response?.messages || [];
     },
+    refetchInterval: 5000,
     enabled: !!selectedConversation && isAuthenticated,
   });
 

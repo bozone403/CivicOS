@@ -530,101 +530,86 @@ export function registerSocialRoutes(app) {
         }
     });
     // ===== MESSAGING SYSTEM =====
-    // GET /api/social/conversations - Enhanced conversations
+    // GET /api/social/conversations - Optimized conversations with pagination
     app.get('/api/social/conversations', jwtAuth, async (req, res) => {
         try {
             const userId = req.user?.id;
+            const limit = Math.min(parseInt(String(req.query.limit ?? 20)), 100) || 20;
+            const offset = Math.max(parseInt(String(req.query.offset ?? 0)), 0) || 0;
             if (!userId) {
                 return res.status(401).json({ error: "Authentication required" });
             }
-            logger.info('Fetching conversations for user:', userId);
-            // Simplified query to get unique conversation partners
-            const conversations = await db
-                .select({
-                otherUserId: sql `CASE 
-            WHEN ${userMessages.senderId} = ${userId} THEN ${userMessages.recipientId}
-            ELSE ${userMessages.senderId}
-          END`,
-                lastMessage: userMessages.content,
-                lastMessageAt: userMessages.createdAt,
-            })
-                .from(userMessages)
-                .where(or(eq(userMessages.senderId, userId), eq(userMessages.recipientId, userId)))
-                .orderBy(desc(userMessages.createdAt))
-                .limit(50); // Limit to prevent performance issues
-            // Get unique conversations by otherUserId
-            const uniqueConversations = conversations.reduce((acc, conv) => {
-                if (!acc.find(c => c.otherUserId === conv.otherUserId)) {
-                    acc.push(conv);
-                }
-                return acc;
-            }, []);
-            logger.info('Found unique conversations:', uniqueConversations.length);
-            // Get user data for each conversation
-            const conversationsWithUsers = await Promise.all(uniqueConversations.map(async (conv) => {
-                try {
-                    const [user] = await db
-                        .select({
-                        id: users.id,
-                        firstName: users.firstName,
-                        lastName: users.lastName,
-                        profileImageUrl: users.profileImageUrl,
-                        civicLevel: users.civicLevel,
-                    })
-                        .from(users)
-                        .where(eq(users.id, conv.otherUserId))
-                        .limit(1);
-                    // Get unread count for this conversation
-                    const unreadCount = await db
-                        .select({ count: count() })
-                        .from(userMessages)
-                        .where(and(eq(userMessages.recipientId, userId), eq(userMessages.senderId, conv.otherUserId), eq(userMessages.isRead, false)));
-                    return {
-                        id: conv.otherUserId,
-                        participant: user,
-                        lastMessage: conv.lastMessage,
-                        lastMessageAt: conv.lastMessageAt,
-                        unreadCount: unreadCount[0]?.count || 0,
-                    };
-                }
-                catch (error) {
-                    logger.error('Error processing conversation:', error);
-                    return {
-                        id: conv.otherUserId,
-                        participant: null,
-                        lastMessage: conv.lastMessage,
-                        lastMessageAt: conv.lastMessageAt,
-                        unreadCount: 0,
-                    };
-                }
+            const result = await db.execute(sql `
+        WITH conv AS (
+          SELECT
+            CASE WHEN sender_id = ${userId} THEN recipient_id ELSE sender_id END AS other_user_id,
+            MAX(created_at) AS last_message_time
+          FROM user_messages
+          WHERE sender_id = ${userId} OR recipient_id = ${userId}
+          GROUP BY other_user_id
+          ORDER BY MAX(created_at) DESC
+          LIMIT ${limit} OFFSET ${offset}
+        )
+        SELECT 
+          conv.other_user_id AS "otherUserId",
+          u.first_name AS "firstName",
+          u.last_name AS "lastName",
+          u.profile_image_url AS "profileImageUrl",
+          u.civic_level AS "civicLevel",
+          lm.content AS "lastMessage",
+          conv.last_message_time AS "lastMessageAt",
+          COALESCE(uc.unread_count, 0) AS "unreadCount"
+        FROM conv
+        JOIN users u ON u.id = conv.other_user_id
+        LEFT JOIN LATERAL (
+          SELECT content
+          FROM user_messages
+          WHERE (sender_id = ${userId} AND recipient_id = conv.other_user_id)
+             OR (sender_id = conv.other_user_id AND recipient_id = ${userId})
+          ORDER BY created_at DESC
+          LIMIT 1
+        ) lm ON true
+        LEFT JOIN LATERAL (
+          SELECT COUNT(*)::int AS unread_count
+          FROM user_messages
+          WHERE sender_id = conv.other_user_id AND recipient_id = ${userId} AND is_read = false
+        ) uc ON true
+        ORDER BY conv.last_message_time DESC
+      `);
+            const conversations = (result.rows || []).map((r) => ({
+                otherUserId: r.otherUserId,
+                otherUser: {
+                    id: r.otherUserId,
+                    firstName: r.firstName,
+                    lastName: r.lastName,
+                    profileImageUrl: r.profileImageUrl,
+                    displayName: [r.firstName, r.lastName].filter(Boolean).join(' '),
+                    civicLevel: r.civicLevel,
+                },
+                lastMessage: r.lastMessage,
+                lastMessageAt: r.lastMessageAt,
+                unreadCount: r.unreadCount,
             }));
-            logger.info('Returning conversations with users:', conversationsWithUsers.length);
-            res.json({
-                success: true,
-                conversations: conversationsWithUsers
-            });
+            res.json({ success: true, conversations, pagination: { limit, offset, count: conversations.length } });
         }
         catch (error) {
             logger.error('Conversations error:', error);
-            res.status(500).json({
-                success: false,
-                error: "Failed to fetch conversations",
-                message: error instanceof Error ? error.message : 'Unknown error'
-            });
+            res.status(500).json({ success: false, error: "Failed to fetch conversations" });
         }
     });
     // GET /api/social/messages - Enhanced messages (with query parameter)
     app.get('/api/social/messages', jwtAuth, async (req, res) => {
         try {
             const userId = req.user?.id;
-            const { otherUserId } = req.query;
+            const { otherUserId, before, limit: lim } = req.query;
+            const limit = Math.min(parseInt(String(lim ?? 50)), 200) || 50;
             if (!userId) {
                 return res.status(401).json({ error: "Authentication required" });
             }
             if (!otherUserId) {
                 return res.status(400).json({ error: "otherUserId is required" });
             }
-            // Get messages between users
+            const baseWhere = or(and(eq(userMessages.senderId, userId), eq(userMessages.recipientId, otherUserId)), and(eq(userMessages.senderId, otherUserId), eq(userMessages.recipientId, userId)));
             const messages = await db
                 .select({
                 id: userMessages.id,
@@ -635,9 +620,11 @@ export function registerSocialRoutes(app) {
                 createdAt: userMessages.createdAt,
             })
                 .from(userMessages)
-                .where(or(and(eq(userMessages.senderId, userId), eq(userMessages.recipientId, otherUserId)), and(eq(userMessages.senderId, otherUserId), eq(userMessages.recipientId, userId))))
-                .orderBy(asc(userMessages.createdAt))
-                .limit(100); // Limit to prevent performance issues
+                .where(before ? and(baseWhere, sql `user_messages.created_at < ${new Date(before)}`) : baseWhere)
+                .orderBy(desc(userMessages.createdAt))
+                .limit(limit);
+            // Return ascending order for UI
+            messages.reverse();
             // Mark messages as read (only if there are messages)
             if (messages.length > 0) {
                 try {
@@ -663,6 +650,17 @@ export function registerSocialRoutes(app) {
                 error: "Failed to fetch messages",
                 message: error instanceof Error ? error.message : 'Unknown error'
             });
+        }
+    });
+    // GET /api/social/messages/unread-count - unread count for current user
+    app.get('/api/social/messages/unread-count', jwtAuth, async (req, res) => {
+        try {
+            const userId = req.user?.id;
+            const result = await db.execute(sql `SELECT COUNT(*)::int AS cnt FROM user_messages WHERE recipient_id = ${userId} AND is_read = false`);
+            return res.json({ success: true, unreadCount: result?.rows?.[0]?.cnt ?? 0 });
+        }
+        catch (error) {
+            return res.status(500).json({ success: false, error: 'Failed to fetch unread count' });
         }
     });
     app.get('/api/social/messages/:conversationId', jwtAuth, async (req, res) => {
@@ -928,6 +926,19 @@ export function registerSocialRoutes(app) {
                 friendId,
                 status: 'pending'
             }).returning();
+            // Notify recipient of new friend request
+            try {
+                await db.insert(notifications).values({
+                    userId: friendId,
+                    type: 'social',
+                    title: 'Friend request',
+                    message: 'You have a new friend request',
+                    data: { fromUserId: userId },
+                    sourceModule: 'social',
+                    sourceId: `friend_request:${userId}:${friendId}`,
+                });
+            }
+            catch { }
             res.json({
                 success: true,
                 friendship: friendship[0]
@@ -955,11 +966,70 @@ export function registerSocialRoutes(app) {
             }
             // Update friendship status
             await db.update(userFriends).set({ status: 'accepted' }).where(and(eq(userFriends.userId, friendId), eq(userFriends.friendId, userId)));
+            // Notify requester of acceptance
+            try {
+                await db.insert(notifications).values({
+                    userId: friendId,
+                    type: 'social',
+                    title: 'Friend request accepted',
+                    message: 'Your friend request was accepted',
+                    data: { byUserId: userId },
+                    sourceModule: 'social',
+                    sourceId: `friend_accept:${friendId}:${userId}`,
+                });
+            }
+            catch { }
             res.json({ success: true, message: "Friend request accepted" });
         }
         catch (error) {
             console.error('Accept friend error:', error);
             res.status(500).json({ error: "Failed to accept friend" });
+        }
+    });
+    // POST /api/social/friends/reject - Reject a friend request
+    app.post('/api/social/friends/reject', jwtAuth, async (req, res) => {
+        try {
+            const userId = req.user?.id;
+            const rejectSchema = z.object({ friendId: z.string().min(1) });
+            const parsed = rejectSchema.safeParse(req.body);
+            if (!parsed.success)
+                return res.status(400).json({ error: 'Invalid input', issues: parsed.error.flatten() });
+            const { friendId } = parsed.data;
+            await db.delete(userFriends).where(and(eq(userFriends.userId, friendId), eq(userFriends.friendId, userId), eq(userFriends.status, 'pending')));
+            try {
+                await db.insert(notifications).values({
+                    userId: friendId,
+                    type: 'social',
+                    title: 'Friend request rejected',
+                    message: 'Your friend request was rejected',
+                    data: { byUserId: userId },
+                    sourceModule: 'social',
+                    sourceId: `friend_reject:${friendId}:${userId}`,
+                });
+            }
+            catch { }
+            res.json({ success: true, message: 'Friend request rejected' });
+        }
+        catch (error) {
+            console.error('Reject friend error:', error);
+            res.status(500).json({ error: 'Failed to reject friend' });
+        }
+    });
+    // DELETE /api/social/friends/remove - Remove an existing friend
+    app.delete('/api/social/friends/remove', jwtAuth, async (req, res) => {
+        try {
+            const userId = req.user?.id;
+            const removeSchema = z.object({ friendId: z.string().min(1) });
+            const parsed = removeSchema.safeParse(req.body);
+            if (!parsed.success)
+                return res.status(400).json({ error: 'Invalid input', issues: parsed.error.flatten() });
+            const { friendId } = parsed.data;
+            await db.delete(userFriends).where(or(and(eq(userFriends.userId, userId), eq(userFriends.friendId, friendId), eq(userFriends.status, 'accepted')), and(eq(userFriends.userId, friendId), eq(userFriends.friendId, userId), eq(userFriends.status, 'accepted'))));
+            res.json({ success: true, message: 'Friend removed' });
+        }
+        catch (error) {
+            console.error('Remove friend error:', error);
+            res.status(500).json({ error: 'Failed to remove friend' });
         }
     });
     // ===== NOTIFICATIONS SYSTEM =====
