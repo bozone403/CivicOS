@@ -419,6 +419,38 @@ export function registerAuthRoutes(app: Express) {
     res.json({ message: "Logged out (client should delete token)" });
   });
 
+  // Change password (JWT protected)
+  app.post('/api/auth/change-password', jwtAuth, async (req: Request, res: Response) => {
+    try {
+      const userId = (req.user as JwtPayload)?.id;
+      const { currentPassword, newPassword } = req.body || {};
+      if (!userId) return res.status(401).json({ message: 'Unauthorized' });
+      if (!currentPassword || !newPassword) {
+        return res.status(400).json({ message: 'currentPassword and newPassword are required' });
+      }
+      if (String(newPassword).length < 6) {
+        return res.status(400).json({ message: 'New password must be at least 6 characters' });
+      }
+
+      // Load user with hashed password
+      const records = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+      if (records.length === 0) {
+        return res.status(404).json({ message: 'User not found' });
+      }
+      const userRow: any = records[0];
+      const ok = await bcrypt.compare(currentPassword, userRow.password || '');
+      if (!ok) {
+        return res.status(401).json({ message: 'Current password is incorrect' });
+      }
+
+      const hashed = await bcrypt.hash(String(newPassword), 12);
+      await db.update(users).set({ password: hashed, updatedAt: new Date() }).where(eq(users.id, userId));
+      return res.json({ message: 'Password updated' });
+    } catch (error) {
+      return res.status(500).json({ message: 'Failed to change password' });
+    }
+  });
+
   // Profile update endpoint (JWT protected) - includes customization fields
   app.put('/api/users/profile', jwtAuth, async (req: Request, res: Response) => {
     try {

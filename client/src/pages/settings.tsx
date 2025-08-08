@@ -110,17 +110,18 @@ export default function Settings() {
   const uploadProfilePictureMutation = useMutation({
     mutationFn: async (file: File) => {
       const formData = new FormData();
-      formData.append('profilePicture', file);
-      
+      formData.append('profileImage', file);
+      const token = localStorage.getItem('civicos-jwt');
       const res = await fetch('/api/auth/upload-profile-picture', {
         method: 'POST',
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
         body: formData,
+        credentials: 'include',
       });
-      
       if (!res.ok) {
-        throw new Error('Failed to upload profile picture');
+        const text = await res.text();
+        throw new Error(text || 'Failed to upload profile picture');
       }
-      
       return await res.json();
     },
     onSuccess: () => {
