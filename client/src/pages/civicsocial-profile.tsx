@@ -553,7 +553,15 @@ export default function CivicSocialProfile() {
               firstName: editFirstName,
               lastName: editLastName,
               bio: editBio,
-              profileImageUrl: editAvatar
+              profileImageUrl: editAvatar,
+              // Grab values directly from form controls for new fields
+              profileBannerUrl: (document.getElementById('profileBannerUrl') as HTMLInputElement)?.value || undefined,
+              profileAccentColor: (document.getElementById('profileAccentColor') as HTMLInputElement)?.value || undefined,
+              website: (document.getElementById('website') as HTMLInputElement)?.value || undefined,
+              profileShowBadges: (document.getElementById('showBadges') as HTMLInputElement)?.checked,
+              profileShowStats: (document.getElementById('showStats') as HTMLInputElement)?.checked,
+              profileShowActivity: (document.getElementById('showActivity') as HTMLInputElement)?.checked,
+              profileShowFriends: (document.getElementById('showFriends') as HTMLInputElement)?.checked
             });
           }} className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
@@ -594,6 +602,41 @@ export default function CivicSocialProfile() {
               />
             </div>
             
+            <div className="space-y-2">
+              <label htmlFor="profileBannerUrl" className="text-sm font-medium">Profile Banner URL</label>
+              <Input id="profileBannerUrl" placeholder="https://example.com/banner.jpg" defaultValue={(user as any)?.profileBannerUrl || ''} />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label htmlFor="profileAccentColor" className="text-sm font-medium">Theme Accent Color</label>
+                <Input id="profileAccentColor" type="color" defaultValue={(user as any)?.profileAccentColor || '#3b82f6'} />
+              </div>
+              <div className="space-y-2">
+                <label htmlFor="website" className="text-sm font-medium">Website</label>
+                <Input id="website" placeholder="https://my-site.com" defaultValue={(user as any)?.website || ''} />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="flex items-center gap-2">
+                <input id="showBadges" type="checkbox" defaultChecked={(user as any)?.profileShowBadges ?? true} />
+                <label htmlFor="showBadges" className="text-sm">Show badges</label>
+              </div>
+              <div className="flex items-center gap-2">
+                <input id="showStats" type="checkbox" defaultChecked={(user as any)?.profileShowStats ?? true} />
+                <label htmlFor="showStats" className="text-sm">Show stats</label>
+              </div>
+              <div className="flex items-center gap-2">
+                <input id="showActivity" type="checkbox" defaultChecked={(user as any)?.profileShowActivity ?? true} />
+                <label htmlFor="showActivity" className="text-sm">Show activity</label>
+              </div>
+              <div className="flex items-center gap-2">
+                <input id="showFriends" type="checkbox" defaultChecked={(user as any)?.profileShowFriends ?? true} />
+                <label htmlFor="showFriends" className="text-sm">Show friends</label>
+              </div>
+            </div>
+
             <div className="flex justify-end space-x-2">
               <Button
                 type="button"

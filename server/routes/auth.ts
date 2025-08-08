@@ -419,7 +419,7 @@ export function registerAuthRoutes(app: Express) {
     res.json({ message: "Logged out (client should delete token)" });
   });
 
-  // Profile update endpoint (JWT protected)
+  // Profile update endpoint (JWT protected) - includes customization fields
   app.put('/api/users/profile', jwtAuth, async (req: Request, res: Response) => {
     try {
       const userId = (req.user as JwtPayload)?.id;
@@ -427,18 +427,34 @@ export function registerAuthRoutes(app: Express) {
         return res.status(401).json({ message: "Unauthorized" });
       }
 
-      const { firstName, lastName, bio, profileImageUrl, website } = req.body;
-      
-      // Update user profile
+      const body = req.body || {} as Record<string, any>;
+
+      // Whitelist fields that can be updated
+      const updatable: Record<string, any> = {
+        firstName: body.firstName,
+        lastName: body.lastName,
+        bio: body.bio,
+        profileImageUrl: body.profileImageUrl,
+        profileBannerUrl: body.profileBannerUrl,
+        website: body.website,
+        socialLinks: body.socialLinks,
+        profileTheme: body.profileTheme,
+        profileAccentColor: body.profileAccentColor,
+        profileShowBadges: typeof body.profileShowBadges === 'boolean' ? body.profileShowBadges : undefined,
+        profileShowStats: typeof body.profileShowStats === 'boolean' ? body.profileShowStats : undefined,
+        profileShowActivity: typeof body.profileShowActivity === 'boolean' ? body.profileShowActivity : undefined,
+        profileShowFriends: typeof body.profileShowFriends === 'boolean' ? body.profileShowFriends : undefined,
+        profileShowPosts: typeof body.profileShowPosts === 'boolean' ? body.profileShowPosts : undefined,
+        updatedAt: new Date()
+      };
+
+      // Remove undefined keys to avoid overwriting with nulls unintentionally
+      Object.keys(updatable).forEach((k) => {
+        if (updatable[k] === undefined) delete updatable[k];
+      });
+
       await db.update(users)
-        .set({
-          firstName: firstName || undefined,
-          lastName: lastName || undefined,
-          bio: bio || undefined,
-          profileImageUrl: profileImageUrl || undefined,
-          website: website || undefined,
-          updatedAt: new Date()
-        })
+        .set(updatable as any)
         .where(eq(users.id, userId));
 
       res.json({ message: "Profile updated successfully" });
