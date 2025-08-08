@@ -1,6 +1,6 @@
 import { db } from "../db.js";
-import { users, socialPosts, socialComments, socialLikes, userFriends, userMessages, notifications, userActivity, socialShares, socialBookmarks, userFollows } from "../../shared/schema.js";
-import { eq, and, or, desc, asc, gte, count, sql } from "drizzle-orm";
+import { users, socialPosts, socialComments, socialLikes, userFriends, userMessages, notifications, userActivity, socialShares, socialBookmarks, userFollows, userBlocks } from "../../shared/schema.js";
+import { eq, and, or, desc, asc, gte, inArray, count, sql } from "drizzle-orm";
 import { jwtAuth } from './auth.js';
 import pino from "pino";
 import { z } from 'zod';
@@ -81,14 +81,60 @@ export function registerSocialRoutes(app) {
         }
     });
     // (Removed duplicate post creation route; unified below)
-    // GET /api/social/feed - Enhanced social feed with proper error handling
+    // GET /api/social/feed - Enhanced social feed with scope and cursor
     app.get('/api/social/feed', jwtAuth, async (req, res) => {
         try {
             const currentUserId = req.user.id;
-            const { limit = 20, offset = 0 } = req.query;
+            const { limit = 20, offset = 0, before, scope = 'public' } = req.query;
             logger.info('Fetching social feed for user:', currentUserId);
-            // Get posts with user data and interaction status
-            const feedPosts = await db
+            // Preload relationship sets
+            const followed = await db
+                .select({ id: userFollows.followId })
+                .from(userFollows)
+                .where(eq(userFollows.userId, currentUserId));
+            const friendA = await db
+                .select({ id: userFriends.friendId })
+                .from(userFriends)
+                .where(and(eq(userFriends.userId, currentUserId), eq(userFriends.status, 'accepted')));
+            const friendB = await db
+                .select({ id: userFriends.userId })
+                .from(userFriends)
+                .where(and(eq(userFriends.friendId, currentUserId), eq(userFriends.status, 'accepted')));
+            const friendIds = new Set([...friendA.map(f => String(f.id)), ...friendB.map(f => String(f.id))]);
+            // Block lists (both directions)
+            const blockedByMe = await db
+                .select({ id: userBlocks.blockedUserId })
+                .from(userBlocks)
+                .where(eq(userBlocks.userId, currentUserId));
+            const blockedMe = await db
+                .select({ id: userBlocks.userId })
+                .from(userBlocks)
+                .where(eq(userBlocks.blockedUserId, currentUserId));
+            const blockedSet = new Set([
+                ...blockedByMe.map(b => String(b.id)),
+                ...blockedMe.map(b => String(b.id))
+            ]);
+            // Determine author scope
+            const followingIds = new Set(followed.map(f => String(f.id)));
+            const scopeAuthorIds = new Set([...followingIds, ...friendIds, String(currentUserId)]);
+            // Build where conditions
+            const whereConds = [];
+            if (String(scope) === 'following') {
+                const authorList = Array.from(scopeAuthorIds);
+                if (authorList.length === 0) {
+                    return res.json({ success: true, feed: [] });
+                }
+                whereConds.push(inArray(socialPosts.userId, authorList));
+            }
+            else if (String(scope) === 'public') {
+                whereConds.push(eq(socialPosts.visibility, 'public'));
+            }
+            if (before) {
+                whereConds.push(sql `social_posts.created_at < ${new Date(before)}`);
+            }
+            const whereClause = whereConds.length > 0 ? and(...whereConds) : undefined;
+            // Base query for posts
+            let baseQuery = db
                 .select({
                 id: socialPosts.id,
                 content: socialPosts.content,
@@ -108,15 +154,30 @@ export function registerSocialRoutes(app) {
                 }
             })
                 .from(socialPosts)
-                .leftJoin(users, eq(socialPosts.userId, users.id))
-                .where(eq(socialPosts.visibility, 'public'))
+                .leftJoin(users, eq(socialPosts.userId, users.id));
+            if (whereClause) {
+                baseQuery = baseQuery.where(whereClause);
+            }
+            baseQuery = baseQuery
                 .orderBy(desc(socialPosts.createdAt))
                 .limit(parseInt(limit))
                 .offset(parseInt(offset));
+            const feedPosts = await baseQuery;
             logger.info('Found posts:', feedPosts.length);
             // Get interaction counts and user interaction status
             const postsWithInteractions = await Promise.all(feedPosts.map(async (post) => {
                 try {
+                    // Exclude blocked
+                    if (blockedSet.has(String(post.userId))) {
+                        return null;
+                    }
+                    // Enforce friends-only visibility
+                    if (post.visibility === 'friends') {
+                        const isFriend = friendIds.has(String(post.userId)) || String(post.userId) === String(currentUserId);
+                        if (!isFriend) {
+                            return null;
+                        }
+                    }
                     // Get likes count
                     const likesCount = await db
                         .select({ count: count() })
@@ -152,10 +213,11 @@ export function registerSocialRoutes(app) {
                     };
                 }
             }));
-            logger.info('Returning posts with interactions:', postsWithInteractions.length);
+            const filtered = postsWithInteractions.filter(Boolean);
+            logger.info('Returning posts with interactions:', filtered.length);
             res.json({
                 success: true,
-                feed: postsWithInteractions
+                feed: filtered
             });
         }
         catch (error) {
@@ -609,6 +671,15 @@ export function registerSocialRoutes(app) {
             if (!otherUserId) {
                 return res.status(400).json({ error: "otherUserId is required" });
             }
+            // Block check: do not return messages if either user has blocked the other
+            const blocked = await db
+                .select({ id: userBlocks.id })
+                .from(userBlocks)
+                .where(or(and(eq(userBlocks.userId, userId), eq(userBlocks.blockedUserId, otherUserId)), and(eq(userBlocks.userId, otherUserId), eq(userBlocks.blockedUserId, userId))))
+                .limit(1);
+            if (blocked.length > 0) {
+                return res.json({ success: true, messages: [] });
+            }
             const baseWhere = or(and(eq(userMessages.senderId, userId), eq(userMessages.recipientId, otherUserId)), and(eq(userMessages.senderId, otherUserId), eq(userMessages.recipientId, userId)));
             const messages = await db
                 .select({
@@ -751,6 +822,15 @@ export function registerSocialRoutes(app) {
             if (!recipient) {
                 return res.status(404).json({ error: "Recipient not found" });
             }
+            // Block check: prevent sending if blocked
+            const blocked = await db
+                .select({ id: userBlocks.id })
+                .from(userBlocks)
+                .where(or(and(eq(userBlocks.userId, userId), eq(userBlocks.blockedUserId, recipientId)), and(eq(userBlocks.userId, recipientId), eq(userBlocks.blockedUserId, userId))))
+                .limit(1);
+            if (blocked.length > 0) {
+                return res.status(403).json({ error: "Messaging is blocked between these users" });
+            }
             // Send message
             const message = await db.insert(userMessages).values({
                 senderId: userId,
@@ -886,6 +966,45 @@ export function registerSocialRoutes(app) {
                 error: "Failed to fetch friends",
                 message: error instanceof Error ? error.message : 'Unknown error'
             });
+        }
+    });
+    // ===== USER BLOCKS SYSTEM =====
+    // POST /api/social/blocks - Block a user
+    app.post('/api/social/blocks', jwtAuth, async (req, res) => {
+        try {
+            const userId = req.user?.id;
+            const schema = z.object({ blockedUserId: z.string().min(1) });
+            const parsed = schema.safeParse(req.body);
+            if (!parsed.success)
+                return res.status(400).json({ error: 'Invalid input', issues: parsed.error.flatten() });
+            const { blockedUserId } = parsed.data;
+            if (userId === blockedUserId)
+                return res.status(400).json({ error: 'Cannot block yourself' });
+            await db.insert(userBlocks).values({ userId, blockedUserId }).onConflictDoNothing();
+            // Also remove any existing friendship
+            await db.delete(userFriends).where(or(and(eq(userFriends.userId, userId), eq(userFriends.friendId, blockedUserId)), and(eq(userFriends.userId, blockedUserId), eq(userFriends.friendId, userId))));
+            res.json({ success: true, message: 'User blocked' });
+        }
+        catch (error) {
+            console.error('Block user error:', error);
+            res.status(500).json({ error: 'Failed to block user' });
+        }
+    });
+    // DELETE /api/social/blocks - Unblock a user
+    app.delete('/api/social/blocks', jwtAuth, async (req, res) => {
+        try {
+            const userId = req.user?.id;
+            const schema = z.object({ blockedUserId: z.string().min(1) });
+            const parsed = schema.safeParse(req.body);
+            if (!parsed.success)
+                return res.status(400).json({ error: 'Invalid input', issues: parsed.error.flatten() });
+            const { blockedUserId } = parsed.data;
+            await db.delete(userBlocks).where(and(eq(userBlocks.userId, userId), eq(userBlocks.blockedUserId, blockedUserId)));
+            res.json({ success: true, message: 'User unblocked' });
+        }
+        catch (error) {
+            console.error('Unblock user error:', error);
+            res.status(500).json({ error: 'Failed to unblock user' });
         }
     });
     // POST /api/social/friends - Enhanced add friend

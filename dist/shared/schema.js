@@ -1,4 +1,4 @@
-import { pgTable, text, varchar, timestamp, jsonb, index, serial, integer, boolean, decimal, date, primaryKey, } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, timestamp, jsonb, index, serial, integer, boolean, decimal, unique, date, primaryKey, } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 // Session storage table
 export const sessions = pgTable("sessions", {
@@ -145,6 +145,17 @@ export const users = pgTable("users", {
     suspendedUntil: timestamp("suspended_until"),
     suspensionReason: text("suspension_reason"),
 });
+// Users blocking other users
+export const userBlocks = pgTable("user_blocks", {
+    id: serial("id").primaryKey(),
+    userId: varchar("user_id").notNull(),
+    blockedUserId: varchar("blocked_user_id").notNull(),
+    createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [
+    unique("uniq_user_blocks").on(table.userId, table.blockedUserId),
+    index("idx_user_blocks_user").on(table.userId),
+    index("idx_user_blocks_blocked").on(table.blockedUserId),
+]);
 // Politicians table
 export const politicians = pgTable("politicians", {
     id: serial("id").primaryKey(),
