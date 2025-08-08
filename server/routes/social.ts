@@ -136,18 +136,24 @@ export function registerSocialRoutes(app: Express) {
       const friendIds = new Set<string>([...friendA.map(f => String(f.id)), ...friendB.map(f => String(f.id))]);
 
       // Block lists (both directions)
-      const blockedByMe = await db
-        .select({ id: userBlocks.blockedUserId })
-        .from(userBlocks)
-        .where(eq(userBlocks.userId, currentUserId));
-      const blockedMe = await db
-        .select({ id: userBlocks.userId })
-        .from(userBlocks)
-        .where(eq(userBlocks.blockedUserId, currentUserId));
-      const blockedSet = new Set<string>([
-        ...blockedByMe.map(b => String(b.id)),
-        ...blockedMe.map(b => String(b.id))
-      ]);
+      let blockedSet = new Set<string>();
+      try {
+        const blockedByMe = await db
+          .select({ id: userBlocks.blockedUserId })
+          .from(userBlocks)
+          .where(eq(userBlocks.userId, currentUserId));
+        const blockedMe = await db
+          .select({ id: userBlocks.userId })
+          .from(userBlocks)
+          .where(eq(userBlocks.blockedUserId, currentUserId));
+        blockedSet = new Set<string>([
+          ...blockedByMe.map(b => String(b.id)),
+          ...blockedMe.map(b => String(b.id))
+        ]);
+      } catch (_e) {
+        // Table may not exist yet; treat as no blocks
+        blockedSet = new Set<string>();
+      }
 
       // Determine author scope
       const followingIds = new Set<string>(followed.map(f => String(f.id)));

@@ -199,6 +199,16 @@ export function registerVotingRoutes(app: Express) {
       });
     }
   });
+
+  // Backward-compat: some clients call /api/voting/bills/vote
+  app.post("/api/voting/bills/vote", jwtAuth, async (req: Request, res: Response) => {
+    try {
+      (req as any).url = "/api/voting/vote";
+      return app._router.handle(req, res);
+    } catch (error) {
+      res.status(500).json({ success: false, message: "Failed to cast vote" });
+    }
+  });
   
   // Get vote statistics for a bill
   app.get("/api/voting/stats/:billId", async (req: Request, res: Response) => {

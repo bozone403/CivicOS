@@ -368,6 +368,43 @@ export function registerAuthRoutes(app) {
             res.status(500).json({ message: 'Profile update failed', error: error?.message || String(error) });
         }
     });
+    // Backward-compat: PUT /api/users/:userId/profile
+    app.put('/api/users/:userId/profile', jwtAuth, async (req, res) => {
+        try {
+            const authUserId = req.user?.id;
+            const targetUserId = req.params.userId;
+            if (!authUserId || authUserId !== targetUserId) {
+                return res.status(403).json({ message: 'Forbidden' });
+            }
+            const body = req.body || {};
+            const updatable = {
+                firstName: body.firstName,
+                lastName: body.lastName,
+                bio: body.bio,
+                profileImageUrl: body.profileImageUrl,
+                profileBannerUrl: body.profileBannerUrl,
+                website: body.website,
+                socialLinks: body.socialLinks,
+                profileTheme: body.profileTheme,
+                profileAccentColor: body.profileAccentColor,
+                profileShowBadges: typeof body.profileShowBadges === 'boolean' ? body.profileShowBadges : undefined,
+                profileShowStats: typeof body.profileShowStats === 'boolean' ? body.profileShowStats : undefined,
+                profileShowActivity: typeof body.profileShowActivity === 'boolean' ? body.profileShowActivity : undefined,
+                profileShowFriends: typeof body.profileShowFriends === 'boolean' ? body.profileShowFriends : undefined,
+                profileShowPosts: typeof body.profileShowPosts === 'boolean' ? body.profileShowPosts : undefined,
+                updatedAt: new Date()
+            };
+            Object.keys(updatable).forEach((k) => {
+                if (updatable[k] === undefined)
+                    delete updatable[k];
+            });
+            await db.update(users).set(updatable).where(eq(users.id, targetUserId));
+            res.json({ message: 'Profile updated successfully' });
+        }
+        catch (error) {
+            res.status(500).json({ message: 'Profile update failed', error: error?.message || String(error) });
+        }
+    });
     // Profile picture upload route (JWT protected)
     app.post('/api/auth/upload-profile-picture', jwtAuth, upload.single('profileImage'), async (req, res) => {
         try {
@@ -384,6 +421,25 @@ export function registerAuthRoutes(app) {
                 .set({ profileImageUrl: base64Data, updatedAt: new Date() })
                 .where(eq(users.id, userId));
             res.json({ message: "Profile picture updated successfully", profileImageUrl: base64Data });
+        }
+        catch (error) {
+            res.status(500).json({ message: 'Profile picture upload failed', error: error?.message || String(error) });
+        }
+    });
+    // Backward-compat: POST /api/users/:userId/upload-image
+    app.post('/api/users/:userId/upload-image', jwtAuth, upload.single('image'), async (req, res) => {
+        try {
+            const authUserId = req.user?.id;
+            const targetUserId = req.params.userId;
+            if (!authUserId || authUserId !== targetUserId) {
+                return res.status(403).json({ message: 'Forbidden' });
+            }
+            if (!req.file) {
+                return res.status(400).json({ message: 'No file uploaded' });
+            }
+            const base64Data = `data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}`;
+            await db.update(users).set({ profileImageUrl: base64Data, updatedAt: new Date() }).where(eq(users.id, targetUserId));
+            res.json({ message: 'Profile picture updated successfully', profileImageUrl: base64Data });
         }
         catch (error) {
             res.status(500).json({ message: 'Profile picture upload failed', error: error?.message || String(error) });
