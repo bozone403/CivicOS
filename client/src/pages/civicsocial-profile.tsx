@@ -136,6 +136,17 @@ export default function CivicSocialProfile() {
     );
   };
 
+  const sharePostMutation = useMutation({
+    mutationFn: async ({ postId, platform = 'internal' }: any) => apiRequest(`/api/social/posts/${postId}/share`, 'POST', { platform }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['civicSocialFeed'] });
+      toast({ title: 'Shared', description: 'Post shared successfully!' });
+    },
+    onError: (error: any) => {
+      toast({ title: 'Share failed', description: error?.message || 'Could not share post.', variant: 'destructive' });
+    }
+  });
+
   const editPostMutation = useMutation({
     mutationFn: async ({ postId, content, imageUrl }: any) => apiRequest(`/api/social/posts/${postId}`, 'PUT', { content, imageUrl }),
     onSuccess: () => {
@@ -436,9 +447,9 @@ export default function CivicSocialProfile() {
                     <CivicSocialPostCard
                       key={post.id}
                       post={post}
-                      onLike={() => likeMutation.mutate(post.id)}
+                      onLike={() => likeMutation.mutate({ postId: post.id })}
                       onComment={() => setOpenComment({ ...openComment, [post.id]: !openComment[post.id] })}
-                      onShare={() => toast({ title: 'Shared', description: 'Post shared successfully!' })}
+                      onShare={() => sharePostMutation.mutate({ postId: post.id })}
                       onBookmark={() => toast({ title: 'Bookmarked', description: 'Post added to your bookmarks!' })}
                       onEdit={() => {
                         const newContent = prompt('Edit your post:', post.content);

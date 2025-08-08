@@ -245,6 +245,20 @@ export function SocialFeed() {
     },
   });
 
+  // Share post mutation
+  const sharePostMutation = useMutation({
+    mutationFn: async ({ postId, platform = 'internal' }: { postId: number; platform?: string }) => {
+      return apiRequest(`/api/social/posts/${postId}/share`, 'POST', { platform });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["civicSocialFeed"] });
+      toast({ title: 'Shared', description: 'Post shared successfully.' });
+    },
+    onError: (error: any) => {
+      toast({ title: 'Share failed', description: error?.message || 'Could not share post.', variant: 'destructive' });
+    }
+  });
+
   const handleCreatePost = () => {
     if (!newPostContent.trim() && !imageUrl.trim()) {
       toast({
@@ -485,7 +499,7 @@ export function SocialFeed() {
                       <MessageCircle className="w-4 h-4 mr-2" />
                       {post.commentCount}
                     </Button>
-                    <Button variant="ghost" size="sm">
+                    <Button variant="ghost" size="sm" onClick={() => sharePostMutation.mutate({ postId: post.id })}>
                       <Share2 className="w-4 h-4 mr-2" />
                       Share
                     </Button>
