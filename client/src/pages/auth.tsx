@@ -779,7 +779,7 @@ export default function Auth() {
                               required
                             />
                             <Label htmlFor="agreeToTerms" className="text-sm">
-                              I agree to the <a href="#" className="text-blue-600 hover:underline">Terms of Service</a> *
+                              I agree to the <a href="/terms" className="text-blue-600 hover:underline">Terms of Service</a> *
                             </Label>
                           </div>
                           
@@ -790,7 +790,7 @@ export default function Auth() {
                               onCheckedChange={(checked) => setRegisterData(prev => ({ ...prev, agreeToPrivacy: checked as boolean }))}
                             />
                             <Label htmlFor="agreeToPrivacy" className="text-sm">
-                              I agree to the <a href="#" className="text-blue-600 hover:underline">Privacy Policy</a>
+                              I agree to the <a href="/privacy" className="text-blue-600 hover:underline">Privacy Policy</a>
                             </Label>
                           </div>
                           
