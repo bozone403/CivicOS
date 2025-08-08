@@ -846,7 +846,8 @@ export function registerSocialRoutes(app: Express) {
       if (!msgParsed.success) return res.status(400).json({ error: 'Invalid input', issues: msgParsed.error.flatten() });
       const { recipientId, content } = msgParsed.data;
 
-      // Anti-spam: simple guard - disallow identical consecutive messages within 10 seconds
+      // Anti-spam: disallow identical consecutive messages within the last 10 seconds
+      const tenSecondsAgo = new Date(Date.now() - 10_000);
       const recent = await db
         .select({ c: count() })
         .from(userMessages)
@@ -854,7 +855,8 @@ export function registerSocialRoutes(app: Express) {
           and(
             eq(userMessages.senderId, userId),
             eq(userMessages.recipientId, recipientId),
-            eq(userMessages.content, content)
+            eq(userMessages.content, content),
+            gte(userMessages.createdAt as any, tenSecondsAgo as any)
           )
         )
         .limit(1);

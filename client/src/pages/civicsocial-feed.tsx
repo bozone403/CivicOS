@@ -190,7 +190,7 @@ export default function CivicSocialFeed() {
   // Comment post mutation
   const commentPostMutation = useMutation({
     mutationFn: async ({ postId, content }: { postId: number; content: string }) => {
-      return await apiRequest(`/api/social/posts/${postId}/comments`, 'POST', { content });
+      return await apiRequest(`/api/social/posts/${postId}/comment`, 'POST', { content });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['socialFeed'] });
@@ -214,7 +214,7 @@ export default function CivicSocialFeed() {
   // Bookmark post mutation
   const bookmarkPostMutation = useMutation({
     mutationFn: async (postId: number) => {
-      return await apiRequest(`/api/social/posts/${postId}/bookmark`, 'POST');
+      return await apiRequest(`/api/social/bookmarks`, 'POST', { postId });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['socialFeed'] });
