@@ -5,6 +5,7 @@ import { useCivicSocialFriends, useCivicSocialAddFriend, useCivicSocialAcceptFri
 import { useAuth } from "../hooks/useAuth";
 import { UserPlus, Users, User, Check, X, Loader2, Search, UserCheck, UserX } from "lucide-react";
 import { authRequest } from "../lib/queryClient";
+import { useLocation } from 'wouter';
 
 interface SearchUser {
   id: string;
@@ -17,6 +18,7 @@ interface SearchUser {
 
 export default function CivicSocialFriends() {
   const { user } = useAuth();
+  const [, navigate] = useLocation();
   const { data, isLoading, error } = useCivicSocialFriends();
   const friends = data?.friends || [];
   const pendingReceived = data?.received || [];
@@ -71,7 +73,12 @@ export default function CivicSocialFriends() {
 
   const handleAddFriend = async (userId: string) => {
     try {
-      await addFriendMutation.mutateAsync({ friendId: parseInt(userId) });
+      // Prefer new unified friend request endpoint if available
+      try {
+        await authRequest('/api/friends/request', 'POST', { toUserId: userId });
+      } catch {
+        await addFriendMutation.mutateAsync({ friendId: userId });
+      }
       
       // Send notification
       notifyMutation.mutate({
@@ -92,7 +99,7 @@ export default function CivicSocialFriends() {
 
   const handleAccept = async (friendId: string) => {
     try {
-      await acceptFriendMutation.mutateAsync({ friendId: parseInt(friendId) });
+      await acceptFriendMutation.mutateAsync({ friendId });
       
       // Send notification
       notifyMutation.mutate({
@@ -108,7 +115,7 @@ export default function CivicSocialFriends() {
 
   const handleRemove = async (friendId: string) => {
     try {
-      await removeFriendMutation.mutateAsync({ friendId: parseInt(friendId) });
+      await removeFriendMutation.mutateAsync({ friendId });
     } catch (error) {
       // console.error removed for production
     }
@@ -160,7 +167,7 @@ export default function CivicSocialFriends() {
                 <div className="py-2">
                   {searchResults.map((searchUser) => (
                     <div key={searchUser.id} className="flex items-center justify-between p-3 hover:bg-gray-50 dark:hover:bg-slate-700">
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-3 cursor-pointer" onClick={() => navigate(`/profile/${encodeURIComponent(searchUser.firstName?.toLowerCase() || searchUser.email.split('@')[0])}`)}>
                         <div className="w-10 h-10 bg-civic-blue rounded-full flex items-center justify-center text-white font-bold">
                           {searchUser.firstName?.[0]}{searchUser.lastName?.[0]}
                         </div>
