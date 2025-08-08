@@ -114,7 +114,7 @@ export function registerMessageRoutes(app) {
                 isRead: userMessages.isRead,
                 createdAt: userMessages.createdAt
             }).from(userMessages)
-                .where(and(sql `(sender_id = ${userId} AND recipient_id = ${recipientId}) OR (sender_id = ${recipientId} AND recipient_id = ${userId})`))
+                .where(sql `(sender_id = ${userId} AND recipient_id = ${recipientId}) OR (sender_id = ${recipientId} AND recipient_id = ${userId})`)
                 .orderBy(desc(userMessages.createdAt));
             // Mark messages as read
             await db.update(userMessages)

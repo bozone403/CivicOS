@@ -238,7 +238,7 @@ export function registerSocialRoutes(app) {
         try {
             const currentUserId = req.user.id;
             const bodySchema = z.object({
-                content: z.string().trim().min(1).max(1000),
+                content: z.string().transform(v => (typeof v === 'string' ? v : String(v ?? ''))).pipe(z.string().trim().min(1).max(1000)),
                 type: z.string().trim().default('text'),
                 visibility: z.enum(['public', 'private', 'friends']).default('public'),
                 // Accept blob: and data: URLs in addition to http(s)
@@ -246,7 +246,7 @@ export function registerSocialRoutes(app) {
             });
             const parsed = bodySchema.safeParse(req.body);
             if (!parsed.success) {
-                return res.status(400).json({ error: 'Invalid input', issues: parsed.error.flatten() });
+                return res.status(400).json({ success: false, message: 'Invalid input' });
             }
             const { content, type, visibility, imageUrl } = parsed.data;
             const post = await db.insert(socialPosts).values({
@@ -677,13 +677,18 @@ export function registerSocialRoutes(app) {
                 return res.status(400).json({ error: "otherUserId is required" });
             }
             // Block check: do not return messages if either user has blocked the other
-            const blocked = await db
-                .select({ id: userBlocks.id })
-                .from(userBlocks)
-                .where(or(and(eq(userBlocks.userId, userId), eq(userBlocks.blockedUserId, otherUserId)), and(eq(userBlocks.userId, otherUserId), eq(userBlocks.blockedUserId, userId))))
-                .limit(1);
-            if (blocked.length > 0) {
-                return res.json({ success: true, messages: [] });
+            try {
+                const blocked = await db
+                    .select({ id: userBlocks.id })
+                    .from(userBlocks)
+                    .where(or(and(eq(userBlocks.userId, userId), eq(userBlocks.blockedUserId, otherUserId)), and(eq(userBlocks.userId, otherUserId), eq(userBlocks.blockedUserId, userId))))
+                    .limit(1);
+                if (blocked.length > 0) {
+                    return res.json({ success: true, messages: [] });
+                }
+            }
+            catch (_e) {
+                // If blocks table is missing/unavailable, proceed without blocking
             }
             const baseWhere = or(and(eq(userMessages.senderId, userId), eq(userMessages.recipientId, otherUserId)), and(eq(userMessages.senderId, otherUserId), eq(userMessages.recipientId, userId)));
             const messages = await db
@@ -828,13 +833,18 @@ export function registerSocialRoutes(app) {
                 return res.status(404).json({ error: "Recipient not found" });
             }
             // Block check: prevent sending if blocked
-            const blocked = await db
-                .select({ id: userBlocks.id })
-                .from(userBlocks)
-                .where(or(and(eq(userBlocks.userId, userId), eq(userBlocks.blockedUserId, recipientId)), and(eq(userBlocks.userId, recipientId), eq(userBlocks.blockedUserId, userId))))
-                .limit(1);
-            if (blocked.length > 0) {
-                return res.status(403).json({ error: "Messaging is blocked between these users" });
+            try {
+                const blocked = await db
+                    .select({ id: userBlocks.id })
+                    .from(userBlocks)
+                    .where(or(and(eq(userBlocks.userId, userId), eq(userBlocks.blockedUserId, recipientId)), and(eq(userBlocks.userId, recipientId), eq(userBlocks.blockedUserId, userId))))
+                    .limit(1);
+                if (blocked.length > 0) {
+                    return res.status(403).json({ error: "Messaging is blocked between these users" });
+                }
+            }
+            catch (_e) {
+                // If blocks table is missing/unavailable, allow messaging
             }
             // Send message
             const message = await db.insert(userMessages).values({
