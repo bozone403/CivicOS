@@ -244,7 +244,8 @@ export function registerSocialRoutes(app) {
                 content: z.string().trim().min(1).max(1000),
                 type: z.string().trim().default('text'),
                 visibility: z.enum(['public', 'private', 'friends']).default('public'),
-                imageUrl: z.string().url().optional(),
+                // Accept blob: and data: URLs in addition to http(s)
+                imageUrl: z.string().regex(/^(blob:|data:|https?:)/).optional(),
             });
             const parsed = bodySchema.safeParse(req.body);
             if (!parsed.success) {
