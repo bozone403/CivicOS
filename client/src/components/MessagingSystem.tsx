@@ -354,7 +354,15 @@ export function MessagingSystem() {
                 <Button variant="ghost" size="sm">
                   <Video className="h-4 w-4" />
                 </Button>
-                <Button variant="ghost" size="sm">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={async () => {
+                    if (!selectedConversation) return;
+                    await apiRequest('/api/social/blocks', 'POST', { blockedUserId: selectedConversation.otherUserId });
+                  }}
+                  title="Block user"
+                >
                   <MoreHorizontal className="h-4 w-4" />
                 </Button>
               </div>

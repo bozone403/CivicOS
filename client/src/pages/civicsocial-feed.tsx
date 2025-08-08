@@ -122,7 +122,7 @@ export default function CivicSocialFeed() {
   
   // State management
   const [createPostOpen, setCreatePostOpen] = useState(false);
-  const [selectedTab, setSelectedTab] = useState('all');
+  const [selectedTab, setSelectedTab] = useState('following');
   const [filterVisibility, setFilterVisibility] = useState<'all' | 'public' | 'friends' | 'private'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<'latest' | 'popular' | 'trending'>('latest');
@@ -141,14 +141,9 @@ export default function CivicSocialFeed() {
   const { data: feed, isLoading, error, refetch } = useQuery({
     queryKey: ['socialFeed', selectedTab, filterVisibility, sortBy, searchQuery],
     queryFn: async () => {
-      const params = new URLSearchParams({
-        tab: selectedTab,
-        visibility: filterVisibility,
-        sort: sortBy,
-        ...(searchQuery && { q: searchQuery })
-      });
-      
-      const response = await apiRequest(`/api/social/feed?${params}`);
+      const scope = selectedTab === 'following' ? 'following' : (filterVisibility === 'public' ? 'public' : 'all');
+      const params = new URLSearchParams({ scope });
+      const response = await apiRequest(`/api/social/feed?${params.toString()}`);
       return response.feed || [];
     },
     staleTime: 30000, // 30 seconds
