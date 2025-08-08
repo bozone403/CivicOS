@@ -30,9 +30,8 @@ class FreeAiService {
   private defaultModel: string;
 
   constructor() {
-    // For Render deployment, use localhost for internal communication
-    this.baseUrl = process.env.OLLAMA_URL || 'http://localhost:11434';
-    this.defaultModel = process.env.OLLAMA_MODEL || 'mistral:latest';
+    this.baseUrl = process.env.OLLAMA_URL || '';
+    this.defaultModel = process.env.OLLAMA_MODEL || '';
   }
 
   /**
@@ -56,6 +55,11 @@ class FreeAiService {
         }
       };
 
+      if (!this.baseUrl || !this.defaultModel) {
+        // Fallback when Ollama env is not configured
+        return "AI is not configured on this deployment. Please try again later.";
+      }
+
       const response = await axios.post<OllamaResponse>(
         `${this.baseUrl}/api/generate`,
         request,
@@ -63,7 +67,7 @@ class FreeAiService {
           headers: {
             'Content-Type': 'application/json',
           },
-          timeout: 10000, // Reduced timeout to 10 seconds
+          timeout: 10000,
         }
       );
 

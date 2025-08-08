@@ -5,7 +5,7 @@ import { Button } from "./ui/button";
 import { Card } from "./ui/card";
 import { Badge } from "./ui/badge";
 import { useAuth } from "../hooks/useAuth";
-import { authRequest } from "../lib/queryClient";
+import { createCivicOsClient } from "@/lib/civicos-sdk-wrapper";
 import { useLocation } from "wouter";
 
 interface Notification {
@@ -25,20 +25,44 @@ export default function NotificationBell() {
   const [, navigate] = useLocation();
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
+  const client = createCivicOsClient();
   const { data: notifications = [] } = useQuery<Notification[]>({
     queryKey: ["/api/notifications"],
-    queryFn: () => authRequest('/api/notifications', 'GET'),
+    queryFn: async () => {
+      const res = await client.request({ method: 'GET', url: '/api/notifications' });
+      return res as any;
+    },
+    enabled: !!user,
+  });
+  const { data: unreadData } = useQuery<{ unread: number }>({
+    queryKey: ["/api/notifications/unread-count"],
+    queryFn: async () => {
+      const res = await client.request({ method: 'GET', url: '/api/notifications/unread-count' });
+      return res as any;
+    },
     enabled: !!user,
   });
   const unread = notifications.filter((n) => !n.read);
+  const unreadCount = unreadData?.unread ?? unread.length;
 
   const markAsReadMutation = useMutation({
     mutationFn: async (id: number) => {
-      await authRequest(`/api/notifications/${id}/read`, "POST");
+      await client.request({ method: 'PATCH', url: `/api/notifications/${id}/read` });
       return id;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/notifications"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/notifications/unread-count"] });
+    },
+  });
+
+  const markAllAsReadMutation = useMutation({
+    mutationFn: async () => {
+      await client.request({ method: 'PATCH', url: `/api/notifications/read-all` });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/notifications"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/notifications/unread-count"] });
     },
   });
 
@@ -63,7 +87,7 @@ export default function NotificationBell() {
   }
 
   function markAllAsRead() {
-    unread.forEach((n) => markAsReadMutation.mutate(Number(n.id)));
+    markAllAsReadMutation.mutate();
   }
 
   function formatTimeAgo(dateString?: string) {
@@ -86,9 +110,9 @@ export default function NotificationBell() {
       >
         <span className="sr-only">Open notifications</span>
         <Bell className="w-6 h-6" aria-hidden="true" />
-        {unread.length > 0 && (
+        {unreadCount > 0 && (
           <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full px-1.5 py-0.5" aria-label={`${unread.length} unread notifications`}>
-            {unread.length}
+            {unreadCount}
           </span>
         )}
       </button>

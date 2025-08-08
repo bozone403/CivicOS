@@ -58,6 +58,7 @@ const Privacy = lazy(() => import("@/pages/privacy"));
 const Terms = lazy(() => import("@/pages/terms"));
 const Accessibility = lazy(() => import("@/pages/accessibility"));
 const Notifications = lazy(() => import("@/pages/notifications"));
+const AdminModeration = lazy(() => import("@/pages/admin/moderation"));
 const Support = lazy(() => import("@/pages/support"));
 const NotFound = lazy(() => import("@/pages/not-found"));
 
@@ -190,6 +191,14 @@ export default function App() {
                     <ProtectedRoute>
                       <Layout>
                         <Dashboard />
+                      </Layout>
+                    </ProtectedRoute>
+                  </Route>
+
+                  <Route path="/admin/moderation">
+                    <ProtectedRoute>
+                      <Layout>
+                        <AdminModeration />
                       </Layout>
                     </ProtectedRoute>
                   </Route>

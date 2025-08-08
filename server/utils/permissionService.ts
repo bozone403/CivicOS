@@ -1,6 +1,39 @@
+import type { Request, Response, NextFunction } from 'express';
 import { db } from '../db.js';
-import { membershipPermissions, userPermissions, permissions } from '../../shared/schema.js';
-import { eq, and, or } from 'drizzle-orm';
+import { userPermissions, membershipPermissions, permissions } from '../../shared/schema.js';
+import { eq, and } from 'drizzle-orm';
+
+export async function hasPermission(userId: string, permissionName: string): Promise<boolean> {
+  if (!userId) return false;
+  const rec = await db
+    .select({ isGranted: userPermissions.isGranted })
+    .from(userPermissions)
+    .where(and(eq(userPermissions.userId, userId), eq(userPermissions.permissionName, permissionName)))
+    .limit(1);
+  return rec.length > 0 && Boolean((rec[0] as any).isGranted !== false);
+}
+
+export function requirePermission(permissionName: string) {
+  return async function (req: Request, res: Response, next: NextFunction) {
+    const user: any = (req as any).user;
+    if (!user?.id) return res.status(401).json({ message: 'Unauthorized' });
+
+    // Allow legacy admin email as fallback
+    if (process.env.ADMIN_EMAIL && user.email === process.env.ADMIN_EMAIL) {
+      return next();
+    }
+
+    try {
+      const ok = await hasPermission(user.id, permissionName);
+      if (!ok) return res.status(403).json({ message: 'Forbidden: missing permission', permission: permissionName });
+      return next();
+    } catch (e) {
+      return res.status(500).json({ message: 'Permission check failed' });
+    }
+  };
+}
+
+// removed duplicate imports
 
 export interface PermissionCheck {
   userId: string;

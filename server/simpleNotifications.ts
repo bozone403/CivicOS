@@ -1,39 +1,56 @@
 import { Router } from "express";
 import { db } from "./db.js";
 import { notifications } from "../shared/schema.js";
-import { eq, and, desc } from "drizzle-orm";
+import { eq, and, desc, count } from "drizzle-orm";
 import pino from "pino";
-import jwt from "jsonwebtoken";
+import { jwtAuth } from './routes/auth.js';
 const logger = pino();
 
 const router = Router();
 
-// JWT Authentication middleware
-function jwtAuth(req: any, res: any, next: any) {
-  const authHeader = req.headers.authorization;
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return res.status(401).json({ message: 'No token provided' });
-  }
+// Use centralized jwtAuth from auth routes for consistency
 
-  const token = authHeader.substring(7);
-  
+// Get notifications (authenticated)
+router.get("/", jwtAuth, async (req: any, res) => {
   try {
-    const decoded = jwt.verify(token, process.env.SESSION_SECRET || 'fallback-secret') as any;
-    req.user = decoded;
-    next();
-  } catch (error) {
-    return res.status(401).json({ message: 'Invalid token' });
-  }
-}
-
-// Get notifications (temporarily without auth for testing)
-router.get("/", async (req: any, res) => {
-  try {
-    // Return proper array format for frontend
-    res.json([]);
+    const rows = await db
+      .select()
+      .from(notifications)
+      .where(eq(notifications.userId, req.user.id))
+      .orderBy(desc(notifications.createdAt))
+      .limit(100);
+    res.json(rows);
   } catch (error) {
     logger.error({ msg: 'Error fetching notifications', error: error instanceof Error ? error.message : String(error) });
     res.status(500).json({ message: "Failed to fetch notifications" });
+  }
+});
+
+// Get unread count
+router.get("/unread-count", jwtAuth, async (req: any, res) => {
+  try {
+    const [{ cnt }] = await db
+      .select({ cnt: count() })
+      .from(notifications)
+      .where(and(eq(notifications.userId, req.user.id), eq(notifications.isRead, false)));
+    res.json({ unread: Number(cnt) || 0 });
+  } catch (error) {
+    logger.error({ msg: 'Error fetching unread count', error: error instanceof Error ? error.message : String(error) });
+    res.status(500).json({ message: "Failed to fetch unread count" });
+  }
+});
+
+// Mark all as read
+router.patch("/read-all", jwtAuth, async (req: any, res) => {
+  try {
+    await db
+      .update(notifications)
+      .set({ isRead: true })
+      .where(and(eq(notifications.userId, req.user.id), eq(notifications.isRead, false)));
+    res.json({ success: true });
+  } catch (error) {
+    logger.error({ msg: 'Error marking all notifications as read', error: error instanceof Error ? error.message : String(error) });
+    res.status(500).json({ message: "Failed to mark all as read" });
   }
 });
 

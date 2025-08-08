@@ -14,44 +14,15 @@ import {
   userFollows
 } from "../../shared/schema.js";
 import { eq, and, or, desc, asc, gte, ne, inArray, count, sql } from "drizzle-orm";
-import jwt from "jsonwebtoken";
+import { jwtAuth } from './auth.js';
 import pino from "pino";
+import { z } from 'zod';
+import { socialRateLimit } from '../middleware/rateLimit.js';
+import { recordEvent } from '../utils/metrics.js';
 
 const logger = pino();
 
-// Use centralized JWT Auth middleware
-function jwtAuth(req: any, res: any, next: any) {
-  const authHeader = req.headers.authorization;
-  if (!authHeader || !authHeader.startsWith("Bearer ")) {
-    return res.status(401).json({ error: "Missing or invalid token" });
-  }
-  try {
-    const token = authHeader.split(" ")[1];
-    const secret = process.env.SESSION_SECRET;
-    if (!secret) {
-      return res.status(500).json({ error: "Server configuration error" });
-    }
-    
-    // Enhanced JWT verification with proper options
-    const decoded = jwt.verify(token, secret, {
-      algorithms: ['HS256'],
-      issuer: 'civicos',
-      audience: 'civicos-users',
-      clockTolerance: 30,
-    }) as any;
-    
-    // Additional validation
-    if (!decoded.id || !decoded.email) {
-      return res.status(401).json({ error: "Invalid token payload" });
-    }
-    
-    req.user = decoded;
-    next();
-  } catch (err) {
-    logger.error('JWT verification failed:', err);
-    return res.status(401).json({ error: "Invalid or expired token" });
-  }
-}
+// Use centralized JWT Auth middleware from auth routes
 
 export function registerSocialRoutes(app: Express) {
   
@@ -138,43 +109,7 @@ export function registerSocialRoutes(app: Express) {
     }
   });
 
-  // POST /api/social/posts - Create new post
-  app.post('/api/social/posts', jwtAuth, async (req: Request, res: Response) => {
-    try {
-      const currentUserId = (req.user as any).id;
-      const { content, imageUrl, type = 'post', visibility = 'public' } = req.body;
-
-      if (!content || content.trim().length === 0) {
-        return res.status(400).json({
-          success: false,
-          message: "Post content is required"
-        });
-      }
-
-      const newPost = await db.insert(socialPosts).values({
-        userId: currentUserId,
-        content: content.trim(),
-        imageUrl,
-        type,
-        visibility,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      }).returning();
-
-      res.status(201).json({
-        success: true,
-        message: "Post created successfully",
-        post: newPost[0]
-      });
-    } catch (error) {
-      logger.error('Error creating social post:', error);
-      res.status(500).json({
-        success: false,
-        message: "Failed to create post",
-        error: error instanceof Error ? error.message : 'Unknown error'
-      });
-    }
-  });
+  // (Removed duplicate post creation route; unified below)
 
   // GET /api/social/feed - Enhanced social feed with proper error handling
   app.get('/api/social/feed', jwtAuth, async (req: Request, res: Response) => {
@@ -276,22 +211,48 @@ export function registerSocialRoutes(app: Express) {
   });
 
   // POST /api/social/posts - Enhanced post creation
-  app.post('/api/social/posts', jwtAuth, async (req: Request, res: Response) => {
+  app.post('/api/social/posts', jwtAuth, socialRateLimit, async (req: Request, res: Response) => {
     try {
       const currentUserId = (req.user as any).id;
-      const { content, type = 'text', visibility = 'public', imageUrl } = req.body;
-
-      if (!content || content.trim().length === 0) {
-        return res.status(400).json({ error: "Post content is required" });
+      const bodySchema = z.object({
+        content: z.string().trim().min(1).max(1000),
+        type: z.string().trim().default('text'),
+        visibility: z.enum(['public','private','friends']).default('public'),
+        imageUrl: z.string().url().optional(),
+      });
+      const parsed = bodySchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: 'Invalid input', issues: parsed.error.flatten() });
       }
+      const { content, type, visibility, imageUrl } = parsed.data;
 
       const post = await db.insert(socialPosts).values({
         userId: currentUserId,
-        content: content.trim(),
+        content,
         type,
         visibility,
         imageUrl: imageUrl || null
       }).returning();
+      recordEvent('social.post.created', { userId: currentUserId });
+
+      // Notify followers about new post
+      try {
+        const followers = await db
+          .select({ followerId: userFollows.userId })
+          .from(userFollows)
+          .where(eq(userFollows.followId, currentUserId));
+        for (const f of followers) {
+          await db.insert(notifications).values({
+            userId: f.followerId,
+            type: 'social',
+            title: 'New post',
+            message: 'Someone you follow posted an update',
+            data: { postId: post[0].id, authorId: currentUserId },
+            sourceModule: 'social',
+            sourceId: String(post[0].id),
+          });
+        }
+      } catch {}
 
       // Get user data for response
       const [user] = await db
@@ -397,11 +358,14 @@ export function registerSocialRoutes(app: Express) {
   // ===== INTERACTION ENDPOINTS =====
 
   // POST /api/social/posts/:id/like - Enhanced like system
-  app.post('/api/social/posts/:id/like', jwtAuth, async (req: Request, res: Response) => {
+  app.post('/api/social/posts/:id/like', jwtAuth, socialRateLimit, async (req: Request, res: Response) => {
     try {
       const userId = (req.user as any)?.id;
       const postId = parseInt(req.params.id);
-      const { reaction = '👍' } = req.body;
+      const likeSchema = z.object({ reaction: z.string().max(16).optional() });
+      const likeParsed = likeSchema.safeParse(req.body);
+      if (!likeParsed.success) return res.status(400).json({ error: 'Invalid input', issues: likeParsed.error.flatten() });
+      const { reaction = '👍' } = likeParsed.data;
 
       if (!userId) {
         return res.status(401).json({ error: "Authentication required" });
@@ -431,6 +395,23 @@ export function registerSocialRoutes(app: Express) {
           userId,
           reaction
         });
+        // Notify post author (if not self)
+        try {
+          const [p] = await db.select({ userId: socialPosts.userId }).from(socialPosts).where(eq(socialPosts.id, postId)).limit(1);
+          const authorId = p?.userId;
+          if (authorId && authorId !== userId) {
+            await db.insert(notifications).values({
+              userId: authorId,
+              type: 'social',
+              title: 'Your post was liked',
+              message: 'Someone liked your post.',
+              data: { postId, reaction },
+              sourceModule: 'social',
+              sourceId: String(postId),
+            });
+          }
+        } catch {}
+        recordEvent('social.like.created', { userId, postId });
         res.json({ success: true, liked: true, message: "Post liked" });
       }
     } catch (error) {
@@ -440,18 +421,29 @@ export function registerSocialRoutes(app: Express) {
   });
 
   // POST /api/social/posts/:id/comment - Enhanced comment system
-  app.post('/api/social/posts/:id/comment', jwtAuth, async (req: Request, res: Response) => {
+  app.post('/api/social/posts/:id/comment', jwtAuth, socialRateLimit, async (req: Request, res: Response) => {
     try {
       const userId = (req.user as any)?.id;
       const postId = parseInt(req.params.id);
-      const { content } = req.body;
+      const bodySchema = z.object({ content: z.string().trim().min(1).max(1000) });
+      const parsed = bodySchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: 'Invalid input', issues: parsed.error.flatten() });
+      }
+      const { content } = parsed.data;
+
+      // Anti-spam: basic rate - reject if too many comments quickly (handled by socialRateLimit) and disallow exact duplicates immediately on same post
+      const dup = await db
+        .select({ c: count() })
+        .from(socialComments)
+        .where(and(eq(socialComments.userId, userId), eq(socialComments.postId, postId), eq(socialComments.content, content)))
+        .limit(1);
+      if ((dup[0] as any)?.c > 0) {
+        return res.status(429).json({ error: 'Duplicate comment detected, please modify your message.' });
+      }
 
       if (!userId) {
         return res.status(401).json({ error: "Authentication required" });
-      }
-
-      if (!content || content.trim().length === 0) {
-        return res.status(400).json({ error: "Comment content is required" });
       }
 
       // Check if post exists
@@ -463,8 +455,26 @@ export function registerSocialRoutes(app: Express) {
       const comment = await db.insert(socialComments).values({
         postId,
         userId,
-        content: content.trim()
+        content
       }).returning();
+      recordEvent('social.comment.created', { userId, postId });
+
+      // Notify post author (if not self)
+      try {
+        const [p] = await db.select({ userId: socialPosts.userId }).from(socialPosts).where(eq(socialPosts.id, postId)).limit(1);
+        const authorId = p?.userId;
+        if (authorId && authorId !== userId) {
+          await db.insert(notifications).values({
+            userId: authorId,
+            type: 'social',
+            title: 'New comment on your post',
+            message: 'Your post received a new comment.',
+            data: { postId, commentId: comment[0].id },
+            sourceModule: 'social',
+            sourceId: String(postId),
+          });
+        }
+      } catch {}
 
       // Get user data for response
       const [user] = await db
@@ -731,10 +741,29 @@ export function registerSocialRoutes(app: Express) {
   });
 
   // POST /api/social/messages - Enhanced send message
-  app.post('/api/social/messages', jwtAuth, async (req: Request, res: Response) => {
+  app.post('/api/social/messages', jwtAuth, socialRateLimit, async (req: Request, res: Response) => {
     try {
       const userId = (req.user as any)?.id;
-      const { recipientId, content } = req.body;
+      const msgSchema = z.object({ recipientId: z.string().min(1), content: z.string().trim().min(1).max(1000) });
+      const msgParsed = msgSchema.safeParse(req.body);
+      if (!msgParsed.success) return res.status(400).json({ error: 'Invalid input', issues: msgParsed.error.flatten() });
+      const { recipientId, content } = msgParsed.data;
+
+      // Anti-spam: simple guard - disallow identical consecutive messages within 10 seconds
+      const recent = await db
+        .select({ c: count() })
+        .from(userMessages)
+        .where(
+          and(
+            eq(userMessages.senderId, userId),
+            eq(userMessages.recipientId, recipientId),
+            eq(userMessages.content, content)
+          )
+        )
+        .limit(1);
+      if ((recent[0] as any)?.c > 0) {
+        return res.status(429).json({ error: 'Duplicate message detected, please wait before sending again.' });
+      }
 
       if (!userId) {
         return res.status(401).json({ error: "Authentication required" });
@@ -763,8 +792,21 @@ export function registerSocialRoutes(app: Express) {
       const message = await db.insert(userMessages).values({
         senderId: userId,
         recipientId,
-        content: content.trim()
+        content
       }).returning();
+
+      // Notify recipient
+      try {
+        await db.insert(notifications).values({
+          userId: recipientId,
+          type: 'message',
+          title: 'New message',
+          message: 'You received a new message.',
+          data: { messageId: message[0].id, senderId: userId },
+          sourceModule: 'messages',
+          sourceId: String(message[0].id),
+        });
+      } catch {}
 
       res.json({ 
         success: true, 
@@ -918,7 +960,10 @@ export function registerSocialRoutes(app: Express) {
   app.post('/api/social/friends', jwtAuth, async (req: Request, res: Response) => {
     try {
       const userId = (req.user as any)?.id;
-      const { friendId } = req.body;
+      const friendSchema = z.object({ friendId: z.string().min(1) });
+      const friendParsed = friendSchema.safeParse(req.body);
+      if (!friendParsed.success) return res.status(400).json({ error: 'Invalid input', issues: friendParsed.error.flatten() });
+      const { friendId } = friendParsed.data;
 
       if (!userId) {
         return res.status(401).json({ error: "Authentication required" });
@@ -976,7 +1021,10 @@ export function registerSocialRoutes(app: Express) {
   app.post('/api/social/friends/accept', jwtAuth, async (req: Request, res: Response) => {
     try {
       const userId = (req.user as any)?.id;
-      const { friendId } = req.body;
+      const acceptSchema = z.object({ friendId: z.string().min(1) });
+      const acceptParsed = acceptSchema.safeParse(req.body);
+      if (!acceptParsed.success) return res.status(400).json({ error: 'Invalid input', issues: acceptParsed.error.flatten() });
+      const { friendId } = acceptParsed.data;
 
       if (!userId) {
         return res.status(401).json({ error: "Authentication required" });
@@ -1136,7 +1184,10 @@ export function registerSocialRoutes(app: Express) {
   app.post('/api/social/bookmarks', jwtAuth, async (req: Request, res: Response) => {
     try {
       const userId = (req.user as any)?.id;
-      const { postId } = req.body;
+      const bookmarkSchema = z.object({ postId: z.number().int().positive() });
+      const bookmarkParsed = bookmarkSchema.safeParse(req.body);
+      if (!bookmarkParsed.success) return res.status(400).json({ error: 'Invalid input', issues: bookmarkParsed.error.flatten() });
+      const { postId } = bookmarkParsed.data;
 
       if (!userId) {
         return res.status(401).json({ error: "Authentication required" });
@@ -1221,7 +1272,10 @@ export function registerSocialRoutes(app: Express) {
     try {
       const userId = (req.user as any)?.id;
       const postId = parseInt(req.params.id);
-      const { platform = 'internal' } = req.body;
+      const shareSchema = z.object({ platform: z.string().max(32).optional() });
+      const shareParsed = shareSchema.safeParse(req.body);
+      if (!shareParsed.success) return res.status(400).json({ error: 'Invalid input', issues: shareParsed.error.flatten() });
+      const { platform = 'internal' } = shareParsed.data;
 
       if (!userId) {
         return res.status(401).json({ error: "Authentication required" });
@@ -1366,7 +1420,10 @@ export function registerSocialRoutes(app: Express) {
   app.post('/api/social/follow', jwtAuth, async (req: Request, res: Response) => {
     try {
       const userId = (req.user as any)?.id;
-      const { followingId } = req.body;
+      const followSchema = z.object({ followingId: z.string().min(1) });
+      const followParsed = followSchema.safeParse(req.body);
+      if (!followParsed.success) return res.status(400).json({ error: 'Invalid input', issues: followParsed.error.flatten() });
+      const { followingId } = followParsed.data;
 
       if (!userId) {
         return res.status(401).json({ error: "Authentication required" });
@@ -1417,6 +1474,19 @@ export function registerSocialRoutes(app: Express) {
         })
         .where(eq(users.id, followingId));
 
+      // Notify followed user
+      try {
+        await db.insert(notifications).values({
+          userId: followingId,
+          type: 'social',
+          title: 'New follower',
+          message: 'You have a new follower.',
+          data: { followerId: userId },
+          sourceModule: 'social',
+          sourceId: `follow:${userId}:${followingId}`,
+        });
+      } catch {}
+
       res.json({
         success: true,
         message: "Successfully followed user"
@@ -1435,7 +1505,10 @@ export function registerSocialRoutes(app: Express) {
   app.delete('/api/social/unfollow', jwtAuth, async (req: Request, res: Response) => {
     try {
       const userId = (req.user as any)?.id;
-      const { followingId } = req.body;
+      const unfollowSchema = z.object({ followingId: z.string().min(1) });
+      const unfollowParsed = unfollowSchema.safeParse(req.body);
+      if (!unfollowParsed.success) return res.status(400).json({ error: 'Invalid input', issues: unfollowParsed.error.flatten() });
+      const { followingId } = unfollowParsed.data;
 
       if (!userId) {
         return res.status(401).json({ error: "Authentication required" });

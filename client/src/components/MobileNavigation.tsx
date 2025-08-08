@@ -39,8 +39,8 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
-import { useQuery } from "@tanstack/react-query";
-import { apiRequest } from "@/lib/queryClient";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import { authRequest, queryClient } from "@/lib/queryClient";
 import DonationPopup from "@/components/DonationPopup";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
@@ -72,9 +72,25 @@ export function MobileNavigation() {
 
   const { data: notifications = [] } = useQuery<Notification[]>({
     queryKey: ["/api/notifications"],
+    queryFn: () => authRequest('/api/notifications', 'GET'),
     enabled: true,
+    refetchInterval: 30000,
   });
-  const unreadCount = notifications.filter((n) => !n.read).length;
+  const { data: unreadObj } = useQuery<{ unread: number }>({
+    queryKey: ["/api/notifications/unread-count"],
+    queryFn: () => authRequest('/api/notifications/unread-count', 'GET'),
+    enabled: true,
+    refetchInterval: 30000,
+  });
+  const unreadCount = unreadObj?.unread ?? notifications.filter((n) => !n.read).length;
+
+  const markAll = useMutation({
+    mutationFn: async () => authRequest('/api/notifications/read-all', 'PATCH'),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/notifications"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/notifications/unread-count"] });
+    }
+  });
 
   // Primary mobile navigation items (matching desktop top bar)
   const primaryNavItems = [
@@ -161,6 +177,7 @@ export function MobileNavigation() {
                 variant="ghost"
                 size="sm"
                 className="flex flex-col items-center space-y-1 h-16 w-16 p-2"
+                onClick={(e) => { e.preventDefault(); markAll.mutate(); }}
               >
                 <Bell className="w-5 h-5" />
                 <span className="text-xs font-medium">Alerts</span>

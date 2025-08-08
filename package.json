@@ -19,7 +19,10 @@
     "test:frontend:e2e": "playwright test",
     "test:integration": "vitest run tests/integration/",
     "test:all": "npm run test:backend && npm run test:frontend:e2e && npm run test:integration",
-    "deploy:render": "bash deploy-render.sh"
+    "deploy:render": "bash deploy-render.sh",
+    "seed": "tsx server/scripts/seed.ts",
+    "sdk": "tsx scripts/generate-sdk.ts",
+    "sdk:full": "openapi --input openapi.yaml --output client/src/lib/generated-sdk --client fetch"
   },
   "vitest": {
     "testMatch": [
@@ -157,7 +160,8 @@
     "tsx": "^4.19.1",
     "typescript": "^5.6.3",
     "vite": "^6.0.0",
-    "vitest": "^3.2.4"
+    "vitest": "^3.2.4",
+    "openapi-typescript-codegen": "^0.29.0"
   },
   "optionalDependencies": {
     "bufferutil": "^4.0.8"

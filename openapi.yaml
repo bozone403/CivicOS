@@ -1,0 +1,280 @@
+openapi: 3.0.3
+info:
+  title: CivicOS API
+  version: 1.0.0
+servers:
+  - url: https://civicos.onrender.com
+paths:
+  /api/auth/login:
+    post:
+      summary: Login with email and password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email: { type: string, format: email }
+                password: { type: string }
+              required: [email, password]
+      responses:
+        '200': { description: OK }
+        '401': { description: Invalid credentials }
+  /api/auth/user:
+    get:
+      summary: Get current user
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200': { description: OK }
+        '401': { description: Unauthorized }
+  /api/social/feed:
+    get:
+      summary: Get social feed
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: query
+          name: limit
+          schema: { type: integer, minimum: 1, maximum: 100 }
+        - in: query
+          name: offset
+          schema: { type: integer, minimum: 0 }
+      responses:
+        '200': { description: OK }
+        '401': { description: Unauthorized }
+  /api/social/posts:
+    post:
+      summary: Create social post
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                content: { type: string }
+                imageUrl: { type: string, format: uri }
+                visibility: { type: string, enum: [public, private, friends] }
+              required: [content]
+      responses:
+        '200': { description: OK }
+        '401': { description: Unauthorized }
+  /api/notifications:
+    get:
+      summary: List notifications for current user
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200': { description: OK }
+        '401': { description: Unauthorized }
+  /api/notifications/unread-count:
+    get:
+      summary: Get unread notifications count
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200': { description: OK }
+  /api/notifications/read-all:
+    patch:
+      summary: Mark all notifications as read
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200': { description: OK }
+  /api/identity/submit:
+    post:
+      summary: Submit identity verification
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email: { type: string, format: email }
+                termsAgreed: { type: boolean }
+      responses:
+        '201': { description: Created }
+        '401': { description: Unauthorized }
+  /api/admin/identity-verifications:
+    get:
+      summary: List identity verifications (admin)
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200': { description: OK }
+        '403': { description: Forbidden }
+  /api/news:
+    get:
+      summary: List news articles
+      responses:
+        '200': { description: OK }
+    post:
+      summary: Create news (admin)
+      security: [{ bearerAuth: [] }]
+      responses:
+        '201': { description: Created }
+        '403': { description: Forbidden }
+  /api/voting/vote:
+    post:
+      summary: Cast a vote
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                billId: { type: integer }
+                vote: { type: string, enum: [yes, no, abstain] }
+      responses:
+        '201': { description: Created }
+        '409': { description: Already voted }
+        '404': { description: Bill not found }
+  /api/friends:
+    get:
+      summary: Get friends list
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200': { description: OK }
+        '401': { description: Unauthorized }
+  /api/friends/requests:
+    get:
+      summary: Get pending friend requests
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200': { description: OK }
+  /api/friends/request:
+    post:
+      summary: Send friend request
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                toUserId: { type: string }
+              required: [toUserId]
+      responses:
+        '200': { description: OK }
+  /api/friends/accept:
+    post:
+      summary: Accept friend request
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                requestId: { type: integer }
+              required: [requestId]
+      responses:
+        '200': { description: OK }
+  /api/social/unfollow:
+    delete:
+      summary: Unfollow a user
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                followingId: { type: string }
+              required: [followingId]
+      responses:
+        '200': { description: OK }
+  /api/social/messages:
+    post:
+      summary: Send a direct message
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                recipientId: { type: string }
+                content: { type: string }
+              required: [recipientId, content]
+      responses:
+        '200': { description: OK }
+  /api/social/conversations:
+    get:
+      summary: List conversations for current user
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200': { description: OK }
+  /api/moderation/comments/recent:
+    get:
+      summary: List recent comments for moderation
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200': { description: OK }
+        '403': { description: Forbidden }
+  /api/moderation/comments/{id}:
+    delete:
+      summary: Remove a comment
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        '200': { description: OK }
+        '403': { description: Forbidden }
+  /api/moderation/posts/recent:
+    get:
+      summary: List recent posts for moderation
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200': { description: OK }
+        '403': { description: Forbidden }
+  /api/moderation/posts/{id}:
+    delete:
+      summary: Remove a post
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        '200': { description: OK }
+        '403': { description: Forbidden }
+  /api/moderation/summary:
+    get:
+      summary: Moderation summary counts
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200': { description: OK }
+  /api/admin/moderation-dashboard:
+    get:
+      summary: Combined moderation dashboard (summary + recent posts/comments)
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: query
+          name: limit
+          schema: { type: integer, minimum: 1, maximum: 200 }
+      responses:
+        '200': { description: OK }
+  /api/admin/summary:
+    get:
+      summary: Platform summary for admin dashboard
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200': { description: OK }
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+

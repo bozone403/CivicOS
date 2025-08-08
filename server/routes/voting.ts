@@ -1,6 +1,6 @@
 import { Express, Request, Response } from 'express';
 import { db } from '../db.js';
-import { bills } from '../../shared/schema.js';
+import { bills, votes } from '../../shared/schema.js';
 import { jwtAuth } from './auth.js';
 import { eq, and, desc } from 'drizzle-orm';
 import { z } from 'zod';
@@ -96,19 +96,36 @@ export function registerVotingRoutes(app: Express) {
       }
       
       const { billId, vote, reason } = validationResult.data;
-      
-      // For now, just return success (votes table needs to be created)
-      res.status(201).json({
-        success: true,
-        message: "Vote cast successfully",
-        data: {
+
+      // Ensure bill exists
+      const billRec = await db.select().from(bills).where(eq(bills.id, billId)).limit(1);
+      if (billRec.length === 0) {
+        return res.status(404).json({ success: false, message: 'Bill not found' });
+      }
+
+      // Prevent duplicate vote per user per bill
+      const existing = await db
+        .select({ id: votes.id })
+        .from(votes)
+        .where(and(eq(votes.userId, userId), eq(votes.billId, billId)))
+        .limit(1);
+      if (existing.length > 0) {
+        return res.status(409).json({ success: false, message: 'User already voted on this bill' });
+      }
+
+      const rec = await db
+        .insert(votes)
+        .values({
           userId,
           billId,
           vote,
-          reason,
-          timestamp: new Date()
-        }
-      });
+          reason: reason || null,
+          timestamp: new Date(),
+          createdAt: new Date(),
+        })
+        .returning();
+
+      res.status(201).json({ success: true, message: 'Vote cast successfully', vote: rec[0] });
     } catch (error) {
       res.status(500).json({
         success: false,
@@ -131,13 +148,12 @@ export function registerVotingRoutes(app: Express) {
         });
       }
       
-      // For now, return mock statistics (votes table needs to be created)
-      const stats = {
-        total: 0,
-        yes: 0,
-        no: 0,
-        abstain: 0
-      };
+      const all = await db.select().from(votes).where(eq(votes.billId, id));
+      const total = all.length;
+      const yes = all.filter(v => (v as any).vote === 'yes').length;
+      const no = all.filter(v => (v as any).vote === 'no').length;
+      const abstain = all.filter(v => (v as any).vote === 'abstain').length;
+      const stats = { total, yes, no, abstain };
       
       res.json({
         success: true,
@@ -163,11 +179,8 @@ export function registerVotingRoutes(app: Express) {
         });
       }
       
-      // For now, return empty array (votes table needs to be created)
-      res.json({
-        success: true,
-        votes: []
-      });
+      const myVotes = await db.select().from(votes).where(eq(votes.userId, userId));
+      res.json({ success: true, votes: myVotes });
     } catch (error) {
       res.status(500).json({
         success: false,

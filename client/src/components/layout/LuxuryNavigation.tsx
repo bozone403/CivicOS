@@ -9,7 +9,7 @@ import { Separator } from "@/components/ui/separator";
 import { useAuth } from "@/hooks/useAuth";
 import { VerificationStatusBadge } from "@/components/VerificationStatusBadge";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { apiRequest, queryClient } from "@/lib/queryClient";
+import { authRequest, apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { CanadianCoatOfArms } from "@/components/CanadianCoatOfArms";
 import DonationPopup from "@/components/DonationPopup";
@@ -154,14 +154,27 @@ export function LuxuryNavigation() {
     }
   }, []);
 
-  // Fetch notifications
+  // Fetch notifications and unread count
   const { data: notifications = [] } = useQuery<Notification[]>({
     queryKey: ['/api/notifications'],
-    queryFn: () => apiRequest('/api/notifications', 'GET'),
-    refetchInterval: 30000, // Refetch every 30 seconds
+    queryFn: () => authRequest('/api/notifications', 'GET'),
+    refetchInterval: 30000,
   });
+  const { data: unreadObj } = useQuery<{ unread: number }>({
+    queryKey: ['/api/notifications/unread-count'],
+    queryFn: () => authRequest('/api/notifications/unread-count', 'GET'),
+    refetchInterval: 30000,
+  });
+  const unreadCount = unreadObj?.unread ?? notifications.filter(n => !n.read).length;
 
-  const unreadCount = notifications.filter(n => !n.read).length;
+  const markAllMutation = useMutation({
+    mutationFn: async () => authRequest('/api/notifications/read-all', 'PATCH'),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/notifications'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/notifications/unread-count'] });
+      toast({ title: 'Notifications', description: 'All notifications marked as read' });
+    }
+  });
 
   const toggleSection = (sectionTitle: string) => {
     const newCollapsed = new Set(collapsedSections);
@@ -248,7 +261,7 @@ export function LuxuryNavigation() {
 
           {/* Right: User Menu */}
           <div className="flex items-center space-x-2">
-            <Button variant="ghost" size="sm" className="relative">
+            <Button variant="ghost" size="sm" className="relative" onClick={() => markAllMutation.mutate()} title="Mark all as read">
               <Bell className="w-5 h-5" />
               {unreadCount > 0 && (
                 <Badge className="absolute -top-1 -right-1 h-5 w-5 rounded-full p-0 text-xs">

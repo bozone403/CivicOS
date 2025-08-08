@@ -18,8 +18,7 @@ import { existsSync } from 'fs';
 import { authRateLimit, apiRateLimit, socialRateLimit, votingRateLimit } from './middleware/rateLimit.js';
 import { requestLogger, errorLogger, logger as appLogger } from './middleware/logging.js';
 
-// Import AI routes (updated)
-import aiRoutes from './routes/ai.js';
+// AI routes are mounted in registerRoutes()
 
 // Security configuration - production-safe
 if (process.env.NODE_ENV === 'development') {
@@ -128,68 +127,36 @@ app.get('/health', (req, res) => {
   });
 });
 
-// CORS configuration
-// This logic allows all civicos.ca subdomains and any origin in allowedOrigins, including process.env.CORS_ORIGIN if set.
-// In production, only trusted origins are allowed. In dev, any origin is allowed.
+// CORS configuration (production-safe)
 app.use((req, res, next) => {
+  const origin = req.headers.origin as string | undefined;
+  const envOrigin = process.env.CORS_ORIGIN;
+  const frontendBase = process.env.FRONTEND_BASE_URL;
   const allowedOrigins = [
-    "https://civicos.ca",
-    "https://www.civicos.ca",
-    "http://civicos.ca",
-    "http://www.civicos.ca",
-    "https://civicos.onrender.com",
-    "https://afterhourshvac.me",
-    "https://www.afterhourshvac.me",
-    "http://afterhourshvac.me",
-    "http://www.afterhourshvac.me",
-    process.env.CORS_ORIGIN, // Custom CORS origin from env
-  ].filter(Boolean);
+    'https://civicos.ca',
+    'https://www.civicos.ca',
+    'https://civicos.onrender.com',
+    envOrigin,
+    frontendBase,
+  ].filter(Boolean) as string[];
+  const civicosDomainRegex = /^https?:\/\/(.*\.)?civicos\.ca$/i;
 
-  // Allow all civicos.ca, civicos.onrender.com and afterhourshvac.me subdomains
-  const origin = req.headers.origin;
-  const civicosRegex = /^https?:\/\/(.*\.)?civicos\.(ca|onrender\.com)$/;
-  const afterhourshvacRegex = /^https?:\/\/(.*\.)?afterhourshvac\.me$/;
-  const isAllowed = origin && (allowedOrigins.includes(origin) || civicosRegex.test(origin) || afterhourshvacRegex.test(origin));
-
-  // Debug CORS requests
-  if (req.path.startsWith('/api/auth/')) {
-    console.log('[CORS Debug]', {
-      origin,
-      isAllowed,
-      allowedOrigins,
-      path: req.path,
-      method: req.method
-    });
-  }
-
-  // Allow only trusted origins in production, strict in development
-  if (process.env.NODE_ENV === 'production') {
-    // For now, allow the specific origin to fix login issue
-    if (origin === "https://civicos.onrender.com") {
-      res.header("Access-Control-Allow-Origin", origin);
-    } else if (isAllowed) {
-      res.header("Access-Control-Allow-Origin", origin);
-    } else {
-      // Default to civicos.onrender.com for production
-      res.header("Access-Control-Allow-Origin", "https://civicos.onrender.com");
-    }
-  } else {
-    // Development: allow civicos.onrender.com for testing
-    res.header("Access-Control-Allow-Origin", "https://civicos.onrender.com");
-  }
-
-  res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
-  res.header(
-    "Access-Control-Allow-Headers",
-    "Origin, X-Requested-With, Content-Type, Accept, Authorization",
+  const isAllowed = Boolean(
+    origin && (allowedOrigins.includes(origin) || civicosDomainRegex.test(origin))
   );
-  res.header("Access-Control-Allow-Credentials", "true");
 
-  if (req.method === "OPTIONS") {
-    res.sendStatus(200);
-  } else {
-    next();
+  if (isAllowed) {
+    res.setHeader('Access-Control-Allow-Origin', origin!);
+    res.setHeader('Vary', 'Origin');
   }
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(200);
+  }
+  next();
 });
 
 app.use(express.json());
@@ -344,8 +311,7 @@ app.get("/health", (_req, res) => {
   res.status(200).json({ status: "ok" });
 });
 
-// Mount updated AI routes
-app.use('/api/ai', aiRoutes);
+// AI routes mounted within registerRoutes()
 
 // Register all API routes before static serving and SPA fallback
 (async () => {
@@ -445,6 +411,31 @@ app.use('/api/ai', aiRoutes);
       }
     }, 45000); // Increased delay to let Ollama binary start properly
   }
+  // Run admin permission bootstrap (non-blocking)
+  setTimeout(async () => {
+    try {
+      const adminEmail = process.env.ADMIN_EMAIL;
+      if (!adminEmail) return;
+      const { db } = await import('./db.js');
+      const { users, userPermissions, permissions } = await import('../shared/schema.js');
+      const { eq } = await import('drizzle-orm');
+      const [admin] = await db.select().from(users).where(eq(users.email, adminEmail)).limit(1);
+      if (admin) {
+        const ensurePermission = async (name: string) => {
+          const [perm] = await db.select().from(permissions).where(eq(permissions.name, name)).limit(1);
+          if (!perm) {
+            const [created] = await db.insert(permissions).values({ name, description: name, isActive: true }).returning();
+            return created.id as number;
+          }
+          return (perm as any).id as number;
+        };
+        const p1 = await ensurePermission('admin.identity.review');
+        const p2 = await ensurePermission('admin.news.manage');
+        await db.insert(userPermissions).values({ userId: (admin as any).id, permissionId: p1, permissionName: 'admin.identity.review', isGranted: true }).catch(() => undefined);
+        await db.insert(userPermissions).values({ userId: (admin as any).id, permissionId: p2, permissionName: 'admin.news.manage', isGranted: true }).catch(() => undefined);
+      }
+    } catch {}
+  }, 10000);
   
   // Run immediate data scraping on startup - NON-BLOCKING with longer delay
   setTimeout(async () => {
@@ -587,5 +578,7 @@ app.post('/api/admin/run-migrations', jwtAuth, async (req, res) => {
     res.status(500).json({ message: 'Failed to run migrations', error: String(error) });
   }
 });
+
+// Identity verification routes are now registered in appRoutes
 
 export { app };
