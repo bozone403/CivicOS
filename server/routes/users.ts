@@ -343,7 +343,7 @@ export function registerUserRoutes(app: Express) {
   // GET /api/users/:id/profile - Get specific user profile
   app.get('/api/users/:id/profile', jwtAuth, async (req: Request, res: Response) => {
     try {
-      const userId = req.params.id;
+      const userId = String(req.params.id || '').replace(/^user_/i, '');
 
       const [user] = await db
         .select({
@@ -420,7 +420,7 @@ export function registerUserRoutes(app: Express) {
   // GET /api/users/:id/stats - Get user stats
   app.get('/api/users/:id/stats', jwtAuth, async (req: Request, res: Response) => {
     try {
-      const userId = req.params.id;
+      const userId = String(req.params.id || '').replace(/^user_/i, '');
 
       // Get user's social stats
       const [postsCount] = await db
@@ -457,7 +457,7 @@ export function registerUserRoutes(app: Express) {
   // GET /api/users/:id - Get user profile
   app.get('/api/users/:id', jwtAuth, async (req: Request, res: Response) => {
     try {
-      const userId = req.params.id;
+      const userId = String(req.params.id || '').replace(/^user_/i, '');
       const currentUserId = (req.user as any).id;
 
       const [user] = await db
@@ -572,7 +572,7 @@ export function registerUserRoutes(app: Express) {
   // GET /api/users/:id/posts - Get user's posts
   app.get('/api/users/:id/posts', jwtAuth, async (req: Request, res: Response) => {
     try {
-      const userId = req.params.id;
+      const userId = String(req.params.id || '').replace(/^user_/i, '');
       const { limit = 10, offset = 0 } = req.query;
 
       const posts = await db
@@ -609,7 +609,7 @@ export function registerUserRoutes(app: Express) {
   // GET /api/users/:id/activity - Get user's recent activity
   app.get('/api/users/:id/activity', jwtAuth, async (req: Request, res: Response) => {
     try {
-      const userId = req.params.id;
+      const userId = String(req.params.id || '').replace(/^user_/i, '');
       const { limit = 10, offset = 0 } = req.query;
 
       const activities = await db

@@ -334,7 +334,7 @@ export default function UserSearch() {
                   variant="outline"
                   size="sm"
                   onClick={() => {
-                    const profileUrl = user.username ? `/profile/${user.username}` : `/profile/${user.id}`;
+                    const profileUrl = user.username ? `/civicsocial/profile/${user.username}` : `/profile/${user.id}`;
                     window.open(profileUrl, '_blank');
                   }}
                 >

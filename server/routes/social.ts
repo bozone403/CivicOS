@@ -1010,11 +1010,13 @@ export function registerSocialRoutes(app: Express) {
         return res.status(400).json({ error: "Cannot message yourself" });
       }
 
+      // Normalize possible user_ prefix
+      const normalizedRecipientId = String(recipientId).replace(/^user_/i, '');
       // Check if recipient exists
       const [recipient] = await db
         .select({ id: users.id })
         .from(users)
-        .where(eq(users.id, recipientId))
+        .where(eq(users.id, normalizedRecipientId))
         .limit(1);
 
       if (!recipient) {
@@ -1043,14 +1045,14 @@ export function registerSocialRoutes(app: Express) {
       // Send message
       const message = await db.insert(userMessages).values({
         senderId: userId,
-        recipientId,
+        recipientId: normalizedRecipientId,
         content
       }).returning();
 
       // Notify recipient
       try {
         await db.insert(notifications).values({
-          userId: recipientId,
+          userId: normalizedRecipientId,
           type: 'message',
           title: 'New message',
           message: 'You received a new message.',

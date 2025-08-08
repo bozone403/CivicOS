@@ -399,6 +399,11 @@ export function registerAuthRoutes(app: Express) {
         email: (userData as any).email,
         firstName: (userData as any).firstName,
         lastName: (userData as any).lastName,
+        bio: (userData as any).bio,
+        city: (userData as any).city,
+        province: (userData as any).province,
+        profileImageUrl: (userData as any).profileImageUrl,
+        profileBannerUrl: (userData as any).profileBannerUrl,
         username: (userData as any).username,
         membershipType: (userData as any).membershipType,
         civicLevel: (userData as any).civicLevel,
@@ -406,6 +411,7 @@ export function registerAuthRoutes(app: Express) {
         civicPoints: (userData as any).civicPoints,
         profileCompletionPercentage: (userData as any).profileCompletionPercentage,
         verificationLevel: (userData as any).verificationLevel,
+        isVerified: (userData as any).isVerified,
         createdAt: (userData as any).createdAt,
         updatedAt: (userData as any).updatedAt
       });
@@ -531,20 +537,32 @@ export function registerAuthRoutes(app: Express) {
     }
   });
 
-  // Profile picture upload route (JWT protected)
-  app.post('/api/auth/upload-profile-picture', jwtAuth, upload.single('profileImage'), async (req: Request, res: Response) => {
+  // Profile image/banner upload route (JWT protected)
+  // Accepts multipart with field names: profileImage or profilePicture; optional body.type = 'profile' | 'banner'
+  app.post('/api/auth/upload-profile-picture', jwtAuth, upload.any(), async (req: Request, res: Response) => {
     try {
-      if (!req.file) {
+      const files: any[] = (req as any).files || [];
+      const file = files.find(f => f.fieldname === 'profileImage' || f.fieldname === 'profilePicture' || f.fieldname === 'image');
+      if (!file) {
         return res.status(400).json({ message: "No file uploaded" });
       }
       const userId = (req.user as JwtPayload)?.id;
       if (!userId) {
         return res.status(401).json({ message: "Unauthorized" });
       }
-      const fileExtension = req.file.originalname.split('.').pop() || 'jpg';
-      const base64Data = `data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}`;
+      const fileExtension = file.originalname?.split('.').pop() || 'jpg';
+      const base64Data = `data:${file.mimetype};base64,${file.buffer.toString('base64')}`;
+      const uploadType = String((req.body as any)?.type || 'profile').toLowerCase();
+
+      if (uploadType === 'banner') {
+        await db.update(users)
+          .set({ profileBannerUrl: base64Data as any, updatedAt: new Date() as any })
+          .where(eq(users.id, userId));
+        return res.json({ message: "Profile banner updated successfully", profileBannerUrl: base64Data });
+      }
+
       await db.update(users)
-        .set({ profileImageUrl: base64Data, updatedAt: new Date() })
+        .set({ profileImageUrl: base64Data as any, updatedAt: new Date() as any })
         .where(eq(users.id, userId));
       res.json({ message: "Profile picture updated successfully", profileImageUrl: base64Data });
     } catch (error) {
@@ -553,18 +571,25 @@ export function registerAuthRoutes(app: Express) {
   });
 
   // Backward-compat: POST /api/users/:userId/upload-image
-  app.post('/api/users/:userId/upload-image', jwtAuth, upload.single('image'), async (req: Request, res: Response) => {
+  app.post('/api/users/:userId/upload-image', jwtAuth, upload.any(), async (req: Request, res: Response) => {
     try {
       const authUserId = (req.user as JwtPayload)?.id;
       const targetUserId = req.params.userId;
       if (!authUserId || authUserId !== targetUserId) {
         return res.status(403).json({ message: 'Forbidden' });
       }
-      if (!req.file) {
+      const files: any[] = (req as any).files || [];
+      const file = files.find(f => f.fieldname === 'image' || f.fieldname === 'profileImage' || f.fieldname === 'profilePicture');
+      if (!file) {
         return res.status(400).json({ message: 'No file uploaded' });
       }
-      const base64Data = `data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}`;
-      await db.update(users).set({ profileImageUrl: base64Data, updatedAt: new Date() }).where(eq(users.id, targetUserId));
+      const base64Data = `data:${file.mimetype};base64,${file.buffer.toString('base64')}`;
+      const uploadType = String((req.body as any)?.type || 'profile').toLowerCase();
+      if (uploadType === 'banner') {
+        await db.update(users).set({ profileBannerUrl: base64Data as any, updatedAt: new Date() as any }).where(eq(users.id, targetUserId));
+        return res.json({ message: 'Profile banner updated successfully', profileBannerUrl: base64Data });
+      }
+      await db.update(users).set({ profileImageUrl: base64Data as any, updatedAt: new Date() as any }).where(eq(users.id, targetUserId));
       res.json({ message: 'Profile picture updated successfully', profileImageUrl: base64Data });
     } catch (error) {
       res.status(500).json({ message: 'Profile picture upload failed', error: (error as any)?.message || String(error) });

@@ -11,7 +11,7 @@ import { Textarea } from "../components/ui/textarea";
 import { Badge } from "../components/ui/badge";
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { ThumbsUp, MessageCircle, Share2, Image as ImageIcon, Edit2, Trash2, Camera, Settings, User, Award, Activity, Calendar, MapPin, Mail, Phone, Globe, Lock, Eye, EyeOff, UserPlus } from "lucide-react";
+import { ThumbsUp, MessageCircle, Share2, Image as ImageIcon, Edit2, Trash2, Camera, Settings, User, Award, Activity, Calendar, MapPin, Mail, Phone, Globe, Lock, Eye, EyeOff, UserPlus, Shield } from "lucide-react";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "../lib/queryClient";
 import { 
@@ -35,7 +35,7 @@ import { Avatar, AvatarImage, AvatarFallback } from "../components/ui/avatar";
 import { Heart, MessageSquare } from "lucide-react";
 
 export default function CivicSocialProfile() {
-  const { user, isLoading: authLoading, isAuthenticated } = useAuth();
+  const { user, isLoading: authLoading, isAuthenticated, refreshUser } = useAuth() as any;
   const { data: feed, isLoading, error } = useCivicSocialFeed();
   const { data: friendsData } = useCivicSocialFriends();
   const postMutation = useCivicSocialPost();
@@ -55,6 +55,7 @@ export default function CivicSocialProfile() {
   const [editAvatar, setEditAvatar] = useState((user as any)?.profileImageUrl || "");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const profilePhotoInputRef = useRef<HTMLInputElement>(null);
+  const bannerUploadInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const friends = friendsData?.friends || [];
@@ -103,6 +104,7 @@ export default function CivicSocialProfile() {
       const token = localStorage.getItem('civicos-jwt') || '';
       const form = new FormData();
       form.append('profilePicture', file);
+      form.append('type', 'profile');
       const res = await fetch(`/api/auth/upload-profile-picture`, {
         method: 'POST',
         headers: token ? { Authorization: `Bearer ${token}` } as any : undefined,
@@ -112,8 +114,9 @@ export default function CivicSocialProfile() {
       if (!res.ok) throw new Error(data?.message || data?.error || 'Failed to upload');
       return data;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+    onSuccess: async () => {
+      await refreshUser();
+      queryClient.invalidateQueries({ queryKey: ["auth-user"] });
       toast({ title: 'Photo updated', description: 'Your profile picture has been updated.' });
     },
     onError: (error: any) => {
@@ -128,6 +131,31 @@ export default function CivicSocialProfile() {
       e.target.value = '';
     }
   };
+
+  const uploadBanner = useMutation({
+    mutationFn: async (file: File) => {
+      const token = localStorage.getItem('civicos-jwt') || '';
+      const form = new FormData();
+      form.append('profilePicture', file);
+      form.append('type', 'banner');
+      const res = await fetch(`/api/auth/upload-profile-picture`, {
+        method: 'POST',
+        headers: token ? { Authorization: `Bearer ${token}` } as any : undefined,
+        body: form,
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data?.message || data?.error || 'Failed to upload');
+      return data;
+    },
+    onSuccess: async () => {
+      await refreshUser();
+      queryClient.invalidateQueries({ queryKey: ["auth-user"] });
+      toast({ title: 'Banner updated', description: 'Your profile banner has been updated.' });
+    },
+    onError: (error: any) => {
+      toast({ title: 'Upload failed', description: error?.message || 'Could not update banner.', variant: 'destructive' });
+    }
+  });
 
   const handlePost = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -239,29 +267,102 @@ export default function CivicSocialProfile() {
 
   // Header content
   const header = (
-    <CivicSocialHeader
-      title="My Profile"
-      subtitle="Manage your civic social presence"
-      actions={
-        <div className="flex items-center space-x-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setEditOpen(true)}
-          >
-            <Edit2 className="w-4 h-4 mr-2" />
-            Edit Profile
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-          >
-            <Settings className="w-4 h-4 mr-2" />
-            Settings
-          </Button>
+    <div className="relative mb-6">
+      {/* Banner */}
+      <div className="h-64 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg relative overflow-hidden">
+        {(user as any)?.profileBannerUrl ? (
+          <img
+            src={(user as any).profileBannerUrl}
+            alt="Profile Banner"
+            className="w-full h-full object-cover"
+          />
+        ) : null}
+        <Button
+          variant="secondary"
+          size="sm"
+          className="absolute top-4 right-4"
+          onClick={() => bannerUploadInputRef.current?.click()}
+        >
+          <Camera className="w-4 h-4 mr-2" />
+          Change Banner
+        </Button>
+        <input
+          ref={bannerUploadInputRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            if (file) uploadBanner.mutate(file);
+            e.target.value = '';
+          }}
+        />
+      </div>
+
+      {/* Overlay header content */}
+      <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-black/60 to-transparent">
+        <div className="flex items-end gap-6">
+          {/* Avatar */}
+          <div className="relative">
+            <Avatar className="w-32 h-32 border-4 border-white">
+              <AvatarImage src={(user as any)?.profileImageUrl || undefined} />
+              <AvatarFallback className="text-3xl bg-blue-600">
+                {displayName.charAt(0).toUpperCase()}
+              </AvatarFallback>
+            </Avatar>
+            <Button
+              variant="secondary"
+              size="sm"
+              className="absolute -bottom-2 -right-2 rounded-full w-8 h-8 p-0"
+              onClick={() => profilePhotoInputRef.current?.click()}
+            >
+              <Camera className="w-4 h-4" />
+            </Button>
+            <input
+              ref={profilePhotoInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleProfilePhotoChange}
+            />
+          </div>
+
+          {/* Name and badges */}
+          <div className="flex-1 text-white">
+            <div className="flex items-center gap-4 mb-2">
+              <h1 className="text-3xl font-bold">{displayName}</h1>
+              {(user as any)?.isVerified && (
+                <Badge variant="secondary" className="bg-green-500">
+                  <Shield className="w-3 h-3 mr-1" />
+                  Verified
+                </Badge>
+              )}
+              {(user as any)?.civicLevel && (
+                <Badge>{(user as any).civicLevel}</Badge>
+              )}
+            </div>
+            {(user as any)?.city && (user as any)?.province && (
+              <p className="text-lg opacity-90 mb-1">
+                <MapPin className="w-4 h-4 inline mr-2" />
+                {(user as any).city}, {(user as any).province}
+              </p>
+            )}
+          </div>
+
+          {/* Actions */}
+          <div className="flex gap-2">
+            <Button onClick={() => setEditOpen(true)}>
+              <Edit2 className="w-4 h-4 mr-2" />
+              Edit Profile
+            </Button>
+            <Button variant="outline" onClick={() => (window.location.href = '/settings')}>
+              <Settings className="w-4 h-4 mr-2" />
+              Settings
+            </Button>
+          </div>
         </div>
-      }
-    />
+      </div>
+    </div>
   );
 
   // Sidebar content
@@ -366,6 +467,25 @@ export default function CivicSocialProfile() {
   return (
     <CivicSocialLayout header={header} sidebar={sidebar}>
       <CivicSocialSection>
+        {/* Quick stats cards similar to /profile */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+          <div className="text-center p-4 bg-muted/40 rounded-lg">
+            <div className="text-2xl font-bold text-blue-600">{profileStats.posts}</div>
+            <div className="text-sm text-gray-600">Posts</div>
+          </div>
+          <div className="text-center p-4 bg-muted/40 rounded-lg">
+            <div className="text-2xl font-bold text-green-600">{profileStats.friends}</div>
+            <div className="text-sm text-gray-600">Friends</div>
+          </div>
+          <div className="text-center p-4 bg-muted/40 rounded-lg">
+            <div className="text-2xl font-bold text-purple-600">{profileStats.civicPoints}</div>
+            <div className="text-sm text-gray-600">Civic Points</div>
+          </div>
+          <div className="text-center p-4 bg-muted/40 rounded-lg">
+            <div className="text-2xl font-bold text-orange-600">{(user as any)?.trustScore || 0}%</div>
+            <div className="text-sm text-gray-600">Trust Score</div>
+          </div>
+        </div>
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="posts">Posts</TabsTrigger>

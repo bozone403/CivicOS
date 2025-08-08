@@ -341,7 +341,7 @@ export function FriendsManager() {
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => setLocation(`/messages/${friend.friendId}`)}
+                         onClick={() => setLocation(`/civicsocial/messages?recipientId=${encodeURIComponent(friend.friendId)}`)}
                           >
                             <MessageCircle className="h-4 w-4 mr-1" />
                             Message
@@ -349,7 +349,7 @@ export function FriendsManager() {
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => setLocation(`/profile/${friend.friendId}`)}
+                         onClick={() => setLocation(`/civicsocial/profile/${friend.friendId}`)}
                           >
                             View Profile
                           </Button>

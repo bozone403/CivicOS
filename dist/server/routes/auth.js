@@ -309,6 +309,11 @@ export function registerAuthRoutes(app) {
                 email: userData.email,
                 firstName: userData.firstName,
                 lastName: userData.lastName,
+                bio: userData.bio,
+                city: userData.city,
+                province: userData.province,
+                profileImageUrl: userData.profileImageUrl,
+                profileBannerUrl: userData.profileBannerUrl,
                 username: userData.username,
                 membershipType: userData.membershipType,
                 civicLevel: userData.civicLevel,
@@ -316,6 +321,7 @@ export function registerAuthRoutes(app) {
                 civicPoints: userData.civicPoints,
                 profileCompletionPercentage: userData.profileCompletionPercentage,
                 verificationLevel: userData.verificationLevel,
+                isVerified: userData.isVerified,
                 createdAt: userData.createdAt,
                 updatedAt: userData.updatedAt
             });
@@ -436,18 +442,28 @@ export function registerAuthRoutes(app) {
             res.status(500).json({ message: 'Profile update failed', error: error?.message || String(error) });
         }
     });
-    // Profile picture upload route (JWT protected)
-    app.post('/api/auth/upload-profile-picture', jwtAuth, upload.single('profileImage'), async (req, res) => {
+    // Profile image/banner upload route (JWT protected)
+    // Accepts multipart with field names: profileImage or profilePicture; optional body.type = 'profile' | 'banner'
+    app.post('/api/auth/upload-profile-picture', jwtAuth, upload.any(), async (req, res) => {
         try {
-            if (!req.file) {
+            const files = req.files || [];
+            const file = files.find(f => f.fieldname === 'profileImage' || f.fieldname === 'profilePicture' || f.fieldname === 'image');
+            if (!file) {
                 return res.status(400).json({ message: "No file uploaded" });
             }
             const userId = req.user?.id;
             if (!userId) {
                 return res.status(401).json({ message: "Unauthorized" });
             }
-            const fileExtension = req.file.originalname.split('.').pop() || 'jpg';
-            const base64Data = `data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}`;
+            const fileExtension = file.originalname?.split('.').pop() || 'jpg';
+            const base64Data = `data:${file.mimetype};base64,${file.buffer.toString('base64')}`;
+            const uploadType = String(req.body?.type || 'profile').toLowerCase();
+            if (uploadType === 'banner') {
+                await db.update(users)
+                    .set({ profileBannerUrl: base64Data, updatedAt: new Date() })
+                    .where(eq(users.id, userId));
+                return res.json({ message: "Profile banner updated successfully", profileBannerUrl: base64Data });
+            }
             await db.update(users)
                 .set({ profileImageUrl: base64Data, updatedAt: new Date() })
                 .where(eq(users.id, userId));
@@ -458,17 +474,24 @@ export function registerAuthRoutes(app) {
         }
     });
     // Backward-compat: POST /api/users/:userId/upload-image
-    app.post('/api/users/:userId/upload-image', jwtAuth, upload.single('image'), async (req, res) => {
+    app.post('/api/users/:userId/upload-image', jwtAuth, upload.any(), async (req, res) => {
         try {
             const authUserId = req.user?.id;
             const targetUserId = req.params.userId;
             if (!authUserId || authUserId !== targetUserId) {
                 return res.status(403).json({ message: 'Forbidden' });
             }
-            if (!req.file) {
+            const files = req.files || [];
+            const file = files.find(f => f.fieldname === 'image' || f.fieldname === 'profileImage' || f.fieldname === 'profilePicture');
+            if (!file) {
                 return res.status(400).json({ message: 'No file uploaded' });
             }
-            const base64Data = `data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}`;
+            const base64Data = `data:${file.mimetype};base64,${file.buffer.toString('base64')}`;
+            const uploadType = String(req.body?.type || 'profile').toLowerCase();
+            if (uploadType === 'banner') {
+                await db.update(users).set({ profileBannerUrl: base64Data, updatedAt: new Date() }).where(eq(users.id, targetUserId));
+                return res.json({ message: 'Profile banner updated successfully', profileBannerUrl: base64Data });
+            }
             await db.update(users).set({ profileImageUrl: base64Data, updatedAt: new Date() }).where(eq(users.id, targetUserId));
             res.json({ message: 'Profile picture updated successfully', profileImageUrl: base64Data });
         }

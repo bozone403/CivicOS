@@ -155,8 +155,13 @@ export default function Profile() {
   // Extract userId from URL path
   const pathParts = location.pathname.split('/');
   const userIdFromUrl = pathParts[pathParts.length - 1];
-  const isOwnProfile = !userIdFromUrl || userIdFromUrl === 'profile' || userIdFromUrl === user?.id || location.pathname === '/profile';
+  // Avoid treating usernames (from /u/:username) as IDs here
+  const looksLikeUuid = /^[0-9a-fA-F-]{36}$/.test(userIdFromUrl || '');
+  const looksLikeDbId = looksLikeUuid || /^user_/i.test(userIdFromUrl || '');
+  const isOwnProfile = !userIdFromUrl || userIdFromUrl === 'profile' || (looksLikeDbId && userIdFromUrl === user?.id) || location.pathname === '/profile';
   const targetUserId = isOwnProfile ? user?.id : userIdFromUrl;
+  const normalizeId = (val?: string) => (val || '').replace(/^user_/i, '');
+  const normalizedTargetUserId = normalizeId(targetUserId);
 
   // State for editing
   const [isEditing, setIsEditing] = useState(false);
@@ -172,8 +177,13 @@ export default function Profile() {
         const response = await apiRequest('/api/users/profile', 'GET');
         return response;
       } else {
+        // If not a DB id (uuid or user_*), treat as username and fetch public profile
+        if (!looksLikeDbId) {
+          const response = await apiRequest(`/api/users/profile/${targetUserId}`, 'GET');
+          return response.profile;
+        }
         // Get other user's profile by ID
-        const response = await apiRequest(`/api/users/${targetUserId}/profile`, 'GET');
+        const response = await apiRequest(`/api/users/${normalizedTargetUserId}/profile`, 'GET');
         return response;
       }
     },
@@ -182,7 +192,7 @@ export default function Profile() {
 
   // Fetch user posts for profile wall
   const { data: userPosts, isLoading: isLoadingPosts } = useQuery({
-    queryKey: ['user-posts', targetUserId],
+    queryKey: ['user-posts', normalizedTargetUserId],
     queryFn: async () => {
       if (isOwnProfile && profile?.username) {
         // Get current user's posts by username
@@ -200,24 +210,24 @@ export default function Profile() {
 
   // Fetch user stats
   const { data: userStats } = useQuery({
-    queryKey: ['user-stats', targetUserId],
+    queryKey: ['user-stats', normalizedTargetUserId],
     queryFn: async () => {
-      if (!targetUserId) return null;
-      const response = await apiRequest(`/api/users/${targetUserId}/stats`, 'GET');
+      if (!normalizedTargetUserId) return null;
+      const response = await apiRequest(`/api/users/${normalizedTargetUserId}/stats`, 'GET');
       return response;
     },
-    enabled: !!targetUserId,
+    enabled: !!normalizedTargetUserId,
   });
 
   // Fetch user activity
   const { data: userActivity } = useQuery({
-    queryKey: ['user-activity', targetUserId],
+    queryKey: ['user-activity', normalizedTargetUserId],
     queryFn: async () => {
-      if (!targetUserId) return null;
-      const response = await apiRequest(`/api/users/${targetUserId}/activity`, 'GET');
+      if (!normalizedTargetUserId) return null;
+      const response = await apiRequest(`/api/users/${normalizedTargetUserId}/activity`, 'GET');
       return response;
     },
-    enabled: !!targetUserId,
+    enabled: !!normalizedTargetUserId,
   });
 
   // Update profile mutation
@@ -226,7 +236,7 @@ export default function Profile() {
       if (isOwnProfile) {
         return apiRequest(`/api/users/profile`, 'PUT', updates);
       }
-      return apiRequest(`/api/users/${targetUserId}/profile`, 'PUT', updates);
+      return apiRequest(`/api/users/${normalizedTargetUserId}/profile`, 'PUT', updates);
     },
     onSuccess: () => {
       toast({
@@ -304,7 +314,7 @@ export default function Profile() {
 
     try {
       // Use backward-compat route when targeting self, else disallow
-      const url = isOwnProfile ? `/api/users/${targetUserId}/upload-image` : `/api/auth/upload-profile-picture`;
+      const url = isOwnProfile ? `/api/users/${normalizedTargetUserId}/upload-image` : `/api/auth/upload-profile-picture`;
       const response = await apiRequest(url, 'POST', formData);
       queryClient.invalidateQueries({ queryKey: ['user-profile', targetUserId] });
       toast({
@@ -383,13 +393,13 @@ export default function Profile() {
       <div className="relative mb-8">
         {/* Banner Image */}
         <div className="h-64 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg relative overflow-hidden">
-          {profile.profileBannerUrl && (
+          {profile.profileBannerUrl ? (
             <img 
               src={profile.profileBannerUrl} 
               alt="Profile Banner"
               className="w-full h-full object-cover"
             />
-          )}
+          ) : null}
           {isOwnProfile && (
             <Button
               variant="secondary"
@@ -419,7 +429,7 @@ export default function Profile() {
             {/* Profile Avatar */}
             <div className="relative">
               <Avatar className="w-32 h-32 border-4 border-white">
-                <AvatarImage src={profile.profileImageUrl} />
+                 <AvatarImage src={profile.profileImageUrl || undefined} />
                 <AvatarFallback className="text-3xl bg-blue-600">
                   {getDisplayName(profile)[0]?.toUpperCase()}
                 </AvatarFallback>

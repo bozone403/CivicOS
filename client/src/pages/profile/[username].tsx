@@ -77,7 +77,10 @@ interface SocialPost {
 export default function PublicProfile() {
   const [location] = useLocation();
   const [, navigate] = useLocation();
-  const username = location.split('/').pop(); // Extract username from URL
+  const param = location.split('/').pop(); // Works for /civicsocial/profile/:param and legacy routes
+  const looksLikeUuid = /^[0-9a-fA-F-]{36}$/.test(param || '');
+  const looksLikeDbId = looksLikeUuid || /^user_/i.test(param || '');
+  const normalizedId = (param || '').replace(/^user_/i, '');
   const { user: currentUser } = useAuth();
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState('posts');
@@ -85,36 +88,43 @@ export default function PublicProfile() {
 
   // Fetch user profile
   const { data: profile, isLoading: isLoadingProfile } = useQuery<UserProfile>({
-    queryKey: ['user-profile', username],
+    queryKey: ['user-profile', param],
     queryFn: async () => {
-      const response = await apiRequest(`/api/users/profile/${username}`, 'GET');
+      if (looksLikeDbId) {
+        const response = await apiRequest(`/api/users/${normalizedId}/profile`, 'GET');
+        return response;
+      }
+      const response = await apiRequest(`/api/users/profile/${param}`, 'GET');
       return response.profile;
     },
-    enabled: !!username,
+    enabled: !!param,
   });
 
   // Fetch user posts
   const { data: posts, isLoading: isLoadingPosts } = useQuery<SocialPost[]>({
-    queryKey: ['user-posts', username],
+    queryKey: ['user-posts', profile?.username || param],
     queryFn: async () => {
-      const response = await apiRequest(`/api/social/posts/user/${username}`, 'GET');
+      const handle = looksLikeDbId ? (profile?.username || '') : (param || '');
+      if (!handle) return [];
+      const response = await apiRequest(`/api/social/posts/user/${handle}`, 'GET');
       return response.posts || [];
     },
-    enabled: !!username,
+    enabled: !!(profile?.username || (!looksLikeDbId && param)),
   });
 
   // Fetch user achievements
   const { data: achievements } = useQuery({
-    queryKey: ['user-achievements', username],
+    queryKey: ['user-achievements', profile?.username],
     queryFn: async () => {
-      const response = await apiRequest(`/api/users/${username}/achievements`, 'GET');
+      if (!profile?.username) return [];
+      const response = await apiRequest(`/api/users/${profile.username}/achievements`, 'GET');
       return response.achievements || [];
     },
-    enabled: !!username,
+    enabled: !!profile?.username,
   });
 
   const handleShare = async () => {
-    const shareUrl = `${window.location.origin}/profile/${username}`;
+    const shareUrl = `${window.location.origin}/civicsocial/profile/${profile?.username || param}`;
     const shareText = `Check out ${profile?.firstName || profile?.username}'s profile on CivicOS`;
     
     try {

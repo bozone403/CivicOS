@@ -167,12 +167,15 @@ export default function CivicSocialFriends() {
                 <div className="py-2">
                   {searchResults.map((searchUser) => (
                     <div key={searchUser.id} className="flex items-center justify-between p-3 hover:bg-gray-50 dark:hover:bg-slate-700">
-                      <div className="flex items-center gap-3 cursor-pointer" onClick={() => navigate(`/profile/${encodeURIComponent((searchUser as any).username || searchUser.email.split('@')[0])}`)}>
+                      <div className="flex items-center gap-3 cursor-pointer" onClick={() => navigate(`/civicsocial/profile/${encodeURIComponent(((searchUser as any).username || '').trim())}`)}>
                         <div className="w-10 h-10 bg-civic-blue rounded-full flex items-center justify-center text-white font-bold">
                           {searchUser.firstName?.[0]}{searchUser.lastName?.[0]}
                         </div>
                         <div>
                           <p className="font-medium">{searchUser.firstName} {searchUser.lastName} {(searchUser as any).username ? `(@${(searchUser as any).username})` : ''}</p>
+                          {!(searchUser as any).username && (
+                            <p className="text-xs text-red-600">Username missing — cannot open public profile</p>
+                          )}
                           <p className="text-sm text-gray-500">{searchUser.email}</p>
                           {searchUser.civicPoints && (
                             <p className="text-xs text-civic-gold">Civic Points: {searchUser.civicPoints}</p>

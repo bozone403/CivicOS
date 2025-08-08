@@ -326,17 +326,31 @@ export function useCivicSocialSendMessage() {
 export function useCivicSocialNotify() {
   return useMutation({
     mutationFn: async ({ userId, type, title, message }: any) => {
-      const token = getToken();
-      const res = await fetch(`${API_BASE}/api/social/notifications`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ userId, type, title, message }),
-      });
-      if (!res.ok) throw new Error("Failed to send notification");
-      return res.json();
+      try {
+        const token = getToken();
+        const res = await fetch(`${API_BASE}/api/social/notifications`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ userId, type, title, message }),
+        });
+        if (res.ok) return res.json();
+      } catch {}
+      // Fallback to simple notifications API
+      try {
+        return await fetch(`${API_BASE}/api/notifications`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${getToken()}`,
+          },
+          body: JSON.stringify({ userId, type, title, message })
+        }).then(r => r.json());
+      } catch (e) {
+        return { success: false };
+      }
     },
   });
 }

@@ -211,18 +211,26 @@ export default function App() {
                     </ProtectedRoute>
                   </Route>
                   
+                  {/* Public profile under CivicSocial namespace */}
+                  <Route path="/civicsocial/profile/:username">
+                    <Layout>
+                      <PublicProfile />
+                    </Layout>
+                  </Route>
+
+                  {/* Back-compat support for /u/:username (renders PublicProfile) */}
+                  <Route path="/u/:username">
+                    <Layout>
+                      <PublicProfile />
+                    </Layout>
+                  </Route>
+                  
                   <Route path="/profile/:userId">
                     <ProtectedRoute>
                       <Layout>
                         <Profile />
                       </Layout>
                     </ProtectedRoute>
-                  </Route>
-                  
-                  <Route path="/profile/:username">
-                    <Layout>
-                      <PublicProfile />
-                    </Layout>
                   </Route>
                   
                   <Route path="/settings">

@@ -60,8 +60,9 @@ export function NotificationsCenter() {
   const { data: notifications = [], isLoading } = useQuery<Notification[]>({
     queryKey: ["notifications", showUnreadOnly],
     queryFn: async () => {
-      const response = await apiRequest(`/api/social/notifications?unreadOnly=${showUnreadOnly}`, "GET");
-      return response?.notifications || [];
+      const response = await apiRequest(`/api/notifications`, "GET");
+      // server returns array or { success, notifications }
+      return Array.isArray(response) ? response : (response?.notifications || []);
     },
     enabled: isAuthenticated,
   });
@@ -69,7 +70,8 @@ export function NotificationsCenter() {
   // Mark notification as read
   const markReadMutation = useMutation({
     mutationFn: async (notificationId: number) => {
-      return apiRequest(`/api/social/notifications/${notificationId}/read`, "PUT");
+      // Centralized notifications API (server/simpleNotifications.ts)
+      return apiRequest(`/api/notifications/${notificationId}/read`, "PATCH");
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["notifications"] });
@@ -79,7 +81,7 @@ export function NotificationsCenter() {
   // Mark all notifications as read
   const markAllReadMutation = useMutation({
     mutationFn: async () => {
-      return apiRequest("/api/social/notifications/read-all", "PUT");
+      return apiRequest("/api/notifications/read-all", "PATCH");
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["notifications"] });

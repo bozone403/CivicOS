@@ -13,17 +13,38 @@ const router = Router();
 // Get notifications (authenticated)
 router.get("/", jwtAuth, async (req: any, res) => {
   try {
+    // Select only columns that are guaranteed to exist across migrations
     const rows = await db
-      .select()
+      .select({
+        id: notifications.id,
+        userId: notifications.userId,
+        type: notifications.type,
+        title: notifications.title,
+        message: notifications.message,
+        isRead: notifications.isRead,
+        createdAt: notifications.createdAt,
+      })
       .from(notifications)
       .where(eq(notifications.userId, req.user.id))
       .orderBy(desc(notifications.createdAt))
       .limit(100);
-    res.json(rows);
+
+    // Shape response consistently for client
+    const formatted = rows.map((n: any) => ({
+      id: n.id,
+      type: n.type,
+      title: n.title,
+      message: n.message,
+      isRead: !!n.isRead,
+      createdAt: n.createdAt,
+      // optional properties omitted when not present
+    }));
+
+    res.json({ success: true, notifications: formatted });
   } catch (error) {
     logger.error({ msg: 'Error fetching notifications', error: error instanceof Error ? error.message : String(error) });
-    // Graceful fallback to empty list to avoid client fatal errors
-    res.json([]);
+    // Graceful fallback to keep instance healthy
+    res.json({ success: true, notifications: [] });
   }
 });
 
