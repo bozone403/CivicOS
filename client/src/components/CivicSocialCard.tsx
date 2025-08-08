@@ -88,6 +88,8 @@ interface CivicSocialPostCardProps {
   onComment?: (postId: number) => void;
   onShare?: (postId: number) => void;
   onBookmark?: (postId: number) => void;
+  onEdit?: (postId: number) => void;
+  onDelete?: (postId: number) => void;
   className?: string;
 }
 
@@ -97,6 +99,8 @@ export function CivicSocialPostCard({
   onComment,
   onShare,
   onBookmark,
+  onEdit,
+  onDelete,
   className
 }: CivicSocialPostCardProps) {
   const displayName = post.user ? 
@@ -190,16 +194,28 @@ export function CivicSocialPostCard({
                 <span>{post.sharesCount}</span>
               </button>
             </div>
-            
-            <button
-              onClick={() => onBookmark?.(post.id)}
-              className={cn(
-                "text-sm transition-colors",
-                post.isBookmarked ? "bookmark-color" : "text-muted-foreground hover:bookmark-color"
+
+            <div className="flex items-center space-x-3">
+              <button
+                onClick={() => onBookmark?.(post.id)}
+                className={cn(
+                  "text-sm transition-colors",
+                  post.isBookmarked ? "bookmark-color" : "text-muted-foreground hover:bookmark-color"
+                )}
+              >
+                <Bookmark className={cn("w-4 h-4", post.isBookmarked && "fill-current")} />
+              </button>
+              {onEdit && (
+                <button onClick={() => onEdit(post.id)} className="text-sm text-muted-foreground hover:text-blue-600">
+                  Edit
+                </button>
               )}
-            >
-              <Bookmark className={cn("w-4 h-4", post.isBookmarked && "fill-current")} />
-            </button>
+              {onDelete && (
+                <button onClick={() => onDelete(post.id)} className="text-sm text-red-600 hover:text-red-700">
+                  Delete
+                </button>
+              )}
+            </div>
           </div>
         </div>
       </div>

@@ -136,6 +136,28 @@ export default function CivicSocialProfile() {
     );
   };
 
+  const editPostMutation = useMutation({
+    mutationFn: async ({ postId, content, imageUrl }: any) => apiRequest(`/api/social/posts/${postId}`, 'PUT', { content, imageUrl }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['civicSocialFeed'] });
+      toast({ title: 'Post updated', description: 'Your post has been updated.' });
+    },
+    onError: (error: any) => {
+      toast({ title: 'Edit failed', description: error?.message || 'Could not update post.', variant: 'destructive' });
+    }
+  });
+
+  const deletePostMutation = useMutation({
+    mutationFn: async ({ postId }: any) => apiRequest(`/api/social/posts/${postId}`, 'DELETE'),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['civicSocialFeed'] });
+      toast({ title: 'Post deleted', description: 'Your post has been removed.' });
+    },
+    onError: (error: any) => {
+      toast({ title: 'Delete failed', description: error?.message || 'Could not delete post.', variant: 'destructive' });
+    }
+  });
+
   function getUserReaction(post: any) {
     return post.reactions?.find((r: any) => r.userId === user?.id)?.reaction || null;
   }
@@ -416,8 +438,19 @@ export default function CivicSocialProfile() {
                       post={post}
                       onLike={() => likeMutation.mutate(post.id)}
                       onComment={() => setOpenComment({ ...openComment, [post.id]: !openComment[post.id] })}
-                      onShare={() => toast({ title: "Shared", description: "Post shared successfully!" })}
-                      onBookmark={() => toast({ title: "Bookmarked", description: "Post added to your bookmarks!" })}
+                      onShare={() => toast({ title: 'Shared', description: 'Post shared successfully!' })}
+                      onBookmark={() => toast({ title: 'Bookmarked', description: 'Post added to your bookmarks!' })}
+                      onEdit={() => {
+                        const newContent = prompt('Edit your post:', post.content);
+                        if (newContent !== null) {
+                          editPostMutation.mutate({ postId: post.id, content: newContent });
+                        }
+                      }}
+                      onDelete={() => {
+                        if (confirm('Delete this post?')) {
+                          deletePostMutation.mutate({ postId: post.id });
+                        }
+                      }}
                     />
                   ))}
                 </CivicSocialList>

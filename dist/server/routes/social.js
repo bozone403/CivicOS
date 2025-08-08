@@ -305,6 +305,66 @@ export function registerSocialRoutes(app) {
             res.status(500).json({ error: "Failed to create post" });
         }
     });
+    // PUT /api/social/posts/:id - Edit own post
+    app.put('/api/social/posts/:id', jwtAuth, async (req, res) => {
+        try {
+            const currentUserId = req.user.id;
+            const postId = parseInt(req.params.id);
+            const bodySchema = z.object({
+                content: z.string().transform(v => (typeof v === 'string' ? v : String(v ?? ''))).pipe(z.string().trim().min(1).max(1000)).optional(),
+                imageUrl: z.string().regex(/^(blob:|data:|https?:)/).nullable().optional(),
+                visibility: z.enum(['public', 'private', 'friends']).optional(),
+            });
+            const parsed = bodySchema.safeParse(req.body);
+            if (!parsed.success) {
+                return res.status(400).json({ success: false, message: 'Invalid input' });
+            }
+            // Ensure post exists and belongs to user
+            const existing = await db.select().from(socialPosts).where(eq(socialPosts.id, postId)).limit(1);
+            if (existing.length === 0)
+                return res.status(404).json({ success: false, message: 'Post not found' });
+            if (String(existing[0].userId) !== String(currentUserId))
+                return res.status(403).json({ success: false, message: 'Not authorized to edit this post' });
+            const updates = {};
+            if (parsed.data.content !== undefined)
+                updates.content = parsed.data.content;
+            if (parsed.data.imageUrl !== undefined)
+                updates.imageUrl = parsed.data.imageUrl;
+            if (parsed.data.visibility !== undefined)
+                updates.visibility = parsed.data.visibility;
+            if (Object.keys(updates).length === 0)
+                return res.json({ success: true, message: 'No changes' });
+            const updated = await db.update(socialPosts).set(updates).where(eq(socialPosts.id, postId)).returning();
+            res.json({ success: true, post: updated[0] });
+        }
+        catch (error) {
+            console.error('Edit post error:', error);
+            res.status(500).json({ success: false, message: 'Failed to edit post' });
+        }
+    });
+    // DELETE /api/social/posts/:id - Delete own post
+    app.delete('/api/social/posts/:id', jwtAuth, async (req, res) => {
+        try {
+            const currentUserId = req.user.id;
+            const postId = parseInt(req.params.id);
+            const existing = await db.select().from(socialPosts).where(eq(socialPosts.id, postId)).limit(1);
+            if (existing.length === 0)
+                return res.status(404).json({ success: false, message: 'Post not found' });
+            if (String(existing[0].userId) !== String(currentUserId))
+                return res.status(403).json({ success: false, message: 'Not authorized to delete this post' });
+            // Cascade delete related comments, likes, bookmarks, shares
+            await db.delete(socialComments).where(eq(socialComments.postId, postId));
+            await db.delete(socialLikes).where(eq(socialLikes.postId, postId));
+            await db.delete(socialBookmarks).where(eq(socialBookmarks.postId, postId));
+            await db.delete(socialShares).where(eq(socialShares.postId, postId));
+            await db.delete(socialPosts).where(eq(socialPosts.id, postId));
+            res.json({ success: true, message: 'Post deleted' });
+        }
+        catch (error) {
+            console.error('Delete post error:', error);
+            res.status(500).json({ success: false, message: 'Failed to delete post' });
+        }
+    });
     // GET /api/social/posts/user/:username - Enhanced user posts
     app.get('/api/social/posts/user/:username', async (req, res) => {
         try {
