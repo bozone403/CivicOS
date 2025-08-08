@@ -1,5 +1,6 @@
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
 import { config } from "./config";
+import { createCivicOsClient } from "./civicos-sdk-wrapper";
 
 interface ApiRequestOptions {
   method?: string;
@@ -8,100 +9,10 @@ interface ApiRequestOptions {
 }
 
 export async function apiRequest(endpoint: string, method: string = 'GET', body?: any): Promise<any> {
-  const token = localStorage.getItem('civicos-jwt');
-  
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
-  };
-
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
-  }
-
-  const options: RequestInit = {
-    method,
-    headers,
-  };
-
-  if (body && method !== 'GET') {
-    options.body = JSON.stringify(body);
-  }
-
-  try {
-    // Fix double slash issue by ensuring clean URL construction
-    const baseUrl = config.apiUrl.replace(/\/$/, ''); // Remove trailing slash
-    const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`; // Ensure leading slash
-    const fullUrl = `${baseUrl}${cleanEndpoint}`;
-    console.log(`[API Debug] Making request to: ${fullUrl}`);
-    const response = await fetch(fullUrl, options);
-    
-          if (!response.ok) {
-        // Handle authentication errors gracefully
-        if (response.status === 401 || response.status === 403) {
-          // For certain endpoints, return fallback data instead of throwing
-          if (endpoint === '/api/dashboard/stats') {
-            return {
-              totalVotes: 0,
-              activeBills: 0,
-              politiciansTracked: 0,
-              petitionsSigned: 0,
-              civicPoints: 0,
-              trustScore: 100,
-              recentActivity: []
-            };
-          }
-          if (endpoint === '/api/notifications') {
-            return [];
-          }
-          if (endpoint === '/api/social/posts') {
-            return {
-              posts: [],
-              totalPosts: 0
-            };
-          }
-          if (endpoint === '/api/social/feed') {
-            return {
-              feed: []
-            };
-          }
-          if (endpoint === '/api/voting/electoral/candidates') {
-            return {
-              candidates: [],
-              totalCandidates: 0
-            };
-          }
-          if (endpoint === '/api/auth/user') {
-            // Return null for auth user when not authenticated
-            return null;
-          }
-          if (endpoint === '/api/messages/unread/count') {
-            return {
-              unreadCount: 0
-            };
-          }
-          if (endpoint === '/api/social/conversations') {
-            return {
-              success: true,
-              conversations: []
-            };
-          }
-          if (endpoint === '/api/social/messages') {
-            return {
-              success: true,
-              messages: []
-            };
-          }
-        }
-      
-      const errorData = await response.json().catch(() => ({ message: 'Request failed' }));
-      throw new Error(errorData.message || `HTTP ${response.status}`);
-    }
-
-    return await response.json();
-  } catch (error) {
-    console.error(`[API Debug] ${error}`);
-    throw error;
-  }
+  const token = localStorage.getItem('civicos-jwt') || undefined;
+  const client = createCivicOsClient(token);
+  const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+  return client.request({ method, url: cleanEndpoint, body }) as any;
 }
 
 // AI requests don't require authentication

@@ -1,6 +1,7 @@
 import { Pool } from 'pg';
 import { drizzle } from 'drizzle-orm/node-postgres';
-import * as schema from '../shared/schema.js';
+import * as baseSchema from '../shared/schema.js';
+import * as identitySchema from '../shared/identity-schema.js';
 import pino from "pino";
 const logger = pino();
 if (!process.env.DATABASE_URL) {
@@ -41,7 +42,9 @@ export const pool = new Pool({
     ssl: sslConfig
 });
 // Paranoid: Drizzle does not accept 'ssl' in config, so we rely on Pool's SSL config only
-export const db = drizzle(pool, { schema });
+// Merge schemas so Drizzle knows about all tables/types
+const combinedSchema = { ...baseSchema, ...identitySchema };
+export const db = drizzle(pool, { schema: combinedSchema });
 // Paranoid logging: log Pool type and SSL env (do NOT log credentials)
 logger.info('[DB] Drizzle instantiated. Pool type:', typeof pool, 'NODE_TLS_REJECT_UNAUTHORIZED:', process.env.NODE_TLS_REJECT_UNAUTHORIZED);
 // Paranoid: Test DB connection at startup (non-blocking)

@@ -1,6 +1,36 @@
 import { db } from '../db.js';
-import { membershipPermissions, userPermissions, permissions } from '../../shared/schema.js';
+import { userPermissions, membershipPermissions, permissions } from '../../shared/schema.js';
 import { eq, and } from 'drizzle-orm';
+export async function hasPermission(userId, permissionName) {
+    if (!userId)
+        return false;
+    const rec = await db
+        .select({ isGranted: userPermissions.isGranted })
+        .from(userPermissions)
+        .where(and(eq(userPermissions.userId, userId), eq(userPermissions.permissionName, permissionName)))
+        .limit(1);
+    return rec.length > 0 && Boolean(rec[0].isGranted !== false);
+}
+export function requirePermission(permissionName) {
+    return async function (req, res, next) {
+        const user = req.user;
+        if (!user?.id)
+            return res.status(401).json({ message: 'Unauthorized' });
+        // Allow legacy admin email as fallback
+        if (process.env.ADMIN_EMAIL && user.email === process.env.ADMIN_EMAIL) {
+            return next();
+        }
+        try {
+            const ok = await hasPermission(user.id, permissionName);
+            if (!ok)
+                return res.status(403).json({ message: 'Forbidden: missing permission', permission: permissionName });
+            return next();
+        }
+        catch (e) {
+            return res.status(500).json({ message: 'Permission check failed' });
+        }
+    };
+}
 export class PermissionService {
     /**
      * Check if a user has a specific permission

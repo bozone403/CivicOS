@@ -4,6 +4,7 @@ import { createCivicOsClient } from '@/lib/civicos-sdk-wrapper';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
+import { PermissionHint } from '@/components/PermissionHint';
 import { useAuth } from '@/hooks/useAuth';
 
 export default function AdminModerationPage() {
@@ -12,12 +13,13 @@ export default function AdminModerationPage() {
   const client = createCivicOsClient();
   const { user } = useAuth();
   const [limit, setLimit] = useState(25);
+  const [offset, setOffset] = useState(0);
   const [query, setQuery] = useState('');
 
   const { data: dashboard, isLoading, isError, error } = useQuery({
-    queryKey: ['admin','moderation-dashboard', limit],
+    queryKey: ['admin','moderation-dashboard', limit, offset],
     queryFn: async () => {
-      const res = await client.request({ method: 'GET', url: `/api/admin/moderation-dashboard?limit=${limit}` });
+      const res = await client.request({ method: 'GET', url: `/api/admin/moderation-dashboard?limit=${limit}&offset=${offset}` });
       return res as any;
     },
     enabled: !!user?.isAdmin,
@@ -35,7 +37,12 @@ export default function AdminModerationPage() {
   });
 
   if (!user?.isAdmin) {
-    return <div className="p-6">Access denied.</div>;
+    return (
+      <div className="p-6 space-y-4">
+        <div>Access denied.</div>
+        <PermissionHint required={["view_analytics", "reject_content", "moderate_comments"]} />
+      </div>
+    );
   }
 
   if (isLoading) return <div className="p-6">Loading…</div>;
@@ -62,7 +69,10 @@ export default function AdminModerationPage() {
           placeholder="Filter posts/comments…"
           className="w-full max-w-md border rounded px-3 py-2"
         />
-        <Button variant="secondary" onClick={() => setLimit((l) => Math.min(200, l + 25))}>Load more</Button>
+        <div className="flex items-center gap-2">
+          <Button variant="secondary" onClick={() => setOffset((o) => Math.max(0, o - limit))} disabled={offset === 0}>Prev</Button>
+          <Button variant="secondary" onClick={() => setOffset((o) => o + limit)}>Next</Button>
+        </div>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">

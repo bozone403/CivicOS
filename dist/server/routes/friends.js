@@ -1,8 +1,9 @@
 import { db } from "../db.js";
-import { users, userFriends } from "../../shared/schema.js";
+import { users, userFriends, notifications } from "../../shared/schema.js";
 import { eq, and, or } from "drizzle-orm";
 import { ResponseFormatter } from "../utils/responseFormatter.js";
 import jwt from "jsonwebtoken";
+import { socialRateLimit } from "../middleware/rateLimit.js";
 // JWT Auth middleware
 function jwtAuth(req, res, next) {
     const authHeader = req.headers.authorization;
@@ -137,7 +138,7 @@ export function registerFriendRoutes(app) {
         }
     });
     // Send friend request
-    app.post("/api/friends/request", jwtAuth, async (req, res) => {
+    app.post("/api/friends/request", jwtAuth, socialRateLimit, async (req, res) => {
         try {
             const { toUserId } = req.body;
             const fromUserId = req.user?.id;
@@ -176,6 +177,19 @@ export function registerFriendRoutes(app) {
                 friendId: toUserId,
                 status: 'pending'
             }).returning();
+            // Notify recipient of friend request
+            try {
+                await db.insert(notifications).values({
+                    userId: toUserId,
+                    type: 'social',
+                    title: 'Friend request',
+                    message: 'You received a new friend request.',
+                    data: { requestId: newRequest.id, fromUserId },
+                    sourceModule: 'friends',
+                    sourceId: String(newRequest.id),
+                });
+            }
+            catch { }
             return ResponseFormatter.success(res, newRequest, "Friend request sent successfully");
         }
         catch (error) {
@@ -257,7 +271,7 @@ export function registerFriendRoutes(app) {
         }
     });
     // Accept friend request
-    app.post("/api/friends/accept", jwtAuth, async (req, res) => {
+    app.post("/api/friends/accept", jwtAuth, socialRateLimit, async (req, res) => {
         try {
             const { requestId } = req.body;
             const userId = req.user?.id;
@@ -277,6 +291,19 @@ export function registerFriendRoutes(app) {
             await db.update(userFriends)
                 .set({ status: 'accepted' })
                 .where(eq(userFriends.id, parseInt(requestId)));
+            // Notify requester of acceptance
+            try {
+                await db.insert(notifications).values({
+                    userId: request.userId,
+                    type: 'social',
+                    title: 'Friend request accepted',
+                    message: 'Your friend request was accepted.',
+                    data: { requestId },
+                    sourceModule: 'friends',
+                    sourceId: String(requestId),
+                });
+            }
+            catch { }
             return ResponseFormatter.success(res, { message: "Friend request accepted successfully" }, "Friend request accepted successfully");
         }
         catch (error) {
@@ -284,7 +311,7 @@ export function registerFriendRoutes(app) {
         }
     });
     // Reject friend request
-    app.post("/api/friends/reject", jwtAuth, async (req, res) => {
+    app.post("/api/friends/reject", jwtAuth, socialRateLimit, async (req, res) => {
         try {
             const { requestId } = req.body;
             const userId = req.user?.id;
@@ -298,6 +325,22 @@ export function registerFriendRoutes(app) {
             await db.update(userFriends)
                 .set({ status: 'rejected' })
                 .where(and(eq(userFriends.id, parseInt(requestId)), eq(userFriends.friendId, userId), eq(userFriends.status, 'pending')));
+            // Notify requester of rejection
+            try {
+                const [request] = await db.select().from(userFriends).where(eq(userFriends.id, parseInt(requestId)));
+                if (request) {
+                    await db.insert(notifications).values({
+                        userId: request.userId,
+                        type: 'social',
+                        title: 'Friend request rejected',
+                        message: 'Your friend request was rejected.',
+                        data: { requestId },
+                        sourceModule: 'friends',
+                        sourceId: String(requestId),
+                    });
+                }
+            }
+            catch { }
             return ResponseFormatter.success(res, { message: "Friend request rejected" }, "Friend request rejected successfully");
         }
         catch (error) {

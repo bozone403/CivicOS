@@ -13,7 +13,9 @@ const logger = pino({
 // Request logging middleware
 export const requestLogger = (req, res, next) => {
     const startTime = Date.now();
-    const requestId = Math.random().toString(36).substring(7);
+    const incoming = req.headers['x-request-id'];
+    const requestId = (Array.isArray(incoming) ? incoming[0] : incoming) || Math.random().toString(36).substring(7);
+    res.setHeader('X-Request-Id', requestId);
     // Log request
     logger.info({
         type: 'request',

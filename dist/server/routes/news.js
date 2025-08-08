@@ -1,4 +1,8 @@
+import { db } from '../db.js';
 import { jwtAuth } from './auth.js';
+import { eq, desc, and, count, ilike, sql } from 'drizzle-orm';
+import { newsArticles } from '../../shared/schema.js';
+import { requirePermission } from '../utils/permissionService.js';
 import { z } from 'zod';
 // Input validation schemas
 const createNewsArticleSchema = z.object({
@@ -31,67 +35,28 @@ export function registerNewsRoutes(app) {
             const pageNum = Number(page);
             const limitNum = Number(limit);
             const offset = (pageNum - 1) * limitNum;
-            // For now, return mock news data since news_articles table doesn't exist
-            const mockNews = [
-                {
-                    id: 1,
-                    title: "Government Announces New Policy Initiative",
-                    summary: "The federal government has announced a comprehensive new policy initiative aimed at improving public services.",
-                    content: "The federal government today announced a comprehensive new policy initiative that will significantly impact public services across the country. This initiative represents a major step forward in addressing key challenges facing our nation.",
-                    category: "politics",
-                    source: "Government Press Release",
-                    sourceUrl: "https://example.com/news/1",
-                    imageUrl: "https://example.com/images/news1.jpg",
-                    tags: ["government", "policy", "public services"],
-                    isPublished: true,
-                    publishedAt: new Date(),
-                    createdAt: new Date(),
-                    updatedAt: new Date()
-                },
-                {
-                    id: 2,
-                    title: "Economic Growth Exceeds Expectations",
-                    summary: "Recent economic data shows growth exceeding analyst expectations, signaling strong economic recovery.",
-                    content: "Recent economic data released by Statistics Canada shows that economic growth has exceeded analyst expectations for the third consecutive quarter. This strong performance signals a robust economic recovery following recent challenges.",
-                    category: "economy",
-                    source: "Statistics Canada",
-                    sourceUrl: "https://example.com/news/2",
-                    imageUrl: "https://example.com/images/news2.jpg",
-                    tags: ["economy", "growth", "statistics"],
-                    isPublished: true,
-                    publishedAt: new Date(),
-                    createdAt: new Date(),
-                    updatedAt: new Date()
-                }
-            ];
-            // Filter by category if specified
-            let filteredNews = mockNews;
+            const whereClauses = [];
             if (category) {
-                filteredNews = mockNews.filter(article => article.category === category);
+                whereClauses.push(eq(sql `LOWER(${newsArticles.category})`, String(category).toLowerCase()));
             }
-            // Filter by published status
             if (published === 'true') {
-                filteredNews = filteredNews.filter(article => article.isPublished);
+                whereClauses.push(sql `${newsArticles.publishedAt} IS NOT NULL`);
             }
-            // Search functionality
             if (search) {
-                const searchTerm = search.toString().toLowerCase();
-                filteredNews = filteredNews.filter(article => article.title.toLowerCase().includes(searchTerm) ||
-                    article.content.toLowerCase().includes(searchTerm) ||
-                    article.summary.toLowerCase().includes(searchTerm));
+                const term = `%${String(search)}%`;
+                whereClauses.push(ilike(newsArticles.title, term));
             }
-            // Pagination
-            const total = filteredNews.length;
-            const paginatedNews = filteredNews.slice(offset, offset + limitNum);
+            const base = db.select().from(newsArticles);
+            const totalQuery = db.select({ c: count() }).from(newsArticles);
+            const whereCombined = whereClauses.length ? and(...whereClauses) : undefined;
+            const [{ c: total }] = whereCombined ? await totalQuery.where(whereCombined) : await totalQuery;
+            const articles = whereCombined
+                ? await base.where(whereCombined).orderBy(desc(newsArticles.publishedAt ?? newsArticles.createdAt)).limit(limitNum).offset(offset)
+                : await base.orderBy(desc(newsArticles.publishedAt ?? newsArticles.createdAt)).limit(limitNum).offset(offset);
             res.json({
                 success: true,
-                articles: paginatedNews,
-                pagination: {
-                    page: pageNum,
-                    limit: limitNum,
-                    total,
-                    totalPages: Math.ceil(total / limitNum)
-                }
+                articles,
+                pagination: { page: pageNum, limit: limitNum, total, totalPages: Math.ceil((Number(total) || 0) / limitNum) }
             });
         }
         catch (error) {
@@ -146,7 +111,7 @@ export function registerNewsRoutes(app) {
         }
     });
     // Create news article (admin only)
-    app.post("/api/news", jwtAuth, async (req, res) => {
+    app.post("/api/news", jwtAuth, requirePermission('admin.news.manage'), async (req, res) => {
         try {
             const userId = req.user?.id;
             if (!userId) {
@@ -163,18 +128,18 @@ export function registerNewsRoutes(app) {
                     errors: validationResult.error.errors
                 });
             }
-            // For now, return success (news_articles table needs to be created)
-            res.status(201).json({
-                success: true,
-                message: "News article created successfully",
-                article: {
-                    id: Date.now(),
-                    ...validationResult.data,
-                    authorId: userId,
-                    createdAt: new Date(),
-                    updatedAt: new Date()
-                }
-            });
+            const payload = validationResult.data;
+            const [row] = await db.insert(newsArticles).values({
+                title: payload.title,
+                content: payload.content,
+                source: payload.source,
+                url: payload.sourceUrl,
+                summary: payload.summary,
+                createdAt: new Date(),
+                updatedAt: new Date(),
+                publishedAt: payload.isPublished ? new Date() : null,
+            }).returning();
+            res.status(201).json({ success: true, article: row });
         }
         catch (error) {
             res.status(500).json({
@@ -185,7 +150,7 @@ export function registerNewsRoutes(app) {
         }
     });
     // Update news article (admin only)
-    app.put("/api/news/:id", jwtAuth, async (req, res) => {
+    app.put("/api/news/:id", jwtAuth, requirePermission('admin.news.manage'), async (req, res) => {
         try {
             const userId = req.user?.id;
             if (!userId) {
@@ -210,16 +175,22 @@ export function registerNewsRoutes(app) {
                     errors: validationResult.error.errors
                 });
             }
-            // For now, return success (news_articles table needs to be created)
-            res.json({
-                success: true,
-                message: "News article updated successfully",
-                article: {
-                    id: articleId,
-                    ...validationResult.data,
-                    updatedAt: new Date()
-                }
-            });
+            const payload = validationResult.data;
+            const updates = { updatedAt: new Date() };
+            if (payload.title)
+                updates.title = payload.title;
+            if (payload.content)
+                updates.content = payload.content;
+            if (payload.summary)
+                updates.summary = payload.summary;
+            if (payload.source)
+                updates.source = payload.source;
+            if (payload.sourceUrl)
+                updates.url = payload.sourceUrl;
+            if (typeof payload.isPublished === 'boolean')
+                updates.publishedAt = payload.isPublished ? new Date() : null;
+            const [row] = await db.update(newsArticles).set(updates).where(eq(newsArticles.id, articleId)).returning();
+            res.json({ success: true, article: row });
         }
         catch (error) {
             res.status(500).json({
@@ -230,7 +201,7 @@ export function registerNewsRoutes(app) {
         }
     });
     // Delete news article (admin only)
-    app.delete("/api/news/:id", jwtAuth, async (req, res) => {
+    app.delete("/api/news/:id", jwtAuth, requirePermission('admin.news.manage'), async (req, res) => {
         try {
             const userId = req.user?.id;
             if (!userId) {
@@ -247,11 +218,8 @@ export function registerNewsRoutes(app) {
                     message: "Invalid article ID"
                 });
             }
-            // For now, return success (news_articles table needs to be created)
-            res.json({
-                success: true,
-                message: "News article deleted successfully"
-            });
+            await db.delete(newsArticles).where(eq(newsArticles.id, articleId));
+            res.json({ success: true });
         }
         catch (error) {
             res.status(500).json({
@@ -291,31 +259,13 @@ export function registerNewsRoutes(app) {
         try {
             const { limit = 10 } = req.query;
             const limitNum = Number(limit);
-            // For now, return mock trending news
-            const trendingNews = [
-                {
-                    id: 1,
-                    title: "Government Announces New Policy Initiative",
-                    summary: "The federal government has announced a comprehensive new policy initiative.",
-                    views: 1250,
-                    likes: 45,
-                    category: "politics",
-                    publishedAt: new Date()
-                },
-                {
-                    id: 2,
-                    title: "Economic Growth Exceeds Expectations",
-                    summary: "Recent economic data shows growth exceeding analyst expectations.",
-                    views: 980,
-                    likes: 32,
-                    category: "economy",
-                    publishedAt: new Date()
-                }
-            ].slice(0, limitNum);
-            res.json({
-                success: true,
-                articles: trendingNews
-            });
+            const articles = await db
+                .select()
+                .from(newsArticles)
+                .where(sql `${newsArticles.publishedAt} IS NOT NULL`)
+                .orderBy(desc(newsArticles.publishedAt))
+                .limit(limitNum);
+            res.json({ success: true, articles });
         }
         catch (error) {
             res.status(500).json({

@@ -5,8 +5,8 @@ class EnhancedAiService {
     model;
     isOllamaAvailable = false;
     constructor() {
-        this.ollamaUrl = process.env.OLLAMA_URL || 'http://localhost:11434';
-        this.model = process.env.OLLAMA_MODEL || 'mixtral';
+        this.ollamaUrl = process.env.OLLAMA_URL ?? '';
+        this.model = process.env.OLLAMA_MODEL ?? '';
         this.checkOllamaAvailability();
         logger.info('Enhanced AI Service initialized', {
             ollamaUrl: this.ollamaUrl,
@@ -16,6 +16,10 @@ class EnhancedAiService {
     }
     async checkOllamaAvailability() {
         try {
+            if (!this.ollamaUrl) {
+                this.isOllamaAvailable = false;
+                return;
+            }
             const response = await fetch(`${this.ollamaUrl}/api/tags`);
             if (response.ok) {
                 this.isOllamaAvailable = true;

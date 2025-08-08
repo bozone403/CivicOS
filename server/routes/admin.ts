@@ -36,6 +36,7 @@ export function registerAdminRoutes(app: Express) {
   app.get('/api/admin/moderation-dashboard', jwtAuth, requirePermission('view_analytics'), async (req: Request, res: Response) => {
     try {
       const limit = Math.min(parseInt(String(req.query.limit || '25')) || 25, 200);
+      const offset = Math.max(parseInt(String(req.query.offset || '0')) || 0, 0);
 
       const [uc] = await db.select({ c: count() }).from(users);
       const [pc] = await db.select({ c: count() }).from(socialPosts);
@@ -48,13 +49,15 @@ export function registerAdminRoutes(app: Express) {
         .select()
         .from(socialPosts)
         .orderBy((socialPosts.createdAt as any).desc?.() || (socialPosts.createdAt as any))
-        .limit(limit);
+        .limit(limit)
+        .offset(offset);
 
       const recentComments = await db
         .select()
         .from(socialComments)
         .orderBy((socialComments.createdAt as any).desc?.() || (socialComments.createdAt as any))
-        .limit(limit);
+        .limit(limit)
+        .offset(offset);
 
       res.json({
         success: true,

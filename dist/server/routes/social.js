@@ -1,40 +1,13 @@
 import { db } from "../db.js";
 import { users, socialPosts, socialComments, socialLikes, userFriends, userMessages, notifications, userActivity, socialShares, socialBookmarks, userFollows } from "../../shared/schema.js";
 import { eq, and, or, desc, asc, count, sql } from "drizzle-orm";
-import jwt from "jsonwebtoken";
+import { jwtAuth } from './auth.js';
 import pino from "pino";
+import { z } from 'zod';
+import { socialRateLimit } from '../middleware/rateLimit.js';
+import { recordEvent } from '../utils/metrics.js';
 const logger = pino();
-// Use centralized JWT Auth middleware
-function jwtAuth(req, res, next) {
-    const authHeader = req.headers.authorization;
-    if (!authHeader || !authHeader.startsWith("Bearer ")) {
-        return res.status(401).json({ error: "Missing or invalid token" });
-    }
-    try {
-        const token = authHeader.split(" ")[1];
-        const secret = process.env.SESSION_SECRET;
-        if (!secret) {
-            return res.status(500).json({ error: "Server configuration error" });
-        }
-        // Enhanced JWT verification with proper options
-        const decoded = jwt.verify(token, secret, {
-            algorithms: ['HS256'],
-            issuer: 'civicos',
-            audience: 'civicos-users',
-            clockTolerance: 30,
-        });
-        // Additional validation
-        if (!decoded.id || !decoded.email) {
-            return res.status(401).json({ error: "Invalid token payload" });
-        }
-        req.user = decoded;
-        next();
-    }
-    catch (err) {
-        logger.error('JWT verification failed:', err);
-        return res.status(401).json({ error: "Invalid or expired token" });
-    }
-}
+// Use centralized JWT Auth middleware from auth routes
 export function registerSocialRoutes(app) {
     // ===== CORE SOCIAL FEED ENDPOINTS =====
     // GET /api/social/posts - Main posts endpoint (alias for feed)
@@ -107,41 +80,7 @@ export function registerSocialRoutes(app) {
             });
         }
     });
-    // POST /api/social/posts - Create new post
-    app.post('/api/social/posts', jwtAuth, async (req, res) => {
-        try {
-            const currentUserId = req.user.id;
-            const { content, imageUrl, type = 'post', visibility = 'public' } = req.body;
-            if (!content || content.trim().length === 0) {
-                return res.status(400).json({
-                    success: false,
-                    message: "Post content is required"
-                });
-            }
-            const newPost = await db.insert(socialPosts).values({
-                userId: currentUserId,
-                content: content.trim(),
-                imageUrl,
-                type,
-                visibility,
-                createdAt: new Date(),
-                updatedAt: new Date(),
-            }).returning();
-            res.status(201).json({
-                success: true,
-                message: "Post created successfully",
-                post: newPost[0]
-            });
-        }
-        catch (error) {
-            logger.error('Error creating social post:', error);
-            res.status(500).json({
-                success: false,
-                message: "Failed to create post",
-                error: error instanceof Error ? error.message : 'Unknown error'
-            });
-        }
-    });
+    // (Removed duplicate post creation route; unified below)
     // GET /api/social/feed - Enhanced social feed with proper error handling
     app.get('/api/social/feed', jwtAuth, async (req, res) => {
         try {
@@ -229,20 +168,47 @@ export function registerSocialRoutes(app) {
         }
     });
     // POST /api/social/posts - Enhanced post creation
-    app.post('/api/social/posts', jwtAuth, async (req, res) => {
+    app.post('/api/social/posts', jwtAuth, socialRateLimit, async (req, res) => {
         try {
             const currentUserId = req.user.id;
-            const { content, type = 'text', visibility = 'public', imageUrl } = req.body;
-            if (!content || content.trim().length === 0) {
-                return res.status(400).json({ error: "Post content is required" });
+            const bodySchema = z.object({
+                content: z.string().trim().min(1).max(1000),
+                type: z.string().trim().default('text'),
+                visibility: z.enum(['public', 'private', 'friends']).default('public'),
+                imageUrl: z.string().url().optional(),
+            });
+            const parsed = bodySchema.safeParse(req.body);
+            if (!parsed.success) {
+                return res.status(400).json({ error: 'Invalid input', issues: parsed.error.flatten() });
             }
+            const { content, type, visibility, imageUrl } = parsed.data;
             const post = await db.insert(socialPosts).values({
                 userId: currentUserId,
-                content: content.trim(),
+                content,
                 type,
                 visibility,
                 imageUrl: imageUrl || null
             }).returning();
+            recordEvent('social.post.created', { userId: currentUserId });
+            // Notify followers about new post
+            try {
+                const followers = await db
+                    .select({ followerId: userFollows.userId })
+                    .from(userFollows)
+                    .where(eq(userFollows.followId, currentUserId));
+                for (const f of followers) {
+                    await db.insert(notifications).values({
+                        userId: f.followerId,
+                        type: 'social',
+                        title: 'New post',
+                        message: 'Someone you follow posted an update',
+                        data: { postId: post[0].id, authorId: currentUserId },
+                        sourceModule: 'social',
+                        sourceId: String(post[0].id),
+                    });
+                }
+            }
+            catch { }
             // Get user data for response
             const [user] = await db
                 .select({
@@ -336,11 +302,15 @@ export function registerSocialRoutes(app) {
     });
     // ===== INTERACTION ENDPOINTS =====
     // POST /api/social/posts/:id/like - Enhanced like system
-    app.post('/api/social/posts/:id/like', jwtAuth, async (req, res) => {
+    app.post('/api/social/posts/:id/like', jwtAuth, socialRateLimit, async (req, res) => {
         try {
             const userId = req.user?.id;
             const postId = parseInt(req.params.id);
-            const { reaction = '👍' } = req.body;
+            const likeSchema = z.object({ reaction: z.string().max(16).optional() });
+            const likeParsed = likeSchema.safeParse(req.body);
+            if (!likeParsed.success)
+                return res.status(400).json({ error: 'Invalid input', issues: likeParsed.error.flatten() });
+            const { reaction = '👍' } = likeParsed.data;
             if (!userId) {
                 return res.status(401).json({ error: "Authentication required" });
             }
@@ -363,6 +333,24 @@ export function registerSocialRoutes(app) {
                     userId,
                     reaction
                 });
+                // Notify post author (if not self)
+                try {
+                    const [p] = await db.select({ userId: socialPosts.userId }).from(socialPosts).where(eq(socialPosts.id, postId)).limit(1);
+                    const authorId = p?.userId;
+                    if (authorId && authorId !== userId) {
+                        await db.insert(notifications).values({
+                            userId: authorId,
+                            type: 'social',
+                            title: 'Your post was liked',
+                            message: 'Someone liked your post.',
+                            data: { postId, reaction },
+                            sourceModule: 'social',
+                            sourceId: String(postId),
+                        });
+                    }
+                }
+                catch { }
+                recordEvent('social.like.created', { userId, postId });
                 res.json({ success: true, liked: true, message: "Post liked" });
             }
         }
@@ -372,16 +360,27 @@ export function registerSocialRoutes(app) {
         }
     });
     // POST /api/social/posts/:id/comment - Enhanced comment system
-    app.post('/api/social/posts/:id/comment', jwtAuth, async (req, res) => {
+    app.post('/api/social/posts/:id/comment', jwtAuth, socialRateLimit, async (req, res) => {
         try {
             const userId = req.user?.id;
             const postId = parseInt(req.params.id);
-            const { content } = req.body;
+            const bodySchema = z.object({ content: z.string().trim().min(1).max(1000) });
+            const parsed = bodySchema.safeParse(req.body);
+            if (!parsed.success) {
+                return res.status(400).json({ error: 'Invalid input', issues: parsed.error.flatten() });
+            }
+            const { content } = parsed.data;
+            // Anti-spam: basic rate - reject if too many comments quickly (handled by socialRateLimit) and disallow exact duplicates immediately on same post
+            const dup = await db
+                .select({ c: count() })
+                .from(socialComments)
+                .where(and(eq(socialComments.userId, userId), eq(socialComments.postId, postId), eq(socialComments.content, content)))
+                .limit(1);
+            if (dup[0]?.c > 0) {
+                return res.status(429).json({ error: 'Duplicate comment detected, please modify your message.' });
+            }
             if (!userId) {
                 return res.status(401).json({ error: "Authentication required" });
-            }
-            if (!content || content.trim().length === 0) {
-                return res.status(400).json({ error: "Comment content is required" });
             }
             // Check if post exists
             const post = await db.select().from(socialPosts).where(eq(socialPosts.id, postId)).limit(1);
@@ -391,8 +390,26 @@ export function registerSocialRoutes(app) {
             const comment = await db.insert(socialComments).values({
                 postId,
                 userId,
-                content: content.trim()
+                content
             }).returning();
+            recordEvent('social.comment.created', { userId, postId });
+            // Notify post author (if not self)
+            try {
+                const [p] = await db.select({ userId: socialPosts.userId }).from(socialPosts).where(eq(socialPosts.id, postId)).limit(1);
+                const authorId = p?.userId;
+                if (authorId && authorId !== userId) {
+                    await db.insert(notifications).values({
+                        userId: authorId,
+                        type: 'social',
+                        title: 'New comment on your post',
+                        message: 'Your post received a new comment.',
+                        data: { postId, commentId: comment[0].id },
+                        sourceModule: 'social',
+                        sourceId: String(postId),
+                    });
+                }
+            }
+            catch { }
             // Get user data for response
             const [user] = await db
                 .select({
@@ -605,10 +622,23 @@ export function registerSocialRoutes(app) {
         }
     });
     // POST /api/social/messages - Enhanced send message
-    app.post('/api/social/messages', jwtAuth, async (req, res) => {
+    app.post('/api/social/messages', jwtAuth, socialRateLimit, async (req, res) => {
         try {
             const userId = req.user?.id;
-            const { recipientId, content } = req.body;
+            const msgSchema = z.object({ recipientId: z.string().min(1), content: z.string().trim().min(1).max(1000) });
+            const msgParsed = msgSchema.safeParse(req.body);
+            if (!msgParsed.success)
+                return res.status(400).json({ error: 'Invalid input', issues: msgParsed.error.flatten() });
+            const { recipientId, content } = msgParsed.data;
+            // Anti-spam: simple guard - disallow identical consecutive messages within 10 seconds
+            const recent = await db
+                .select({ c: count() })
+                .from(userMessages)
+                .where(and(eq(userMessages.senderId, userId), eq(userMessages.recipientId, recipientId), eq(userMessages.content, content)))
+                .limit(1);
+            if (recent[0]?.c > 0) {
+                return res.status(429).json({ error: 'Duplicate message detected, please wait before sending again.' });
+            }
             if (!userId) {
                 return res.status(401).json({ error: "Authentication required" });
             }
@@ -631,8 +661,21 @@ export function registerSocialRoutes(app) {
             const message = await db.insert(userMessages).values({
                 senderId: userId,
                 recipientId,
-                content: content.trim()
+                content
             }).returning();
+            // Notify recipient
+            try {
+                await db.insert(notifications).values({
+                    userId: recipientId,
+                    type: 'message',
+                    title: 'New message',
+                    message: 'You received a new message.',
+                    data: { messageId: message[0].id, senderId: userId },
+                    sourceModule: 'messages',
+                    sourceId: String(message[0].id),
+                });
+            }
+            catch { }
             res.json({
                 success: true,
                 message: message[0]
@@ -755,7 +798,11 @@ export function registerSocialRoutes(app) {
     app.post('/api/social/friends', jwtAuth, async (req, res) => {
         try {
             const userId = req.user?.id;
-            const { friendId } = req.body;
+            const friendSchema = z.object({ friendId: z.string().min(1) });
+            const friendParsed = friendSchema.safeParse(req.body);
+            if (!friendParsed.success)
+                return res.status(400).json({ error: 'Invalid input', issues: friendParsed.error.flatten() });
+            const { friendId } = friendParsed.data;
             if (!userId) {
                 return res.status(401).json({ error: "Authentication required" });
             }
@@ -799,7 +846,11 @@ export function registerSocialRoutes(app) {
     app.post('/api/social/friends/accept', jwtAuth, async (req, res) => {
         try {
             const userId = req.user?.id;
-            const { friendId } = req.body;
+            const acceptSchema = z.object({ friendId: z.string().min(1) });
+            const acceptParsed = acceptSchema.safeParse(req.body);
+            if (!acceptParsed.success)
+                return res.status(400).json({ error: 'Invalid input', issues: acceptParsed.error.flatten() });
+            const { friendId } = acceptParsed.data;
             if (!userId) {
                 return res.status(401).json({ error: "Authentication required" });
             }
@@ -936,7 +987,11 @@ export function registerSocialRoutes(app) {
     app.post('/api/social/bookmarks', jwtAuth, async (req, res) => {
         try {
             const userId = req.user?.id;
-            const { postId } = req.body;
+            const bookmarkSchema = z.object({ postId: z.number().int().positive() });
+            const bookmarkParsed = bookmarkSchema.safeParse(req.body);
+            if (!bookmarkParsed.success)
+                return res.status(400).json({ error: 'Invalid input', issues: bookmarkParsed.error.flatten() });
+            const { postId } = bookmarkParsed.data;
             if (!userId) {
                 return res.status(401).json({ error: "Authentication required" });
             }
@@ -1010,7 +1065,11 @@ export function registerSocialRoutes(app) {
         try {
             const userId = req.user?.id;
             const postId = parseInt(req.params.id);
-            const { platform = 'internal' } = req.body;
+            const shareSchema = z.object({ platform: z.string().max(32).optional() });
+            const shareParsed = shareSchema.safeParse(req.body);
+            if (!shareParsed.success)
+                return res.status(400).json({ error: 'Invalid input', issues: shareParsed.error.flatten() });
+            const { platform = 'internal' } = shareParsed.data;
             if (!userId) {
                 return res.status(401).json({ error: "Authentication required" });
             }
@@ -1036,48 +1095,251 @@ export function registerSocialRoutes(app) {
             res.status(500).json({ error: "Failed to share post" });
         }
     });
-    // ===== USER SEARCH AND PROFILES =====
+    // ===== USER SEARCH SYSTEM =====
     // GET /api/social/users/search - Enhanced user search
     app.get('/api/social/users/search', jwtAuth, async (req, res) => {
         try {
-            const userId = req.user?.id;
-            const { q } = req.query;
-            if (!userId) {
-                return res.status(401).json({ error: "Authentication required" });
+            const currentUserId = req.user?.id;
+            const { q: query, limit = 20 } = req.query;
+            if (!query || query.length < 2) {
+                return res.json({
+                    success: true,
+                    users: []
+                });
             }
-            if (!q || q.length < 2) {
-                return res.status(400).json({ error: "Search query must be at least 2 characters" });
-            }
+            logger.info('Searching users with query:', query, 'for user:', currentUserId);
+            // Search users by name, email, or username
             const searchResults = await db
                 .select({
                 id: users.id,
                 firstName: users.firstName,
                 lastName: users.lastName,
+                email: users.email,
                 username: users.username,
                 profileImageUrl: users.profileImageUrl,
                 civicLevel: users.civicLevel,
                 isVerified: users.isVerified,
+                followersCount: users.followersCount,
+                followingCount: users.followingCount,
+                postsCount: users.postsCount,
             })
                 .from(users)
-                .where(or(sql `${users.firstName} ILIKE ${`%${q}%`}`, sql `${users.lastName} ILIKE ${`%${q}%`}`, sql `${users.username} ILIKE ${`%${q}%`}`))
-                .limit(20);
-            // Check friendship status for each result
-            const resultsWithFriendship = await Promise.all(searchResults.map(async (user) => {
-                const friendship = await db.select().from(userFriends).where(or(and(eq(userFriends.userId, userId), eq(userFriends.friendId, user.id)), and(eq(userFriends.userId, user.id), eq(userFriends.friendId, userId)))).limit(1);
-                return {
-                    ...user,
-                    isFriend: friendship.length > 0,
-                    friendStatus: friendship[0]?.status || null
-                };
+                .where(or(sql `LOWER(${users.firstName}) LIKE LOWER(${'%' + query + '%'})`, sql `LOWER(${users.lastName}) LIKE LOWER(${'%' + query + '%'})`, sql `LOWER(${users.email}) LIKE LOWER(${'%' + query + '%'})`, sql `LOWER(${users.username}) LIKE LOWER(${'%' + query + '%'})`))
+                .limit(parseInt(limit));
+            // Filter out current user and get relationship status
+            const usersWithStatus = await Promise.all(searchResults
+                .filter(user => user.id !== currentUserId)
+                .map(async (user) => {
+                try {
+                    // Check if already friends
+                    const friendship = await db
+                        .select()
+                        .from(userFriends)
+                        .where(or(and(eq(userFriends.userId, currentUserId), eq(userFriends.friendId, user.id)), and(eq(userFriends.userId, user.id), eq(userFriends.friendId, currentUserId))))
+                        .limit(1);
+                    // Check if following
+                    const following = await db
+                        .select()
+                        .from(userFollows)
+                        .where(and(eq(userFollows.userId, currentUserId), eq(userFollows.followId, user.id)))
+                        .limit(1);
+                    return {
+                        ...user,
+                        isFriend: friendship.length > 0 && friendship[0].status === 'accepted',
+                        isPendingFriend: friendship.length > 0 && friendship[0].status === 'pending',
+                        isFollowing: following.length > 0,
+                        friendshipStatus: friendship.length > 0 ? friendship[0].status : null
+                    };
+                }
+                catch (error) {
+                    logger.error('Error checking user relationship:', error);
+                    return {
+                        ...user,
+                        isFriend: false,
+                        isPendingFriend: false,
+                        isFollowing: false,
+                        friendshipStatus: null
+                    };
+                }
             }));
+            logger.info('Found users:', usersWithStatus.length);
             res.json({
                 success: true,
-                users: resultsWithFriendship
+                users: usersWithStatus
             });
         }
         catch (error) {
-            console.error('User search error:', error);
-            res.status(500).json({ error: "Failed to search users" });
+            logger.error('User search error:', error);
+            res.status(500).json({
+                success: false,
+                error: "Failed to search users",
+                message: error instanceof Error ? error.message : 'Unknown error'
+            });
+        }
+    });
+    // ===== FOLLOW SYSTEM =====
+    // POST /api/social/follow - Follow a user
+    app.post('/api/social/follow', jwtAuth, async (req, res) => {
+        try {
+            const userId = req.user?.id;
+            const followSchema = z.object({ followingId: z.string().min(1) });
+            const followParsed = followSchema.safeParse(req.body);
+            if (!followParsed.success)
+                return res.status(400).json({ error: 'Invalid input', issues: followParsed.error.flatten() });
+            const { followingId } = followParsed.data;
+            if (!userId) {
+                return res.status(401).json({ error: "Authentication required" });
+            }
+            if (!followingId) {
+                return res.status(400).json({ error: "followingId is required" });
+            }
+            if (userId === followingId) {
+                return res.status(400).json({ error: "Cannot follow yourself" });
+            }
+            // Check if already following
+            const existingFollow = await db
+                .select()
+                .from(userFollows)
+                .where(and(eq(userFollows.userId, userId), eq(userFollows.followId, followingId)))
+                .limit(1);
+            if (existingFollow.length > 0) {
+                return res.status(409).json({ error: "Already following this user" });
+            }
+            // Create follow relationship
+            await db.insert(userFollows).values({
+                userId,
+                followId: followingId
+            });
+            // Update user counts (these will be handled by triggers, but adding here for safety)
+            await db
+                .update(users)
+                .set({
+                followingCount: sql `${users.followingCount} + 1`
+            })
+                .where(eq(users.id, userId));
+            await db
+                .update(users)
+                .set({
+                followersCount: sql `${users.followersCount} + 1`
+            })
+                .where(eq(users.id, followingId));
+            // Notify followed user
+            try {
+                await db.insert(notifications).values({
+                    userId: followingId,
+                    type: 'social',
+                    title: 'New follower',
+                    message: 'You have a new follower.',
+                    data: { followerId: userId },
+                    sourceModule: 'social',
+                    sourceId: `follow:${userId}:${followingId}`,
+                });
+            }
+            catch { }
+            res.json({
+                success: true,
+                message: "Successfully followed user"
+            });
+        }
+        catch (error) {
+            logger.error('Follow error:', error);
+            res.status(500).json({
+                success: false,
+                error: "Failed to follow user",
+                message: error instanceof Error ? error.message : 'Unknown error'
+            });
+        }
+    });
+    // DELETE /api/social/unfollow - Unfollow a user
+    app.delete('/api/social/unfollow', jwtAuth, async (req, res) => {
+        try {
+            const userId = req.user?.id;
+            const unfollowSchema = z.object({ followingId: z.string().min(1) });
+            const unfollowParsed = unfollowSchema.safeParse(req.body);
+            if (!unfollowParsed.success)
+                return res.status(400).json({ error: 'Invalid input', issues: unfollowParsed.error.flatten() });
+            const { followingId } = unfollowParsed.data;
+            if (!userId) {
+                return res.status(401).json({ error: "Authentication required" });
+            }
+            if (!followingId) {
+                return res.status(400).json({ error: "followingId is required" });
+            }
+            // Delete follow relationship
+            await db
+                .delete(userFollows)
+                .where(and(eq(userFollows.userId, userId), eq(userFollows.followId, followingId)));
+            // Update user counts
+            await db
+                .update(users)
+                .set({
+                followingCount: sql `GREATEST(${users.followingCount} - 1, 0)`
+            })
+                .where(eq(users.id, userId));
+            await db
+                .update(users)
+                .set({
+                followersCount: sql `GREATEST(${users.followersCount} - 1, 0)`
+            })
+                .where(eq(users.id, followingId));
+            res.json({
+                success: true,
+                message: "Successfully unfollowed user"
+            });
+        }
+        catch (error) {
+            logger.error('Unfollow error:', error);
+            res.status(500).json({
+                success: false,
+                error: "Failed to unfollow user",
+                message: error instanceof Error ? error.message : 'Unknown error'
+            });
+        }
+    });
+    // GET /api/social/followers/:userId - Get user's followers
+    app.get('/api/social/followers/:userId', jwtAuth, async (req, res) => {
+        try {
+            const userId = req.params.userId;
+            const followers = await db
+                .select({
+                id: users.id,
+                firstName: users.firstName,
+                lastName: users.lastName,
+                profileImageUrl: users.profileImageUrl,
+                civicLevel: users.civicLevel,
+                isVerified: users.isVerified,
+            })
+                .from(userFollows)
+                .leftJoin(users, eq(userFollows.userId, users.id))
+                .where(eq(userFollows.followId, userId));
+            res.json({ success: true, followers });
+        }
+        catch (error) {
+            console.error('Get followers error:', error);
+            res.status(500).json({ error: "Failed to fetch followers" });
+        }
+    });
+    // GET /api/social/following/:userId - Get users that this user is following
+    app.get('/api/social/following/:userId', jwtAuth, async (req, res) => {
+        try {
+            const userId = req.params.userId;
+            const following = await db
+                .select({
+                id: users.id,
+                firstName: users.firstName,
+                lastName: users.lastName,
+                profileImageUrl: users.profileImageUrl,
+                civicLevel: users.civicLevel,
+                isVerified: users.isVerified,
+            })
+                .from(userFollows)
+                .leftJoin(users, eq(userFollows.followId, users.id))
+                .where(eq(userFollows.userId, userId));
+            res.json({ success: true, following });
+        }
+        catch (error) {
+            console.error('Get following error:', error);
+            res.status(500).json({ error: "Failed to fetch following" });
         }
     });
     // ===== USER STATS =====
@@ -1137,139 +1399,6 @@ export function registerSocialRoutes(app) {
         catch (error) {
             console.error('User stats error:', error);
             res.status(500).json({ error: "Failed to fetch user stats" });
-        }
-    });
-    // POST /api/social/follow - Follow a user
-    app.post('/api/social/follow', jwtAuth, async (req, res) => {
-        try {
-            const followerId = req.user?.id;
-            const { userId: followingId } = req.body; // Frontend sends userId, map to followingId
-            if (!followerId || !followingId) {
-                return res.status(400).json({
-                    error: "User ID and follow ID are required",
-                    code: "MISSING_PARAMETERS"
-                });
-            }
-            if (followerId === followingId) {
-                return res.status(400).json({
-                    error: "Cannot follow yourself",
-                    code: "SELF_FOLLOW"
-                });
-            }
-            // Check if already following
-            const existingFollow = await db.select().from(userFollows).where(and(eq(userFollows.userId, followerId), eq(userFollows.followId, followingId))).limit(1);
-            if (existingFollow.length > 0) {
-                return res.status(400).json({
-                    error: "Already following this user",
-                    code: "ALREADY_FOLLOWING"
-                });
-            }
-            // Insert follow relationship
-            await db.insert(userFollows).values({
-                userId: followerId,
-                followId: followingId
-            });
-            // Note: Follower counts will be updated via database triggers or computed fields
-            // For now, we'll rely on the user_follows table for accurate counts
-            res.json({
-                success: true,
-                message: "User followed successfully",
-                data: {
-                    followerId,
-                    followingId,
-                    followedAt: new Date()
-                }
-            });
-        }
-        catch (error) {
-            console.error('Follow user error:', error);
-            res.status(500).json({ error: "Failed to follow user" });
-        }
-    });
-    // DELETE /api/social/unfollow - Unfollow a user
-    app.delete('/api/social/unfollow', jwtAuth, async (req, res) => {
-        try {
-            const followerId = req.user?.id;
-            const { userId: followingId } = req.body; // Frontend sends userId, map to followingId
-            if (!followerId || !followingId) {
-                return res.status(400).json({
-                    error: "User ID and follow ID are required",
-                    code: "MISSING_PARAMETERS"
-                });
-            }
-            // Delete follow relationship
-            const result = await db.delete(userFollows).where(and(eq(userFollows.userId, followerId), eq(userFollows.followId, followingId)));
-            if (result.rowCount === 0) {
-                return res.status(400).json({
-                    error: "Not following this user",
-                    code: "NOT_FOLLOWING"
-                });
-            }
-            // Note: Follower counts will be updated via database triggers or computed fields
-            // For now, we'll rely on the user_follows table for accurate counts
-            res.json({
-                success: true,
-                message: "User unfollowed successfully",
-                data: {
-                    followerId,
-                    followingId,
-                    unfollowedAt: new Date()
-                }
-            });
-        }
-        catch (error) {
-            logger.error('Unfollow user error:', {
-                error: error instanceof Error ? error.message : 'Unknown error',
-                followerId: req.user?.id,
-                followingId: req.body.userId
-            });
-            res.status(500).json({ error: "Failed to unfollow user" });
-        }
-    });
-    // GET /api/social/followers/:userId - Get user's followers
-    app.get('/api/social/followers/:userId', jwtAuth, async (req, res) => {
-        try {
-            const userId = req.params.userId;
-            const followers = await db
-                .select({
-                id: users.id,
-                firstName: users.firstName,
-                lastName: users.lastName,
-                profileImageUrl: users.profileImageUrl,
-                civicLevel: users.civicLevel,
-                isVerified: users.isVerified,
-            })
-                .from(userFollows)
-                .leftJoin(users, eq(userFollows.userId, users.id))
-                .where(eq(userFollows.followId, userId));
-            res.json({ success: true, followers });
-        }
-        catch (error) {
-            console.error('Get followers error:', error);
-            res.status(500).json({ error: "Failed to fetch followers" });
-        }
-    });
-    // GET /api/social/following/:userId - Get users that this user is following
-    app.get('/api/social/following/:userId', jwtAuth, async (req, res) => {
-        try {
-            const userId = req.params.userId;
-            const following = await db
-                .select({
-                id: users.id,
-                firstName: users.firstName,
-                lastName: users.lastName,
-                profileImageUrl: users.profileImageUrl,
-                civicLevel: users.civicLevel,
-                isVerified: users.isVerified,
-            })
-                .from(userFollows)
-                .leftJoin(users, eq(userFollows.followId, users.id))
-                .where(eq(userFollows.userId, userId));
-            res.json({ success: true, following });
-        }
-        catch (error) {
-            console.error('Get following error:', error);
-            res.status(500).json({ error: "Failed to fetch following" });
         }
     });
 }

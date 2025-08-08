@@ -1,5 +1,7 @@
 import { Router } from "express";
 import { db } from "../db.js";
+import { politicians, bills, legalActs, newsArticles } from "../../shared/schema.js";
+import { or, like } from "drizzle-orm";
 const router = Router();
 // Simple search endpoint that returns basic results
 router.get('/', async (req, res) => {
@@ -23,11 +25,12 @@ router.get('/', async (req, res) => {
         const results = [];
         try {
             // Search politicians
-            const politicians = await db.query.politicians.findMany({
-                where: (politicians, { or, like }) => or(like(politicians.name, `%${searchTerm}%`), like(politicians.party, `%${searchTerm}%`), like(politicians.constituency, `%${searchTerm}%`)),
-                limit: 5
-            });
-            politicians.forEach(politician => {
+            const politiciansRows = await db
+                .select()
+                .from(politicians)
+                .where(or(like(politicians.name, `%${searchTerm}%`), like(politicians.party, `%${searchTerm}%`), like(politicians.constituency, `%${searchTerm}%`)))
+                .limit(5);
+            politiciansRows.forEach((politician) => {
                 results.push({
                     id: politician.id.toString(),
                     type: 'politician',
@@ -38,11 +41,12 @@ router.get('/', async (req, res) => {
                 });
             });
             // Search bills
-            const bills = await db.query.bills.findMany({
-                where: (bills, { or, like }) => or(like(bills.title, `%${searchTerm}%`), like(bills.description, `%${searchTerm}%`)),
-                limit: 5
-            });
-            bills.forEach(bill => {
+            const billsRows = await db
+                .select()
+                .from(bills)
+                .where(or(like(bills.title, `%${searchTerm}%`), like(bills.description, `%${searchTerm}%`)))
+                .limit(5);
+            billsRows.forEach((bill) => {
                 results.push({
                     id: bill.id.toString(),
                     type: 'bill',
@@ -53,11 +57,12 @@ router.get('/', async (req, res) => {
                 });
             });
             // Search legal acts
-            const legalActs = await db.query.legalActs.findMany({
-                where: (acts, { or, like }) => or(like(acts.title, `%${searchTerm}%`), like(acts.fullText, `%${searchTerm}%`)),
-                limit: 5
-            });
-            legalActs.forEach(act => {
+            const actsRows = await db
+                .select()
+                .from(legalActs)
+                .where(or(like(legalActs.title, `%${searchTerm}%`), like(legalActs.fullText, `%${searchTerm}%`)))
+                .limit(5);
+            actsRows.forEach((act) => {
                 results.push({
                     id: act.id.toString(),
                     type: 'legal',
@@ -68,11 +73,12 @@ router.get('/', async (req, res) => {
                 });
             });
             // Search news articles
-            const news = await db.query.newsArticles.findMany({
-                where: (articles, { or, like }) => or(like(articles.title, `%${searchTerm}%`), like(articles.content, `%${searchTerm}%`)),
-                limit: 5
-            });
-            news.forEach(article => {
+            const newsRows = await db
+                .select()
+                .from(newsArticles)
+                .where(or(like(newsArticles.title, `%${searchTerm}%`), like(newsArticles.content, `%${searchTerm}%`)))
+                .limit(5);
+            newsRows.forEach((article) => {
                 results.push({
                     id: article.id.toString(),
                     type: 'news',

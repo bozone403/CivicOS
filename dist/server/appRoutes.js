@@ -41,6 +41,9 @@ import { registerUploadRoutes } from "./routes/upload.js";
 import { registerMigrationRoutes } from "./routes/migration.js";
 import donationsRouter from "./routes/donations.js";
 import foiRouter from "./routes/foi.js";
+import { registerIdentityRoutes } from "./routes/identity.js";
+import { registerModerationRoutes } from "./routes/moderation.js";
+import { registerAdminRoutes } from "./routes/admin.js";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 export async function registerRoutes(app) {
@@ -75,6 +78,10 @@ export async function registerRoutes(app) {
     registerVotingRoutes(app);
     registerUploadRoutes(app);
     registerMigrationRoutes(app);
+    registerModerationRoutes(app);
+    registerAdminRoutes(app);
+    // Identity verification routes (user + admin)
+    registerIdentityRoutes(app);
     // FOI routes (no auth required)
     app.use("/api/foi", foiRouter);
     // Simple notifications routes (no auth required)
@@ -83,7 +90,7 @@ export async function registerRoutes(app) {
     // app.use("/api/social", civicSocialRouter); // Temporarily disabled
     // Dashboard routes (no auth required for demo)
     app.use("/api/dashboard", dashboardRouter);
-    // AI routes (free AI service using Ollama)
+    // AI routes (mounted once)
     app.use("/api/ai", aiRoutes);
     // Search routes (no auth required for search)
     app.use("/api/search", searchRouter);

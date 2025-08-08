@@ -307,6 +307,7 @@ export const newsArticles = pgTable("news_articles", {
     url: varchar("url").unique(),
     source: varchar("source"),
     author: varchar("author"),
+    category: varchar("category"),
     publishedAt: timestamp("published_at"),
     createdAt: timestamp("created_at").defaultNow(),
     updatedAt: timestamp("updated_at").defaultNow(),
