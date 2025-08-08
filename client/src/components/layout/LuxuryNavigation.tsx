@@ -388,10 +388,12 @@ export function LuxuryNavigation() {
                     <Heart className="w-4 h-4 mr-3 text-red-600" />
                     Support Platform
                   </Button>
-                  <Button variant="outline" size="sm" className="w-full justify-start text-sm h-9">
-                    <Info className="w-4 h-4 mr-3" />
-                    About CivicOS
-                  </Button>
+                  <Link href="/about">
+                    <Button variant="outline" size="sm" className="w-full justify-start text-sm h-9">
+                      <Info className="w-4 h-4 mr-3" />
+                      About CivicOS
+                    </Button>
+                  </Link>
                 </div>
               </div>
             )}
