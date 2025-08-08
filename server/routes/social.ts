@@ -501,6 +501,103 @@ export function registerSocialRoutes(app: Express) {
     }
   });
 
+  // GET /api/social/posts/:id/comments - Fetch comments for a post
+  app.get('/api/social/posts/:id/comments', jwtAuth, async (req: Request, res: Response) => {
+    try {
+      const postId = parseInt(req.params.id);
+      if (Number.isNaN(postId)) {
+        return res.status(400).json({ success: false, message: 'Invalid post id' });
+      }
+
+      // Ensure post exists
+      const post = await db.select({ id: socialPosts.id }).from(socialPosts).where(eq(socialPosts.id, postId)).limit(1);
+      if (post.length === 0) {
+        return res.status(404).json({ success: false, message: 'Post not found' });
+      }
+
+      const comments = await db
+        .select({
+          id: socialComments.id,
+          content: socialComments.content,
+          parentCommentId: socialComments.parentCommentId,
+          createdAt: socialComments.createdAt,
+          updatedAt: socialComments.updatedAt,
+          userId: socialComments.userId,
+          user: {
+            id: users.id,
+            firstName: users.firstName,
+            lastName: users.lastName,
+            profileImageUrl: users.profileImageUrl,
+          }
+        })
+        .from(socialComments)
+        .leftJoin(users, eq(socialComments.userId, users.id))
+        .where(eq(socialComments.postId, postId))
+        .orderBy(asc(socialComments.createdAt));
+
+      const formatted = comments.map((c) => ({
+        id: c.id,
+        content: c.content,
+        parentCommentId: c.parentCommentId as number | null,
+        createdAt: c.createdAt as any,
+        updatedAt: c.updatedAt as any,
+        userId: c.userId,
+        firstName: c.user?.firstName,
+        lastName: c.user?.lastName,
+        profileImageUrl: c.user?.profileImageUrl,
+        likeCount: 0,
+        isLiked: false,
+      }));
+
+      res.json({ success: true, comments: formatted });
+    } catch (error) {
+      logger.error('Fetch comments error:', error);
+      res.status(500).json({ success: false, message: 'Failed to fetch comments' });
+    }
+  });
+
+  // PUT /api/social/comments/:id - Update a comment (author only)
+  app.put('/api/social/comments/:id', jwtAuth, async (req: Request, res: Response) => {
+    try {
+      const userId = (req.user as any)?.id;
+      const commentId = parseInt(req.params.id);
+      const bodySchema = z.object({ content: z.string().trim().min(1).max(1000) });
+      const parsed = bodySchema.safeParse(req.body);
+      if (!parsed.success) return res.status(400).json({ error: 'Invalid input', issues: parsed.error.flatten() });
+
+      const [existing] = await db.select().from(socialComments).where(eq(socialComments.id, commentId)).limit(1);
+      if (!existing) return res.status(404).json({ error: 'Comment not found' });
+      if ((existing as any).userId !== userId) return res.status(403).json({ error: 'Forbidden' });
+
+      const [updated] = await db
+        .update(socialComments)
+        .set({ content: parsed.data.content, updatedAt: new Date() as any })
+        .where(eq(socialComments.id, commentId))
+        .returning();
+      res.json({ success: true, comment: updated });
+    } catch (error) {
+      logger.error('Update comment error:', error);
+      res.status(500).json({ error: 'Failed to update comment' });
+    }
+  });
+
+  // DELETE /api/social/comments/:id - Delete a comment (author only)
+  app.delete('/api/social/comments/:id', jwtAuth, async (req: Request, res: Response) => {
+    try {
+      const userId = (req.user as any)?.id;
+      const commentId = parseInt(req.params.id);
+      const [existing] = await db.select().from(socialComments).where(eq(socialComments.id, commentId)).limit(1);
+      if (!existing) return res.status(404).json({ error: 'Comment not found' });
+      if ((existing as any).userId !== userId) return res.status(403).json({ error: 'Forbidden' });
+
+      await db.delete(socialComments).where(eq(socialComments.id, commentId));
+      res.json({ success: true });
+    } catch (error) {
+      logger.error('Delete comment error:', error);
+      res.status(500).json({ error: 'Failed to delete comment' });
+    }
+  });
+
   // ===== MESSAGING SYSTEM =====
 
   // GET /api/social/conversations - Enhanced conversations

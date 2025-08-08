@@ -31,36 +31,14 @@ apply_migration() {
 }
 
 # Apply all migrations in order
-echo "🔄 Applying all migrations..."
+echo "🔄 Applying all migrations in alphanumeric order..."
 
-# Core schema migrations
-apply_migration "migrations/0000_neat_smiling_tiger.sql"
-apply_migration "migrations/0001_civicsocial_tables.sql"
-apply_migration "migrations/0002_add_profile_fields_to_users.sql"
-apply_migration "migrations/0003_add_electoral_voting.sql"
-apply_migration "migrations/0004_safe_schema_updates.sql"
-apply_migration "migrations/0005_safe_data_migration.sql"
-apply_migration "migrations/0006_complete_user_fields.sql"
-apply_migration "migrations/0007_add_politicians_unique_constraint.sql"
-apply_migration "migrations/0008_enable_rls_security.sql"
-apply_migration "migrations/0009_fix_rls_remaining_issues.sql"
-apply_migration "migrations/0010_fix_policy_syntax.sql"
-apply_migration "migrations/0011_fix_user_profiles_and_social.sql"
-apply_migration "migrations/0012_add_dashboard_required_fields.sql"
-apply_migration "migrations/0013_add_membership_and_enhanced_fields.sql"
-apply_migration "migrations/0014_add_membership_permissions_and_content_tables.sql"
-apply_migration "migrations/0015_civicsocial_complete_schema.sql"
-apply_migration "migrations/0016_add_bill_sponsors.sql"
-apply_migration "migrations/0017_add_username_field.sql"
-apply_migration "migrations/0018_add_profile_customization.sql"
-apply_migration "migrations/0019_enhance_announcements_schema.sql"
-apply_migration "migrations/0020_fix_missing_schema_tables.sql"
-apply_migration "migrations/0021_fix_social_tables_data_types.sql"
-apply_migration "migrations/0022_fix_permissions_schema.sql"
-apply_migration "migrations/0023_add_missing_schema_fields.sql"
-apply_migration "migrations/0024_add_final_missing_fields.sql"
+# Apply all .sql migrations in order (handles newly added files automatically)
+for file in $(ls -1 migrations/*.sql | sort); do
+  apply_migration "$file"
+done
 
-echo "🎉 All migrations completed!"
+echo "🎉 All migrations attempted!"
 
 # Verify critical tables exist
 echo "🔍 Verifying critical tables..."
@@ -85,4 +63,4 @@ else
 fi
 
 echo "🎯 Migration script completed successfully!"
-echo "The database should now be fully up to date with the latest schema." 
+echo "The database should now be fully up to date with the latest schema."

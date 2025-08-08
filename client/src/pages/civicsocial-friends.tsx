@@ -4,7 +4,7 @@ import { Button } from "../components/ui/button";
 import { useCivicSocialFriends, useCivicSocialAddFriend, useCivicSocialAcceptFriend, useCivicSocialRemoveFriend, useCivicSocialNotify } from "../hooks/useCivicSocial";
 import { useAuth } from "../hooks/useAuth";
 import { UserPlus, Users, User, Check, X, Loader2, Search, UserCheck, UserX } from "lucide-react";
-import { api } from "../lib/api";
+import { authRequest } from "../lib/queryClient";
 
 interface SearchUser {
   id: string;
@@ -44,8 +44,7 @@ export default function CivicSocialFriends() {
       setSearchError(null);
       
       try {
-        const response = await api.get(`/api/users/search?q=${encodeURIComponent(searchQuery)}`);
-        const data = await response.json();
+        const data = await authRequest(`/api/users/search?q=${encodeURIComponent(searchQuery)}`, 'GET');
         if (data.users) {
           // Filter out current user and existing friends
           const filteredUsers = data.users.filter((searchUser: SearchUser) => {

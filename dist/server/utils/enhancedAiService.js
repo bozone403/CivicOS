@@ -20,6 +20,10 @@ class EnhancedAiService {
                 this.isOllamaAvailable = false;
                 return;
             }
+            if (typeof globalThis.fetch === 'undefined') {
+                const nodeFetch = await import('node-fetch');
+                globalThis.fetch = nodeFetch.default || nodeFetch;
+            }
             const response = await fetch(`${this.ollamaUrl}/api/tags`);
             if (response.ok) {
                 this.isOllamaAvailable = true;
@@ -51,6 +55,10 @@ class EnhancedAiService {
     }
     async generateOllamaResponse(message, context) {
         const prompt = this.buildPrompt(message, context);
+        if (typeof globalThis.fetch === 'undefined') {
+            const nodeFetch = await import('node-fetch');
+            globalThis.fetch = nodeFetch.default || nodeFetch;
+        }
         const response = await fetch(`${this.ollamaUrl}/api/generate`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },

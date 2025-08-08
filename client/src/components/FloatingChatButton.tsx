@@ -12,7 +12,7 @@ export function FloatingChatButton() {
       <div className="hidden lg:block">
         <Button
           onClick={() => setIsChatOpen(true)}
-          className="fixed bottom-6 right-6 h-14 w-14 rounded-full bg-blue-600 hover:bg-blue-700 text-white shadow-lg hover:shadow-xl transition-all duration-200 z-40"
+          className="fixed bottom-6 right-6 h-14 w-14 rounded-full bg-blue-600 hover:bg-blue-700 text-white shadow-lg hover:shadow-xl transition-all duration-200 z-40 border border-white/20"
           size="icon"
           title="Chat with CivicAI"
         >
@@ -22,7 +22,7 @@ export function FloatingChatButton() {
       
       {isChatOpen && (
         <div className="fixed inset-0 z-50">
-          <div className="fixed bottom-6 right-6">
+          <div className="fixed bottom-6 right-6 bg-white rounded-xl shadow-2xl border border-gray-200">
             <CivicChatBot isOpen={isChatOpen} onClose={() => setIsChatOpen(false)} />
           </div>
         </div>

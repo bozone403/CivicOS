@@ -159,13 +159,28 @@ async function testAllCivicSocialEndpoints() {
     console.log(`❌ Friends List: ${error.message}`);
   }
   
-  // Test 7: Add Friend (self-test)
+  // Test 7: Add Friend (search a real user first)
+  console.log('🔍 Searching for user to add as friend...');
+  let friendIdToAdd = null;
+  try {
+    const searchRes = await fetch(`${API_BASE}/api/social/users/search?q=test`, { headers });
+    const searchData = await searchRes.json();
+    if (searchRes.ok && Array.isArray(searchData.users) && searchData.users.length > 0) {
+      friendIdToAdd = searchData.users[0]?.id || null;
+      console.log(`✅ Found candidate friend: ${friendIdToAdd}`);
+    } else {
+      console.log('⚠️ No users found to add as friend');
+    }
+  } catch (e) {
+    console.log('❌ User search for friend failed:', e.message);
+  }
+
   console.log('🔍 Testing Add Friend...');
   try {
     const response = await fetch(`${API_BASE}/api/social/friends`, {
       method: 'POST',
       headers,
-      body: JSON.stringify({ friendId: 'test-user-id' })
+      body: JSON.stringify({ friendId: friendIdToAdd || 'invalid' })
     });
     const data = await response.json();
     if (response.ok) {

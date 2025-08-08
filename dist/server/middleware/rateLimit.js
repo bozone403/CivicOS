@@ -1,4 +1,4 @@
-import rateLimit from "express-rate-limit";
+import rateLimit, { ipKeyGenerator } from "express-rate-limit";
 import pino from "pino";
 const logger = pino();
 // Unified rate limiting configuration
@@ -19,14 +19,12 @@ export const createRateLimit = (windowMs, max, message = 'Too many requests, ple
         res.status(429).json({ error: message });
     },
     keyGenerator: (req) => {
-        // Use user ID if authenticated, otherwise use a safe IP key
-        const userId = req.user?.id;
-        if (userId) {
-            return userId;
-        }
-        // For IPv6 safety, use a hash or simplified key
-        const ip = req.ip || req.connection.remoteAddress || 'unknown';
-        return ip.includes(':') ? ip.split(':')[0] : ip;
+        // Prefer user ID when authenticated to avoid throttling legitimate sessions
+        const userId = req?.user?.id;
+        if (userId)
+            return `user:${userId}`;
+        // Delegate to library helper for correct IPv6 handling
+        return ipKeyGenerator(req);
     }
 });
 // Specific rate limit configurations

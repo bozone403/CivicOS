@@ -27,12 +27,17 @@ function jwtAuth(req: any, res: any, next: any) {
 
 export function registerMessageRoutes(app: Express) {
   // Get unread message count for current user
-  app.get('/api/messages/unread/count', async (req: Request, res: Response) => {
+  app.get('/api/messages/unread/count', jwtAuth, async (req: Request, res: Response) => {
     try {
-      // Return proper array format for frontend
-      res.json({ unreadCount: 0 });
+      const userId = (req as any).user.id;
+      const result = await db.execute(sql`
+        SELECT COUNT(*)::int AS cnt
+        FROM user_messages
+        WHERE recipient_id = ${userId} AND is_read = false
+      `);
+      const unreadCount = result?.rows?.[0]?.cnt ?? 0;
+      res.json({ unreadCount });
     } catch (error) {
-      // console.error removed for production
       res.status(500).json({ error: 'Failed to fetch unread count' });
     }
   });

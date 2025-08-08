@@ -109,7 +109,8 @@ function jwtAuth(req: Request, res: Response, next: NextFunction) {
 }
 
 const app = express();
-app.set('trust proxy', 1); // Trust first proxy (Render, Heroku, etc.)
+// Trust proxy chain on Render to ensure correct client IP for rate limiting (IPv6-safe)
+app.set('trust proxy', true);
 
 // Add JwtPayload type for req.user
 // interface JwtPayload {
@@ -164,6 +165,18 @@ app.use(express.urlencoded({ extended: false }));
 
 // Apply rate limiting and logging middleware
 app.use(requestLogger);
+
+// Normalize incoming URLs to prevent double-slash routing edge cases
+app.use((req, _res, next) => {
+  if (req.url.includes('//')) {
+    // Collapse any sequence of multiple slashes to a single slash (idempotent)
+    req.url = req.url.replace(/\/+/, '/');
+    while (req.url.includes('//')) {
+      req.url = req.url.replace(/\/+/, '/');
+    }
+  }
+  next();
+});
 
 // Apply specific rate limits to sensitive endpoints
 app.use('/api/auth', authRateLimit);

@@ -29,7 +29,7 @@ export function FloatingMessageButton() {
       <div className="fixed bottom-6 left-6 z-40">
         <Button
           onClick={() => setIsMessagingOpen(true)}
-          className="h-14 w-14 rounded-full bg-green-600 hover:bg-green-700 text-white shadow-lg hover:shadow-xl transition-all duration-200 relative"
+          className="h-14 w-14 rounded-full bg-green-600 hover:bg-green-700 text-white shadow-lg hover:shadow-xl transition-all duration-200 relative border border-white/20"
           size="icon"
           title="Messages"
         >
@@ -47,8 +47,9 @@ export function FloatingMessageButton() {
       
       {/* Messaging System - Now handled by routing */}
       {isMessagingOpen && (
-        <div className="fixed inset-0 z-50 bg-background">
-          <div className="flex items-center justify-between p-4 border-b">
+        <div className="fixed inset-0 z-50 bg-black/40">
+          <div className="fixed bottom-6 left-6 right-6 md:left-auto md:right-6 md:w-[720px] bg-white rounded-xl shadow-2xl border border-gray-200">
+            <div className="flex items-center justify-between p-4 border-b">
             <h2 className="text-lg font-semibold">Messages</h2>
             <Button
               variant="ghost"
@@ -57,8 +58,9 @@ export function FloatingMessageButton() {
             >
               Close
             </Button>
+            </div>
+            <MessagingSystem />
           </div>
-          <MessagingSystem />
         </div>
       )}
     </>

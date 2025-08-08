@@ -39,6 +39,10 @@ class EnhancedAiService {
         this.isOllamaAvailable = false;
         return;
       }
+      if (typeof (globalThis as any).fetch === 'undefined') {
+        const nodeFetch = await import('node-fetch');
+        (globalThis as any).fetch = (nodeFetch as any).default || (nodeFetch as any);
+      }
       const response = await fetch(`${this.ollamaUrl}/api/tags`);
       if (response.ok) {
         this.isOllamaAvailable = true;
@@ -69,6 +73,10 @@ class EnhancedAiService {
   private async generateOllamaResponse(message: string, context?: any): Promise<AiResponse> {
     const prompt = this.buildPrompt(message, context);
     
+    if (typeof (globalThis as any).fetch === 'undefined') {
+      const nodeFetch = await import('node-fetch');
+      (globalThis as any).fetch = (nodeFetch as any).default || (nodeFetch as any);
+    }
     const response = await fetch(`${this.ollamaUrl}/api/generate`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

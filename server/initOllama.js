@@ -28,6 +28,10 @@ class OllamaManager {
     }
 
     async checkOllamaHealth() {
+        // Ensure fetch is available in this environment
+        if (typeof fetch === 'undefined') {
+            global.fetch = require('node-fetch');
+        }
         try {
             const response = await fetch(`${this.baseUrl}/api/tags`);
             if (response.ok) {
@@ -45,6 +49,9 @@ class OllamaManager {
     }
 
     async checkModelAvailability() {
+        if (typeof fetch === 'undefined') {
+            global.fetch = require('node-fetch');
+        }
         try {
             const response = await fetch(`${this.baseUrl}/api/tags`);
             if (response.ok) {
@@ -142,6 +149,9 @@ class OllamaManager {
         this.log('info', 'Testing model functionality...');
         
         try {
+            if (typeof fetch === 'undefined') {
+                global.fetch = require('node-fetch');
+            }
             const response = await fetch(`${this.baseUrl}/api/generate`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },

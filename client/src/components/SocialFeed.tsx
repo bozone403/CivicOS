@@ -86,8 +86,8 @@ export function SocialFeed() {
   const { data: comments = [] } = useQuery<SocialComment[]>({
     queryKey: ["/api/social/posts", selectedPost?.id, "comments"],
     queryFn: async () => {
-      const response = await apiRequest(`/api/social/posts/${selectedPost?.id}`, "GET");
-      return response?.post?.comments || [];
+      const response = await apiRequest(`/api/social/posts/${selectedPost?.id}/comments`, "GET");
+      return response?.comments || [];
     },
     enabled: !!selectedPost && isAuthenticated,
   });
@@ -162,7 +162,7 @@ export function SocialFeed() {
   // Create comment mutation
   const createCommentMutation = useMutation({
     mutationFn: async ({ postId, content, parentCommentId }: { postId: number; content: string; parentCommentId?: number }) => {
-      return apiRequest(`/api/social/posts/${postId}/comments`, "POST", { content, parentCommentId });
+      return apiRequest(`/api/social/posts/${postId}/comment`, "POST", { content, parentCommentId });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/social/posts", selectedPost?.id, "comments"] });
@@ -227,8 +227,8 @@ export function SocialFeed() {
 
   // Like/unlike mutation
   const likeMutation = useMutation({
-    mutationFn: async ({ postId, commentId }: { postId?: number; commentId?: number }) => {
-      return apiRequest("/api/social/like", "POST", { postId, commentId });
+    mutationFn: async ({ postId }: { postId: number }) => {
+      return apiRequest(`/api/social/posts/${postId}/like`, "POST", { reaction: "👍" });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["civicSocialFeed"] });
@@ -294,8 +294,9 @@ export function SocialFeed() {
     }
   };
 
-  const handleLike = (postId?: number, commentId?: number) => {
-    likeMutation.mutate({ postId, commentId });
+  const handleLike = (postId?: number) => {
+    if (!postId) return;
+    likeMutation.mutate({ postId });
   };
 
   const getUserDisplayName = (post: SocialPost) => {
@@ -625,7 +626,7 @@ export function SocialFeed() {
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                onClick={() => handleLike(undefined, comment.id)}
+                                disabled
                                 className={comment.isLiked ? "text-red-500" : ""}
                               >
                                 <Heart className={`w-3 h-3 mr-1 ${comment.isLiked ? "fill-current" : ""}`} />
