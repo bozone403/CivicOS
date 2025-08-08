@@ -48,11 +48,13 @@ export default function CivicSocialProfile() {
   const [image, setImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [editOpen, setEditOpen] = useState(false);
+  const [privacyOpen, setPrivacyOpen] = useState(false);
   const [editFirstName, setEditFirstName] = useState(user?.firstName || "");
   const [editLastName, setEditLastName] = useState(user?.lastName || "");
   const [editBio, setEditBio] = useState((user as any)?.bio || "");
   const [editAvatar, setEditAvatar] = useState((user as any)?.profileImageUrl || "");
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const profilePhotoInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const friends = friendsData?.friends || [];
@@ -93,6 +95,37 @@ export default function CivicSocialProfile() {
     if (file) {
       setImage(file);
       setImagePreview(URL.createObjectURL(file));
+    }
+  };
+
+  const uploadProfilePhoto = useMutation({
+    mutationFn: async (file: File) => {
+      const token = localStorage.getItem('civicos-jwt') || '';
+      const form = new FormData();
+      form.append('profilePicture', file);
+      const res = await fetch(`/api/auth/upload-profile-picture`, {
+        method: 'POST',
+        headers: token ? { Authorization: `Bearer ${token}` } as any : undefined,
+        body: form,
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data?.message || data?.error || 'Failed to upload');
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+      toast({ title: 'Photo updated', description: 'Your profile picture has been updated.' });
+    },
+    onError: (error: any) => {
+      toast({ title: 'Upload failed', description: error?.message || 'Could not update photo.', variant: 'destructive' });
+    }
+  });
+
+  const handleProfilePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      uploadProfilePhoto.mutate(file);
+      e.target.value = '';
     }
   };
 
@@ -262,12 +295,13 @@ export default function CivicSocialProfile() {
             Edit Profile
           </Button>
           
-          <Button variant="outline" className="w-full">
+          <Button variant="outline" className="w-full" onClick={() => profilePhotoInputRef.current?.click()}>
             <Camera className="w-4 h-4 mr-2" />
             Change Photo
           </Button>
+          <input ref={profilePhotoInputRef} type="file" accept="image/*" className="hidden" onChange={handleProfilePhotoChange} />
           
-          <Button variant="outline" className="w-full">
+          <Button variant="outline" className="w-full" onClick={() => setPrivacyOpen(true)}>
             <Settings className="w-4 h-4 mr-2" />
             Privacy Settings
           </Button>
@@ -543,7 +577,7 @@ export default function CivicSocialProfile() {
                   description="Connect with other civic-minded individuals!"
                   icon={<User className="w-8 h-8" />}
                   action={
-                    <Button className="social-button-primary">
+                    <Button className="social-button-primary" onClick={() => { window.location.href = '/civicsocial/friends'; }}>
                       <UserPlus className="w-4 h-4 mr-2" />
                       Find Friends
                     </Button>
@@ -704,6 +738,49 @@ export default function CivicSocialProfile() {
                 )}
                 Save Changes
               </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Privacy Settings Dialog */}
+      <Dialog open={privacyOpen} onOpenChange={setPrivacyOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Privacy Settings</DialogTitle>
+            <DialogDescription>Control what is visible on your profile.</DialogDescription>
+          </DialogHeader>
+          <form onSubmit={(e) => {
+            e.preventDefault();
+            updateProfile.mutate({
+              profileShowBadges: (document.getElementById('ps_showBadges') as HTMLInputElement)?.checked,
+              profileShowStats: (document.getElementById('ps_showStats') as HTMLInputElement)?.checked,
+              profileShowActivity: (document.getElementById('ps_showActivity') as HTMLInputElement)?.checked,
+              profileShowFriends: (document.getElementById('ps_showFriends') as HTMLInputElement)?.checked,
+            });
+            setPrivacyOpen(false);
+          }} className="space-y-4">
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <input id="ps_showBadges" type="checkbox" defaultChecked={(user as any)?.profileShowBadges ?? true} />
+                <label htmlFor="ps_showBadges" className="text-sm">Show badges</label>
+              </div>
+              <div className="flex items-center gap-2">
+                <input id="ps_showStats" type="checkbox" defaultChecked={(user as any)?.profileShowStats ?? true} />
+                <label htmlFor="ps_showStats" className="text-sm">Show stats</label>
+              </div>
+              <div className="flex items-center gap-2">
+                <input id="ps_showActivity" type="checkbox" defaultChecked={(user as any)?.profileShowActivity ?? true} />
+                <label htmlFor="ps_showActivity" className="text-sm">Show activity</label>
+              </div>
+              <div className="flex items-center gap-2">
+                <input id="ps_showFriends" type="checkbox" defaultChecked={(user as any)?.profileShowFriends ?? true} />
+                <label htmlFor="ps_showFriends" className="text-sm">Show friends</label>
+              </div>
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button type="button" variant="outline" onClick={() => setPrivacyOpen(false)}>Cancel</Button>
+              <Button type="submit" className="social-button-primary">Save</Button>
             </div>
           </form>
         </DialogContent>
