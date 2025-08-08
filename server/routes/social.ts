@@ -168,7 +168,7 @@ export function registerSocialRoutes(app: Express) {
         whereConds.push(sql`social_posts.created_at < ${new Date(before as string)}`);
       }
 
-      const whereClause = whereConds.length > 0 ? and(...whereConds) : undefined;
+      const whereClause = whereConds.length > 1 ? and(...whereConds) : (whereConds.length === 1 ? whereConds[0] : undefined);
 
       // Base query for posts
       let baseQuery = db
