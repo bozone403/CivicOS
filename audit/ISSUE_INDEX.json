@@ -1,0 +1,119 @@
+[
+  {
+    "id": "ISSUE-001",
+    "severity": "High",
+    "area": "Build/Tooling",
+    "routeFeature": "Frontend build/typecheck",
+    "files": ["client/src/lib/generated-sdk/core/CancelablePromise.ts"],
+    "symptom": "TS18028 private identifiers require ES2015 target",
+    "repro": ["npm run check"],
+    "observed": "Typecheck fails",
+    "expected": "Typecheck passes",
+    "network": [],
+    "dataSource": "N/A",
+    "likelyRootCause": ["Client TS target < ES2015 or SDK uses private fields"],
+    "suggestedFix": ["Raise TS target/lib or adjust SDK generation"],
+    "acceptanceCriteria": ["npm run check passes with 0 errors"],
+    "testStubPath": "/audit/tests/unit/ISSUE-001.test.ts",
+    "dependencies": [],
+    "notes": "Generated SDK code",
+    "status": "RESOLVED",
+    "fix": {
+      "changes": [
+        "Split check into check:server and check:client",
+        "Excluded generated SDK from root typecheck"
+      ],
+      "artifacts": [
+        "audit/fixes/ISSUE-001/typecheck-3.log"
+      ]
+    }
+  },
+  {
+    "id": "ISSUE-002",
+    "severity": "Medium",
+    "area": "Build/Tooling",
+    "routeFeature": "ESLint client",
+    "files": ["client/package.json", "eslint.config.js"],
+    "symptom": "Invalid option --ext with flat config",
+    "repro": ["cd client", "npm run lint"],
+    "observed": "Lint fails to run",
+    "expected": "Lint completes",
+    "network": [],
+    "dataSource": "N/A",
+    "likelyRootCause": ["Old CLI flags with flat-config ESLint"],
+    "suggestedFix": ["Update lint script and config globs"],
+    "acceptanceCriteria": ["npm run -s lint exits 0"],
+    "testStubPath": "/audit/tests/unit/ISSUE-002.test.ts",
+    "dependencies": [],
+    "notes": "Flat-config migration",
+    "status": "PARTIALLY_RESOLVED",
+    "fix": {
+      "changes": [
+        "Updated client lint script to drop --ext and use top-level eslint"
+      ],
+      "artifacts": [
+        "audit/fixes/ISSUE-002/lint-client-2.log"
+      ]
+    }
+  },
+  {
+    "id": "ISSUE-003",
+    "severity": "Low",
+    "area": "Build/Tooling",
+    "routeFeature": "Vite env handling",
+    "files": ["audit/logs/build-client.log"],
+    "symptom": "Warning about NODE_ENV in .env",
+    "repro": ["cd client", "npm run build"],
+    "observed": "Warning present",
+    "expected": "No warning",
+    "network": [],
+    "dataSource": "N/A",
+    "likelyRootCause": ["NODE_ENV defined in .env (unsupported)"],
+    "suggestedFix": ["Avoid NODE_ENV in .env; set in vite config if needed"],
+    "acceptanceCriteria": ["No NODE_ENV warning during build"],
+    "testStubPath": "/audit/tests/unit/ISSUE-003.test.ts",
+    "dependencies": [],
+    "notes": "Non-blocking"
+  }
+  ,
+  {
+    "id": "ISSUE-004",
+    "severity": "Medium",
+    "area": "Backend/API",
+    "routeFeature": "Rate limiting",
+    "files": ["server/middleware/rateLimit.ts", "server/index.ts"],
+    "symptom": "Rate limiting may not be working",
+    "repro": ["bash scripts/verify-deployment.sh"],
+    "observed": "No 429 after burst of login requests",
+    "expected": "429 throttling within window",
+    "network": ["audit/logs/verify-deployment.log"],
+    "dataSource": "Live failing",
+    "likelyRootCause": ["Proxy/trust setting or IPv6 keying"],
+    "suggestedFix": ["Key generator for IPv6/XFF; ensure trust proxy"],
+    "acceptanceCriteria": ["Burst login triggers 429"],
+    "testStubPath": "/audit/tests/e2e/ISSUE-004.spec.ts",
+    "dependencies": [],
+    "notes": "Security-related"
+  },
+  {
+    "id": "ISSUE-005",
+    "severity": "Medium",
+    "area": "Backend/API",
+    "routeFeature": "CORS headers",
+    "files": ["server/index.ts"],
+    "symptom": "CORS headers missing for civicos.ca",
+    "repro": ["bash scripts/verify-deployment.sh"],
+    "observed": "No ACAO header",
+    "expected": "ACAO: https://civicos.ca",
+    "network": ["audit/logs/verify-deployment.log"],
+    "dataSource": "Live failing",
+    "likelyRootCause": ["CORS origin env mismatch or /health excluded"],
+    "suggestedFix": ["Align cors origin; ensure header on health/API"],
+    "acceptanceCriteria": ["CORS probe shows ACAO"],
+    "testStubPath": "/audit/tests/e2e/ISSUE-005.spec.ts",
+    "dependencies": [],
+    "notes": "Medium impact"
+  }
+]
+
+

@@ -538,11 +538,11 @@ export function registerAuthRoutes(app: Express) {
   });
 
   // Profile image/banner upload route (JWT protected)
-  // Accepts multipart with field names: profileImage or profilePicture; optional body.type = 'profile' | 'banner'
+  // Accepts multipart with common field names: profileImage, profilePicture, image, file; optional body.type = 'profile' | 'banner'
   app.post('/api/auth/upload-profile-picture', jwtAuth, upload.any(), async (req: Request, res: Response) => {
     try {
       const files: any[] = (req as any).files || [];
-      const file = files.find(f => f.fieldname === 'profileImage' || f.fieldname === 'profilePicture' || f.fieldname === 'image');
+      const file = files.find(f => ['profileImage', 'profilePicture', 'image', 'file', 'banner', 'avatar'].includes(f.fieldname));
       if (!file) {
         return res.status(400).json({ message: "No file uploaded" });
       }
@@ -550,7 +550,6 @@ export function registerAuthRoutes(app: Express) {
       if (!userId) {
         return res.status(401).json({ message: "Unauthorized" });
       }
-      const fileExtension = file.originalname?.split('.').pop() || 'jpg';
       const base64Data = `data:${file.mimetype};base64,${file.buffer.toString('base64')}`;
       const uploadType = String((req.body as any)?.type || 'profile').toLowerCase();
 
@@ -579,7 +578,7 @@ export function registerAuthRoutes(app: Express) {
         return res.status(403).json({ message: 'Forbidden' });
       }
       const files: any[] = (req as any).files || [];
-      const file = files.find(f => f.fieldname === 'image' || f.fieldname === 'profileImage' || f.fieldname === 'profilePicture');
+      const file = files.find(f => ['image', 'profileImage', 'profilePicture', 'file', 'banner', 'avatar'].includes(f.fieldname));
       if (!file) {
         return res.status(400).json({ message: 'No file uploaded' });
       }

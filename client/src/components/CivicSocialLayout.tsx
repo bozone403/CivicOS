@@ -27,7 +27,7 @@ export function CivicSocialLayout({
   return (
     <div className="min-h-screen bg-background">
       {header && (
-        <header className="sticky top-0 z-40 bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/60 border-b border-border">
+        <header className="bg-card border-b border-border">
           <div className={variants[variant]}>
             {header}
           </div>

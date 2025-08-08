@@ -157,7 +157,10 @@ export function LuxuryNavigation() {
   // Fetch notifications and unread count
   const { data: notifications = [] } = useQuery<Notification[]>({
     queryKey: ['/api/notifications'],
-    queryFn: () => authRequest('/api/notifications', 'GET'),
+    queryFn: async () => {
+      const res = await authRequest('/api/notifications', 'GET');
+      return Array.isArray(res) ? res : (res?.notifications || []);
+    },
     refetchInterval: 30000,
   });
   const { data: unreadObj } = useQuery<{ unread: number }>({
@@ -165,7 +168,7 @@ export function LuxuryNavigation() {
     queryFn: () => authRequest('/api/notifications/unread-count', 'GET'),
     refetchInterval: 30000,
   });
-  const unreadCount = unreadObj?.unread ?? notifications.filter(n => !n.read).length;
+  const unreadCount = unreadObj?.unread ?? (notifications as any[]).filter((n: any) => !n.read && !n.isRead).length;
 
   const markAllMutation = useMutation({
     mutationFn: async () => authRequest('/api/notifications/read-all', 'PATCH'),

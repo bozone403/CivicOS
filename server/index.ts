@@ -118,6 +118,35 @@ app.set('trust proxy', true);
 //   email: string;
 // }
 
+// Ensure CORS headers are present for /health (handles GET, HEAD, OPTIONS)
+app.use('/health', (req, res, next) => {
+  const origin = req.headers.origin as string | undefined;
+  const envOrigin = process.env.CORS_ORIGIN;
+  const frontendBase = process.env.FRONTEND_BASE_URL;
+  const allowedOrigins = [
+    'https://civicos.ca',
+    'https://www.civicos.ca',
+    'https://civicos.onrender.com',
+    envOrigin,
+    frontendBase,
+  ].filter(Boolean) as string[];
+  const civicosDomainRegex = /^https?:\/\/(.*\.)?civicos\.ca$/i;
+
+  const isAllowed = Boolean(
+    origin && (allowedOrigins.includes(origin) || civicosDomainRegex.test(origin))
+  );
+
+  if (isAllowed) {
+    res.setHeader('Access-Control-Allow-Origin', origin!);
+    res.setHeader('Vary', 'Origin');
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+  }
+  res.setHeader('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+  if (req.method === 'OPTIONS') return res.sendStatus(200);
+  next();
+});
+
 // Simple health check endpoint
 app.get('/health', (req, res) => {
   res.json({

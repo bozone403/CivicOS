@@ -1,0 +1,33 @@
+{
+  "phase": "static",
+  "typecheck": {
+    "status": "fail",
+    "log": "audit/logs/typecheck.log",
+    "errors": [
+      {
+        "file": "client/src/lib/generated-sdk/core/CancelablePromise.ts",
+        "code": "TS18028",
+        "message": "Private identifiers are only available when targeting ECMAScript 2015 and higher"
+      }
+    ]
+  },
+  "lint": {
+    "status": "fail",
+    "log": "audit/logs/lint-client.log",
+    "notes": [
+      "Invalid option --ext with flat config; update lint script"
+    ]
+  },
+  "build": {
+    "server": { "status": "pass", "log": "audit/logs/build-server.log" },
+    "client": {
+      "status": "pass",
+      "log": "audit/logs/build-client.log",
+      "warnings": [
+        "NODE_ENV in .env not supported by Vite; build proceeded"
+      ]
+    }
+  }
+}
+
+

@@ -104,6 +104,9 @@ export default function CivicSocialProfile() {
       const token = localStorage.getItem('civicos-jwt') || '';
       const form = new FormData();
       form.append('profilePicture', file);
+      form.append('image', file);
+      form.append('file', file);
+      form.append('avatar', file);
       form.append('type', 'profile');
       const res = await fetch(`/api/auth/upload-profile-picture`, {
         method: 'POST',
@@ -137,6 +140,9 @@ export default function CivicSocialProfile() {
       const token = localStorage.getItem('civicos-jwt') || '';
       const form = new FormData();
       form.append('profilePicture', file);
+      form.append('image', file);
+      form.append('file', file);
+      form.append('banner', file);
       form.append('type', 'banner');
       const res = await fetch(`/api/auth/upload-profile-picture`, {
         method: 'POST',

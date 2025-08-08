@@ -30,7 +30,7 @@ export default function NotificationBell() {
     queryKey: ["/api/notifications"],
     queryFn: async () => {
       const res = await client.request({ method: 'GET', url: '/api/notifications' });
-      return res as any;
+      return Array.isArray(res) ? (res as any) : ((res as any)?.notifications || []);
     },
     enabled: !!user,
   });
@@ -42,7 +42,7 @@ export default function NotificationBell() {
     },
     enabled: !!user,
   });
-  const unread = notifications.filter((n) => !n.read);
+  const unread = (notifications as any[]).filter((n: any) => !n.read && !n.isRead);
   const unreadCount = unreadData?.unread ?? unread.length;
 
   const markAsReadMutation = useMutation({
@@ -82,7 +82,7 @@ export default function NotificationBell() {
   }
 
   function handleNotificationClick(notif: Notification) {
-    if (!notif.read) markAsReadMutation.mutate(Number(notif.id));
+    if (!(notif as any).read && !(notif as any).isRead) markAsReadMutation.mutate(Number(notif.id));
     // Optionally navigate or show details
   }
 
@@ -150,7 +150,7 @@ export default function NotificationBell() {
                 No notifications.
               </li>
             )}
-            {notifications.map((notif) => {
+             {(notifications as any[]).map((notif: any) => {
               // Determine icon
               let icon = null;
               if (notif.type === 'friend_request') icon = <User className="w-5 h-5 text-primary" aria-hidden="true" />;
@@ -166,10 +166,10 @@ export default function NotificationBell() {
               return (
                 <li
                   key={notif.id}
-                  className={`p-3 flex items-start gap-2 cursor-pointer hover:bg-accent focus:bg-accent outline-none ${notif.read ? '' : 'bg-blue-50'}`}
+                  className={`p-3 flex items-start gap-2 cursor-pointer hover:bg-accent focus:bg-accent outline-none ${notif.read || notif.isRead ? '' : 'bg-blue-50'}`}
                   tabIndex={0}
                   role="option"
-                  aria-selected={!notif.read}
+                   aria-selected={!notif.read && !notif.isRead}
                   onClick={() => { handleNotificationClick(notif); if (link) navigate(link); }}
                   onKeyDown={e => handleNotificationKeyDown(e, notif)}
                 >
@@ -179,7 +179,7 @@ export default function NotificationBell() {
                     <div className="text-xs text-muted-foreground mt-1">{notif.message}</div>
                     <div className="text-xs text-muted-foreground mt-1">{formatTimeAgo(notif.createdAt || notif.timestamp)}</div>
                   </div>
-                  {!notif.read && <span className="ml-2 w-2 h-2 rounded-full bg-primary" aria-label="Unread notification"></span>}
+                   {!(notif.read || notif.isRead) && <span className="ml-2 w-2 h-2 rounded-full bg-primary" aria-label="Unread notification"></span>}
                 </li>
               );
             })}
