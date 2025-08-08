@@ -327,20 +327,17 @@ export function registerLegalRoutes(app) {
     // Recent law updates (free curated + placeholder)
     app.get('/api/legal/updates', async (_req, res) => {
         try {
+            // Align fields with widget expectations
             const updates = [
                 {
                     id: 101,
-                    lawType: 'statute',
+                    type: 'act',
                     title: 'Impact Assessment Act amendments tabled',
-                    description: 'Technical amendments to streamline environmental assessments',
-                    changeType: 'amendment',
-                    effectiveDate: new Date().toISOString(),
+                    summary: 'Technical amendments to streamline environmental assessments',
+                    dateUpdated: new Date().toISOString(),
+                    urgencyLevel: 'medium',
                     jurisdiction: 'federal',
-                    legalReference: 'S.C. 2019, c. 28, s. 1',
-                    summary: 'Refines assessment timelines; clarifies Indigenous consultation triggers',
-                    impactAnalysis: 'May shorten timelines by ~15%; risk of reduced scrutiny mitigated by new guidance',
-                    sourceUrl: 'https://laws-lois.justice.gc.ca/eng/acts',
-                    createdAt: new Date().toISOString()
+                    sourceUrl: 'https://laws-lois.justice.gc.ca/eng/acts'
                 }
             ];
             return ResponseFormatter.success(res, updates, 'Law updates retrieved', 200, updates.length);

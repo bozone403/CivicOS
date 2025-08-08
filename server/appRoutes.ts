@@ -142,40 +142,27 @@ export async function registerRoutes(app: Express): Promise<void> {
 
   // Serve static files from the frontend build (AFTER all API routes)
   const publicPath = path.join(process.cwd(), 'dist/public');
-  // Debug logging removed for production
-  
-  // Check if the directory exists
-  if (fs.existsSync(publicPath)) {
-    app.use(express.static(publicPath));
-  } else {
-    // Try alternative paths
-    const altPaths = [
-      path.join(__dirname, '../dist/public'),
-      path.join(__dirname, '../../dist/public'),
-      path.join(process.cwd(), 'dist/public'),
-      path.join(process.cwd(), '../dist/public'),
-      '/opt/render/project/src/dist/public',
-    ];
-    for (const altPath of altPaths) {
-      if (fs.existsSync(altPath)) {
-        // Use the first found path
-        const actualPath = altPath;
-        app.use(express.static(actualPath));
-        break;
-      }
-    }
+  let staticRoot = publicPath;
+  const candidates = [
+    publicPath,
+    path.join(__dirname, '../dist/public'),
+    path.join(__dirname, '../../dist/public'),
+    path.join(process.cwd(), '../dist/public'),
+    '/opt/render/project/src/dist/public',
+  ];
+  for (const p of candidates) {
+    if (fs.existsSync(p)) { staticRoot = p; break; }
   }
-  
-  app.use(express.static(publicPath));
+  app.use(express.static(staticRoot, { index: 'index.html', extensions: ['html','js','css'] }));
 
-  // SPA fallback: serve index.html for all non-API routes (must be last)
+  // SPA fallback: serve index.html for all non-API, non-asset routes (must be last)
   app.get('*', (req, res) => {
-    // Skip API routes - let them be handled by their respective routers
     if (req.path.startsWith('/api/')) {
       return res.status(404).json({ message: 'API endpoint not found' });
     }
-    
-    // Serve index.html for all other routes (SPA routing)
-    res.sendFile(path.join(publicPath, 'index.html'));
+    if (req.path.startsWith('/assets/') || req.path.match(/\.(js|css|png|jpg|jpeg|gif|svg|ico|webp|map)$/i)) {
+      return res.status(404).end();
+    }
+    res.sendFile(path.join(staticRoot, 'index.html'));
   });
 }
