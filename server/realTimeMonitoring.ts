@@ -218,14 +218,18 @@ export class RealTimeMonitoringService {
    */
   private async collectEngagementMetrics(): Promise<SystemHealthMetrics['userEngagement']> {
     const totalVotes = await db.select({ count: count() }).from(votes);
-    
-    // Get unique users who have voted from user_votes table
-    const uniqueVoters = await db.execute(sql`
-      SELECT COUNT(DISTINCT user_id) as count FROM user_votes
-    `);
+
+    // Count unique voters using existing votes table for compatibility
+    let uniqueVotersCount = 0;
+    try {
+      const res = await db.execute(sql`SELECT COUNT(DISTINCT user_id) AS count FROM votes`);
+      uniqueVotersCount = Number((res as any)?.rows?.[0]?.count || 0);
+    } catch {
+      uniqueVotersCount = 0;
+    }
 
     return {
-      activeUsers: Number(uniqueVoters.rows[0]?.count) || 0,
+      activeUsers: uniqueVotersCount,
       totalVotesCast: totalVotes[0]?.count || 0,
       averageSessionDuration: 425, // seconds - would track from sessions table
       peakUsageTime: '19:00-21:00' // Evening peak hours
@@ -335,7 +339,7 @@ export class RealTimeMonitoringService {
     ];
 
     // Generate recommendations
-    const recommendations = [];
+    const recommendations: string[] = [];
     if (metrics.dataQuality.verificationRate < 85) {
       recommendations.push('Increase data verification frequency for better accuracy');
     }
@@ -384,7 +388,7 @@ export class RealTimeMonitoringService {
     timestamp: Date;
     component: string;
   }>> {
-    const alerts = [];
+    const alerts: Array<{ severity: 'high' | 'medium' | 'low'; message: string; timestamp: Date; component: string }> = [];
     const metrics = await this.getCurrentMetrics();
 
     // Check for critical issues
