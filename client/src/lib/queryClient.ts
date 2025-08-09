@@ -89,21 +89,43 @@ export const getQueryFn: <T>(options: {
   ({ on401: unauthorizedBehavior }) =>
   async ({ queryKey }) => {
     const token = localStorage.getItem('civicos-jwt');
-    const res = await fetch(queryKey[0] as string, {
+    const url = String(queryKey[0] || '/');
+    const res = await fetch(url, {
       credentials: "include",
       headers: token ? { Authorization: `Bearer ${token}` } : {},
     });
 
-    if (unauthorizedBehavior === "returnNull" && res.status === 401) {
-      return null;
+    // Graceful unauthenticated fallbacks for common endpoints
+    if (res.status === 401 || res.status === 403) {
+      if (url.includes('/api/messages/unread/count')) {
+        return { unreadCount: 0 } as any;
+      }
+      if (url.includes('/api/notifications/unread-count')) {
+        return { unread: 0 } as any;
+      }
+      if (url.includes('/api/notifications')) {
+        return { success: true, notifications: [] } as any;
+      }
+      if (unauthorizedBehavior === "returnNull") {
+        return null as any;
+      }
     }
 
     if (!res.ok) {
+      // Return safe defaults for resilient UI on transient errors
+      if (url.includes('/api/messages/unread/count')) return { unreadCount: 0 } as any;
+      if (url.includes('/api/notifications/unread-count')) return { unread: 0 } as any;
+      if (url.includes('/api/notifications')) return { success: true, notifications: [] } as any;
       const text = (await res.text()) || res.statusText;
       throw new Error(`${res.status}: ${text}`);
     }
-    
-    return await res.json();
+
+    const json: any = await res.json();
+    // Unwrap standard API envelope { success, data }
+    if (json && typeof json === 'object' && 'success' in json && 'data' in json) {
+      return json.data as any;
+    }
+    return json as any;
   };
 
 export const queryClient = new QueryClient({

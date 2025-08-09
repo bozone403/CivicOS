@@ -70,11 +70,11 @@ export default function Legal() {
   const [activeTab, setActiveTab] = useState("overview");
 
   const { data: lawUpdates = [], isLoading: updatesLoading } = useQuery<LawUpdate[]>({
-    queryKey: ["/api/legal/updates", searchTerm, selectedCategory, selectedJurisdiction],
+    queryKey: ["/api/legal/updates"],
   });
 
   const { data: criminalCode = [], isLoading: codeLoading } = useQuery<CriminalCodeSection[]>({
-    queryKey: ["/api/legal/criminal-code", searchTerm],
+    queryKey: ["/api/legal/criminal-code"],
   });
 
   const { data: legalStats } = useQuery<LegalStats>({
@@ -82,11 +82,11 @@ export default function Legal() {
   });
 
   const { data: legalDatabase } = useQuery<LegalDatabase>({
-    queryKey: ["/api/legal/database"],
+    queryKey: ["/api/legal"],
   });
 
   const { data: searchResults } = useQuery<SearchResults>({
-    queryKey: ["/api/legal/search"],
+    queryKey: ["/api/legal/search?q=", searchTerm],
     enabled: searchTerm.length > 0,
   });
 

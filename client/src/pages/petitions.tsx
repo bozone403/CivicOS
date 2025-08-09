@@ -506,7 +506,7 @@ export default function Petitions() {
               </div>
 
               <div className="flex items-center justify-between mt-4">
-                <div className="flex space-x-2">
+                <div className="flex flex-wrap gap-2">
                   <Button
                     variant="outline"
                     size="sm"

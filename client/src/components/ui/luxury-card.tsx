@@ -23,8 +23,8 @@ export function LuxuryCard({
     default: "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700",
     pulse: "bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-slate-900 dark:to-blue-950 border-blue-200 dark:border-blue-800",
     gold: "bg-gradient-to-br from-amber-50 to-yellow-50 dark:from-slate-900 dark:to-amber-950 border-amber-200 dark:border-amber-800",
-    dark: "bg-slate-800 dark:bg-slate-950 border-slate-600 dark:border-slate-800"
-  };
+    dark: "bg-slate-800 text-white dark:bg-slate-950 border-slate-600 dark:border-slate-800"
+  } as const;
 
   return (
     <Card 
@@ -49,7 +49,7 @@ export function LuxuryCard({
           )}
         </CardHeader>
       )}
-      <CardContent className="space-y-4">
+      <CardContent className={cn("space-y-4", variant === 'dark' && "[&_button]:text-white [&_span]:text-white/90 [&_.text-muted-foreground]:text-slate-300") }>
         {children}
       </CardContent>
     </Card>

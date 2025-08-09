@@ -36,8 +36,8 @@ export default function Elections() {
 
   // Fetch authentic election data
   const { data: electionData, isLoading, error } = useQuery<ElectionData>({
-    queryKey: ['/api/elections/authentic'],
-    enabled: isAuthenticated,
+    queryKey: ['/api/elections'],
+    enabled: true,
     refetchInterval: 1000 * 60 * 60, // Refetch every hour
     retry: false
   });
@@ -76,7 +76,7 @@ export default function Elections() {
     sources: ['Elections Canada', 'Government of Canada', 'Provincial Election Authorities']
   };
 
-  const electionsToShow = (error || !electionData || Object.keys(electionData).length === 0) ? fallbackElections : electionData;
+  const electionsToShow = (!electionData || (electionData as any)?.elections?.length === 0) ? fallbackElections : (electionData as any);
 
   // Redirect to login if not authenticated
   useEffect(() => {
@@ -283,7 +283,7 @@ export default function Elections() {
           <TabsContent value="upcoming" className="space-y-6">
             {electionsToShow?.upcoming && electionsToShow.upcoming.length > 0 ? (
               <div className="grid gap-4">
-                {electionsToShow.upcoming.map((election) => (
+                {electionsToShow.upcoming.map((election: any) => (
                   <ElectionCard key={election.id} election={election} />
                 ))}
               </div>
@@ -295,7 +295,7 @@ export default function Elections() {
           <TabsContent value="recent" className="space-y-6">
             {electionsToShow?.recent && electionsToShow.recent.length > 0 ? (
               <div className="grid gap-4">
-                {electionsToShow.recent.map((election) => (
+                {electionsToShow.recent.map((election: any) => (
                   <ElectionCard key={election.id} election={election} />
                 ))}
               </div>
