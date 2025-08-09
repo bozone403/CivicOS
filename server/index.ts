@@ -35,7 +35,7 @@ const logger = pino();
 if (!process.env.SESSION_SECRET) {
   logger.warn({ msg: 'SESSION_SECRET missing; running with limited auth features' });
 }
-const JWT_SECRET = process.env.SESSION_SECRET;
+const JWT_SECRET: string = process.env.SESSION_SECRET || '';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -69,12 +69,12 @@ function jwtAuth(req: Request, res: Response, next: NextFunction) {
     const token = authHeader.split(" ")[1];
     
     // Verify token with enhanced security
-    const decoded = jwt.verify(token, JWT_SECRET, {
+    const decoded = jwt.verify(token, JWT_SECRET as jwt.Secret, {
       algorithms: ['HS256'],
       issuer: 'civicos',
       audience: 'civicos-users',
       clockTolerance: 30, // 30 seconds tolerance for clock skew
-    }) as JwtPayload;
+    }) as unknown as JwtPayload;
     
     // Additional validation
     if (!decoded.id || !decoded.email) {
