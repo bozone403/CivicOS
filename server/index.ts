@@ -389,7 +389,17 @@ app.get("/health", (_req, res) => {
   let staticRoot = staticRootCandidates.find((p) => {
     try { return require('fs').existsSync(p); } catch { return false; }
   }) || path.resolve(__dirname, "../dist/public");
-  app.use(express.static(staticRoot));
+  app.use(express.static(staticRoot, {
+    setHeaders: (res, filePath) => {
+      if (filePath.endsWith('/index.html')) {
+        res.setHeader('Cache-Control', 'no-store');
+      } else if (/\/assets\//.test(filePath)) {
+        res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+      } else {
+        res.setHeader('Cache-Control', 'public, max-age=3600');
+      }
+    }
+  }));
   // Ensure SPA fallback for all non-API routes
   app.get(/^\/(?!api\/).*/, (_req, res) => {
     res.sendFile(path.join(staticRoot, 'index.html'));
