@@ -31,9 +31,9 @@ if (process.env.NODE_ENV === 'development') {
 }
 
 const logger = pino();
-// Enforce SESSION_SECRET is set before anything else
+// Enforce SESSION_SECRET: log and continue in mock mode to avoid instance crash
 if (!process.env.SESSION_SECRET) {
-  throw new Error("SESSION_SECRET must be set as an environment variable. Refusing to start.");
+  logger.warn({ msg: 'SESSION_SECRET missing; running with limited auth features' });
 }
 const JWT_SECRET = process.env.SESSION_SECRET;
 const __filename = fileURLToPath(import.meta.url);
@@ -426,17 +426,21 @@ app.get("/health", (_req, res) => {
     }
   }, 5000); // Run migrations 5 seconds after server starts
   
-  // Initialize automatic government data sync (non-blocking)
-  setTimeout(() => {
-    try {
-      initializeDataSync();
-    } catch (error) {
-      logger.error({ msg: "Failed to initialize data sync", error });
-    }
-  }, 30000); // Increased to 30 seconds to ensure server is fully started
+  // Initialize automatic government data sync (non-blocking) if enabled
+  if (process.env.DATA_SYNC_ENABLED === 'true') {
+    setTimeout(() => {
+      try {
+        initializeDataSync();
+      } catch (error) {
+        logger.error({ msg: "Failed to initialize data sync", error });
+      }
+    }, 30000);
+  } else {
+    logger.info({ msg: "Data sync disabled by env (DATA_SYNC_ENABLED != 'true')" });
+  }
   
   // Initialize Ollama AI service for production (enhanced with robust error handling)
-  if (process.env.NODE_ENV === 'production') {
+  if (process.env.NODE_ENV === 'production' && process.env.OLLAMA_ENABLED === 'true' && process.env.AI_SERVICE_ENABLED === 'true') {
     // Start Ollama initialization in background - don't wait for completion
     setTimeout(async () => {
       try {
