@@ -391,7 +391,8 @@ app.get("/health", (_req, res) => {
   }) || path.resolve(__dirname, "../dist/public");
   app.use(express.static(staticRoot, {
     setHeaders: (res, filePath) => {
-      if (filePath.endsWith('/index.html')) {
+      const isIndex = filePath.endsWith('index.html');
+      if (isIndex) {
         res.setHeader('Cache-Control', 'no-store');
       } else if (/\/assets\//.test(filePath)) {
         res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
@@ -402,6 +403,7 @@ app.get("/health", (_req, res) => {
   }));
   // Ensure SPA fallback for all non-API routes
   app.get(/^\/(?!api\/).*/, (_req, res) => {
+    res.setHeader('Cache-Control', 'no-store');
     res.sendFile(path.join(staticRoot, 'index.html'));
   });
 
