@@ -578,14 +578,18 @@ app.get("/health", (_req, res) => {
   //   });
   // }, 12 * 60 * 60 * 1000); // 12 hours instead of 4
   
-  // Start real-time platform monitoring (non-blocking) with delay
-  setTimeout(() => {
-    try {
-      realTimeMonitoring.startMonitoring();
-    } catch (error) {
-      logger.error({ msg: "Failed to start real-time monitoring", error });
-    }
-  }, 45000); // Increased to 45 second delay
+  // Start real-time platform monitoring if enabled
+  if (process.env.MONITORING_ENABLED === 'true') {
+    setTimeout(() => {
+      try {
+        realTimeMonitoring.startMonitoring();
+      } catch (error) {
+        logger.error({ msg: "Failed to start real-time monitoring", error });
+      }
+    }, 45000);
+  } else {
+    logger.info({ msg: "Real-time monitoring disabled by env (MONITORING_ENABLED != 'true')" });
+  }
   
   // Initialize comprehensive legal database
   setTimeout(() => {
