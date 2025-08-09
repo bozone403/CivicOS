@@ -23,6 +23,13 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { formatDistanceToNow } from "date-fns";
 
+interface SocialUser {
+  id: string;
+  firstName?: string;
+  lastName?: string;
+  profileImageUrl?: string;
+}
+
 interface SocialPost {
   id: number;
   content: string;
@@ -34,11 +41,9 @@ interface SocialPost {
   createdAt: string;
   updatedAt: string;
   userId: string;
-  firstName?: string;
-  lastName?: string;
-  profileImageUrl?: string;
-  likeCount: number;
-  commentCount: number;
+  user?: SocialUser;
+  likeCount: number; // normalized from likesCount
+  commentCount: number; // normalized from commentsCount
   isLiked?: boolean;
 }
 
@@ -77,7 +82,21 @@ export function SocialFeed() {
     queryKey: ["civicSocialFeed"],
     queryFn: async () => {
       const response = await apiRequest("/api/social/feed", "GET");
-      return response?.feed || [];
+      const raw = response?.feed || [];
+      // Normalize server shape to UI expectations
+      return raw.map((p: any) => ({
+        id: p.id,
+        content: p.content,
+        imageUrl: p.imageUrl,
+        type: p.type,
+        createdAt: p.createdAt,
+        updatedAt: p.updatedAt,
+        userId: p.userId,
+        user: p.user,
+        likeCount: p.likesCount ?? p.likeCount ?? 0,
+        commentCount: p.commentsCount ?? p.commentCount ?? 0,
+        isLiked: !!p.isLiked,
+      })) as SocialPost[];
     },
     enabled: isAuthenticated,
   });
@@ -245,6 +264,21 @@ export function SocialFeed() {
     },
   });
 
+  // Like/unlike comment mutation
+  const likeCommentMutation = useMutation({
+    mutationFn: async ({ commentId }: { commentId: number }) => {
+      return apiRequest(`/api/social/comments/${commentId}/like`, "POST", { reaction: "👍" });
+    },
+    onSuccess: () => {
+      if (selectedPost) {
+        queryClient.invalidateQueries({ queryKey: ["/api/social/posts", selectedPost.id, "comments"] });
+      }
+    },
+    onError: (error: any) => {
+      toast({ title: "Error", description: error?.message || "Failed to like comment.", variant: "destructive" });
+    }
+  });
+
   // Share post mutation
   const sharePostMutation = useMutation({
     mutationFn: async ({ postId, platform = 'internal' }: { postId: number; platform?: string }) => {
@@ -314,17 +348,118 @@ export function SocialFeed() {
   };
 
   const getUserDisplayName = (post: SocialPost) => {
-    if (post.firstName && post.lastName) {
-      return `${post.firstName} ${post.lastName}`;
+    if (post.user?.firstName && post.user?.lastName) {
+      return `${post.user.firstName} ${post.user.lastName}`;
     }
     return post.userId;
   };
 
   const getUserInitials = (post: SocialPost) => {
-    if (post.firstName && post.lastName) {
-      return `${post.firstName[0]}${post.lastName[0]}`;
+    if (post.user?.firstName && post.user?.lastName) {
+      return `${post.user.firstName[0]}${post.user.lastName[0]}`;
     }
     return post.userId.substring(0, 2).toUpperCase();
+  };
+
+  // Build a simple threaded view: group replies under parents
+  const buildThread = (items: SocialComment[]) => {
+    const byParent = new Map<number | null, SocialComment[]>();
+    items.forEach((c) => {
+      const key = (c.parentCommentId ?? null) as number | null;
+      if (!byParent.has(key)) byParent.set(key, []);
+      byParent.get(key)!.push(c);
+    });
+    return byParent;
+  };
+  const commentsByParent = buildThread(comments);
+
+  const renderComments = (parentId: number | null = null, depth = 0) => {
+    const list = commentsByParent.get(parentId) || [];
+    return (
+      <div className={depth > 0 ? `ml-6 space-y-3` : `space-y-3`}>
+        {list.map((comment) => (
+          <div key={comment.id} className="flex space-x-3">
+            <Avatar className="h-8 w-8 flex-shrink-0">
+              <AvatarImage src={comment.profileImageUrl} />
+              <AvatarFallback>
+                {comment.firstName?.[0]}{comment.lastName?.[0]}
+              </AvatarFallback>
+            </Avatar>
+            <div className="flex-1">
+              <div className="bg-gray-50 p-3 rounded-lg">
+                <div className="flex items-center justify-between mb-2">
+                  <p className="font-medium text-sm">
+                    {comment.firstName && comment.lastName 
+                      ? `${comment.firstName} ${comment.lastName}` 
+                      : comment.userId}
+                  </p>
+                  {comment.userId === user?.id && (
+                    <div className="flex items-center space-x-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setEditingComment(comment)}
+                      >
+                        <Edit className="w-3 h-3" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleDeleteComment(comment.id)}
+                      >
+                        <Trash2 className="w-3 h-3" />
+                      </Button>
+                    </div>
+                  )}
+                </div>
+                {editingComment?.id === comment.id ? (
+                  <div className="space-y-2">
+                    <Textarea
+                      value={editingComment.content}
+                      onChange={(e) => setEditingComment({ ...editingComment, content: e.target.value })}
+                      className="min-h-[80px]"
+                    />
+                    <div className="flex space-x-2">
+                      <Button size="sm" onClick={() => handleUpdateComment(comment)}>
+                        Save
+                      </Button>
+                      <Button size="sm" variant="outline" onClick={() => setEditingComment(null)}>
+                        Cancel
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <p className="text-sm">{comment.content}</p>
+                    <div className="flex items-center space-x-4 mt-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => likeCommentMutation.mutate({ commentId: comment.id })}
+                        className={comment.isLiked ? "text-red-500" : ""}
+                      >
+                        <Heart className={`w-3 h-3 mr-1 ${comment.isLiked ? "fill-current" : ""}`} />
+                        {comment.likeCount}
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setReplyToComment(comment)}
+                      >
+                        <Reply className="w-3 h-3 mr-1" />
+                        Reply
+                      </Button>
+                    </div>
+                  </>
+                )}
+              </div>
+              {/* Render children */}
+              {renderComments(comment.id, depth + 1)}
+            </div>
+          </div>
+        ))}
+      </div>
+    );
   };
 
   if (!isAuthenticated) {
@@ -426,8 +561,8 @@ export function SocialFeed() {
               <CardHeader className="pb-4">
                 <div className="flex items-start justify-between">
                   <div className="flex items-center space-x-3">
-                    <Avatar className="h-10 w-10">
-                      <AvatarImage src={post.profileImageUrl} />
+                      <Avatar className="h-10 w-10">
+                        <AvatarImage src={post.user?.profileImageUrl} />
                       <AvatarFallback>{getUserInitials(post)}</AvatarFallback>
                     </Avatar>
                     <div>
@@ -565,8 +700,8 @@ export function SocialFeed() {
               <Card>
                 <CardContent className="p-4">
                   <div className="flex items-center space-x-3 mb-3">
-                    <Avatar className="h-8 w-8">
-                      <AvatarImage src={selectedPost.profileImageUrl} />
+                      <Avatar className="h-8 w-8">
+                        <AvatarImage src={selectedPost.user?.profileImageUrl} />
                       <AvatarFallback>{getUserInitials(selectedPost)}</AvatarFallback>
                     </Avatar>
                     <div>
@@ -580,87 +715,9 @@ export function SocialFeed() {
                 </CardContent>
               </Card>
 
-              {/* Comments */}
+              {/* Comments (threaded) */}
               <div className="space-y-4">
-                {comments.map((comment) => (
-                  <div key={comment.id} className="flex space-x-3">
-                    <Avatar className="h-8 w-8 flex-shrink-0">
-                      <AvatarImage src={comment.profileImageUrl} />
-                      <AvatarFallback>
-                        {comment.firstName?.[0]}{comment.lastName?.[0]}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1">
-                      <div className="bg-gray-50 p-3 rounded-lg">
-                        <div className="flex items-center justify-between mb-2">
-                          <p className="font-medium text-sm">
-                            {comment.firstName && comment.lastName 
-                              ? `${comment.firstName} ${comment.lastName}` 
-                              : comment.userId}
-                          </p>
-                          {comment.userId === user?.id && (
-                            <div className="flex items-center space-x-1">
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => setEditingComment(comment)}
-                              >
-                                <Edit className="w-3 h-3" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleDeleteComment(comment.id)}
-                              >
-                                <Trash2 className="w-3 h-3" />
-                              </Button>
-                            </div>
-                          )}
-                        </div>
-                        {editingComment?.id === comment.id ? (
-                          <div className="space-y-2">
-                            <Textarea
-                              value={editingComment.content}
-                              onChange={(e) => setEditingComment({ ...editingComment, content: e.target.value })}
-                              className="min-h-[80px]"
-                            />
-                            <div className="flex space-x-2">
-                              <Button size="sm" onClick={() => handleUpdateComment(comment)}>
-                                Save
-                              </Button>
-                              <Button size="sm" variant="outline" onClick={() => setEditingComment(null)}>
-                                Cancel
-                              </Button>
-                            </div>
-                          </div>
-                        ) : (
-                          <>
-                            <p className="text-sm">{comment.content}</p>
-                            <div className="flex items-center space-x-4 mt-2">
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                disabled
-                                className={comment.isLiked ? "text-red-500" : ""}
-                              >
-                                <Heart className={`w-3 h-3 mr-1 ${comment.isLiked ? "fill-current" : ""}`} />
-                                {comment.likeCount}
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => setReplyToComment(comment)}
-                              >
-                                <Reply className="w-3 h-3 mr-1" />
-                                Reply
-                              </Button>
-                            </div>
-                          </>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                ))}
+                {renderComments(null, 0)}
               </div>
 
               {/* Add comment */}
