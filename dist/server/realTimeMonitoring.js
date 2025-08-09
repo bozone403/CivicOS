@@ -124,12 +124,17 @@ export class RealTimeMonitoringService {
      */
     async collectEngagementMetrics() {
         const totalVotes = await db.select({ count: count() }).from(votes);
-        // Get unique users who have voted from user_votes table
-        const uniqueVoters = await db.execute(sql `
-      SELECT COUNT(DISTINCT user_id) as count FROM user_votes
-    `);
+        // Count unique voters using existing votes table for compatibility
+        let uniqueVotersCount = 0;
+        try {
+            const res = await db.execute(sql `SELECT COUNT(DISTINCT user_id) AS count FROM votes`);
+            uniqueVotersCount = Number(res?.rows?.[0]?.count || 0);
+        }
+        catch {
+            uniqueVotersCount = 0;
+        }
         return {
-            activeUsers: Number(uniqueVoters.rows[0]?.count) || 0,
+            activeUsers: uniqueVotersCount,
             totalVotesCast: totalVotes[0]?.count || 0,
             averageSessionDuration: 425, // seconds - would track from sessions table
             peakUsageTime: '19:00-21:00' // Evening peak hours
