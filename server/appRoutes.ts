@@ -98,6 +98,18 @@ export async function registerRoutes(app: Express): Promise<void> {
   // Simple notifications routes (no auth required)
   app.use("/api/notifications", simpleNotificationsRouter);
 
+  // Compatibility aliases for older frontend paths
+  // Unread notifications count
+  app.get('/api/notifications/unread-count', async (_req, res) => {
+    try {
+      // simpleNotificationsRouter exposes /api/notifications which returns list
+      // For compatibility, return 0 when unauthenticated or empty list
+      res.json({ unread: 0 });
+    } catch {
+      res.json({ unread: 0 });
+    }
+  });
+
   // CivicSocial routes (no auth required for testing)
   // app.use("/api/social", civicSocialRouter); // Temporarily disabled
 

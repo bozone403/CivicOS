@@ -26,8 +26,14 @@ function jwtAuth(req: any, res: any, next: any) {
 }
 
 export function registerMessageRoutes(app: Express) {
-  // Get unread message count for current user
-  app.get('/api/messages/unread/count', jwtAuth, async (req: Request, res: Response) => {
+  // Compatibility: if unauthenticated, return 0 instead of 401 to avoid frontend 502 loops
+  app.get('/api/messages/unread/count', async (req: any, res: Response, next: any) => {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.json({ unreadCount: 0 });
+    }
+    return next();
+  }, jwtAuth, async (req: Request, res: Response) => {
     try {
       const userId = (req as any).user.id;
       const result = await db.execute(sql`
