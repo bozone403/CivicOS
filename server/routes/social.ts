@@ -5,6 +5,7 @@ import {
   socialPosts, 
   socialComments, 
   socialLikes, 
+  commentLikes,
   userFriends, 
   userMessages, 
   notifications, 
@@ -561,12 +562,12 @@ export function registerSocialRoutes(app: Express) {
     try {
       const userId = (req.user as any)?.id;
       const postId = parseInt(req.params.id);
-      const bodySchema = z.object({ content: z.string().trim().min(1).max(1000) });
+      const bodySchema = z.object({ content: z.string().trim().min(1).max(1000), parentCommentId: z.number().int().positive().optional() });
       const parsed = bodySchema.safeParse(req.body);
       if (!parsed.success) {
         return res.status(400).json({ error: 'Invalid input', issues: parsed.error.flatten() });
       }
-      const { content } = parsed.data;
+      const { content, parentCommentId } = parsed.data;
 
       // Anti-spam: basic rate - reject if too many comments quickly (handled by socialRateLimit) and disallow exact duplicates immediately on same post
       const dup = await db
@@ -591,7 +592,8 @@ export function registerSocialRoutes(app: Express) {
       const comment = await db.insert(socialComments).values({
         postId,
         userId,
-        content
+        content,
+        parentCommentId: parentCommentId ?? null
       }).returning();
       recordEvent('social.comment.created', { userId, postId });
 
@@ -671,18 +673,29 @@ export function registerSocialRoutes(app: Express) {
         .where(eq(socialComments.postId, postId))
         .orderBy(asc(socialComments.createdAt));
 
-      const formatted = comments.map((c) => ({
-        id: c.id,
-        content: c.content,
-        parentCommentId: c.parentCommentId as number | null,
-        createdAt: c.createdAt as any,
-        updatedAt: c.updatedAt as any,
-        userId: c.userId,
-        firstName: c.user?.firstName,
-        lastName: c.user?.lastName,
-        profileImageUrl: c.user?.profileImageUrl,
-        likeCount: 0,
-        isLiked: false,
+      // Enrich with like counts and whether current user liked
+      const currentUserId = (req.user as any)?.id;
+      const formatted = await Promise.all(comments.map(async (c) => {
+        let likeCount = 0; let isLiked = false;
+        try {
+          const lc = await db.select({ count: count() }).from(commentLikes).where(eq(commentLikes.commentId, c.id));
+          likeCount = lc[0]?.count || 0;
+          const liked = await db.select({ id: commentLikes.id }).from(commentLikes).where(and(eq(commentLikes.commentId, c.id), eq(commentLikes.userId, currentUserId))).limit(1);
+          isLiked = liked.length > 0;
+        } catch {}
+        return {
+          id: c.id,
+          content: c.content,
+          parentCommentId: c.parentCommentId as number | null,
+          createdAt: c.createdAt as any,
+          updatedAt: c.updatedAt as any,
+          userId: c.userId,
+          firstName: c.user?.firstName,
+          lastName: c.user?.lastName,
+          profileImageUrl: c.user?.profileImageUrl,
+          likeCount,
+          isLiked,
+        };
       }));
 
       res.json({ success: true, comments: formatted });
@@ -726,11 +739,41 @@ export function registerSocialRoutes(app: Express) {
       if (!existing) return res.status(404).json({ error: 'Comment not found' });
       if ((existing as any).userId !== userId) return res.status(403).json({ error: 'Forbidden' });
 
+      // Cascade delete comment likes
+      try { await db.delete(commentLikes).where(eq(commentLikes.commentId, commentId)); } catch {}
+
       await db.delete(socialComments).where(eq(socialComments.id, commentId));
       res.json({ success: true });
     } catch (error) {
       logger.error('Delete comment error:', error);
       res.status(500).json({ error: 'Failed to delete comment' });
+    }
+  });
+
+  // POST /api/social/comments/:id/like - Toggle like on a comment
+  app.post('/api/social/comments/:id/like', jwtAuth, socialRateLimit, async (req: Request, res: Response) => {
+    try {
+      const userId = (req.user as any)?.id;
+      const commentId = parseInt(req.params.id);
+      const schema = z.object({ reaction: z.string().max(16).optional() });
+      const parsed = schema.safeParse(req.body);
+      if (!parsed.success) return res.status(400).json({ error: 'Invalid input', issues: parsed.error.flatten() });
+      const { reaction = '👍' } = parsed.data;
+
+      const [comment] = await db.select().from(socialComments).where(eq(socialComments.id, commentId)).limit(1);
+      if (!comment) return res.status(404).json({ error: 'Comment not found' });
+
+      const existing = await db.select().from(commentLikes).where(and(eq(commentLikes.commentId, commentId), eq(commentLikes.userId, userId))).limit(1);
+      if (existing.length > 0) {
+        await db.delete(commentLikes).where(and(eq(commentLikes.commentId, commentId), eq(commentLikes.userId, userId)));
+        return res.json({ success: true, liked: false });
+      }
+
+      await db.insert(commentLikes).values({ commentId, userId, reaction });
+      return res.json({ success: true, liked: true });
+    } catch (error) {
+      logger.error('Like comment error:', error);
+      res.status(500).json({ error: 'Failed to like comment' });
     }
   });
 
