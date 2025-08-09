@@ -1,6 +1,6 @@
 import { Express, Request, Response } from 'express';
 import { db } from '../db.js';
-import { bills, votes, electoralCandidates, electoralVotes } from '../../shared/schema.js';
+import { bills, votes, electoralCandidates, electoralVotes, billRollcalls, billRollcallRecords } from '../../shared/schema.js';
 import { jwtAuth } from './auth.js';
 import { eq, and, desc, count } from 'drizzle-orm';
 import { z } from 'zod';
@@ -296,6 +296,33 @@ export function registerVotingRoutes(app: Express) {
         message: "Failed to fetch voting history",
         error: (error as any)?.message || String(error)
       });
+    }
+  });
+
+  // Get roll call for a bill (grouped)
+  app.get('/api/voting/bills/:id/rollcall', async (req: Request, res: Response) => {
+    try {
+      const billId = Number(req.params.id);
+      if (isNaN(billId)) return res.status(400).json({ success: false, message: 'Invalid bill ID' });
+      const [billRow] = await db.select().from(bills).where(eq(bills.id, billId)).limit(1);
+      if (!billRow) return res.status(404).json({ success: false, message: 'Bill not found' });
+      // Simplified: find latest rollcall by billNumber if present
+      const number = (billRow as any).billNumber || (billRow as any).title;
+      const rcs = await db.select().from(billRollcalls).where(eq(billRollcalls.billNumber, String(number))).limit(1);
+      if (rcs.length === 0) return res.json({ success: true, rollcall: null, totals: { yes: 0, no: 0, abstain: 0, paired: 0 } });
+      const rc = rcs[0];
+      const recs = await db.select().from(billRollcallRecords).where(eq(billRollcallRecords.rollcallId, (rc as any).id));
+      const totals = { yes: 0, no: 0, abstain: 0, paired: 0 } as any;
+      for (const rec of recs) {
+        const d = String((rec as any).decision || '').toLowerCase();
+        if (d.includes('yea') || d === 'yes') totals.yes++;
+        else if (d.includes('nay') || d === 'no') totals.no++;
+        else if (d.includes('abstain')) totals.abstain++;
+        else if (d.includes('pair')) totals.paired++;
+      }
+      res.json({ success: true, rollcall: rc, totals, records: recs });
+    } catch {
+      res.status(500).json({ success: false, message: 'Failed to fetch roll call' });
     }
   });
 } 

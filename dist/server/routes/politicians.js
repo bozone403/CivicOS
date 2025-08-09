@@ -1,5 +1,5 @@
 import { db } from "../db.js";
-import { politicians, politicianStatements, politicianPositions, campaignFinance, politicianTruthTracking } from "../../shared/schema.js";
+import { politicians, politicianStatements, politicianPositions, campaignFinance, politicianTruthTracking, billRollcalls, billRollcallRecords } from "../../shared/schema.js";
 import { eq, and, desc, sql, count, like, or } from "drizzle-orm";
 import { ResponseFormatter } from "../utils/responseFormatter.js";
 import jwt from "jsonwebtoken";
@@ -282,6 +282,47 @@ export function registerPoliticiansRoutes(app) {
         catch (error) {
             // console.error removed for production
             res.status(500).json({ error: 'Failed to fetch positions' });
+        }
+    });
+    // Get politician roll-call votes (by mapped parliament member id if available)
+    app.get('/api/politicians/:id/votes', async (req, res) => {
+        try {
+            const { id } = req.params;
+            const pid = parseInt(id);
+            const [pol] = await db.select().from(politicians).where(eq(politicians.id, pid));
+            if (!pol)
+                return res.status(404).json({ message: 'Politician not found' });
+            const pmId = pol.parliamentMemberId;
+            if (!pmId)
+                return res.json({ votes: [] });
+            // Join rollcall records by member id
+            const recs = await db
+                .select()
+                .from(billRollcallRecords)
+                .where(eq(billRollcallRecords.memberId, pmId));
+            if (!recs || recs.length === 0)
+                return res.json({ votes: [] });
+            // Load related rollcalls for context
+            const rcIds = Array.from(new Set(recs.map(r => r.rollcallId))).filter(Boolean);
+            const rcs = rcIds.length
+                ? await db.select().from(billRollcalls).where(billRollcalls.id.in(rcIds))
+                : [];
+            const byId = new Map();
+            for (const rc of rcs)
+                byId.set(rc.id, rc);
+            const out = recs.map((r) => ({
+                rollcallId: r.rollcallId,
+                decision: r.decision,
+                party: r.party,
+                billNumber: byId.get(r.rollcallId)?.billNumber,
+                voteNumber: byId.get(r.rollcallId)?.voteNumber,
+                result: byId.get(r.rollcallId)?.result,
+                dateTime: byId.get(r.rollcallId)?.dateTime,
+            }));
+            res.json({ votes: out });
+        }
+        catch (error) {
+            res.status(500).json({ message: 'Failed to fetch politician votes' });
         }
     });
     // Get campaign finance data

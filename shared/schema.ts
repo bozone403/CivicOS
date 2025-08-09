@@ -190,6 +190,7 @@ export const politicians = pgTable("politicians", {
   name: varchar("name").notNull(),
   party: varchar("party"),
   position: varchar("position"),
+  parliamentMemberId: varchar("parliament_member_id").unique(),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
   partyAffiliation: varchar("party_affiliation"),
@@ -562,6 +563,66 @@ export const politicianTruthTracking = pgTable("politician_truth_tracking", {
   checkedAt: timestamp("checked_at").defaultNow(),
 });
 
+// Parliament members (official Our Commons directory)
+export const parliamentMembers = pgTable("parliament_members", {
+  memberId: varchar("member_id").primaryKey(),
+  name: varchar("name").notNull(),
+  party: varchar("party"),
+  constituency: varchar("constituency"),
+  province: varchar("province"),
+  email: varchar("email"),
+  phone: varchar("phone"),
+  website: varchar("website"),
+  imageUrl: varchar("image_url"),
+  active: boolean("active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Bill roll-call votes (per bill number per vote event)
+export const billRollcalls = pgTable("bill_rollcalls", {
+  id: serial("id").primaryKey(),
+  parliament: integer("parliament"),
+  session: varchar("session"),
+  billNumber: varchar("bill_number").notNull(),
+  voteNumber: integer("vote_number"),
+  result: varchar("result"),
+  dateTime: timestamp("date_time"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Member decisions for a roll call
+export const billRollcallRecords = pgTable("bill_rollcall_records", {
+  id: serial("id").primaryKey(),
+  rollcallId: integer("rollcall_id").notNull(),
+  memberId: varchar("member_id").notNull(),
+  decision: varchar("decision").notNull(), // yes, no, abstain, paired
+  party: varchar("party"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Procurement contracts via CKAN/Open Government
+export const procurementContracts = pgTable("procurement_contracts", {
+  id: serial("id").primaryKey(),
+  reference: varchar("reference").unique(),
+  supplier: varchar("supplier"),
+  department: varchar("department"),
+  value: decimal("value", { precision: 12, scale: 2 }),
+  awardedOn: timestamp("awarded_on"),
+  url: varchar("url"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Lobbyist organizations (curated/CKAN-backed)
+export const lobbyistOrgs = pgTable("lobbyist_orgs", {
+  id: serial("id").primaryKey(),
+  name: varchar("name").notNull(),
+  clients: jsonb("clients"),
+  sectors: text("sectors").array(),
+  lastActivity: timestamp("last_activity"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 // Petitions table
 export const petitions = pgTable("petitions", {
   id: serial("id").primaryKey(),
@@ -825,6 +886,16 @@ export type UserMembershipHistory = typeof userMembershipHistory.$inferSelect;
 export type InsertUserMembershipHistory = typeof userMembershipHistory.$inferInsert;
 export type FactCheck = typeof factChecks.$inferSelect;
 export type InsertFactCheck = typeof factChecks.$inferInsert;
+export type ParliamentMember = typeof parliamentMembers.$inferSelect;
+export type InsertParliamentMember = typeof parliamentMembers.$inferInsert;
+export type BillRollcall = typeof billRollcalls.$inferSelect;
+export type InsertBillRollcall = typeof billRollcalls.$inferInsert;
+export type BillRollcallRecord = typeof billRollcallRecords.$inferSelect;
+export type InsertBillRollcallRecord = typeof billRollcallRecords.$inferInsert;
+export type ProcurementContract = typeof procurementContracts.$inferSelect;
+export type InsertProcurementContract = typeof procurementContracts.$inferInsert;
+export type LobbyistOrg = typeof lobbyistOrgs.$inferSelect;
+export type InsertLobbyistOrg = typeof lobbyistOrgs.$inferInsert;
 export type UserNotificationPreferences = typeof userNotificationPreferences.$inferSelect;
 export type InsertUserNotificationPreferences = typeof userNotificationPreferences.$inferInsert;
 export type VotingItem = typeof votingItems.$inferSelect;

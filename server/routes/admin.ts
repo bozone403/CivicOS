@@ -4,6 +4,11 @@ import { users, socialPosts, socialComments, notifications, newsArticles, votes 
 import { count } from 'drizzle-orm';
 import { jwtAuth } from './auth.js';
 import { requirePermission } from '../utils/permissionService.js';
+import { ingestNewsFeeds } from '../utils/newsIngestion.js';
+import { ingestParliamentMembers, ingestBillRollcallsForCurrentSession } from '../utils/parliamentIngestion.js';
+import { ingestProcurementFromCKAN } from '../utils/procurementIngestion.js';
+import { ingestLobbyistsFromCKAN } from '../utils/lobbyistsIngestion.js';
+import { ingestLegalActsCurated, ingestLegalCasesCurated } from '../utils/legalIngestion.js';
 
 export function registerAdminRoutes(app: Express) {
   // Aggregated platform summary for admin dashboards
@@ -76,6 +81,62 @@ export function registerAdminRoutes(app: Express) {
       });
     } catch (e) {
       res.status(500).json({ success: false, message: 'Failed to load moderation dashboard' });
+    }
+  });
+
+  // Admin: trigger news ingestion
+  app.post('/api/admin/refresh/news', jwtAuth, requirePermission('admin.news.manage'), async (_req: Request, res: Response) => {
+    try {
+      const result = await ingestNewsFeeds();
+      res.json({ success: true, ...result });
+    } catch (error) {
+      res.status(500).json({ success: false, message: 'Failed to refresh news' });
+    }
+  });
+
+  // Admin: trigger parliament data ingestion (members + votes)
+  app.post('/api/admin/refresh/parliament', jwtAuth, requirePermission('admin.identity.review'), async (_req: Request, res: Response) => {
+    try {
+      const members = await ingestParliamentMembers();
+      const votes = await ingestBillRollcallsForCurrentSession();
+      res.json({ success: true, membersInserted: members, rollcalls: votes.rollcalls, records: votes.records });
+    } catch (error) {
+      res.status(500).json({ success: false, message: 'Failed to refresh parliament data' });
+    }
+  });
+
+  // Admin: trigger procurement data ingestion (CKAN)
+  app.post('/api/admin/refresh/procurement', jwtAuth, requirePermission('admin.news.manage'), async (req: Request, res: Response) => {
+    try {
+      const query = String((req.body && (req.body as any).query) || process.env.CKAN_PROCUREMENT_QUERY || 'contract awards');
+      const inserted = await ingestProcurementFromCKAN(query);
+      res.json({ success: true, inserted });
+    } catch (error) {
+      res.status(500).json({ success: false, message: 'Failed to refresh procurement data' });
+    }
+  });
+
+  // Admin: trigger lobbyists data ingestion (CKAN/curated)
+  app.post('/api/admin/refresh/lobbyists', jwtAuth, requirePermission('admin.news.manage'), async (req: Request, res: Response) => {
+    try {
+      const query = String((req.body && (req.body as any).query) || process.env.CKAN_LOBBYISTS_QUERY || 'lobbyist registry');
+      const upserts = await ingestLobbyistsFromCKAN(query);
+      res.json({ success: true, upserts });
+    } catch (error) {
+      res.status(500).json({ success: false, message: 'Failed to refresh lobbyists data' });
+    }
+  });
+
+  // Admin: trigger legal curated ingestion
+  app.post('/api/admin/refresh/legal', jwtAuth, requirePermission('admin.news.manage'), async (req: Request, res: Response) => {
+    try {
+      const acts = Array.isArray((req.body as any)?.acts) ? (req.body as any).acts : [];
+      const casesIn = Array.isArray((req.body as any)?.cases) ? (req.body as any).cases : [];
+      const actsInserted = acts.length ? await ingestLegalActsCurated(acts) : 0;
+      const casesInserted = casesIn.length ? await ingestLegalCasesCurated(casesIn) : 0;
+      res.json({ success: true, actsInserted, casesInserted });
+    } catch (error) {
+      res.status(500).json({ success: false, message: 'Failed to refresh legal data' });
     }
   });
 }

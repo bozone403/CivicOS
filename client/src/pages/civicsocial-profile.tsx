@@ -448,7 +448,7 @@ export default function CivicSocialProfile() {
   // Loading state
   if (authLoading || isLoading) {
     return (
-      <CivicSocialLayout header={header} sidebar={sidebar}>
+      <CivicSocialLayout header={header}>
         <CivicSocialLoadingState 
           title="Loading your profile..."
           description="We're gathering your profile information and posts."
@@ -460,7 +460,7 @@ export default function CivicSocialProfile() {
   // Error state
   if (error) {
     return (
-      <CivicSocialLayout header={header} sidebar={sidebar}>
+      <CivicSocialLayout header={header}>
         <CivicSocialErrorState
           title="Failed to load profile"
           description="We couldn't load your profile information. Please check your connection and try again."
@@ -471,7 +471,7 @@ export default function CivicSocialProfile() {
   }
 
   return (
-    <CivicSocialLayout header={header} sidebar={sidebar}>
+    <CivicSocialLayout header={header}>
       <CivicSocialSection>
         {/* Quick stats cards similar to /profile */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">

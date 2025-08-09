@@ -3,6 +3,8 @@ import { users, socialPosts, socialComments, notifications, newsArticles, votes 
 import { count } from 'drizzle-orm';
 import { jwtAuth } from './auth.js';
 import { requirePermission } from '../utils/permissionService.js';
+import { ingestNewsFeeds } from '../utils/newsIngestion.js';
+import { ingestParliamentMembers, ingestBillRollcallsForCurrentSession } from '../utils/parliamentIngestion.js';
 export function registerAdminRoutes(app) {
     // Aggregated platform summary for admin dashboards
     app.get('/api/admin/summary', jwtAuth, requirePermission('view_analytics'), async (_req, res) => {
@@ -70,6 +72,27 @@ export function registerAdminRoutes(app) {
         }
         catch (e) {
             res.status(500).json({ success: false, message: 'Failed to load moderation dashboard' });
+        }
+    });
+    // Admin: trigger news ingestion
+    app.post('/api/admin/refresh/news', jwtAuth, requirePermission('admin.news.manage'), async (_req, res) => {
+        try {
+            const result = await ingestNewsFeeds();
+            res.json({ success: true, ...result });
+        }
+        catch (error) {
+            res.status(500).json({ success: false, message: 'Failed to refresh news' });
+        }
+    });
+    // Admin: trigger parliament data ingestion (members + votes)
+    app.post('/api/admin/refresh/parliament', jwtAuth, requirePermission('admin.identity.review'), async (_req, res) => {
+        try {
+            const members = await ingestParliamentMembers();
+            const votes = await ingestBillRollcallsForCurrentSession();
+            res.json({ success: true, membersInserted: members, rollcalls: votes.rollcalls, records: votes.records });
+        }
+        catch (error) {
+            res.status(500).json({ success: false, message: 'Failed to refresh parliament data' });
         }
     });
 }

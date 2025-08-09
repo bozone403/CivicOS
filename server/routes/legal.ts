@@ -1,5 +1,7 @@
 import { Express, Request, Response } from "express";
 import { ResponseFormatter } from "../utils/responseFormatter.js";
+import { db } from "../db.js";
+import { legalActs, legalCases } from "../../shared/schema.js";
 import jwt from "jsonwebtoken";
 
 // JWT Auth middleware
@@ -182,47 +184,21 @@ export function registerLegalRoutes(app: Express) {
     ]
   };
 
-  // Root legal endpoint
+  // Root legal endpoint (DB-first for acts/cases, fallback to curated)
   app.get('/api/legal', async (req: Request, res: Response) => {
     try {
-      const legalData = {
-        acts: canadianLaws.federalActs,
-        cases: [
-          {
-            id: 1,
-            title: "R. v. Oakes",
-            year: 1986,
-            summary: "Landmark case establishing the Oakes test for reasonable limits on Charter rights",
-            category: "Constitutional Law",
-            impact: "Established framework for analyzing Charter violations"
-          },
-          {
-            id: 2,
-            title: "R. v. Jordan",
-            year: 2016,
-            summary: "Established the Jordan framework for unreasonable delay in criminal proceedings",
-            category: "Criminal Law",
-            impact: "Set 18-month presumptive ceiling for provincial court proceedings"
-          },
-          {
-            id: 3,
-            title: "R. v. Morgentaler",
-            year: 1988,
-            summary: "Struck down Canada's abortion law as unconstitutional",
-            category: "Constitutional Law",
-            impact: "Decriminalized abortion in Canada"
-          }
+      const acts = await db.select().from(legalActs).limit(100);
+      const casesRows = await db.select().from(legalCases).limit(100);
+      const payload = {
+        acts: acts.length ? acts : canadianLaws.federalActs,
+        cases: casesRows.length ? casesRows : [
+          { id: 1, title: "R. v. Oakes", year: 1986, summary: "Oakes test", category: "Constitutional Law" },
+          { id: 2, title: "R. v. Jordan", year: 2016, summary: "Jordan delay", category: "Criminal Law" },
         ],
         sections: canadianLaws.criminalCode,
         message: "Legal data retrieved successfully"
       };
-      
-      return ResponseFormatter.success(
-        res,
-        legalData,
-        "Legal data retrieved successfully",
-        200
-      );
+      return ResponseFormatter.success(res, payload, "Legal data retrieved successfully", 200);
     } catch (error) {
       return ResponseFormatter.databaseError(res, `Failed to fetch legal data: ${(error as Error).message}`);
     }

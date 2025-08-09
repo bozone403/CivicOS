@@ -2,6 +2,7 @@ import { db } from '../db.js';
 import { jwtAuth } from './auth.js';
 import { eq, desc, and, count, ilike, sql } from 'drizzle-orm';
 import { newsArticles } from '../../shared/schema.js';
+import { ingestNewsFeeds } from '../utils/newsIngestion.js';
 import { requirePermission } from '../utils/permissionService.js';
 import { z } from 'zod';
 // Input validation schemas
@@ -64,40 +65,25 @@ export function registerNewsRoutes(app) {
             res.json({ success: true, articles: [], pagination: { page: 1, limit: 0, total: 0, totalPages: 0 } });
         }
     });
-    // Get single news article
+    // Get single news article (DB with auto-ingest fallback)
     app.get("/api/news/:id", async (req, res) => {
         try {
             const { id } = req.params;
             const articleId = Number(id);
             if (isNaN(articleId)) {
-                return res.status(400).json({
-                    success: false,
-                    message: "Invalid article ID"
-                });
+                return res.status(400).json({ success: false, message: "Invalid article ID" });
             }
-            // For now, return mock article data
-            const mockArticle = {
-                id: articleId,
-                title: "Government Announces New Policy Initiative",
-                summary: "The federal government has announced a comprehensive new policy initiative aimed at improving public services.",
-                content: "The federal government today announced a comprehensive new policy initiative that will significantly impact public services across the country. This initiative represents a major step forward in addressing key challenges facing our nation. The policy includes several key components designed to improve efficiency and effectiveness of government services.",
-                category: "politics",
-                source: "Government Press Release",
-                sourceUrl: "https://example.com/news/1",
-                imageUrl: "https://example.com/images/news1.jpg",
-                tags: ["government", "policy", "public services"],
-                isPublished: true,
-                publishedAt: new Date(),
-                createdAt: new Date(),
-                updatedAt: new Date(),
-                views: 1250,
-                likes: 45,
-                comments: 12
-            };
-            res.json({
-                success: true,
-                article: mockArticle
-            });
+            const [row] = await db.select().from(newsArticles).where(eq(newsArticles.id, articleId)).limit(1);
+            if (!row) {
+                // Attempt on-demand ingestion to populate DB, then retry once
+                await ingestNewsFeeds().catch(() => undefined);
+                const [retry] = await db.select().from(newsArticles).where(eq(newsArticles.id, articleId)).limit(1);
+                if (!retry) {
+                    return res.status(404).json({ success: false, message: 'Article not found' });
+                }
+                return res.json({ success: true, article: retry });
+            }
+            res.json({ success: true, article: row });
         }
         catch (error) {
             res.status(500).json({
@@ -309,6 +295,16 @@ export function registerNewsRoutes(app) {
         }
         catch {
             res.json([]);
+        }
+    });
+    // Admin-only: trigger news ingestion
+    app.post('/api/admin/refresh/news', jwtAuth, requirePermission('admin.news.manage'), async (_req, res) => {
+        try {
+            const result = await ingestNewsFeeds();
+            res.json({ success: true, ...result });
+        }
+        catch (error) {
+            res.status(500).json({ success: false, message: 'Failed to refresh news' });
         }
     });
 }

@@ -1,5 +1,5 @@
 import { db } from "../db.js";
-import { politicians } from "../../shared/schema.js";
+import { politicians, procurementContracts } from "../../shared/schema.js";
 import { eq, desc, count } from "drizzle-orm";
 import jwt from "jsonwebtoken";
 import { ResponseFormatter } from "../utils/responseFormatter.js";
@@ -24,11 +24,10 @@ function jwtAuth(req, res, next) {
     }
 }
 export function registerProcurementRoutes(app) {
-    // Get procurement data (placeholder - using politicians for now)
+    // Get procurement data (DB-backed)
     app.get('/api/procurement', async (req, res) => {
         try {
-            // For now, return politicians as procurement data
-            const procurementData = await db.select().from(politicians).orderBy(desc(politicians.createdAt));
+            const procurementData = await db.select().from(procurementContracts).orderBy(desc(procurementContracts.createdAt));
             res.json({
                 procurementData,
                 total: procurementData.length,
@@ -39,14 +38,14 @@ export function registerProcurementRoutes(app) {
             res.status(500).json({ error: 'Failed to fetch procurement data' });
         }
     });
-    // Get procurement by jurisdiction
+    // Get procurement by department
     app.get('/api/procurement/:jurisdiction', async (req, res) => {
         try {
-            const { jurisdiction } = req.params;
+            const { jurisdiction } = req.params; // kept param name for compatibility
             const procurementData = await db.select()
-                .from(politicians)
-                .where(eq(politicians.jurisdiction, jurisdiction))
-                .orderBy(desc(politicians.createdAt));
+                .from(procurementContracts)
+                .where(eq(procurementContracts.department, jurisdiction))
+                .orderBy(desc(procurementContracts.createdAt));
             res.json({
                 procurementData,
                 total: procurementData.length,

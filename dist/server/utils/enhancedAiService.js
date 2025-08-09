@@ -4,14 +4,22 @@ class EnhancedAiService {
     ollamaUrl;
     model;
     isOllamaAvailable = false;
+    hfToken;
+    hfModel;
+    isHfAvailable = false;
     constructor() {
         this.ollamaUrl = process.env.OLLAMA_URL ?? '';
         this.model = process.env.OLLAMA_MODEL ?? '';
+        this.hfToken = process.env.HUGGINGFACE_API_TOKEN;
+        this.hfModel = process.env.HUGGINGFACE_MODEL || 'mistralai/Mistral-7B-Instruct-v0.3';
+        this.isHfAvailable = Boolean(this.hfToken && this.hfModel);
         this.checkOllamaAvailability();
         logger.info('Enhanced AI Service initialized', {
-            ollamaUrl: this.ollamaUrl,
-            model: this.model,
-            available: this.isOllamaAvailable
+            ollamaEnabled: !!this.ollamaUrl,
+            ollamaModel: this.model,
+            ollamaAvailable: this.isOllamaAvailable,
+            hfEnabled: this.isHfAvailable,
+            hfModel: this.hfModel
         });
     }
     async checkOllamaAvailability() {
@@ -46,10 +54,29 @@ class EnhancedAiService {
             }
             catch (error) {
                 logger.error('Ollama generation failed, falling back to mock', { error: error instanceof Error ? error.message : String(error) });
+                // Try HF before mock
+                if (this.isHfAvailable) {
+                    try {
+                        return await this.generateHfResponse(message, context);
+                    }
+                    catch (e) {
+                        logger.error('Hugging Face generation failed after Ollama fallback', { error: e instanceof Error ? e.message : String(e) });
+                    }
+                }
                 return this.generateMockResponse(message, context);
             }
         }
         else {
+            // Prefer HF if configured
+            if (this.isHfAvailable) {
+                try {
+                    return await this.generateHfResponse(message, context);
+                }
+                catch (error) {
+                    logger.error('Hugging Face generation failed, falling back to mock', { error: error instanceof Error ? error.message : String(error) });
+                    return this.generateMockResponse(message, context);
+                }
+            }
             return this.generateMockResponse(message, context);
         }
     }
@@ -82,6 +109,44 @@ class EnhancedAiService {
             confidence: 0.85,
             provider: 'ollama',
             model: this.model
+        };
+    }
+    async generateHfResponse(message, context) {
+        if (!this.hfToken || !this.hfModel) {
+            throw new Error('Hugging Face not configured');
+        }
+        const prompt = this.buildPrompt(message, context);
+        if (typeof globalThis.fetch === 'undefined') {
+            const nodeFetch = await import('node-fetch');
+            globalThis.fetch = nodeFetch.default || nodeFetch;
+        }
+        const response = await fetch(`https://api-inference.huggingface.co/models/${encodeURIComponent(this.hfModel)}`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${this.hfToken}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                inputs: prompt,
+                parameters: {
+                    max_new_tokens: 512,
+                    temperature: 0.7,
+                    top_p: 0.9,
+                    return_full_text: false
+                }
+            })
+        });
+        if (!response.ok) {
+            throw new Error(`HuggingFace API error: ${response.status}`);
+        }
+        const data = await response.json();
+        // Common HF text-generation output is an array with { generated_text }
+        const generated = Array.isArray(data) ? (data[0]?.generated_text ?? '') : (data?.generated_text ?? '');
+        return {
+            response: typeof generated === 'string' && generated.length > 0 ? generated : 'No response generated',
+            confidence: 0.8,
+            provider: 'huggingface',
+            model: this.hfModel
         };
     }
     buildPrompt(message, context) {
@@ -150,10 +215,18 @@ User question: ${message}
                 logger.error('Ollama health check failed', { error: error instanceof Error ? error.message : String(error) });
             }
         }
+        if (this.isHfAvailable) {
+            return {
+                service: true,
+                model: this.hfModel || 'unknown',
+                message: 'Hugging Face Inference API available',
+                provider: 'huggingface'
+            };
+        }
         return {
             service: true,
             model: 'mock-civic-data',
-            message: 'Using comprehensive mock data - Ollama not available',
+            message: 'Using comprehensive mock data - no external AI configured',
             provider: 'mock'
         };
     }
