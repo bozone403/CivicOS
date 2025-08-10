@@ -12,7 +12,7 @@ import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 import jwt from "jsonwebtoken";
 import pino from "pino";
-import { existsSync } from 'fs';
+import { existsSync, readdirSync, statSync } from 'fs';
 
 // Import middleware
 import { authRateLimit, apiRateLimit, socialRateLimit, votingRateLimit } from './middleware/rateLimit.js';
@@ -389,6 +389,42 @@ app.get("/health", (_req, res) => {
   let staticRoot = staticRootCandidates.find((p) => {
     try { return require('fs').existsSync(p); } catch { return false; }
   }) || path.resolve(__dirname, "../dist/public");
+  // Compatibility: map stale hashed entry requests to current built assets
+  const assetsDir = path.join(staticRoot, 'assets');
+  function findLatestAsset(prefix: string, ext: string): string | null {
+    try {
+      const files = readdirSync(assetsDir).filter(f => f.startsWith(prefix) && f.endsWith(ext));
+      if (files.length === 0) return null;
+      // Pick the most recently modified
+      const sorted = files.sort((a, b) => statSync(path.join(assetsDir, b)).mtimeMs - statSync(path.join(assetsDir, a)).mtimeMs);
+      return path.join(assetsDir, sorted[0]);
+    } catch {
+      return null;
+    }
+  }
+  app.get('/assets/index-:hash.js', (req, res, next) => {
+    const requested = path.join(assetsDir, `index-${req.params.hash}.js`);
+    if (existsSync(requested)) return next();
+    const latest = findLatestAsset('index-', '.js');
+    if (latest) {
+      res.setHeader('Content-Type', 'application/javascript; charset=UTF-8');
+      res.setHeader('Cache-Control', 'no-store');
+      return res.sendFile(latest);
+    }
+    return next();
+  });
+  app.get('/assets/index-:hash.css', (req, res, next) => {
+    const requested = path.join(assetsDir, `index-${req.params.hash}.css`);
+    if (existsSync(requested)) return next();
+    const latest = findLatestAsset('index-', '.css');
+    if (latest) {
+      res.setHeader('Content-Type', 'text/css; charset=UTF-8');
+      res.setHeader('Cache-Control', 'no-store');
+      return res.sendFile(latest);
+    }
+    return next();
+  });
+
   app.use(express.static(staticRoot, {
     setHeaders: (res, filePath) => {
       const isIndex = filePath.endsWith('index.html');
