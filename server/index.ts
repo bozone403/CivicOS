@@ -395,9 +395,14 @@ app.get("/health", (_req, res) => {
       const fs = require('fs');
       const idxPath = path.join(staticRoot, 'index.html');
       let html = fs.readFileSync(idxPath, 'utf8');
-      // Always point to stable aliases to avoid stale hashes
-      html = html.replace(/\/assets\/index-[A-Za-z0-9_-]+\.js/g, '/assets/index.js');
-      html = html.replace(/\/assets\/index-[A-Za-z0-9_-]+\.css/g, '/assets/index.css');
+      const latestJs = findLatestAsset('index-', '.js');
+      const latestCss = findLatestAsset('index-', '.css');
+      const jsRel = latestJs ? '/assets/' + path.basename(latestJs) : '/assets/index.js';
+      const cssRel = latestCss ? '/assets/' + path.basename(latestCss) : '/assets/index.css';
+      const jsMtime = latestJs ? statSync(latestJs).mtimeMs : Date.now();
+      const cssMtime = latestCss ? statSync(latestCss).mtimeMs : Date.now();
+      html = html.replace(/\/assets\/index-[A-Za-z0-9_-]+\.js/g, jsRel + `?v=${jsMtime}`);
+      html = html.replace(/\/assets\/index-[A-Za-z0-9_-]+\.css/g, cssRel + `?v=${cssMtime}`);
       res.setHeader('Cache-Control', 'no-store');
       res.setHeader('Content-Type', 'text/html; charset=UTF-8');
       return res.send(html);
@@ -517,22 +522,20 @@ app.get("/health", (_req, res) => {
       }
     }
   }));
-  // Ensure SPA fallback for all non-API routes (rewrite to latest entry chunk)
+  // Ensure SPA fallback for all non-API routes (rewrite to latest entry chunk with version)
   app.get(/^\/(?!api\/).*/, (_req, res) => {
     try {
-      const idxPath = path.join(staticRoot, 'index.html');
       const fs = require('fs');
+      const idxPath = path.join(staticRoot, 'index.html');
       let html = fs.readFileSync(idxPath, 'utf8');
       const latestJs = findLatestAsset('index-', '.js');
       const latestCss = findLatestAsset('index-', '.css');
-      if (latestJs) {
-        const relJs = '/assets/' + path.basename(latestJs);
-        html = html.replace(/\/assets\/index-[A-Za-z0-9_-]+\.js/g, relJs);
-      }
-      if (latestCss) {
-        const relCss = '/assets/' + path.basename(latestCss);
-        html = html.replace(/\/assets\/index-[A-Za-z0-9_-]+\.css/g, relCss);
-      }
+      const jsRel = latestJs ? '/assets/' + path.basename(latestJs) : '/assets/index.js';
+      const cssRel = latestCss ? '/assets/' + path.basename(latestCss) : '/assets/index.css';
+      const jsMtime = latestJs ? statSync(latestJs).mtimeMs : Date.now();
+      const cssMtime = latestCss ? statSync(latestCss).mtimeMs : Date.now();
+      html = html.replace(/\/assets\/index-[A-Za-z0-9_-]+\.js/g, jsRel + `?v=${jsMtime}`);
+      html = html.replace(/\/assets\/index-[A-Za-z0-9_-]+\.css/g, cssRel + `?v=${cssMtime}`);
       res.setHeader('Cache-Control', 'no-store');
       res.setHeader('Content-Type', 'text/html; charset=UTF-8');
       return res.send(html);
