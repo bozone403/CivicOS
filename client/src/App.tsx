@@ -166,7 +166,7 @@ export default function App() {
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
         <AuthProvider>
-          <Router>
+          <Router base={"/"}>
             <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-slate-100">
               <Suspense fallback={<PageLoader />}>
                 <Switch>
