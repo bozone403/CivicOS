@@ -1,5 +1,6 @@
 import { Express, Request, Response } from "express";
 import { ResponseFormatter } from "../utils/responseFormatter.js";
+import { nextFederalElectionDate, nextMunicipalElectionDate } from "../utils/electionRules.js";
 
 export function registerElectionsRoutes(app: Express) {
   // Comprehensive Canadian election data
@@ -421,6 +422,59 @@ export function registerElectionsRoutes(app: Express) {
       const filteredRecent = allRecent.filter((e) =>
         matchesQuery(e.region) || matchesQuery(e.description) || matchesQuery(e.type)
       );
+
+      // Enhance with federal/provincial estimated entries when search targets a specific place
+      if (q) {
+        const provinceMatchMap: Record<string, string> = {
+          alberta: 'Alberta',
+          ontario: 'Ontario',
+          'british columbia': 'British Columbia',
+          bc: 'British Columbia',
+          quebec: 'Quebec',
+          québec: 'Quebec',
+          manitoba: 'Manitoba',
+          saskatchewan: 'Saskatchewan',
+          'new brunswick': 'New Brunswick',
+          'nova scotia': 'Nova Scotia',
+          'newfoundland and labrador': 'Newfoundland and Labrador',
+          'prince edward island': 'Prince Edward Island',
+          pei: 'Prince Edward Island',
+          yukon: 'Yukon',
+          nunavut: 'Nunavut',
+          'northwest territories': 'Northwest Territories',
+        };
+        const provinceDetected = Object.keys(provinceMatchMap).find(k => q.includes(k));
+        const provinceName = provinceDetected ? provinceMatchMap[provinceDetected] : undefined;
+        if (provinceName) {
+          const { date, estimated, rule } = nextMunicipalElectionDate(provinceName);
+          allUpcoming.unshift({
+            id: `est-${provinceName}`,
+            type: 'municipal' as const,
+            region: provinceName,
+            date: new Date(date).toISOString().slice(0,10),
+            status: 'upcoming' as const,
+            description: `Estimated next municipal elections in ${provinceName} (${rule})`,
+            source: 'Provincial election law (estimated)',
+            sourceUrl: undefined,
+            registrationDeadline: undefined,
+            advanceVotingDates: undefined,
+          });
+        }
+        // Always include an upcoming federal estimate
+        const f = nextFederalElectionDate();
+        allUpcoming.unshift({
+          id: `est-federal`,
+          type: 'federal' as const,
+          region: 'Canada',
+          date: new Date(f.date).toISOString().slice(0,10),
+          status: 'upcoming' as const,
+          description: `Estimated next federal general election (${f.rule})`,
+          source: 'Canada Elections Act (estimated)',
+          sourceUrl: 'https://www.elections.ca',
+          registrationDeadline: undefined,
+          advanceVotingDates: undefined,
+        });
+      }
 
       const responsePayload = {
         upcoming: filteredUpcoming.sort((a, b) => a.date.localeCompare(b.date)),
