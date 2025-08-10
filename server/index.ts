@@ -253,16 +253,34 @@ app.use((req, res, next) => {
 // Security middleware with CSP configuration for images
 app.use(helmet({
   contentSecurityPolicy: {
+    useDefaults: true,
     directives: {
       defaultSrc: ["'self'"],
+      // Allow inline styles for Tailwind + Radix components, and Google Fonts
       styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
-      scriptSrc: ["'self'"],
+      // Allow module scripts and safe inline/eval for built bundles if needed
+      // Vite prod bundles generally do not require eval, but we allow to avoid runtime blocks
+      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://js.stripe.com", "https://m.stripe.com"],
+      // Images and blobs
       imgSrc: ["'self'", "data:", "blob:", "https://images.unsplash.com", "https://*.unsplash.com"],
-      connectSrc: ["'self'"],
+      // APIs: same-origin plus HTTPS endpoints we may call (Render, Supabase, etc.)
+      connectSrc: [
+        "'self'",
+        "https:",
+        "wss:",
+        "https://civicos.onrender.com",
+        "https://*.supabase.co",
+      ],
       fontSrc: ["'self'", "https://fonts.gstatic.com"],
       objectSrc: ["'none'"],
       mediaSrc: ["'self'"],
-      frameSrc: ["'none'"],
+      // Allow Stripe iframes if used in the future; otherwise keep none
+      frameSrc: ["'self'", "https://js.stripe.com"],
+      baseUri: ["'self'"],
+      formAction: ["'self'"],
+      frameAncestors: ["'self'"],
+      scriptSrcAttr: ["'none'"],
+      upgradeInsecureRequests: [],
     },
   },
 }));
