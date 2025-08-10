@@ -37,7 +37,7 @@ export function registerPoliticiansRoutes(app: Express) {
     const startTime = Date.now();
     
     try {
-      const { level, jurisdiction, party, search } = req.query;
+      const { level, jurisdiction, party, search, location } = req.query as any;
       
       // Try to fetch real Parliament data first
       let politiciansData;
@@ -78,7 +78,7 @@ export function registerPoliticiansRoutes(app: Express) {
         }
       } catch (error) {
         // Fallback to database if real API fails
-        if (level || jurisdiction || party || search) {
+        if (level || jurisdiction || party || search || location) {
           const conditions: any[] = [];
 
           if (level) {
@@ -96,6 +96,15 @@ export function registerPoliticiansRoutes(app: Express) {
                 like(politicians.name, `%${search}%`),
                 like(politicians.position, `%${search}%`),
                 like(politicians.constituency, `%${search}%`)
+              )
+            );
+          }
+          if (location) {
+            const q = String(location);
+            conditions.push(
+              or(
+                like(politicians.jurisdiction, `%${q}%`),
+                like(politicians.constituency, `%${q}%`)
               )
             );
           }
