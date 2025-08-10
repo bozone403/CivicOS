@@ -202,16 +202,34 @@ app.use((req, res, next) => {
 // Security middleware with CSP configuration for images
 app.use(helmet({
     contentSecurityPolicy: {
+        useDefaults: true,
         directives: {
             defaultSrc: ["'self'"],
+            // Allow inline styles for Tailwind + Radix components, and Google Fonts
             styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
-            scriptSrc: ["'self'"],
+            // Allow module scripts and safe inline/eval for built bundles if needed
+            // Vite prod bundles generally do not require eval, but we allow to avoid runtime blocks
+            scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://js.stripe.com", "https://m.stripe.com"],
+            // Images and blobs
             imgSrc: ["'self'", "data:", "blob:", "https://images.unsplash.com", "https://*.unsplash.com"],
-            connectSrc: ["'self'"],
+            // APIs: same-origin plus HTTPS endpoints we may call (Render, Supabase, etc.)
+            connectSrc: [
+                "'self'",
+                "https:",
+                "wss:",
+                "https://civicos.onrender.com",
+                "https://*.supabase.co",
+            ],
             fontSrc: ["'self'", "https://fonts.gstatic.com"],
             objectSrc: ["'none'"],
             mediaSrc: ["'self'"],
-            frameSrc: ["'none'"],
+            // Allow Stripe iframes if used in the future; otherwise keep none
+            frameSrc: ["'self'", "https://js.stripe.com"],
+            baseUri: ["'self'"],
+            formAction: ["'self'"],
+            frameAncestors: ["'self'"],
+            scriptSrcAttr: ["'none'"],
+            upgradeInsecureRequests: [],
         },
     },
 }));
@@ -318,19 +336,24 @@ app.get("/health", (_req, res) => {
         res.status(404).json({ message: 'API route not found', path: req.originalUrl });
     });
     // Patch static file serving to use ESM-compatible __dirname
+    // Try multiple likely locations and pick the first that exists
     const staticRootCandidates = [
-        path.resolve(__dirname, "../dist/public"),
+        // When running from project root
         path.resolve(process.cwd(), "dist/public"),
+        // When resolving relative to compiled server file at dist/server/index.js → dist/public
+        path.resolve(__dirname, "../public"),
+        // Fallback patterns
+        path.resolve(__dirname, "../../dist/public"),
         "/opt/render/project/src/dist/public",
     ];
     let staticRoot = staticRootCandidates.find((p) => {
         try {
-            return require('fs').existsSync(p);
+            return existsSync(p);
         }
         catch {
             return false;
         }
-    }) || path.resolve(__dirname, "../dist/public");
+    }) || path.resolve(process.cwd(), "dist/public");
     // Serve dynamic index.html FIRST to ensure latest entry chunks are referenced
     app.get('/', (_req, res) => {
         try {
