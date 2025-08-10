@@ -9,7 +9,7 @@ import { ingestParliamentMembers, ingestBillRollcallsForCurrentSession } from '.
 import { syncIncumbentPoliticiansFromParliament } from '../utils/politicianSync.js';
 import { ingestProcurementFromCKAN } from '../utils/procurementIngestion.js';
 import { ingestLobbyistsFromCKAN } from '../utils/lobbyistsIngestion.js';
-import { ingestLegalActsCurated, ingestLegalCasesCurated } from '../utils/legalIngestion.js';
+import { ingestLegalActsCurated, ingestLegalCasesCurated, ingestFederalActsFromJustice, ingestCriminalCodeFromJustice } from '../utils/legalIngestion.js';
 import { ingestProvincialIncumbents, ingestMunicipalIncumbents, loadMunicipalCatalog, saveMunicipalCatalog } from '../utils/provincialMunicipalIngestion.js';
 
 export function registerAdminRoutes(app: Express) {
@@ -179,7 +179,9 @@ export function registerAdminRoutes(app: Express) {
       const casesIn = Array.isArray((req.body as any)?.cases) ? (req.body as any).cases : [];
       const actsInserted = acts.length ? await ingestLegalActsCurated(acts) : 0;
       const casesInserted = casesIn.length ? await ingestLegalCasesCurated(casesIn) : 0;
-      res.json({ success: true, actsInserted, casesInserted });
+      const federalActs = await ingestFederalActsFromJustice();
+      const ccSections = await ingestCriminalCodeFromJustice();
+      res.json({ success: true, actsInserted, casesInserted, federalActs, ccSections });
     } catch (error) {
       res.status(500).json({ success: false, message: 'Failed to refresh legal data' });
     }
