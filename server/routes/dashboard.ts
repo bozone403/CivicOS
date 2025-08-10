@@ -131,12 +131,12 @@ router.get('/stats', async (req: any, res) => {
             .where(eq(userActivity.userId, userId))
             .orderBy(desc(userActivity.createdAt))
             .limit(10);
-          recentActivity = activityRows.map((a) => ({
+          recentActivity = activityRows.map((a: any) => ({
             id: String(a.id),
-            type: a.activityType || 'general',
-            title: getActivityTitle(a.activityType || 'general', a.activityData),
+            type: a.type || 'general',
+            title: getActivityTitle(a.type || 'general', a.data),
             timestamp: a.createdAt?.toISOString?.() || new Date().toISOString(),
-            icon: getActivityIcon(a.activityType || 'general'),
+            icon: getActivityIcon(a.type || 'general'),
           }));
         }
       } catch {}
@@ -151,6 +151,7 @@ router.get('/stats', async (req: any, res) => {
       civicPoints,
       trustScore,
       recentActivity,
+      totalOfficials: politiciansCount?.count || 0,
     });
   } catch (error) {
     res.status(500).json({ 
@@ -200,14 +201,14 @@ function getActivityTitle(activityType: string, activityData: any): string {
 }
 
 // Get user's civic profile summary with real data
-router.get('/profile', jwtAuth, async (req, res) => {
+router.get('/profile', jwtAuth as any, async (req: any, res) => {
   try {
-    const userId = req.user?.id;
+    const userId = (req.user as any)?.id as string | undefined;
     if (!userId) {
       return res.status(401).json({ error: 'User not authenticated' });
     }
 
-    const user = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+    const user = await db.select().from(users).where(eq(users.id as any, userId as any)).limit(1);
     const currentUser = user[0];
 
     if (!currentUser) {
@@ -235,16 +236,16 @@ router.get('/profile', jwtAuth, async (req, res) => {
     // Calculate rank percentile based on civic points
     const allUsers = await db.select({ civicPoints: users.civicPoints }).from(users);
     const sortedUsers = allUsers.sort((a, b) => (b.civicPoints || 0) - (a.civicPoints || 0));
-    const userRank = sortedUsers.findIndex(user => user.civicPoints === currentUser.civicPoints) + 1;
+    const userRank = sortedUsers.findIndex(u => u.civicPoints === currentUser.civicPoints) + 1;
     const rankPercentile = Math.round(((sortedUsers.length - userRank) / sortedUsers.length) * 100);
 
     const profileData = {
       civicLevel: currentUser.civicLevel || "Registered",
       rankPercentile: rankPercentile,
       badgesEarned: [
-        { name: "First Vote", icon: "vote", date: currentUser.createdAt?.toISOString().split('T')[0] || "2025-01-01" },
-        { name: "Profile Complete", icon: "user", date: currentUser.updatedAt?.toISOString().split('T')[0] || "2025-01-01" },
-        { name: "Engaged Citizen", icon: "activity", date: currentUser.lastActivityDate?.toISOString().split('T')[0] || "2025-01-01" }
+        { name: "First Vote", icon: "vote", date: (currentUser as any).createdAt?.toISOString?.().split('T')[0] || "2025-01-01" },
+        { name: "Profile Complete", icon: "user", date: (currentUser as any).updatedAt?.toISOString?.().split('T')[0] || "2025-01-01" },
+        { name: "Engaged Citizen", icon: "activity", date: (currentUser as any).lastActivityDate?.toISOString?.().split('T')[0] || "2025-01-01" }
       ],
       nextBadge: {
         name: "Petition Creator",
@@ -271,9 +272,9 @@ router.get('/profile', jwtAuth, async (req, res) => {
 });
 
 // Get personalized recommendations based on user data
-router.get('/recommendations', jwtAuth, async (req, res) => {
+router.get('/recommendations', jwtAuth as any, async (req: any, res) => {
   try {
-    const userId = req.user?.id;
+    const userId = (req.user as any)?.id as string | undefined;
     if (!userId) {
       return res.status(401).json({ error: 'User not authenticated' });
     }
