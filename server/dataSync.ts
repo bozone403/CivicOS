@@ -378,7 +378,7 @@ async function storeOfficial(official: GovernmentOfficial): Promise<void> {
   } catch (error) {
     const err = error as any;
     if (!err.message?.includes('duplicate') && !err.message?.includes('unique constraint')) {
-      logger.error({ msg: 'Error storing official', name: official.name, error: err });
+      logger.error({ msg: 'Error storing official', name: official.name, error: err?.message || String(err) });
     } else {
       logger.info({ msg: 'Duplicate politician not stored', name: official.name });
     }

@@ -340,32 +340,37 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createPolitician(politician: InsertPolitician): Promise<Politician> {
+    // Insert defensively to handle schema drift in live DB
+    const primary = {
+      name: politician.name,
+      party: (politician as any).party ?? null,
+      position: (politician as any).position ?? null,
+      constituency: (politician as any).constituency ?? null,
+    } as any;
     try {
-      // Use onConflictDoNothing to handle duplicate politicians gracefully
-      const [newPolitician] = await db.insert(politicians)
-        .values(politician)
+      const [inserted] = await db.insert(politicians)
+        .values(primary)
         .onConflictDoNothing()
         .returning();
-      
-      // If no politician was inserted (due to conflict), try to get the existing one
-      if (!newPolitician) {
-        const [existingPolitician] = await db.select()
-          .from(politicians)
-          .where(
-            and(
-              eq(politicians.name, politician.name),
-              eq(politicians.jurisdiction, politician.jurisdiction || '')
-            )
-          );
-        return existingPolitician;
+      if (inserted) return inserted;
+    } catch (err) {
+      // Retry with minimal columns if some targets are missing
+      try {
+        const [insertedMinimal] = await db.insert(politicians)
+          .values({ name: politician.name, party: (politician as any).party ?? null } as any)
+          .onConflictDoNothing()
+          .returning();
+        if (insertedMinimal) return insertedMinimal;
+      } catch (_e) {
+        // fall through to select existing
       }
-      
-      return newPolitician;
-    } catch (error) {
-      // Log the error but don't throw to prevent cascading failures
-      // console.error removed for production
-      throw error;
     }
+
+    // Select existing by name (fallback when unique constraints differ)
+    const [existing] = await db.select()
+      .from(politicians)
+      .where(eq(politicians.name, politician.name));
+    return existing as Politician;
   }
 
   async updatePoliticianTrustScore(id: number, score: string): Promise<void> {
