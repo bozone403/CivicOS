@@ -16,6 +16,7 @@ export default defineConfig({
     emptyOutDir: true,
     rollupOptions: {
       output: {
+        entryFileNames: 'assets/app-[hash].js',
         manualChunks: {
           vendor: ['react', 'react-dom'],
           ui: ['@radix-ui/react-dialog', '@radix-ui/react-dropdown-menu', '@radix-ui/react-tabs'],
