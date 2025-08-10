@@ -419,6 +419,21 @@ app.get("/health", (_req, res) => {
       return null;
     }
   }
+  // Intercept any /assets/index-*.js|css and serve latest to avoid 404 from static handler
+  app.use('/assets', (req, res, next) => {
+    try {
+      if (req.path.startsWith('/index-') && (req.path.endsWith('.js') || req.path.endsWith('.css'))) {
+        const isJs = req.path.endsWith('.js');
+        const latest = findLatestAsset('index-', isJs ? '.js' : '.css');
+        if (latest) {
+          res.setHeader('Cache-Control', 'no-store');
+          res.setHeader('Content-Type', isJs ? 'application/javascript; charset=UTF-8' : 'text/css; charset=UTF-8');
+          return res.sendFile(latest);
+        }
+      }
+    } catch {}
+    return next();
+  });
   // Serve old hashed entry requests with the latest built asset
   app.get(/^\/assets\/index-.*\.js$/, (req, res, next) => {
     const latest = findLatestAsset('index-', '.js');
