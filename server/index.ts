@@ -500,11 +500,16 @@ app.get("/health", (_req, res) => {
       }
     }
   }));
-  // SPA fallback: serve built index.html as-is for all non-API routes
-  app.get(/^\/(?!api\/).*/, (_req, res) => {
+  // SPA fallback: serve built index.html as-is for all non-API and non-asset routes
+  app.get(/^\/(?!api\/|assets\/).*/, (_req, res) => {
     res.setHeader('Cache-Control', 'no-store');
     res.setHeader('Content-Type', 'text/html; charset=UTF-8');
     return res.sendFile(path.join(staticRoot, 'index.html'));
+  });
+
+  // If an /assets/* file was not served by express.static above, return 404 instead of HTML
+  app.use('/assets', (_req, res) => {
+    res.status(404).type('text/plain').send('Not found');
   });
 
   // ALWAYS serve the app on the correct port for Render
