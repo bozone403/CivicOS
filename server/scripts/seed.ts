@@ -41,9 +41,12 @@ async function main() {
   await ensureBill('Seed Test Bill');
   await ensureNewsArticle('Seed News Article');
 
-  console.log('Seed completed');
+  // console.log removed for production
 }
 
-main().then(() => process.exit(0)).catch((e) => { console.error(e); process.exit(1); });
-
+main()
+  .then(() => process.exit(0))
+  .catch((_e) => {
+    process.exit(1);
+  });
 
