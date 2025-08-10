@@ -117,7 +117,7 @@ export function MobileNavigation() {
     { title: "Legal System", href: "/legal", icon: Gavel, description: "Legal documents" },
     { title: "Your Rights", href: "/rights", icon: Shield, description: "Canadian rights" },
     { title: "Cases", href: "/cases", icon: Scale, description: "Constitutional cases" },
-    { title: "Legal Search", href: "/legal-search", icon: Search, description: "Search legal info" },
+    // Removed Legal Search; consolidated into /legal
   ];
 
   // Transparency section items

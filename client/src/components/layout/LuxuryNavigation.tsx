@@ -92,7 +92,7 @@ const navigationSections = [
       { title: "Legal System", href: "/legal", icon: Gavel },
       { title: "Your Rights", href: "/rights", icon: Shield },
       { title: "Constitutional Cases", href: "/cases", icon: Scale },
-      { title: "Legal Search", href: "/legal-search", icon: Search },
+      // Removed Legal Search (consolidated into /legal)
     ]
   },
   {
