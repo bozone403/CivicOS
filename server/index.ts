@@ -427,6 +427,24 @@ app.get("/health", (_req, res) => {
     }
   }
   // Serve old hashed entry requests with the latest built asset
+  app.get(/^\/assets\/index-.*\.js$/, (req, res, next) => {
+    const latest = findLatestAsset('index-', '.js');
+    if (latest) {
+      res.setHeader('Content-Type', 'application/javascript; charset=UTF-8');
+      res.setHeader('Cache-Control', 'no-store');
+      return res.sendFile(latest);
+    }
+    return next();
+  });
+  app.get(/^\/assets\/index-.*\.css$/, (req, res, next) => {
+    const latest = findLatestAsset('index-', '.css');
+    if (latest) {
+      res.setHeader('Content-Type', 'text/css; charset=UTF-8');
+      res.setHeader('Cache-Control', 'no-store');
+      return res.sendFile(latest);
+    }
+    return next();
+  });
   app.get('/assets/index-:hash.js', (req, res, next) => {
     const requested = path.join(assetsDir, `index-${req.params.hash}.js`);
     if (existsSync(requested)) return next();
