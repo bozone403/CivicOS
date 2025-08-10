@@ -1,5 +1,7 @@
 import 'dotenv/config';
 import express, { type Request, Response, NextFunction } from "express";
+import { sql } from 'drizzle-orm';
+import { db } from './db.js';
 import { registerRoutes } from "./appRoutes.js";
 import { fileURLToPath } from 'url';
 import path from "path";
@@ -563,6 +565,25 @@ app.get("/health", (_req, res) => {
       logger.error({ msg: "Failed to run database migrations", error });
     }
   }, 5000); // Run migrations 5 seconds after server starts
+  
+  // Schema drift guard: ensure critical columns/indexes exist in live DB
+  setTimeout(async () => {
+    try {
+      await db.execute(sql`DO $$ BEGIN
+        IF NOT EXISTS (
+          SELECT 1 FROM information_schema.columns 
+          WHERE table_name = 'politicians' AND column_name = 'parliament_member_id'
+        ) THEN
+          ALTER TABLE politicians ADD COLUMN parliament_member_id text;
+        END IF;
+      END $$;`);
+      await db.execute(sql`CREATE UNIQUE INDEX IF NOT EXISTS idx_politicians_parliament_member_id 
+        ON politicians(parliament_member_id) WHERE parliament_member_id IS NOT NULL;`);
+      logger.info({ msg: 'Schema guard: ensured politicians.parliament_member_id exists' });
+    } catch (error) {
+      logger.error({ msg: 'Schema guard failed', error: error instanceof Error ? error.message : String(error) });
+    }
+  }, 8000);
   
   // Initialize automatic government data sync (non-blocking) if enabled
   if (process.env.DATA_SYNC_ENABLED === 'true') {
