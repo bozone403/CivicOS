@@ -1,7 +1,7 @@
 import * as cheerio from 'cheerio';
 import { db } from '../db.js';
 import { politicians } from '../../shared/schema.js';
-import { existsSync, readFileSync } from 'fs';
+import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'fs';
 
 type ProvinceKey = 'ontario' | 'quebec' | 'bc' | 'alberta' | 'manitoba' | 'saskatchewan' | 'nova_scotia' | 'new_brunswick' | 'pei' | 'newfoundland' | 'yukon' | 'nunavut' | 'nwt';
 
@@ -31,7 +31,7 @@ const BUILT_IN_MUNICIPAL_SOURCES: Record<string, string> = {
   'Edson, Alberta': 'https://www.edson.ca/town/town-council',
 };
 
-function loadMunicipalCatalog(): Record<string, string> {
+export function loadMunicipalCatalog(): Record<string, string> {
   try {
     const dataUrl = new URL('../../data/municipal_sources.json', import.meta.url);
     const fsPath = dataUrl.pathname;
@@ -47,6 +47,13 @@ function loadMunicipalCatalog(): Record<string, string> {
     }
   } catch {}
   return { ...BUILT_IN_MUNICIPAL_SOURCES };
+}
+
+export function saveMunicipalCatalog(entries: Array<{ city: string; province: string; url: string }>): void {
+  const dataUrl = new URL('../../data/municipal_sources.json', import.meta.url);
+  const fsPath = dataUrl.pathname;
+  try { mkdirSync(fsPath.replace(/\/municipal_sources\.json$/, ''), { recursive: true }); } catch {}
+  writeFileSync(fsPath, JSON.stringify(entries, null, 2), 'utf8');
 }
 
 export async function ingestProvincialIncumbents(provinceInput?: string): Promise<{ inserted: number; updated: number }> {

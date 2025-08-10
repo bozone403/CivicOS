@@ -10,7 +10,7 @@ import { syncIncumbentPoliticiansFromParliament } from '../utils/politicianSync.
 import { ingestProcurementFromCKAN } from '../utils/procurementIngestion.js';
 import { ingestLobbyistsFromCKAN } from '../utils/lobbyistsIngestion.js';
 import { ingestLegalActsCurated, ingestLegalCasesCurated } from '../utils/legalIngestion.js';
-import { ingestProvincialIncumbents, ingestMunicipalIncumbents } from '../utils/provincialMunicipalIngestion.js';
+import { ingestProvincialIncumbents, ingestMunicipalIncumbents, loadMunicipalCatalog, saveMunicipalCatalog } from '../utils/provincialMunicipalIngestion.js';
 
 export function registerAdminRoutes(app: Express) {
   // Aggregated platform summary for admin dashboards
@@ -127,6 +127,26 @@ export function registerAdminRoutes(app: Express) {
       res.json({ success: true, ...result });
     } catch (error) {
       res.status(500).json({ success: false, message: 'Failed to refresh municipal incumbents' });
+    }
+  });
+
+  // Admin: upsert municipal sources catalog entries
+  app.post('/api/admin/municipal-sources/upsert', jwtAuth, requirePermission('admin.identity.review'), async (req: Request, res: Response) => {
+    try {
+      const entries = Array.isArray((req.body as any)?.entries) ? (req.body as any).entries : [];
+      if (!entries.length) return res.status(400).json({ success: false, message: 'No entries provided' });
+      const current = loadMunicipalCatalog();
+      for (const e of entries) {
+        current[`${e.city}, ${e.province}`] = e.url;
+      }
+      const out = Object.entries(current).map(([k, url]) => {
+        const [city, province] = k.split(',').map(s => s.trim());
+        return { city, province, url };
+      });
+      saveMunicipalCatalog(out);
+      res.json({ success: true, count: entries.length });
+    } catch (error) {
+      res.status(500).json({ success: false, message: 'Failed to upsert municipal sources' });
     }
   });
 
