@@ -251,39 +251,8 @@ app.use((req, res, next) => {
 });
 
 // Security middleware with CSP configuration for images
-app.use(helmet({
-  contentSecurityPolicy: {
-    useDefaults: true,
-    directives: {
-      defaultSrc: ["'self'"],
-      // Allow inline styles for Tailwind + Radix components, and Google Fonts
-      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
-      // Allow module scripts and safe inline/eval for built bundles if needed
-      // Vite prod bundles generally do not require eval, but we allow to avoid runtime blocks
-      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://js.stripe.com", "https://m.stripe.com"],
-      // Images and blobs
-      imgSrc: ["'self'", "data:", "blob:", "https://images.unsplash.com", "https://*.unsplash.com"],
-      // APIs: same-origin plus HTTPS endpoints we may call (Render, Supabase, etc.)
-      connectSrc: [
-        "'self'",
-        "https:",
-        "wss:",
-        "https://civicos.onrender.com",
-        "https://*.supabase.co",
-      ],
-      fontSrc: ["'self'", "https://fonts.gstatic.com"],
-      objectSrc: ["'none'"],
-      mediaSrc: ["'self'"],
-      // Allow Stripe iframes if used in the future; otherwise keep none
-      frameSrc: ["'self'", "https://js.stripe.com"],
-      baseUri: ["'self'"],
-      formAction: ["'self'"],
-      frameAncestors: ["'self'"],
-      scriptSrcAttr: ["'none'"],
-      upgradeInsecureRequests: [],
-    },
-  },
-}));
+// Temporarily disable CSP to eliminate potential blocking of module scripts
+app.use(helmet({ contentSecurityPolicy: false }));
 
 // Enhanced rate limiting configuration (temporarily disabled)
 // const createRateLimit = (windowMs: number, max: number, message: string) => {
@@ -414,27 +383,11 @@ app.get("/health", (_req, res) => {
   let staticRoot = staticRootCandidates.find((p) => {
     try { return existsSync(p); } catch { return false; }
   }) || path.resolve(process.cwd(), "dist/public");
-  // Serve dynamic index.html FIRST to ensure latest entry chunks are referenced
+  // Serve built index.html as-is for root
   app.get('/', (_req, res) => {
-    try {
-      const fs = require('fs');
-      const idxPath = path.join(staticRoot, 'index.html');
-      let html = fs.readFileSync(idxPath, 'utf8');
-      const latestJs = findLatestAsset('index-', '.js');
-      const latestCss = findLatestAsset('index-', '.css');
-      const jsRel = latestJs ? '/assets/' + path.basename(latestJs) : '/assets/index.js';
-      const cssRel = latestCss ? '/assets/' + path.basename(latestCss) : '/assets/index.css';
-      const jsMtime = latestJs ? statSync(latestJs).mtimeMs : Date.now();
-      const cssMtime = latestCss ? statSync(latestCss).mtimeMs : Date.now();
-      html = html.replace(/\/assets\/index-[A-Za-z0-9_-]+\.js/g, jsRel + `?v=${jsMtime}`);
-      html = html.replace(/\/assets\/index-[A-Za-z0-9_-]+\.css/g, cssRel + `?v=${cssMtime}`);
-      res.setHeader('Cache-Control', 'no-store');
-      res.setHeader('Content-Type', 'text/html; charset=UTF-8');
-      return res.send(html);
-    } catch {
-      res.setHeader('Cache-Control', 'no-store');
-      return res.sendFile(path.join(staticRoot, 'index.html'));
-    }
+    res.setHeader('Cache-Control', 'no-store');
+    res.setHeader('Content-Type', 'text/html; charset=UTF-8');
+    return res.sendFile(path.join(staticRoot, 'index.html'));
   });
   // Compatibility: map stale hashed entry requests to current built assets
   const assetsDir = path.join(staticRoot, 'assets');
@@ -547,27 +500,11 @@ app.get("/health", (_req, res) => {
       }
     }
   }));
-  // Ensure SPA fallback for all non-API routes (rewrite to latest entry chunk with version)
+  // SPA fallback: serve built index.html as-is for all non-API routes
   app.get(/^\/(?!api\/).*/, (_req, res) => {
-    try {
-      const fs = require('fs');
-      const idxPath = path.join(staticRoot, 'index.html');
-      let html = fs.readFileSync(idxPath, 'utf8');
-      const latestJs = findLatestAsset('index-', '.js');
-      const latestCss = findLatestAsset('index-', '.css');
-      const jsRel = latestJs ? '/assets/' + path.basename(latestJs) : '/assets/index.js';
-      const cssRel = latestCss ? '/assets/' + path.basename(latestCss) : '/assets/index.css';
-      const jsMtime = latestJs ? statSync(latestJs).mtimeMs : Date.now();
-      const cssMtime = latestCss ? statSync(latestCss).mtimeMs : Date.now();
-      html = html.replace(/\/assets\/index-[A-Za-z0-9_-]+\.js/g, jsRel + `?v=${jsMtime}`);
-      html = html.replace(/\/assets\/index-[A-Za-z0-9_-]+\.css/g, cssRel + `?v=${cssMtime}`);
-      res.setHeader('Cache-Control', 'no-store');
-      res.setHeader('Content-Type', 'text/html; charset=UTF-8');
-      return res.send(html);
-    } catch {
-      res.setHeader('Cache-Control', 'no-store');
-      return res.sendFile(path.join(staticRoot, 'index.html'));
-    }
+    res.setHeader('Cache-Control', 'no-store');
+    res.setHeader('Content-Type', 'text/html; charset=UTF-8');
+    return res.sendFile(path.join(staticRoot, 'index.html'));
   });
 
   // ALWAYS serve the app on the correct port for Render
