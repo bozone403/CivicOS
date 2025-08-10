@@ -32,6 +32,7 @@ interface DashboardStats {
   petitionsSigned: number;
   civicPoints: number;
   trustScore: number;
+  totalOfficials?: number;
   recentActivity: Array<{
     id: string;
     type: string;
@@ -135,9 +136,9 @@ export default function Dashboard() {
         
         <AnimatedCardWithIcon
           icon={<Users className="h-4 w-4" />}
-          title="Politicians Tracked"
-          description="Representatives you follow"
-          value={currentStats.politiciansTracked}
+          title="Officials"
+          description="Total in database"
+          value={currentStats.totalOfficials ?? currentStats.politiciansTracked}
           trend="up"
         />
         

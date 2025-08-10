@@ -1,0 +1,159 @@
+import * as cheerio from 'cheerio';
+import { db } from '../db.js';
+import { politicians } from '../../shared/schema.js';
+
+type ProvinceKey = 'ontario' | 'quebec' | 'bc' | 'alberta' | 'manitoba' | 'saskatchewan' | 'nova_scotia' | 'new_brunswick' | 'pei' | 'newfoundland';
+
+const PROVINCIAL_SOURCES: Record<ProvinceKey, string> = {
+  ontario: 'https://www.ola.org/en/members',
+  quebec: 'https://www.assnat.qc.ca/en/deputes',
+  bc: 'https://www.leg.bc.ca/learn-about-us/members',
+  alberta: 'https://www.assembly.ab.ca/members',
+  manitoba: 'https://www.gov.mb.ca/legislature/members',
+  saskatchewan: 'https://www.legassembly.sk.ca/mlas',
+  nova_scotia: 'https://nslegislature.ca/members',
+  new_brunswick: 'https://www.gnb.ca/legis/members',
+  pei: 'https://www.assembly.pe.ca/members',
+  newfoundland: 'https://www.assembly.nl.ca/members',
+};
+
+const MUNICIPAL_SOURCES: Record<string, string> = {
+  'Toronto, Ontario': 'https://www.toronto.ca/city-government/council',
+  'Vancouver, British Columbia': 'https://vancouver.ca/your-government/city-councillors.aspx',
+  'Montreal, Quebec': 'https://montreal.ca/en/topics/elected-officials',
+  'Calgary, Alberta': 'https://www.calgary.ca/our-city/city-council.html',
+  'Ottawa, Ontario': 'https://ottawa.ca/en/city-hall/mayor-and-council',
+  'Edmonton, Alberta': 'https://www.edmonton.ca/city_government/city_organization/city-councillors',
+};
+
+export async function ingestProvincialIncumbents(provinceInput?: string): Promise<{ inserted: number; updated: number }> {
+  const provinces: ProvinceKey[] = provinceInput
+    ? (Object.keys(PROVINCIAL_SOURCES).filter(k => k.includes(provinceInput.toLowerCase())) as ProvinceKey[])
+    : (Object.keys(PROVINCIAL_SOURCES) as ProvinceKey[]);
+
+  let inserted = 0;
+  let updated = 0;
+
+  for (const key of provinces) {
+    const url = PROVINCIAL_SOURCES[key];
+    try {
+      const html = await (await fetch(url)).text();
+      const $ = cheerio.load(html);
+      const jurisdiction = toProvinceName(key);
+      $('*').each(async (_i, el) => {
+        const $el = $(el);
+        const text = $el.text().trim();
+        const name = $el.find('a, .name, h3, h4').first().text().trim() || (/([A-Z][a-z]+\s+[A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)/.exec(text)?.[0] || '');
+        const party = $el.find('.party').first().text().trim() || '';
+        const constituency = $el.find('.constituency, .riding, .district, .ward').first().text().trim() || '';
+        if (name && likelyPersonName(name)) {
+          const vals: any = {
+            name,
+            party: party || null,
+            position: getProvincialTitle(key),
+            constituency: constituency || null,
+            level: 'Provincial',
+            jurisdiction,
+            isIncumbent: true,
+            updatedAt: new Date(),
+          };
+          try {
+            const [row] = await db.insert(politicians).values(vals).onConflictDoNothing().returning();
+            if (row) inserted++; else updated++;
+          } catch {
+            try {
+              await db.update(politicians).set(vals).where((politicians.name as any).eq(name as any));
+              updated++;
+            } catch {}
+          }
+        }
+      });
+    } catch {}
+  }
+  return { inserted, updated };
+}
+
+export async function ingestMunicipalIncumbents(targets?: Array<{ city: string; province: string }>): Promise<{ inserted: number; updated: number }> {
+  const entries = targets && targets.length
+    ? targets.map(t => `${t.city}, ${t.province}`)
+    : Object.keys(MUNICIPAL_SOURCES);
+
+  let inserted = 0;
+  let updated = 0;
+
+  for (const key of entries) {
+    const url = MUNICIPAL_SOURCES[key];
+    if (!url) continue;
+    try {
+      const html = await (await fetch(url)).text();
+      const $ = cheerio.load(html);
+      const [city, province] = key.split(',').map(s => s.trim());
+      $('*').each(async (_i, el) => {
+        const $el = $(el);
+        const text = $el.text().trim();
+        const name = $el.find('a, .name, h3, h4').first().text().trim() || (/([A-Z][a-z]+\s+[A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)/.exec(text)?.[0] || '');
+        const isMayor = /mayor/i.test(text) || /mayor/i.test($el.attr('class') || '');
+        if (name && likelyPersonName(name)) {
+          const vals: any = {
+            name,
+            party: null,
+            position: isMayor ? 'Mayor' : 'City Councillor',
+            constituency: city,
+            level: 'Municipal',
+            jurisdiction: `${city}, ${province}`,
+            isIncumbent: true,
+            updatedAt: new Date(),
+          };
+          try {
+            const [row] = await db.insert(politicians).values(vals).onConflictDoNothing().returning();
+            if (row) inserted++; else updated++;
+          } catch {
+            try {
+              await db.update(politicians).set(vals).where((politicians.name as any).eq(name as any));
+              updated++;
+            } catch {}
+          }
+        }
+      });
+    } catch {}
+  }
+  return { inserted, updated };
+}
+
+function toProvinceName(key: ProvinceKey): string {
+  const map: Record<ProvinceKey, string> = {
+    ontario: 'Ontario',
+    quebec: 'Quebec',
+    bc: 'British Columbia',
+    alberta: 'Alberta',
+    manitoba: 'Manitoba',
+    saskatchewan: 'Saskatchewan',
+    nova_scotia: 'Nova Scotia',
+    new_brunswick: 'New Brunswick',
+    pei: 'Prince Edward Island',
+    newfoundland: 'Newfoundland and Labrador',
+  };
+  return map[key];
+}
+
+function getProvincialTitle(key: ProvinceKey): string {
+  const map: Record<ProvinceKey, string> = {
+    ontario: 'Member of Provincial Parliament',
+    quebec: 'Member of National Assembly',
+    bc: 'Member of Legislative Assembly',
+    alberta: 'Member of Legislative Assembly',
+    manitoba: 'Member of Legislative Assembly',
+    saskatchewan: 'Member of Legislative Assembly',
+    nova_scotia: 'Member of Legislative Assembly',
+    new_brunswick: 'Member of Legislative Assembly',
+    pei: 'Member of Legislative Assembly',
+    newfoundland: 'Member of House of Assembly',
+  };
+  return map[key];
+}
+
+function likelyPersonName(name: string): boolean {
+  return /[A-Za-z][a-z]+\s+[A-Za-z][a-z]+/.test(name) && name.length < 60;
+}
+
+

@@ -10,6 +10,7 @@ import { syncIncumbentPoliticiansFromParliament } from '../utils/politicianSync.
 import { ingestProcurementFromCKAN } from '../utils/procurementIngestion.js';
 import { ingestLobbyistsFromCKAN } from '../utils/lobbyistsIngestion.js';
 import { ingestLegalActsCurated, ingestLegalCasesCurated } from '../utils/legalIngestion.js';
+import { ingestProvincialIncumbents, ingestMunicipalIncumbents } from '../utils/provincialMunicipalIngestion.js';
 
 export function registerAdminRoutes(app: Express) {
   // Aggregated platform summary for admin dashboards
@@ -104,6 +105,28 @@ export function registerAdminRoutes(app: Express) {
       res.json({ success: true, membersInserted: members, politiciansUpserted: upserts, rollcalls: votes.rollcalls, records: votes.records });
     } catch (error) {
       res.status(500).json({ success: false, message: 'Failed to refresh parliament data' });
+    }
+  });
+
+  // Admin: trigger provincial incumbents ingestion
+  app.post('/api/admin/refresh/provincial-incumbents', jwtAuth, requirePermission('admin.identity.review'), async (req: Request, res: Response) => {
+    try {
+      const province = (req.body as any)?.province as string | undefined;
+      const result = await ingestProvincialIncumbents(province);
+      res.json({ success: true, ...result });
+    } catch (error) {
+      res.status(500).json({ success: false, message: 'Failed to refresh provincial incumbents' });
+    }
+  });
+
+  // Admin: trigger municipal incumbents ingestion
+  app.post('/api/admin/refresh/municipal-incumbents', jwtAuth, requirePermission('admin.identity.review'), async (req: Request, res: Response) => {
+    try {
+      const targets = Array.isArray((req.body as any)?.targets) ? (req.body as any).targets : undefined;
+      const result = await ingestMunicipalIncumbents(targets);
+      res.json({ success: true, ...result });
+    } catch (error) {
+      res.status(500).json({ success: false, message: 'Failed to refresh municipal incumbents' });
     }
   });
 
