@@ -389,6 +389,30 @@ app.get("/health", (_req, res) => {
   let staticRoot = staticRootCandidates.find((p) => {
     try { return require('fs').existsSync(p); } catch { return false; }
   }) || path.resolve(__dirname, "../dist/public");
+  // Serve dynamic index.html FIRST to ensure latest entry chunks are referenced
+  app.get('/', (_req, res) => {
+    try {
+      const fs = require('fs');
+      const idxPath = path.join(staticRoot, 'index.html');
+      let html = fs.readFileSync(idxPath, 'utf8');
+      const latestJs = findLatestAsset('index-', '.js');
+      const latestCss = findLatestAsset('index-', '.css');
+      if (latestJs) {
+        const relJs = '/assets/' + path.basename(latestJs);
+        html = html.replace(/\/assets\/index-[A-Za-z0-9_-]+\.js/g, relJs);
+      }
+      if (latestCss) {
+        const relCss = '/assets/' + path.basename(latestCss);
+        html = html.replace(/\/assets\/index-[A-Za-z0-9_-]+\.css/g, relCss);
+      }
+      res.setHeader('Cache-Control', 'no-store');
+      res.setHeader('Content-Type', 'text/html; charset=UTF-8');
+      return res.send(html);
+    } catch {
+      res.setHeader('Cache-Control', 'no-store');
+      return res.sendFile(path.join(staticRoot, 'index.html'));
+    }
+  });
   // Compatibility: map stale hashed entry requests to current built assets
   const assetsDir = path.join(staticRoot, 'assets');
   function findLatestAsset(prefix: string, ext: string): string | null {
@@ -424,6 +448,16 @@ app.get("/health", (_req, res) => {
     return next();
   });
 
+  app.use('/assets', express.static(path.join(staticRoot, 'assets'), {
+    setHeaders: (res, filePath) => {
+      if (filePath.endsWith('.css')) {
+        res.setHeader('Content-Type', 'text/css; charset=UTF-8');
+      } else if (filePath.endsWith('.js')) {
+        res.setHeader('Content-Type', 'application/javascript; charset=UTF-8');
+      }
+      res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+    }
+  }));
   app.use(express.static(staticRoot, {
     setHeaders: (res, filePath) => {
       const isIndex = filePath.endsWith('index.html');
