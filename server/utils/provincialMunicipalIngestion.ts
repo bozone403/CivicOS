@@ -27,6 +27,7 @@ const MUNICIPAL_SOURCES: Record<string, string> = {
   'Calgary, Alberta': 'https://www.calgary.ca/our-city/city-council.html',
   'Ottawa, Ontario': 'https://ottawa.ca/en/city-hall/mayor-and-council',
   'Edmonton, Alberta': 'https://www.edmonton.ca/city_government/city_organization/city-councillors',
+  'Edson, Alberta': 'https://www.edson.ca/town/town-council',
 };
 
 export async function ingestProvincialIncumbents(provinceInput?: string): Promise<{ inserted: number; updated: number }> {

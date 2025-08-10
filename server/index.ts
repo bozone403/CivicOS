@@ -714,6 +714,17 @@ app.get("/health", (_req, res) => {
   } else {
     logger.info({ msg: "Real-time monitoring disabled by env (MONITORING_ENABLED != 'true')" });
   }
+  // Schedule nightly incumbents refresh at ~03:30 UTC
+  setInterval(async () => {
+    try {
+      const { ingestProvincialIncumbents, ingestMunicipalIncumbents } = await import('./utils/provincialMunicipalIngestion.js');
+      await ingestProvincialIncumbents();
+      await ingestMunicipalIncumbents();
+      logger.info({ msg: 'Nightly incumbents refresh completed' });
+    } catch (error) {
+      logger.error({ msg: 'Nightly incumbents refresh failed', error: error instanceof Error ? error.message : String(error) });
+    }
+  }, 24 * 60 * 60 * 1000);
   
   // Initialize comprehensive legal database
   setTimeout(() => {
