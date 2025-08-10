@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { db } from '../db.js';
-import { users, votes, bills, petitions, petitionSignatures, politicians, socialPosts, userActivity } from '../../shared/schema.js';
-import { eq, and, count, sql, desc, gte } from 'drizzle-orm';
+import { users, votes, bills, petitions, petitionSignatures, politicians, socialPosts, userActivity, userFollows } from '../../shared/schema.js';
+import { eq, and, count, sql, desc } from 'drizzle-orm';
 import { jwtAuth } from '../routes/auth.js';
 
 const router = Router();
@@ -78,32 +78,79 @@ router.get('/public-stats', async (req, res) => {
   }
 });
 
-// Get comprehensive dashboard statistics (temporarily without auth for testing)
-router.get('/stats', async (req, res) => {
+// Get comprehensive dashboard statistics (public aggregates + per-user when authed)
+router.get('/stats', async (req: any, res) => {
   try {
-    // For now, return basic stats without user authentication
-    const activeBillsCount = await db
+    // Public aggregates
+    const [activeBillsCount] = await db
       .select({ count: count() })
       .from(bills)
       .where(eq(bills.status, 'active'));
 
-    const politiciansCount = await db
+    const [politiciansCount] = await db
       .select({ count: count() })
       .from(politicians);
 
-    const totalPetitionsCount = await db
+    const [totalPetitionsCount] = await db
       .select({ count: count() })
       .from(petitions);
 
+    // If user is authenticated, enrich with per-user stats
+    let totalVotesUser = 0;
+    let petitionsSignedUser = 0;
+    let politiciansTrackedUser = politiciansCount?.count || 0; // default to overall if not authed
+    let civicPoints = 0;
+    let trustScore = 100;
+    let recentActivity: Array<{ id: string; type: string; title: string; timestamp: string; icon: string }>= [];
+
+    const authHeader = req.headers?.authorization as string | undefined;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      // Minimal decode: downstream handlers already verify; here we only attempt if present
+      try {
+        const token = authHeader.split(' ')[1];
+        const jwt = await import('jsonwebtoken');
+        const decoded: any = jwt.verify(token, process.env.SESSION_SECRET as string);
+        const userId = decoded?.id as string | undefined;
+        if (userId) {
+          const [voteCount] = await db.select({ count: count() }).from(votes).where(eq(votes.userId, userId));
+          totalVotesUser = voteCount?.count || 0;
+
+          const [sigCount] = await db.select({ count: count() }).from(petitionSignatures).where(eq(petitionSignatures.userId, userId));
+          petitionsSignedUser = sigCount?.count || 0;
+
+          const [followsCount] = await db.select({ count: count() }).from(userFollows).where(eq(userFollows.userId, userId));
+          politiciansTrackedUser = followsCount?.count || 0;
+
+          const userRow = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+          civicPoints = userRow[0]?.civicPoints || 0;
+          trustScore = Math.min(100, Math.max(0, Math.round((civicPoints / 1000) * 100)));
+
+          const activityRows = await db
+            .select()
+            .from(userActivity)
+            .where(eq(userActivity.userId, userId))
+            .orderBy(desc(userActivity.createdAt))
+            .limit(10);
+          recentActivity = activityRows.map((a) => ({
+            id: String(a.id),
+            type: a.activityType || 'general',
+            title: getActivityTitle(a.activityType || 'general', a.activityData),
+            timestamp: a.createdAt?.toISOString?.() || new Date().toISOString(),
+            icon: getActivityIcon(a.activityType || 'general'),
+          }));
+        }
+      } catch {}
+    }
+
     res.json({
       success: true,
-      totalVotes: 0,
-      activeBills: activeBillsCount[0]?.count || 0,
-      politiciansTracked: politiciansCount[0]?.count || 0,
-      petitionsSigned: 0,
-      civicPoints: 0,
-      trustScore: 100,
-      recentActivity: []
+      totalVotes: totalVotesUser,
+      activeBills: activeBillsCount?.count || 0,
+      politiciansTracked: politiciansTrackedUser,
+      petitionsSigned: petitionsSignedUser,
+      civicPoints,
+      trustScore,
+      recentActivity,
     });
   } catch (error) {
     res.status(500).json({ 
