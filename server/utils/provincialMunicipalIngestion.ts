@@ -2,7 +2,7 @@ import * as cheerio from 'cheerio';
 import { db } from '../db.js';
 import { politicians } from '../../shared/schema.js';
 
-type ProvinceKey = 'ontario' | 'quebec' | 'bc' | 'alberta' | 'manitoba' | 'saskatchewan' | 'nova_scotia' | 'new_brunswick' | 'pei' | 'newfoundland';
+type ProvinceKey = 'ontario' | 'quebec' | 'bc' | 'alberta' | 'manitoba' | 'saskatchewan' | 'nova_scotia' | 'new_brunswick' | 'pei' | 'newfoundland' | 'yukon' | 'nunavut' | 'nwt';
 
 const PROVINCIAL_SOURCES: Record<ProvinceKey, string> = {
   ontario: 'https://www.ola.org/en/members',
@@ -15,6 +15,9 @@ const PROVINCIAL_SOURCES: Record<ProvinceKey, string> = {
   new_brunswick: 'https://www.gnb.ca/legis/members',
   pei: 'https://www.assembly.pe.ca/members',
   newfoundland: 'https://www.assembly.nl.ca/members',
+  yukon: 'https://yukonassembly.ca/members',
+  nunavut: 'https://www.assembly.nu.ca/members',
+  nwt: 'https://www.assembly.gov.nt.ca/members',
 };
 
 const MUNICIPAL_SOURCES: Record<string, string> = {

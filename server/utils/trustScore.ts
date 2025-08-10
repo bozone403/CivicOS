@@ -1,5 +1,5 @@
 import { db } from '../db.js';
-import { politicians, billRollcallRecords, billRollcalls, campaignFinance, politicianTruthTracking } from '../../shared/schema.js';
+import { politicians, billRollcallRecords, billRollcalls, campaignFinance, politicianTruthTracking, lobbyistOrgs, procurementContracts } from '../../shared/schema.js';
 import { eq } from 'drizzle-orm';
 
 export async function computeTrustScore(politicianId: number): Promise<number> {
@@ -20,9 +20,16 @@ export async function computeTrustScore(politicianId: number): Promise<number> {
   const [truth] = await db.select().from(politicianTruthTracking).where(eq(politicianTruthTracking.politicianId, politicianId));
   const truthScoreComponent = truth ? Math.max(0, 100 - Number((truth as any).truthScore || 0) * 20) : 10;
 
+  // Lobbying proximity (placeholder): if politician jurisdiction matches frequent lobbyist sectors, small penalty
+  // In a full implementation, we would join lobbyist-client relationships to riding/committee influence
+  const lobbyingPenalty = 0; // placeholder until detailed mapping exists
+
+  // Procurement anomaly (placeholder): high-value awards spike around local jurisdiction → small penalty
+  const procurementPenalty = 0; // placeholder; requires mapping supplier -> riding/department
+
   // Combine with weights; clamp 0..100
   const base = 60;
-  const combined = base + (voteConsistencyScore - 50) * 0.6 - spendPenalty - truthScoreComponent * 0.2;
+  const combined = base + (voteConsistencyScore - 50) * 0.6 - spendPenalty - truthScoreComponent * 0.2 - lobbyingPenalty - procurementPenalty;
   return Math.max(0, Math.min(100, Math.round(combined)));
 }
 
