@@ -383,14 +383,19 @@ app.get("/health", (_req, res) => {
   });
 
   // Patch static file serving to use ESM-compatible __dirname
+  // Try multiple likely locations and pick the first that exists
   const staticRootCandidates = [
-    path.resolve(__dirname, "../dist/public"),
+    // When running from project root
     path.resolve(process.cwd(), "dist/public"),
+    // When resolving relative to compiled server file at dist/server/index.js → dist/public
+    path.resolve(__dirname, "../public"),
+    // Fallback patterns
+    path.resolve(__dirname, "../../dist/public"),
     "/opt/render/project/src/dist/public",
   ];
   let staticRoot = staticRootCandidates.find((p) => {
-    try { return require('fs').existsSync(p); } catch { return false; }
-  }) || path.resolve(__dirname, "../dist/public");
+    try { return existsSync(p); } catch { return false; }
+  }) || path.resolve(process.cwd(), "dist/public");
   // Serve dynamic index.html FIRST to ensure latest entry chunks are referenced
   app.get('/', (_req, res) => {
     try {
