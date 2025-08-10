@@ -1,0 +1,26 @@
+[
+  { "city": "Toronto", "province": "Ontario", "url": "https://www.toronto.ca/city-government/council" },
+  { "city": "Ottawa", "province": "Ontario", "url": "https://ottawa.ca/en/city-hall/mayor-and-council" },
+  { "city": "Mississauga", "province": "Ontario", "url": "https://www.mississauga.ca/council" },
+  { "city": "Vancouver", "province": "British Columbia", "url": "https://vancouver.ca/your-government/city-councillors.aspx" },
+  { "city": "Surrey", "province": "British Columbia", "url": "https://www.surrey.ca/city-government/mayor-council" },
+  { "city": "Burnaby", "province": "British Columbia", "url": "https://www.burnaby.ca/our-city/mayor-and-council" },
+  { "city": "Montreal", "province": "Quebec", "url": "https://montreal.ca/en/topics/elected-officials" },
+  { "city": "Quebec City", "province": "Quebec", "url": "https://www.ville.quebec.qc.ca/en/municipalite/conseil-municipal.aspx" },
+  { "city": "Laval", "province": "Quebec", "url": "https://www.laval.ca/Pages/Fr/Conseil/Conseil-municipal.aspx" },
+  { "city": "Calgary", "province": "Alberta", "url": "https://www.calgary.ca/our-city/city-council.html" },
+  { "city": "Edmonton", "province": "Alberta", "url": "https://www.edmonton.ca/city_government/city_organization/city-councillors" },
+  { "city": "Red Deer", "province": "Alberta", "url": "https://www.reddeer.ca/city-hall/city-council/your-city-council/" },
+  { "city": "Edson", "province": "Alberta", "url": "https://www.edson.ca/town/town-council" },
+  { "city": "Winnipeg", "province": "Manitoba", "url": "https://winnipeg.ca/council" },
+  { "city": "Saskatoon", "province": "Saskatchewan", "url": "https://www.saskatoon.ca/city-hall/mayor-city-councillors" },
+  { "city": "Regina", "province": "Saskatchewan", "url": "https://www.regina.ca/about-city-council/your-council/" },
+  { "city": "Halifax", "province": "Nova Scotia", "url": "https://www.halifax.ca/city-hall/regional-council" },
+  { "city": "Fredericton", "province": "New Brunswick", "url": "https://www.fredericton.ca/en/city-hall/mayor-and-council" },
+  { "city": "Charlottetown", "province": "Prince Edward Island", "url": "https://www.charlottetown.ca/city_hall/mayor___council" },
+  { "city": "St. John's", "province": "Newfoundland and Labrador", "url": "https://www.stjohns.ca/city-hall/council" },
+  { "city": "Whitehorse", "province": "Yukon", "url": "https://www.whitehorse.ca/your-government/mayor-council/" },
+  { "city": "Yellowknife", "province": "Northwest Territories", "url": "https://www.yellowknife.ca/en/city-government/council.aspx" },
+  { "city": "Iqaluit", "province": "Nunavut", "url": "https://www.iqaluit.ca/city-hall/city-council" }
+]
+

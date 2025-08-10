@@ -1,6 +1,7 @@
 import * as cheerio from 'cheerio';
 import { db } from '../db.js';
 import { politicians } from '../../shared/schema.js';
+import { existsSync, readFileSync } from 'fs';
 
 type ProvinceKey = 'ontario' | 'quebec' | 'bc' | 'alberta' | 'manitoba' | 'saskatchewan' | 'nova_scotia' | 'new_brunswick' | 'pei' | 'newfoundland' | 'yukon' | 'nunavut' | 'nwt';
 
@@ -20,7 +21,7 @@ const PROVINCIAL_SOURCES: Record<ProvinceKey, string> = {
   nwt: 'https://www.assembly.gov.nt.ca/members',
 };
 
-const MUNICIPAL_SOURCES: Record<string, string> = {
+const BUILT_IN_MUNICIPAL_SOURCES: Record<string, string> = {
   'Toronto, Ontario': 'https://www.toronto.ca/city-government/council',
   'Vancouver, British Columbia': 'https://vancouver.ca/your-government/city-councillors.aspx',
   'Montreal, Quebec': 'https://montreal.ca/en/topics/elected-officials',
@@ -29,6 +30,24 @@ const MUNICIPAL_SOURCES: Record<string, string> = {
   'Edmonton, Alberta': 'https://www.edmonton.ca/city_government/city_organization/city-councillors',
   'Edson, Alberta': 'https://www.edson.ca/town/town-council',
 };
+
+function loadMunicipalCatalog(): Record<string, string> {
+  try {
+    const dataUrl = new URL('../../data/municipal_sources.json', import.meta.url);
+    const fsPath = dataUrl.pathname;
+    if (existsSync(fsPath)) {
+      const raw = readFileSync(fsPath, 'utf8');
+      const arr = JSON.parse(raw) as Array<{ city: string; province: string; url: string }>;
+      const map: Record<string, string> = {};
+      for (const e of arr) {
+        const key = `${e.city}, ${e.province}`;
+        map[key] = e.url;
+      }
+      return { ...BUILT_IN_MUNICIPAL_SOURCES, ...map };
+    }
+  } catch {}
+  return { ...BUILT_IN_MUNICIPAL_SOURCES };
+}
 
 export async function ingestProvincialIncumbents(provinceInput?: string): Promise<{ inserted: number; updated: number }> {
   const provinces: ProvinceKey[] = provinceInput
@@ -78,15 +97,16 @@ export async function ingestProvincialIncumbents(provinceInput?: string): Promis
 }
 
 export async function ingestMunicipalIncumbents(targets?: Array<{ city: string; province: string }>): Promise<{ inserted: number; updated: number }> {
+  const catalog = loadMunicipalCatalog();
   const entries = targets && targets.length
     ? targets.map(t => `${t.city}, ${t.province}`)
-    : Object.keys(MUNICIPAL_SOURCES);
+    : Object.keys(catalog);
 
   let inserted = 0;
   let updated = 0;
 
   for (const key of entries) {
-    const url = MUNICIPAL_SOURCES[key];
+    const url = catalog[key];
     if (!url) continue;
     try {
       const html = await (await fetch(url)).text();
