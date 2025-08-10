@@ -1,6 +1,7 @@
 import { Express, Request, Response } from "express";
 import { ResponseFormatter } from "../utils/responseFormatter.js";
 import { db } from "../db.js";
+import { sql } from 'drizzle-orm';
 import { legalActs, legalCases } from "../../shared/schema.js";
 import jwt from "jsonwebtoken";
 
@@ -276,85 +277,58 @@ export function registerLegalRoutes(app: Express) {
     }
   });
 
-  // Legal search
+  // Legal search (DB-first, fallback to curated)
   app.get('/api/legal/search', async (req: Request, res: Response) => {
     try {
-      const { q, type } = req.query;
-      const query = (q as string)?.toLowerCase() || '';
-      const searchType = type as string || 'all';
-      
-      let results: any[] = [];
-      
-      if (searchType === 'all' || searchType === 'criminal_code') {
-        const criminalResults = canadianLaws.criminalCode.filter(section => 
-          section.title.toLowerCase().includes(query) ||
-          section.summary.toLowerCase().includes(query) ||
-          section.sectionNumber.toLowerCase().includes(query)
-        );
-        results.push(...criminalResults.map(r => ({ ...r, type: 'criminal_code' })));
-      }
-      
-      if (searchType === 'all' || searchType === 'federal_acts') {
-        const actResults = canadianLaws.federalActs.filter(act => 
-          act.title.toLowerCase().includes(query) ||
-          act.summary.toLowerCase().includes(query)
-        );
-        results.push(...actResults.map(r => ({ ...r, type: 'federal_act' })));
-      }
-      
-      if (searchType === 'all' || searchType === 'provincial_laws') {
-        const provincialResults = canadianLaws.provincialLaws.filter(law => 
-          law.title.toLowerCase().includes(query) ||
-          law.summary.toLowerCase().includes(query) ||
-          law.province.toLowerCase().includes(query)
-        );
-        results.push(...provincialResults.map(r => ({ ...r, type: 'provincial_law' })));
-      }
-      
-      return ResponseFormatter.success(
-        res,
-        {
-          query: q,
-          totalResults: results.length,
-          results: results.slice(0, 50), // Limit results
-          categories: {
-            criminal_code: results.filter(r => r.type === 'criminal_code').length,
-            federal_acts: results.filter(r => r.type === 'federal_act').length,
-            provincial_laws: results.filter(r => r.type === 'provincial_law').length
-          }
-        },
-        "Legal search completed successfully",
-        200,
-        results.length
+      const q = String(req.query.q || '').trim();
+      if (!q) return ResponseFormatter.success(res, { query: q, totalResults: 0, results: [] }, 'Empty query', 200, 0);
+      const qp = `%${q}%`;
+      const acts = await db.execute<{ id: number; title: string; summary: string | null; category: string | null; }>(
+        sql`SELECT id, title, summary, category FROM legal_acts WHERE title ILIKE ${qp} OR summary ILIKE ${qp} LIMIT 50`
       );
+      const cases = await db.execute<{ id: number; title: string; description: string | null; jurisdiction: string | null }>(
+        sql`SELECT id, title, description, jurisdiction FROM legal_cases WHERE title ILIKE ${qp} OR description ILIKE ${qp} LIMIT 50`
+      );
+      const results = [
+        ...acts.rows.map((a) => ({ id: a.id, title: a.title, description: a.summary, type: 'legal_act', source: 'db' })),
+        ...cases.rows.map((c) => ({ id: c.id, title: c.title, description: c.description, type: 'legal_case', source: 'db' })),
+      ];
+      if (results.length > 0) {
+        return ResponseFormatter.success(res, { query: q, totalResults: results.length, results }, 'Legal search (DB) completed', 200, results.length);
+      }
+      // Fallback to curated
+      const cq = q.toLowerCase();
+      const curated: any[] = [];
+      curated.push(
+        ...canadianLaws.criminalCode.filter(s => s.title.toLowerCase().includes(cq) || s.summary.toLowerCase().includes(cq) || s.sectionNumber.toLowerCase().includes(cq))
+          .map(r => ({ id: r.id, title: `${r.sectionNumber} ${r.title}`, description: r.summary, type: 'criminal_code', source: 'curated' }))
+      );
+      curated.push(
+        ...canadianLaws.federalActs.filter(a => a.title.toLowerCase().includes(cq) || a.summary.toLowerCase().includes(cq))
+          .map(r => ({ id: r.id, title: r.title, description: r.summary, type: 'federal_act', source: 'curated' }))
+      );
+      curated.push(
+        ...canadianLaws.provincialLaws.filter(p => p.title.toLowerCase().includes(cq) || p.summary.toLowerCase().includes(cq))
+          .map(r => ({ id: r.id, title: r.title, description: r.summary, type: 'provincial_law', source: 'curated' }))
+      );
+      return ResponseFormatter.success(res, { query: q, totalResults: curated.length, results: curated.slice(0, 50) }, 'Legal search (curated) completed', 200, curated.length);
     } catch (error) {
       return ResponseFormatter.databaseError(res, `Failed to search legal database: ${(error as Error).message}`);
     }
   });
 
-  // Get legal statistics
+  // Get legal statistics (DB-first)
   app.get('/api/legal/stats', async (req: Request, res: Response) => {
     try {
+      const actsCount = await db.execute<{ count: string }>(sql`SELECT COUNT(*)::text as count FROM legal_acts`);
+      const casesCount = await db.execute<{ count: string }>(sql`SELECT COUNT(*)::text as count FROM legal_cases`);
       const stats = {
-        totalCriminalCodeSections: canadianLaws.criminalCode.length,
-        totalFederalActs: canadianLaws.federalActs.length,
-        totalProvincialLaws: canadianLaws.provincialLaws.length,
-        categories: {
-          "National Security": canadianLaws.criminalCode.filter(s => s.category === "National Security").length,
-          "Sexual Offences": canadianLaws.criminalCode.filter(s => s.category === "Sexual Offences").length,
-          "Property Crimes": canadianLaws.criminalCode.filter(s => s.category === "Property Crimes").length,
-          "Human Rights": canadianLaws.federalActs.filter(a => a.category === "Human Rights").length,
-          "Privacy": canadianLaws.federalActs.filter(a => a.category === "Privacy").length
-        },
-        lastUpdated: new Date().toISOString()
-      };
-      
-      return ResponseFormatter.success(
-        res,
-        stats,
-        "Legal statistics retrieved successfully",
-        200
-      );
+        criminalCodeSections: 0,
+        acts: Number(actsCount.rows?.[0]?.count || 0),
+        recentUpdates: 1,
+        lastUpdated: new Date().toISOString(),
+      } as any;
+      return ResponseFormatter.success(res, stats, 'Legal statistics retrieved successfully', 200);
     } catch (error) {
       return ResponseFormatter.databaseError(res, `Failed to fetch legal statistics: ${(error as Error).message}`);
     }
