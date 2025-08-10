@@ -80,4 +80,54 @@ export async function ingestCriminalCodeFromJustice(): Promise<number> {
   }
 }
 
+// On-demand: resolve a federal act by title from Justice Laws, fetch detail page, return content and cache
+export async function resolveFederalActDetailByTitle(titleQuery: string): Promise<{ title: string; url?: string; html?: string; text?: string }> {
+  const indexUrl = 'https://laws-lois.justice.gc.ca/eng/acts/';
+  const html = await (await fetch(indexUrl)).text();
+  const $ = (cheerio as any).load(html);
+  const q = titleQuery.trim().toLowerCase();
+  let actUrl: string | undefined;
+  $('a').each((_, el) => {
+    const href = $(el).attr('href') || '';
+    const t = $(el).text().trim().toLowerCase();
+    if (!actUrl && /^eng\/acts\//.test(href) && t.includes(q)) {
+      actUrl = new URL(href, indexUrl).toString();
+    }
+  });
+  if (!actUrl) return { title: titleQuery };
+  const page = await (await fetch(actUrl)).text();
+  const $p = (cheerio as any).load(page);
+  const main = $p('#wb-main, main, body').first();
+  const text = main.text().replace(/\s+/g, ' ').trim();
+  // Cache best-effort into DB by title
+  try {
+    const existing = await db.select().from(legalActs).where((legalActs.title as any).eq(titleQuery as any)).limit(1);
+    if (existing.length) {
+      await db.update(legalActs).set({ fullText: text, updatedAt: new Date() } as any).where((legalActs.id as any).eq((existing[0] as any).id));
+    }
+  } catch {}
+  return { title: titleQuery, url: actUrl, html: undefined, text };
+}
+
+// On-demand: fetch Criminal Code section content by section number (e.g., "83.01")
+export async function fetchCriminalCodeSectionDetail(sectionNumber: string): Promise<{ section: string; url?: string; text?: string }> {
+  const baseUrl = 'https://laws-lois.justice.gc.ca/eng/acts/C-46/';
+  const page = await (await fetch(baseUrl)).text();
+  const $ = (cheerio as any).load(page);
+  // Attempt to find an anchor or heading containing the section number
+  let text: string | undefined;
+  const sec = sectionNumber.trim();
+  const candidates: any[] = [];
+  $('*:contains("' + sec + '")').each((_, el) => {
+    const t = $(el).text();
+    if (t && t.includes(sec)) candidates.push($(el));
+  });
+  if (candidates.length) {
+    // Take the first candidate's parent block text as a rough section content
+    const block = candidates[0].closest('section, article, div');
+    text = (block.length ? block : candidates[0]).text().replace(/\s+/g, ' ').trim();
+  }
+  return { section: sectionNumber, url: baseUrl, text };
+}
+
 

@@ -3,6 +3,7 @@ import { ResponseFormatter } from "../utils/responseFormatter.js";
 import { db } from "../db.js";
 import { sql } from 'drizzle-orm';
 import { legalActs, legalCases } from "../../shared/schema.js";
+import { resolveFederalActDetailByTitle, fetchCriminalCodeSectionDetail } from '../utils/legalIngestion.js';
 import jwt from "jsonwebtoken";
 
 // JWT Auth middleware
@@ -331,6 +332,30 @@ export function registerLegalRoutes(app: Express) {
       return ResponseFormatter.success(res, stats, 'Legal statistics retrieved successfully', 200);
     } catch (error) {
       return ResponseFormatter.databaseError(res, `Failed to fetch legal statistics: ${(error as Error).message}`);
+    }
+  });
+
+  // Legal act detail by title (on-demand fetch + cache)
+  app.get('/api/legal/act/detail', async (req: Request, res: Response) => {
+    try {
+      const title = String(req.query.title || '').trim();
+      if (!title) return ResponseFormatter.error(res, 'Missing title', 400);
+      const detail = await resolveFederalActDetailByTitle(title);
+      return ResponseFormatter.success(res, detail, 'Act detail resolved', 200);
+    } catch (error) {
+      return ResponseFormatter.databaseError(res, `Failed to resolve act detail: ${(error as Error).message}`);
+    }
+  });
+
+  // Criminal Code section detail by section number
+  app.get('/api/legal/criminal-code/detail', async (req: Request, res: Response) => {
+    try {
+      const section = String(req.query.section || '').trim();
+      if (!section) return ResponseFormatter.error(res, 'Missing section', 400);
+      const detail = await fetchCriminalCodeSectionDetail(section);
+      return ResponseFormatter.success(res, detail, 'Criminal Code section detail', 200);
+    } catch (error) {
+      return ResponseFormatter.databaseError(res, `Failed to fetch section detail: ${(error as Error).message}`);
     }
   });
 
