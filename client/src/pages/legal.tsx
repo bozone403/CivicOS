@@ -298,12 +298,10 @@ export default function Legal() {
           </div>
 
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-5 bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm">
+            <TabsList className="grid w-full grid-cols-3 bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm">
               <TabsTrigger value="database">Legal Database</TabsTrigger>
-              <TabsTrigger value="search">Search Laws</TabsTrigger>
               <TabsTrigger value="updates">Law Updates</TabsTrigger>
               <TabsTrigger value="criminal-code">Criminal Code</TabsTrigger>
-              <TabsTrigger value="rights">Charter Rights</TabsTrigger>
             </TabsList>
 
             <TabsContent value="database" className="space-y-6 mt-6">
@@ -356,129 +354,7 @@ export default function Legal() {
               )}
             </TabsContent>
 
-            <TabsContent value="search" className="space-y-6 mt-6">
-              <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-lg p-6">
-                <div className="mb-6">
-                  <h3 className="text-lg font-semibold mb-2">Legal Search Engine</h3>
-                  <p className="text-sm text-slate-600 dark:text-slate-400">
-                    Search through indexed Canadian federal and provincial legislation, Charter rights, Criminal Code sections, and constitutional cases.
-                  </p>
-                </div>
-
-                <div className="relative mb-6">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-5 h-5" />
-                  <Input
-                    placeholder="Search laws by keywords: assault, discrimination, freedom, equality..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-12 h-12 text-lg bg-white dark:bg-slate-700"
-                  />
-                </div>
-
-                {searchResults && (
-                  <div className="space-y-6">
-                    <div className="flex items-center justify-between">
-                      <h4 className="text-lg font-semibold">
-                        Search Results for &quot;{searchResults.query}&quot;
-                      </h4>
-                      <Badge variant="outline">
-                        {searchResults.totalResults} results found
-                      </Badge>
-                    </div>
-
-                    {/* Category Breakdown */}
-                    <div className="flex flex-wrap gap-2">
-                      {Object.entries(searchResults.categories || {}).map(([category, count]: [string, any]) => (
-                        <Badge key={category} variant="secondary" className="text-xs">
-                          {category}: {count}
-                        </Badge>
-                      ))}
-                    </div>
-
-                    {/* Search Results */}
-                    <div className="space-y-4">
-                      {searchResults.results?.map((result: any) => (
-                        <Card key={result.id} className="bg-white dark:bg-slate-800 hover:shadow-lg transition-shadow">
-                          <CardContent className="p-6">
-                            <div className="flex items-start justify-between mb-3">
-                              <h5 className="font-semibold text-slate-900 dark:text-slate-100 flex-1">
-                                {result.title}
-                              </h5>
-                              <div className="flex items-center gap-2 ml-4">
-                                <Badge variant="outline" className="text-xs">
-                                  {result.type}
-                                </Badge>
-                                {result.relevance && (
-                                  <Badge variant="secondary" className="text-xs">
-                                    {(result.relevance * 100).toFixed(0)}% match
-                                  </Badge>
-                                )}
-                              </div>
-                            </div>
-                            <p className="text-slate-700 dark:text-slate-300 mb-3">
-                              {result.excerpt}
-                            </p>
-                            <div className="flex items-center justify-between text-sm">
-                              <span className="text-slate-500">
-                                Source: {result.source} {result.citation && `(${result.citation})`}
-                              </span>
-                              <Button variant="ghost" size="sm" className="text-blue-600 hover:text-blue-700">
-                                <ExternalLink className="w-4 h-4 mr-1" />
-                                View Details
-                              </Button>
-                            </div>
-                          </CardContent>
-                        </Card>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {searchTerm && !searchResults && (
-                  <div className="text-center py-8 text-slate-500">
-                    No results found. Try different keywords like &quot;criminal&quot;, &quot;rights&quot;, &quot;discrimination&quot;, or &quot;freedom&quot;.
-                  </div>
-                )}
-
-                {!searchTerm && (
-                  <div className="bg-slate-50 dark:bg-slate-700/50 rounded-lg p-6">
-                    <h4 className="font-semibold mb-3">Search Examples:</h4>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      <div className="space-y-2">
-                        <p className="font-medium text-sm">Criminal Law:</p>
-                        <div className="flex flex-wrap gap-1">
-                          {["assault", "theft", "fraud", "terrorism"].map(term => (
-                            <Badge 
-                              key={term} 
-                              variant="outline" 
-                              className="cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-600"
-                              onClick={() => setSearchTerm(term)}
-                            >
-                              {term}
-                            </Badge>
-                          ))}
-                        </div>
-                      </div>
-                      <div className="space-y-2">
-                        <p className="font-medium text-sm">Human Rights:</p>
-                        <div className="flex flex-wrap gap-1">
-                          {["equality", "discrimination", "freedom", "religion"].map(term => (
-                            <Badge 
-                              key={term} 
-                              variant="outline" 
-                              className="cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-600"
-                              onClick={() => setSearchTerm(term)}
-                            >
-                              {term}
-                            </Badge>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </TabsContent>
+            
 
             <TabsContent value="updates" className="space-y-6 mt-6">
               <div className="grid grid-cols-1 gap-6">
@@ -729,25 +605,7 @@ export default function Legal() {
               )}
             </TabsContent>
 
-            <TabsContent value="rights" className="space-y-6 mt-6">
-              <Card className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Scale className="w-5 h-5" />
-                    Canadian Charter of Rights and Freedoms
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-6 text-center">
-                    <CheckCircle className="w-12 h-12 text-blue-500 mx-auto mb-3" />
-                    <h3 className="font-semibold text-blue-900 dark:text-blue-100 mb-2">Charter Rights Database</h3>
-                    <p className="text-blue-700 dark:text-blue-300 text-sm">
-                      Comprehensive database of Charter rights, court decisions, and constitutional interpretations is being compiled from official government sources.
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
+            
           </Tabs>
 
           {/* Legal Disclaimer */}

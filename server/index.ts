@@ -725,6 +725,18 @@ app.get("/health", (_req, res) => {
       logger.error({ msg: 'Nightly incumbents refresh failed', error: error instanceof Error ? error.message : String(error) });
     }
   }, 24 * 60 * 60 * 1000);
+
+  // Weekly legal refresh (Justice Laws scrapes) ~7 days
+  setInterval(async () => {
+    try {
+      const { ingestFederalActsFromJustice, ingestCriminalCodeFromJustice } = await import('./utils/legalIngestion.js');
+      const acts = await ingestFederalActsFromJustice();
+      const cc = await ingestCriminalCodeFromJustice();
+      logger.info({ msg: 'Weekly legal refresh completed', acts, cc });
+    } catch (error) {
+      logger.error({ msg: 'Weekly legal refresh failed', error: error instanceof Error ? error.message : String(error) });
+    }
+  }, 7 * 24 * 60 * 60 * 1000);
   
   // Initialize comprehensive legal database
   setTimeout(() => {

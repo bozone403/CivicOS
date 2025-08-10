@@ -28,7 +28,7 @@ const Contacts = lazy(() => import("@/pages/contacts"));
 const Legal = lazy(() => import("@/pages/legal"));
 const Rights = lazy(() => import("@/pages/rights"));
 const Cases = lazy(() => import("@/pages/cases"));
-const LegalSearch = lazy(() => import("@/pages/legal-search"));
+// removed legal-search page
 const Finance = lazy(() => import("@/pages/finance"));
 const Lobbyists = lazy(() => import("@/pages/lobbyists"));
 const Procurement = lazy(() => import("@/pages/procurement"));
@@ -313,13 +313,7 @@ export default function App() {
                     </ProtectedRoute>
                   </Route>
                   
-                  <Route path="/legal-search">
-                    <ProtectedRoute>
-                      <Layout>
-                        <LegalSearch />
-                      </Layout>
-                    </ProtectedRoute>
-                  </Route>
+                  
                   
                   <Route path="/finance">
                     <ProtectedRoute>
