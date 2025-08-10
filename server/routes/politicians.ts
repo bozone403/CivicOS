@@ -2,6 +2,7 @@ import { Express, Request, Response } from "express";
 import { storage } from "../storage.js";
 import { db } from "../db.js";
 import { politicians, politicianStatements, politicianPositions, campaignFinance, politicianTruthTracking, billRollcalls, billRollcallRecords } from "../../shared/schema.js";
+import { computeTrustScore } from "../utils/trustScore.js";
 import { eq, and, desc, sql, count, like, or, inArray } from "drizzle-orm";
 import { ResponseFormatter } from "../utils/responseFormatter.js";
 import jwt from "jsonwebtoken";
@@ -42,54 +43,38 @@ export function registerPoliticiansRoutes(app: Express) {
       let politiciansData;
       
       try {
-        // Fetch real MPs from Parliament of Canada
-        const realMPs = await parliamentAPI.fetchCurrentMPs();
-        
-        if (realMPs && realMPs.length > 0) {
-          // Transform real Parliament data to our format
-          politiciansData = realMPs.map(mp => ({
-            id: Math.floor(Math.random() * 10000), // Generate ID for real data
-            name: mp.name,
-            party: mp.party,
-            position: mp.position || 'Member of Parliament',
-            riding: mp.constituency,
-            level: mp.level || 'Federal',
-            jurisdiction: mp.jurisdiction || 'Federal',
-            image: undefined,
-            trustScore: Math.floor(Math.random() * 30) + 70, // 70-100 range
-            civicLevel: Math.random() > 0.5 ? 'Gold' : 'Silver',
-            recentActivity: 'Active in Parliament',
-            policyPositions: ['Government Accountability', 'Transparency', 'Public Service'],
-            votingRecord: { 
-              yes: Math.floor(Math.random() * 200) + 50, 
-              no: Math.floor(Math.random() * 50) + 10, 
-              abstain: Math.floor(Math.random() * 20) + 5 
-            },
-            contactInfo: {
-              email: mp.email,
-              phone: mp.phone,
-              office: 'Parliament Hill',
-              website: mp.website,
-              social: {
-                twitter: undefined,
-                facebook: undefined
-              }
-            },
-            bio: `${mp.name} is a Member of Parliament representing ${mp.constituency} in the ${mp.party} party.`,
-            keyAchievements: ['Parliamentary Service', 'Constituency Representation'],
-            committees: ['Parliamentary Committees'],
-            expenses: {
-              travel: Math.floor(Math.random() * 50000) + 10000,
-              hospitality: Math.floor(Math.random() * 15000) + 5000,
-              office: Math.floor(Math.random() * 80000) + 20000,
-              total: Math.floor(Math.random() * 150000) + 50000,
-              year: '2025'
-            },
-            createdAt: new Date(),
-            updatedAt: new Date()
-          }));
+        // Prefer DB (incumbents) but attempt real MPs as enrichment if needed
+        const dbRows = await db.select().from(politicians).where(eq(politicians.isIncumbent as any, true as any));
+        if (dbRows && dbRows.length) {
+          politiciansData = dbRows;
         } else {
-          throw new Error('No real MP data available');
+          const realMPs = await parliamentAPI.fetchCurrentMPs();
+          if (realMPs && realMPs.length > 0) {
+            politiciansData = realMPs.map(mp => ({
+              id: Math.floor(Math.random() * 10000),
+              name: mp.name,
+              party: mp.party,
+              position: mp.position || 'Member of Parliament',
+              riding: mp.constituency,
+              level: mp.level || 'Federal',
+              jurisdiction: mp.jurisdiction || 'Canada',
+              image: undefined,
+              trustScore: 75,
+              civicLevel: 'Federal',
+              recentActivity: 'Active in Parliament',
+              policyPositions: [],
+              votingRecord: { yes: 0, no: 0, abstain: 0 },
+              contactInfo: { email: mp.email, phone: mp.phone, office: 'Parliament Hill', website: mp.website, social: {} },
+              bio: `${mp.name} is a Member of Parliament representing ${mp.constituency}.`,
+              keyAchievements: [],
+              committees: [],
+              expenses: { travel: 0, hospitality: 0, office: 0, total: 0, year: '2025' },
+              createdAt: new Date(),
+              updatedAt: new Date()
+            }));
+          } else {
+            throw new Error('No real MP data available');
+          }
         }
       } catch (error) {
         // Fallback to database if real API fails
@@ -262,8 +247,15 @@ export function registerPoliticiansRoutes(app: Express) {
         .from(politicianTruthTracking)
         .where(eq(politicianTruthTracking.politicianId, parseInt(id)));
 
+      // Compute trust score live if missing
+      const computedTrust = await computeTrustScore(parseInt(id)).catch(() => null);
+      if (computedTrust !== null) {
+        await db.update(politicians).set({ trustScore: String(computedTrust) as any, updatedAt: new Date() }).where(eq(politicians.id, parseInt(id)));
+      }
+
       res.json({
         ...politician,
+        trustScore: computedTrust ?? (politician as any).trustScore,
         stats: {
           statements: statements?.count || 0,
           positions: positions?.count || 0

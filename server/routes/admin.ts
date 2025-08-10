@@ -6,6 +6,7 @@ import { jwtAuth } from './auth.js';
 import { requirePermission } from '../utils/permissionService.js';
 import { ingestNewsFeeds } from '../utils/newsIngestion.js';
 import { ingestParliamentMembers, ingestBillRollcallsForCurrentSession } from '../utils/parliamentIngestion.js';
+import { syncIncumbentPoliticiansFromParliament } from '../utils/politicianSync.js';
 import { ingestProcurementFromCKAN } from '../utils/procurementIngestion.js';
 import { ingestLobbyistsFromCKAN } from '../utils/lobbyistsIngestion.js';
 import { ingestLegalActsCurated, ingestLegalCasesCurated } from '../utils/legalIngestion.js';
@@ -98,8 +99,9 @@ export function registerAdminRoutes(app: Express) {
   app.post('/api/admin/refresh/parliament', jwtAuth, requirePermission('admin.identity.review'), async (_req: Request, res: Response) => {
     try {
       const members = await ingestParliamentMembers();
+      const upserts = await syncIncumbentPoliticiansFromParliament();
       const votes = await ingestBillRollcallsForCurrentSession();
-      res.json({ success: true, membersInserted: members, rollcalls: votes.rollcalls, records: votes.records });
+      res.json({ success: true, membersInserted: members, politiciansUpserted: upserts, rollcalls: votes.rollcalls, records: votes.records });
     } catch (error) {
       res.status(500).json({ success: false, message: 'Failed to refresh parliament data' });
     }
