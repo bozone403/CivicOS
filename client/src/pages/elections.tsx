@@ -35,8 +35,9 @@ export default function Elections() {
   const [, navigate] = useLocation();
 
   // Fetch authentic election data
-  const { data: electionData, isLoading, error } = useQuery<ElectionData>({
-    queryKey: ['/api/elections'],
+  const [locationQuery, setLocationQuery] = useState('');
+  const { data: electionData, isLoading, error, refetch } = useQuery<ElectionData>({
+    queryKey: ['/api/elections', locationQuery],
     enabled: true,
     refetchInterval: 1000 * 60 * 60, // Refetch every hour
     retry: false
@@ -272,6 +273,20 @@ export default function Elections() {
             and official government websites. This page shows only confirmed, scheduled elections.
           </AlertDescription>
         </Alert>
+
+        {/* Search by location */}
+        <div className="mb-6 flex items-center gap-2">
+          <input
+            type="text"
+            value={locationQuery}
+            onChange={(e) => setLocationQuery(e.target.value)}
+            placeholder="Search by location (e.g., Toronto, Ontario, Canada)"
+            className="flex-1 px-3 py-2 border rounded-md text-sm"
+          />
+          <Button variant="default" onClick={() => refetch()}>
+            Search
+          </Button>
+        </div>
 
         {/* Election Tabs */}
         <Tabs value={selectedTab} onValueChange={setSelectedTab} className="space-y-6">

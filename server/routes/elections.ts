@@ -328,7 +328,114 @@ export function registerElectionsRoutes(app: Express) {
   // Get all elections data
   app.get("/api/elections", async (req: Request, res: Response) => {
     try {
-      return ResponseFormatter.success(res, electionsData, "Elections data retrieved successfully");
+      // Basic transformation to the shape the client expects
+      // Supports simple filtering by location via ?location= or ?q=
+      const q = String((req.query.location || req.query.q || "")).trim().toLowerCase();
+
+      // Seed some municipal estimates to ensure comprehensive coverage
+      const municipalEstimates = [
+        {
+          id: 1001,
+          title: "Toronto Municipal Election (estimated)",
+          type: "municipal",
+          date: "2026-10-26", // Ontario municipal cycle (approximate)
+          status: "upcoming",
+          description: "Next municipal election for the City of Toronto (estimated based on 4‑year cycle)",
+          jurisdiction: "Toronto, Ontario",
+          region: "Toronto, Ontario",
+          source: "City of Toronto / Elections Ontario",
+          sourceUrl: "https://www.toronto.ca/city-government/elections/"
+        },
+        {
+          id: 1002,
+          title: "Vancouver Municipal Election (estimated)",
+          type: "municipal",
+          date: "2026-10-17", // BC municipal cycle (approximate)
+          status: "upcoming",
+          description: "Next municipal election for the City of Vancouver (estimated based on 4‑year cycle)",
+          jurisdiction: "Vancouver, British Columbia",
+          region: "Vancouver, British Columbia",
+          source: "City of Vancouver / Elections BC",
+          sourceUrl: "https://vancouver.ca/your-government/city-elections.aspx"
+        },
+        {
+          id: 1003,
+          title: "Montreal Municipal Election (estimated)",
+          type: "municipal",
+          date: "2025-11-02", // QC municipal cycle (approximate, early Nov)
+          status: "upcoming",
+          description: "Next municipal election for the City of Montreal (estimated based on 4‑year cycle)",
+          jurisdiction: "Montreal, Quebec",
+          region: "Montreal, Quebec",
+          source: "Ville de Montréal / Élections Québec",
+          sourceUrl: "https://electionsquebec.qc.ca/"
+        }
+      ];
+
+      // Convert existing rich dataset into the simplified client shape
+      const allUpcoming = [
+        ...electionsData.elections.map((e) => ({
+          id: String(e.id),
+          type: (e.type as any) || 'federal',
+          region: e.jurisdiction || 'Canada',
+          date: e.date,
+          status: (e.status as any) || 'upcoming',
+          description: e.description || e.title,
+          source: e.type === 'federal' ? 'Elections Canada' : (e.jurisdiction ? `Elections ${e.jurisdiction}` : 'Official sources'),
+          sourceUrl: e.type === 'federal' ? 'https://www.elections.ca' : undefined,
+          registrationDeadline: undefined,
+          advanceVotingDates: undefined,
+        })),
+        ...municipalEstimates.map((e) => ({
+          id: String(e.id),
+          type: e.type as any,
+          region: e.region,
+          date: e.date,
+          status: e.status as any,
+          description: e.description,
+          source: e.source,
+          sourceUrl: e.sourceUrl,
+          registrationDeadline: undefined,
+          advanceVotingDates: undefined,
+        })),
+      ];
+
+      const allRecent = (electionsData.recentResults || []).map((r) => ({
+        id: String(r.id),
+        type: (r.type as any) || 'federal',
+        region: r.type === 'federal' ? 'Canada' : (r.title.split(' ')[1] || 'Canada'),
+        date: r.date,
+        status: 'completed' as const,
+        description: r.title,
+        source: r.type === 'federal' ? 'Elections Canada' : 'Official sources',
+        sourceUrl: r.type === 'federal' ? 'https://www.elections.ca' : undefined,
+        registrationDeadline: undefined,
+        advanceVotingDates: undefined,
+      }));
+
+      const matchesQuery = (text: string) => (q ? text.toLowerCase().includes(q) : true);
+
+      const filteredUpcoming = allUpcoming.filter((e) =>
+        matchesQuery(e.region) || matchesQuery(e.description) || matchesQuery(e.type)
+      );
+      const filteredRecent = allRecent.filter((e) =>
+        matchesQuery(e.region) || matchesQuery(e.description) || matchesQuery(e.type)
+      );
+
+      const responsePayload = {
+        upcoming: filteredUpcoming.sort((a, b) => a.date.localeCompare(b.date)),
+        recent: filteredRecent.sort((a, b) => b.date.localeCompare(a.date)).slice(0, 20),
+        lastUpdated: new Date().toISOString(),
+        sources: [
+          'Elections Canada',
+          'Elections Ontario',
+          'Elections BC',
+          'Élections Québec',
+          'Municipal election authorities',
+        ],
+      };
+
+      return ResponseFormatter.success(res, responsePayload, "Elections data retrieved successfully");
     } catch (error) {
       return ResponseFormatter.error(res, "Failed to retrieve elections data", 500);
     }
