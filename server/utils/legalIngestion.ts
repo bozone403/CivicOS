@@ -42,7 +42,7 @@ export async function ingestFederalActsFromJustice(): Promise<number> {
     const html = await (await fetch(indexUrl)).text();
     const $ = (cheerio as any).load(html);
     let inserted = 0;
-    $('a').each((_, el) => {
+    $('a').each((_: number, el: any) => {
       const href = $(el).attr('href') || '';
       const text = $(el).text().trim();
       if (/^eng\/acts\//.test(href) && text.length > 2) {
@@ -65,7 +65,7 @@ export async function ingestCriminalCodeFromJustice(): Promise<number> {
     const html = await (await fetch(url)).text();
     const $ = (cheerio as any).load(html);
     let inserted = 0;
-    $('a').each((_, el) => {
+    $('a').each((_: number, el: any) => {
       const text = $(el).text().trim();
       const secMatch = text.match(/^(\d+[\w\.-]*)\s+-\s+(.*)$/);
       if (secMatch) {
@@ -87,7 +87,7 @@ export async function resolveFederalActDetailByTitle(titleQuery: string): Promis
   const $ = (cheerio as any).load(html);
   const q = titleQuery.trim().toLowerCase();
   let actUrl: string | undefined;
-  $('a').each((_, el) => {
+  $('a').each((_: number, el: any) => {
     const href = $(el).attr('href') || '';
     const t = $(el).text().trim().toLowerCase();
     if (!actUrl && /^eng\/acts\//.test(href) && t.includes(q)) {
@@ -118,7 +118,7 @@ export async function fetchCriminalCodeSectionDetail(sectionNumber: string): Pro
   let text: string | undefined;
   const sec = sectionNumber.trim();
   const candidates: any[] = [];
-  $('*:contains("' + sec + '")').each((_, el) => {
+  $('*:contains("' + sec + '")').each((_: number, el: any) => {
     const t = $(el).text();
     if (t && t.includes(sec)) candidates.push($(el));
   });

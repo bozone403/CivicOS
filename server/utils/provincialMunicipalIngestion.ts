@@ -70,7 +70,7 @@ export async function ingestProvincialIncumbents(provinceInput?: string): Promis
       const html = await (await fetch(url)).text();
       const $ = cheerio.load(html);
       const jurisdiction = toProvinceName(key);
-      $('*').each(async (_i, el) => {
+      $('*').each((_i: number, el: any) => {
         const $el = $(el);
         const text = $el.text().trim();
         const name = $el.find('a, .name, h3, h4').first().text().trim() || (/([A-Z][a-z]+\s+[A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)/.exec(text)?.[0] || '');
@@ -87,15 +87,11 @@ export async function ingestProvincialIncumbents(provinceInput?: string): Promis
             isIncumbent: true,
             updatedAt: new Date(),
           };
-          try {
-            const [row] = await db.insert(politicians).values(vals).onConflictDoNothing().returning();
+          db.insert(politicians).values(vals).onConflictDoNothing().returning().then(([row]) => {
             if (row) inserted++; else updated++;
-          } catch {
-            try {
-              await db.update(politicians).set(vals).where((politicians.name as any).eq(name as any));
-              updated++;
-            } catch {}
-          }
+          }).catch(async () => {
+            try { await db.update(politicians).set(vals).where((politicians.name as any).eq(name as any)); updated++; } catch {}
+          });
         }
       });
     } catch {}
@@ -119,7 +115,7 @@ export async function ingestMunicipalIncumbents(targets?: Array<{ city: string; 
       const html = await (await fetch(url)).text();
       const $ = cheerio.load(html);
       const [city, province] = key.split(',').map(s => s.trim());
-      $('*').each(async (_i, el) => {
+      $('*').each((_i: number, el: any) => {
         const $el = $(el);
         const text = $el.text().trim();
         const name = $el.find('a, .name, h3, h4').first().text().trim() || (/([A-Z][a-z]+\s+[A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)/.exec(text)?.[0] || '');
@@ -135,15 +131,11 @@ export async function ingestMunicipalIncumbents(targets?: Array<{ city: string; 
             isIncumbent: true,
             updatedAt: new Date(),
           };
-          try {
-            const [row] = await db.insert(politicians).values(vals).onConflictDoNothing().returning();
+          db.insert(politicians).values(vals).onConflictDoNothing().returning().then(([row]) => {
             if (row) inserted++; else updated++;
-          } catch {
-            try {
-              await db.update(politicians).set(vals).where((politicians.name as any).eq(name as any));
-              updated++;
-            } catch {}
-          }
+          }).catch(async () => {
+            try { await db.update(politicians).set(vals).where((politicians.name as any).eq(name as any)); updated++; } catch {}
+          });
         }
       });
     } catch {}
@@ -163,6 +155,9 @@ function toProvinceName(key: ProvinceKey): string {
     new_brunswick: 'New Brunswick',
     pei: 'Prince Edward Island',
     newfoundland: 'Newfoundland and Labrador',
+    yukon: 'Yukon',
+    nunavut: 'Nunavut',
+    nwt: 'Northwest Territories',
   };
   return map[key];
 }
@@ -179,6 +174,9 @@ function getProvincialTitle(key: ProvinceKey): string {
     new_brunswick: 'Member of Legislative Assembly',
     pei: 'Member of Legislative Assembly',
     newfoundland: 'Member of House of Assembly',
+    yukon: 'Member of Legislative Assembly',
+    nunavut: 'Member of Legislative Assembly',
+    nwt: 'Member of Legislative Assembly',
   };
   return map[key];
 }
