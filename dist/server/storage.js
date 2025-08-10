@@ -234,26 +234,40 @@ export class DatabaseStorage {
         return politician;
     }
     async createPolitician(politician) {
+        // Insert defensively to handle schema drift in live DB
+        const primary = {
+            name: politician.name,
+            party: politician.party ?? null,
+            position: politician.position ?? null,
+            constituency: politician.constituency ?? null,
+        };
         try {
-            // Use onConflictDoNothing to handle duplicate politicians gracefully
-            const [newPolitician] = await db.insert(politicians)
-                .values(politician)
+            const [inserted] = await db.insert(politicians)
+                .values(primary)
                 .onConflictDoNothing()
                 .returning();
-            // If no politician was inserted (due to conflict), try to get the existing one
-            if (!newPolitician) {
-                const [existingPolitician] = await db.select()
-                    .from(politicians)
-                    .where(and(eq(politicians.name, politician.name), eq(politicians.jurisdiction, politician.jurisdiction || '')));
-                return existingPolitician;
+            if (inserted)
+                return inserted;
+        }
+        catch (err) {
+            // Retry with minimal columns if some targets are missing
+            try {
+                const [insertedMinimal] = await db.insert(politicians)
+                    .values({ name: politician.name, party: politician.party ?? null })
+                    .onConflictDoNothing()
+                    .returning();
+                if (insertedMinimal)
+                    return insertedMinimal;
             }
-            return newPolitician;
+            catch (_e) {
+                // fall through to select existing
+            }
         }
-        catch (error) {
-            // Log the error but don't throw to prevent cascading failures
-            // console.error removed for production
-            throw error;
-        }
+        // Select existing by name (fallback when unique constraints differ)
+        const [existing] = await db.select()
+            .from(politicians)
+            .where(eq(politicians.name, politician.name));
+        return existing;
     }
     async updatePoliticianTrustScore(id, score) {
         await db

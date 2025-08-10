@@ -1,7 +1,7 @@
 const { Client } = require('pg');
 
 async function testDatabaseMigration() {
-  console.log('🔍 TESTING DATABASE MIGRATION - VERIFYING ALL FIXES\n');
+  // console.log removed for production
   
   const client = new Client({
     connectionString: process.env.DATABASE_URL
@@ -9,12 +9,12 @@ async function testDatabaseMigration() {
   
   try {
     await client.connect();
-    console.log('✅ Connected to database successfully\n');
+    // console.log removed for production
     
     const testResults = {};
     
     // Test 1: Check if announcements table has expires_at column
-    console.log('🔍 Testing Announcements Table...');
+    // console.log removed for production
     try {
       const result = await client.query(`
         SELECT column_name 
@@ -25,14 +25,14 @@ async function testDatabaseMigration() {
       
       if (result.rows.length > 0) {
         testResults['Announcements expires_at'] = { status: '✅ Working', found: true };
-        console.log('✅ Announcements table has expires_at column');
+        // console.log removed for production
       } else {
         testResults['Announcements expires_at'] = { status: '❌ Failed', found: false };
-        console.log('❌ Announcements table missing expires_at column');
+        // console.log removed for production
       }
     } catch (error) {
       testResults['Announcements expires_at'] = { status: '❌ Error', error: error.message };
-      console.log(`❌ Announcements test error: ${error.message}`);
+      // console.log removed for production
     }
     
     // Test 2: Check all required social tables
@@ -41,7 +41,7 @@ async function testDatabaseMigration() {
       'social_activities', 'social_bookmarks', 'social_shares'
     ];
     
-    console.log('\n🔍 Testing Social Tables...');
+    // console.log removed for production
     for (const table of socialTables) {
       try {
         const result = await client.query(`
@@ -52,14 +52,14 @@ async function testDatabaseMigration() {
         
         if (result.rows.length > 0) {
           testResults[`Social Table: ${table}`] = { status: '✅ Working', found: true };
-          console.log(`✅ ${table} table exists`);
+          // console.log removed for production
         } else {
           testResults[`Social Table: ${table}`] = { status: '❌ Failed', found: false };
-          console.log(`❌ ${table} table missing`);
+          // console.log removed for production
         }
       } catch (error) {
         testResults[`Social Table: ${table}`] = { status: '❌ Error', error: error.message };
-        console.log(`❌ ${table} test error: ${error.message}`);
+        // console.log removed for production
       }
     }
     
@@ -68,7 +68,7 @@ async function testDatabaseMigration() {
       'system_health', 'analytics_events', 'identity_verifications'
     ];
     
-    console.log('\n🔍 Testing System Tables...');
+    // console.log removed for production
     for (const table of systemTables) {
       try {
         const result = await client.query(`
@@ -79,14 +79,14 @@ async function testDatabaseMigration() {
         
         if (result.rows.length > 0) {
           testResults[`System Table: ${table}`] = { status: '✅ Working', found: true };
-          console.log(`✅ ${table} table exists`);
+          // console.log removed for production
         } else {
           testResults[`System Table: ${table}`] = { status: '❌ Failed', found: false };
-          console.log(`❌ ${table} table missing`);
+          // console.log removed for production
         }
       } catch (error) {
         testResults[`System Table: ${table}`] = { status: '❌ Error', error: error.message };
-        console.log(`❌ ${table} test error: ${error.message}`);
+        // console.log removed for production
       }
     }
     
@@ -95,7 +95,7 @@ async function testDatabaseMigration() {
       'user_permissions', 'permissions', 'user_membership_history'
     ];
     
-    console.log('\n🔍 Testing Permission Tables...');
+    // console.log removed for production
     for (const table of permissionTables) {
       try {
         const result = await client.query(`
@@ -106,14 +106,14 @@ async function testDatabaseMigration() {
         
         if (result.rows.length > 0) {
           testResults[`Permission Table: ${table}`] = { status: '✅ Working', found: true };
-          console.log(`✅ ${table} table exists`);
+          // console.log removed for production
         } else {
           testResults[`Permission Table: ${table}`] = { status: '❌ Failed', found: false };
-          console.log(`❌ ${table} table missing`);
+          // console.log removed for production
         }
       } catch (error) {
         testResults[`Permission Table: ${table}`] = { status: '❌ Error', error: error.message };
-        console.log(`❌ ${table} test error: ${error.message}`);
+        // console.log removed for production
       }
     }
     
@@ -124,7 +124,7 @@ async function testDatabaseMigration() {
       'government_integrity', 'events'
     ];
     
-    console.log('\n🔍 Testing Feature Tables...');
+    // console.log removed for production
     for (const table of featureTables) {
       try {
         const result = await client.query(`
@@ -135,19 +135,19 @@ async function testDatabaseMigration() {
         
         if (result.rows.length > 0) {
           testResults[`Feature Table: ${table}`] = { status: '✅ Working', found: true };
-          console.log(`✅ ${table} table exists`);
+          // console.log removed for production
         } else {
           testResults[`Feature Table: ${table}`] = { status: '❌ Failed', found: false };
-          console.log(`❌ ${table} table missing`);
+          // console.log removed for production
         }
       } catch (error) {
         testResults[`Feature Table: ${table}`] = { status: '❌ Error', error: error.message };
-        console.log(`❌ ${table} test error: ${error.message}`);
+        // console.log removed for production
       }
     }
     
     // Test 6: Check foreign key constraints
-    console.log('\n🔍 Testing Foreign Key Constraints...');
+    // console.log removed for production
     try {
       const result = await client.query(`
         SELECT 
@@ -174,18 +174,18 @@ async function testDatabaseMigration() {
       
       if (result.rows.length > 0) {
         testResults['Foreign Key Constraints'] = { status: '✅ Working', count: result.rows.length };
-        console.log(`✅ Found ${result.rows.length} foreign key constraints`);
+        // console.log removed for production
       } else {
         testResults['Foreign Key Constraints'] = { status: '❌ Failed', count: 0 };
-        console.log('❌ No foreign key constraints found');
+        // console.log removed for production
       }
     } catch (error) {
       testResults['Foreign Key Constraints'] = { status: '❌ Error', error: error.message };
-      console.log(`❌ Foreign key test error: ${error.message}`);
+      // console.log removed for production
     }
     
     // Test 7: Check indexes
-    console.log('\n🔍 Testing Indexes...');
+    // console.log removed for production
     try {
       const result = await client.query(`
         SELECT indexname, tablename 
@@ -201,18 +201,18 @@ async function testDatabaseMigration() {
       
       if (result.rows.length > 0) {
         testResults['Performance Indexes'] = { status: '✅ Working', count: result.rows.length };
-        console.log(`✅ Found ${result.rows.length} performance indexes`);
+        // console.log removed for production
       } else {
         testResults['Performance Indexes'] = { status: '❌ Failed', count: 0 };
-        console.log('❌ No performance indexes found');
+        // console.log removed for production
       }
     } catch (error) {
       testResults['Performance Indexes'] = { status: '❌ Error', error: error.message };
-      console.log(`❌ Index test error: ${error.message}`);
+      // console.log removed for production
     }
     
     // Test 8: Check default permissions data
-    console.log('\n🔍 Testing Default Permissions Data...');
+    // console.log removed for production
     try {
       const result = await client.query(`
         SELECT COUNT(*) as count 
@@ -225,56 +225,56 @@ async function testDatabaseMigration() {
       
       if (result.rows[0].count > 0) {
         testResults['Default Permissions'] = { status: '✅ Working', count: result.rows[0].count };
-        console.log(`✅ Found ${result.rows[0].count} default permissions`);
+        // console.log removed for production
       } else {
         testResults['Default Permissions'] = { status: '❌ Failed', count: 0 };
-        console.log('❌ No default permissions found');
+        // console.log removed for production
       }
     } catch (error) {
       testResults['Default Permissions'] = { status: '❌ Error', error: error.message };
-      console.log(`❌ Permissions test error: ${error.message}`);
+      // console.log removed for production
     }
     
     // Generate comprehensive report
-    console.log('\n📊 DATABASE MIGRATION TEST RESULTS:');
-    console.log('=====================================');
+    // console.log removed for production
+    // console.log removed for production
     
     const workingTests = Object.keys(testResults).filter(key => testResults[key].status === '✅ Working');
     const failedTests = Object.keys(testResults).filter(key => testResults[key].status.startsWith('❌'));
     
-    console.log(`✅ Working Tests: ${workingTests.length}`);
-    console.log(`❌ Failed Tests: ${failedTests.length}`);
+    // console.log removed for production
+    // console.log removed for production
     console.log(`📊 Total Tests: ${Object.keys(testResults).length}`);
     
-    console.log('\n🎯 WORKING TESTS:');
+    // console.log removed for production
     workingTests.forEach(test => {
-      console.log(`✅ ${test}`);
+      // console.log removed for production
     });
     
-    console.log('\n❌ FAILED TESTS:');
+    // console.log removed for production
     failedTests.forEach(test => {
-      console.log(`❌ ${test}: ${testResults[test].error || 'Not found'}`);
+      // console.log removed for production
     });
     
-    console.log('\n📈 MIGRATION SUCCESS ASSESSMENT:');
-    console.log('=====================================');
+    // console.log removed for production
+    // console.log removed for production
     
     const successRate = Math.round((workingTests.length / Object.keys(testResults).length) * 100);
     
-    console.log(`Migration Success Rate: ${successRate}%`);
+    // console.log removed for production
     
     if (successRate >= 95) {
-      console.log('🟢 EXCELLENT - Database migration successful');
+      // console.log removed for production
     } else if (successRate >= 80) {
-      console.log('🟡 GOOD - Database migration mostly successful');
+      // console.log removed for production
     } else if (successRate >= 60) {
-      console.log('🟠 FAIR - Database migration needs work');
+      // console.log removed for production
     } else {
-      console.log('🔴 POOR - Database migration failed');
+      // console.log removed for production
     }
     
-    console.log('\n🎯 CRITICAL ISSUES TO FIX:');
-    console.log('==========================');
+    // console.log removed for production
+    // console.log removed for production
     
     const criticalIssues = [
       'Announcements expires_at',
@@ -289,18 +289,18 @@ async function testDatabaseMigration() {
     );
     
     if (criticalBroken.length > 0) {
-      console.log('🔴 CRITICAL DATABASE ISSUES:');
+      // console.log removed for production
       criticalBroken.forEach(issue => {
-        console.log(`❌ ${issue}: ${testResults[issue].error || 'Not found'}`);
+        // console.log removed for production
       });
     } else {
-      console.log('✅ All critical database issues resolved');
+      // console.log removed for production
     }
     
     return testResults;
     
   } catch (error) {
-    console.error('❌ Database connection failed:', error.message);
+    // console.error removed for production
     return { error: error.message };
   } finally {
     await client.end();

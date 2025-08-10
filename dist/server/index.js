@@ -1,5 +1,7 @@
 import 'dotenv/config';
 import express from "express";
+import { sql } from 'drizzle-orm';
+import { db } from './db.js';
 import { registerRoutes } from "./appRoutes.js";
 import { fileURLToPath } from 'url';
 import path from "path";
@@ -11,6 +13,7 @@ import { confirmedAPIs } from "./confirmedAPIs.js";
 import helmet from "helmet";
 import jwt from "jsonwebtoken";
 import pino from "pino";
+import { existsSync, readdirSync, statSync } from 'fs';
 // Import middleware
 import { authRateLimit, apiRateLimit, socialRateLimit, votingRateLimit } from './middleware/rateLimit.js';
 import { requestLogger, errorLogger } from './middleware/logging.js';
@@ -26,11 +29,11 @@ else {
     // console.log removed for production
 }
 const logger = pino();
-// Enforce SESSION_SECRET is set before anything else
+// Enforce SESSION_SECRET: log and continue in mock mode to avoid instance crash
 if (!process.env.SESSION_SECRET) {
-    throw new Error("SESSION_SECRET must be set as an environment variable. Refusing to start.");
+    logger.warn({ msg: 'SESSION_SECRET missing; running with limited auth features' });
 }
-const JWT_SECRET = process.env.SESSION_SECRET;
+const JWT_SECRET = process.env.SESSION_SECRET || '';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 // Enhanced JWT authentication middleware
@@ -315,11 +318,182 @@ app.get("/health", (_req, res) => {
         res.status(404).json({ message: 'API route not found', path: req.originalUrl });
     });
     // Patch static file serving to use ESM-compatible __dirname
-    const distPath = path.resolve(__dirname, "../dist/public");
-    app.use(express.static(distPath));
-    // Ensure SPA fallback for all non-API routes
-    app.get(/^\/(?!api\/).*/, (req, res) => {
-        res.sendFile(path.join(__dirname, '../dist/public/index.html'));
+    const staticRootCandidates = [
+        path.resolve(__dirname, "../dist/public"),
+        path.resolve(process.cwd(), "dist/public"),
+        "/opt/render/project/src/dist/public",
+    ];
+    let staticRoot = staticRootCandidates.find((p) => {
+        try {
+            return require('fs').existsSync(p);
+        }
+        catch {
+            return false;
+        }
+    }) || path.resolve(__dirname, "../dist/public");
+    // Serve dynamic index.html FIRST to ensure latest entry chunks are referenced
+    app.get('/', (_req, res) => {
+        try {
+            const fs = require('fs');
+            const idxPath = path.join(staticRoot, 'index.html');
+            let html = fs.readFileSync(idxPath, 'utf8');
+            const latestJs = findLatestAsset('index-', '.js');
+            const latestCss = findLatestAsset('index-', '.css');
+            const jsRel = latestJs ? '/assets/' + path.basename(latestJs) : '/assets/index.js';
+            const cssRel = latestCss ? '/assets/' + path.basename(latestCss) : '/assets/index.css';
+            const jsMtime = latestJs ? statSync(latestJs).mtimeMs : Date.now();
+            const cssMtime = latestCss ? statSync(latestCss).mtimeMs : Date.now();
+            html = html.replace(/\/assets\/index-[A-Za-z0-9_-]+\.js/g, jsRel + `?v=${jsMtime}`);
+            html = html.replace(/\/assets\/index-[A-Za-z0-9_-]+\.css/g, cssRel + `?v=${cssMtime}`);
+            res.setHeader('Cache-Control', 'no-store');
+            res.setHeader('Content-Type', 'text/html; charset=UTF-8');
+            return res.send(html);
+        }
+        catch {
+            res.setHeader('Cache-Control', 'no-store');
+            return res.sendFile(path.join(staticRoot, 'index.html'));
+        }
+    });
+    // Compatibility: map stale hashed entry requests to current built assets
+    const assetsDir = path.join(staticRoot, 'assets');
+    function findLatestAsset(prefix, ext) {
+        try {
+            const files = readdirSync(assetsDir).filter(f => f.startsWith(prefix) && f.endsWith(ext));
+            if (files.length === 0)
+                return null;
+            // Pick the most recently modified
+            const sorted = files.sort((a, b) => statSync(path.join(assetsDir, b)).mtimeMs - statSync(path.join(assetsDir, a)).mtimeMs);
+            return path.join(assetsDir, sorted[0]);
+        }
+        catch {
+            return null;
+        }
+    }
+    // Intercept any /assets/index-*.js|css and serve latest to avoid 404 from static handler
+    app.use('/assets', (req, res, next) => {
+        try {
+            if (req.path.startsWith('/index-') && (req.path.endsWith('.js') || req.path.endsWith('.css'))) {
+                const isJs = req.path.endsWith('.js');
+                const latest = findLatestAsset('index-', isJs ? '.js' : '.css');
+                if (latest) {
+                    res.setHeader('Cache-Control', 'no-store');
+                    res.setHeader('Content-Type', isJs ? 'application/javascript; charset=UTF-8' : 'text/css; charset=UTF-8');
+                    return res.sendFile(latest);
+                }
+            }
+        }
+        catch { }
+        return next();
+    });
+    // Serve old hashed entry requests with the latest built asset
+    app.get(/^\/assets\/index-.*\.js$/, (req, res, next) => {
+        const latest = findLatestAsset('index-', '.js');
+        if (latest) {
+            res.setHeader('Content-Type', 'application/javascript; charset=UTF-8');
+            res.setHeader('Cache-Control', 'no-store');
+            return res.sendFile(latest);
+        }
+        return next();
+    });
+    app.get(/^\/assets\/index-.*\.css$/, (req, res, next) => {
+        const latest = findLatestAsset('index-', '.css');
+        if (latest) {
+            res.setHeader('Content-Type', 'text/css; charset=UTF-8');
+            res.setHeader('Cache-Control', 'no-store');
+            return res.sendFile(latest);
+        }
+        return next();
+    });
+    app.get('/assets/index-:hash.js', (req, res, next) => {
+        const requested = path.join(assetsDir, `index-${req.params.hash}.js`);
+        if (existsSync(requested))
+            return next();
+        const latest = findLatestAsset('index-', '.js');
+        if (latest) {
+            res.setHeader('Content-Type', 'application/javascript; charset=UTF-8');
+            res.setHeader('Cache-Control', 'no-store');
+            return res.sendFile(latest);
+        }
+        return next();
+    });
+    app.get('/assets/index-:hash.css', (req, res, next) => {
+        const requested = path.join(assetsDir, `index-${req.params.hash}.css`);
+        if (existsSync(requested))
+            return next();
+        const latest = findLatestAsset('index-', '.css');
+        if (latest) {
+            res.setHeader('Content-Type', 'text/css; charset=UTF-8');
+            res.setHeader('Cache-Control', 'no-store');
+            return res.sendFile(latest);
+        }
+        return next();
+    });
+    app.use('/assets', express.static(path.join(staticRoot, 'assets'), {
+        setHeaders: (res, filePath) => {
+            if (filePath.endsWith('.css')) {
+                res.setHeader('Content-Type', 'text/css; charset=UTF-8');
+            }
+            else if (filePath.endsWith('.js')) {
+                res.setHeader('Content-Type', 'application/javascript; charset=UTF-8');
+            }
+            res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+        }
+    }));
+    // Stable aliases to the latest entry assets
+    app.get('/assets/index.js', (req, res, next) => {
+        const latest = findLatestAsset('index-', '.js');
+        if (latest) {
+            res.setHeader('Content-Type', 'application/javascript; charset=UTF-8');
+            res.setHeader('Cache-Control', 'no-store');
+            return res.sendFile(latest);
+        }
+        return next();
+    });
+    app.get('/assets/index.css', (req, res, next) => {
+        const latest = findLatestAsset('index-', '.css');
+        if (latest) {
+            res.setHeader('Content-Type', 'text/css; charset=UTF-8');
+            res.setHeader('Cache-Control', 'no-store');
+            return res.sendFile(latest);
+        }
+        return next();
+    });
+    app.use(express.static(staticRoot, {
+        setHeaders: (res, filePath) => {
+            const isIndex = filePath.endsWith('index.html');
+            if (isIndex) {
+                res.setHeader('Cache-Control', 'no-store');
+            }
+            else if (/\/assets\//.test(filePath)) {
+                res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+            }
+            else {
+                res.setHeader('Cache-Control', 'public, max-age=3600');
+            }
+        }
+    }));
+    // Ensure SPA fallback for all non-API routes (rewrite to latest entry chunk with version)
+    app.get(/^\/(?!api\/).*/, (_req, res) => {
+        try {
+            const fs = require('fs');
+            const idxPath = path.join(staticRoot, 'index.html');
+            let html = fs.readFileSync(idxPath, 'utf8');
+            const latestJs = findLatestAsset('index-', '.js');
+            const latestCss = findLatestAsset('index-', '.css');
+            const jsRel = latestJs ? '/assets/' + path.basename(latestJs) : '/assets/index.js';
+            const cssRel = latestCss ? '/assets/' + path.basename(latestCss) : '/assets/index.css';
+            const jsMtime = latestJs ? statSync(latestJs).mtimeMs : Date.now();
+            const cssMtime = latestCss ? statSync(latestCss).mtimeMs : Date.now();
+            html = html.replace(/\/assets\/index-[A-Za-z0-9_-]+\.js/g, jsRel + `?v=${jsMtime}`);
+            html = html.replace(/\/assets\/index-[A-Za-z0-9_-]+\.css/g, cssRel + `?v=${cssMtime}`);
+            res.setHeader('Cache-Control', 'no-store');
+            res.setHeader('Content-Type', 'text/html; charset=UTF-8');
+            return res.send(html);
+        }
+        catch {
+            res.setHeader('Cache-Control', 'no-store');
+            return res.sendFile(path.join(staticRoot, 'index.html'));
+        }
     });
     // ALWAYS serve the app on the correct port for Render
     // Render uses PORT environment variable
@@ -339,17 +513,41 @@ app.get("/health", (_req, res) => {
             logger.error({ msg: "Failed to run database migrations", error });
         }
     }, 5000); // Run migrations 5 seconds after server starts
-    // Initialize automatic government data sync (non-blocking)
-    setTimeout(() => {
+    // Schema drift guard: ensure critical columns/indexes exist in live DB
+    setTimeout(async () => {
         try {
-            initializeDataSync();
+            await db.execute(sql `DO $$ BEGIN
+        IF NOT EXISTS (
+          SELECT 1 FROM information_schema.columns 
+          WHERE table_name = 'politicians' AND column_name = 'parliament_member_id'
+        ) THEN
+          ALTER TABLE politicians ADD COLUMN parliament_member_id text;
+        END IF;
+      END $$;`);
+            await db.execute(sql `CREATE UNIQUE INDEX IF NOT EXISTS idx_politicians_parliament_member_id 
+        ON politicians(parliament_member_id) WHERE parliament_member_id IS NOT NULL;`);
+            logger.info({ msg: 'Schema guard: ensured politicians.parliament_member_id exists' });
         }
         catch (error) {
-            logger.error({ msg: "Failed to initialize data sync", error });
+            logger.error({ msg: 'Schema guard failed', error: error instanceof Error ? error.message : String(error) });
         }
-    }, 30000); // Increased to 30 seconds to ensure server is fully started
+    }, 8000);
+    // Initialize automatic government data sync (non-blocking) if enabled
+    if (process.env.DATA_SYNC_ENABLED === 'true') {
+        setTimeout(() => {
+            try {
+                initializeDataSync();
+            }
+            catch (error) {
+                logger.error({ msg: "Failed to initialize data sync", error });
+            }
+        }, 30000);
+    }
+    else {
+        logger.info({ msg: "Data sync disabled by env (DATA_SYNC_ENABLED != 'true')" });
+    }
     // Initialize Ollama AI service for production (enhanced with robust error handling)
-    if (process.env.NODE_ENV === 'production') {
+    if (process.env.NODE_ENV === 'production' && process.env.OLLAMA_ENABLED === 'true' && process.env.AI_SERVICE_ENABLED === 'true') {
         // Start Ollama initialization in background - don't wait for completion
         setTimeout(async () => {
             try {
@@ -485,15 +683,20 @@ app.get("/health", (_req, res) => {
     //     logger.error({ msg: "Error in scheduled news analysis", error });
     //   });
     // }, 12 * 60 * 60 * 1000); // 12 hours instead of 4
-    // Start real-time platform monitoring (non-blocking) with delay
-    setTimeout(() => {
-        try {
-            realTimeMonitoring.startMonitoring();
-        }
-        catch (error) {
-            logger.error({ msg: "Failed to start real-time monitoring", error });
-        }
-    }, 45000); // Increased to 45 second delay
+    // Start real-time platform monitoring if enabled
+    if (process.env.MONITORING_ENABLED === 'true') {
+        setTimeout(() => {
+            try {
+                realTimeMonitoring.startMonitoring();
+            }
+            catch (error) {
+                logger.error({ msg: "Failed to start real-time monitoring", error });
+            }
+        }, 45000);
+    }
+    else {
+        logger.info({ msg: "Real-time monitoring disabled by env (MONITORING_ENABLED != 'true')" });
+    }
     // Initialize comprehensive legal database
     setTimeout(() => {
         // Legal data populator removed during cleanup

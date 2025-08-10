@@ -1,5 +1,5 @@
 import { db } from "../db.js";
-import { users, socialPosts, socialComments, socialLikes, userFriends, userMessages, notifications, userActivity, socialShares, socialBookmarks, userFollows, userBlocks } from "../../shared/schema.js";
+import { users, socialPosts, socialComments, socialLikes, commentLikes, userFriends, userMessages, notifications, userActivity, socialShares, socialBookmarks, userFollows, userBlocks } from "../../shared/schema.js";
 import { eq, and, or, desc, asc, gte, inArray, count, sql } from "drizzle-orm";
 import { jwtAuth } from './auth.js';
 import pino from "pino";
@@ -301,7 +301,7 @@ export function registerSocialRoutes(app) {
             });
         }
         catch (error) {
-            console.error('Create post error:', error);
+            // console.error removed for production
             res.status(500).json({ error: "Failed to create post" });
         }
     });
@@ -338,7 +338,7 @@ export function registerSocialRoutes(app) {
             res.json({ success: true, post: updated[0] });
         }
         catch (error) {
-            console.error('Edit post error:', error);
+            // console.error removed for production
             res.status(500).json({ success: false, message: 'Failed to edit post' });
         }
     });
@@ -361,7 +361,7 @@ export function registerSocialRoutes(app) {
             res.json({ success: true, message: 'Post deleted' });
         }
         catch (error) {
-            console.error('Delete post error:', error);
+            // console.error removed for production
             res.status(500).json({ success: false, message: 'Failed to delete post' });
         }
     });
@@ -423,7 +423,7 @@ export function registerSocialRoutes(app) {
             });
         }
         catch (error) {
-            console.error('User posts error:', error);
+            // console.error removed for production
             res.status(500).json({ error: "Failed to fetch user posts" });
         }
     });
@@ -482,7 +482,7 @@ export function registerSocialRoutes(app) {
             }
         }
         catch (error) {
-            console.error('Like post error:', error);
+            // console.error removed for production
             res.status(500).json({ error: "Failed to like post" });
         }
     });
@@ -491,12 +491,12 @@ export function registerSocialRoutes(app) {
         try {
             const userId = req.user?.id;
             const postId = parseInt(req.params.id);
-            const bodySchema = z.object({ content: z.string().trim().min(1).max(1000) });
+            const bodySchema = z.object({ content: z.string().trim().min(1).max(1000), parentCommentId: z.number().int().positive().optional() });
             const parsed = bodySchema.safeParse(req.body);
             if (!parsed.success) {
                 return res.status(400).json({ error: 'Invalid input', issues: parsed.error.flatten() });
             }
-            const { content } = parsed.data;
+            const { content, parentCommentId } = parsed.data;
             // Anti-spam: basic rate - reject if too many comments quickly (handled by socialRateLimit) and disallow exact duplicates immediately on same post
             const dup = await db
                 .select({ c: count() })
@@ -517,7 +517,8 @@ export function registerSocialRoutes(app) {
             const comment = await db.insert(socialComments).values({
                 postId,
                 userId,
-                content
+                content,
+                parentCommentId: parentCommentId ?? null
             }).returning();
             recordEvent('social.comment.created', { userId, postId });
             // Notify post author (if not self)
@@ -557,7 +558,7 @@ export function registerSocialRoutes(app) {
             });
         }
         catch (error) {
-            console.error('Comment error:', error);
+            // console.error removed for production
             res.status(500).json({ error: "Failed to add comment" });
         }
     });
@@ -592,18 +593,31 @@ export function registerSocialRoutes(app) {
                 .leftJoin(users, eq(socialComments.userId, users.id))
                 .where(eq(socialComments.postId, postId))
                 .orderBy(asc(socialComments.createdAt));
-            const formatted = comments.map((c) => ({
-                id: c.id,
-                content: c.content,
-                parentCommentId: c.parentCommentId,
-                createdAt: c.createdAt,
-                updatedAt: c.updatedAt,
-                userId: c.userId,
-                firstName: c.user?.firstName,
-                lastName: c.user?.lastName,
-                profileImageUrl: c.user?.profileImageUrl,
-                likeCount: 0,
-                isLiked: false,
+            // Enrich with like counts and whether current user liked
+            const currentUserId = req.user?.id;
+            const formatted = await Promise.all(comments.map(async (c) => {
+                let likeCount = 0;
+                let isLiked = false;
+                try {
+                    const lc = await db.select({ count: count() }).from(commentLikes).where(eq(commentLikes.commentId, c.id));
+                    likeCount = lc[0]?.count || 0;
+                    const liked = await db.select({ id: commentLikes.id }).from(commentLikes).where(and(eq(commentLikes.commentId, c.id), eq(commentLikes.userId, currentUserId))).limit(1);
+                    isLiked = liked.length > 0;
+                }
+                catch { }
+                return {
+                    id: c.id,
+                    content: c.content,
+                    parentCommentId: c.parentCommentId,
+                    createdAt: c.createdAt,
+                    updatedAt: c.updatedAt,
+                    userId: c.userId,
+                    firstName: c.user?.firstName,
+                    lastName: c.user?.lastName,
+                    profileImageUrl: c.user?.profileImageUrl,
+                    likeCount,
+                    isLiked,
+                };
             }));
             res.json({ success: true, comments: formatted });
         }
@@ -648,12 +662,43 @@ export function registerSocialRoutes(app) {
                 return res.status(404).json({ error: 'Comment not found' });
             if (existing.userId !== userId)
                 return res.status(403).json({ error: 'Forbidden' });
+            // Cascade delete comment likes
+            try {
+                await db.delete(commentLikes).where(eq(commentLikes.commentId, commentId));
+            }
+            catch { }
             await db.delete(socialComments).where(eq(socialComments.id, commentId));
             res.json({ success: true });
         }
         catch (error) {
             logger.error('Delete comment error:', error);
             res.status(500).json({ error: 'Failed to delete comment' });
+        }
+    });
+    // POST /api/social/comments/:id/like - Toggle like on a comment
+    app.post('/api/social/comments/:id/like', jwtAuth, socialRateLimit, async (req, res) => {
+        try {
+            const userId = req.user?.id;
+            const commentId = parseInt(req.params.id);
+            const schema = z.object({ reaction: z.string().max(16).optional() });
+            const parsed = schema.safeParse(req.body);
+            if (!parsed.success)
+                return res.status(400).json({ error: 'Invalid input', issues: parsed.error.flatten() });
+            const { reaction = '👍' } = parsed.data;
+            const [comment] = await db.select().from(socialComments).where(eq(socialComments.id, commentId)).limit(1);
+            if (!comment)
+                return res.status(404).json({ error: 'Comment not found' });
+            const existing = await db.select().from(commentLikes).where(and(eq(commentLikes.commentId, commentId), eq(commentLikes.userId, userId))).limit(1);
+            if (existing.length > 0) {
+                await db.delete(commentLikes).where(and(eq(commentLikes.commentId, commentId), eq(commentLikes.userId, userId)));
+                return res.json({ success: true, liked: false });
+            }
+            await db.insert(commentLikes).values({ commentId, userId, reaction });
+            return res.json({ success: true, liked: true });
+        }
+        catch (error) {
+            logger.error('Like comment error:', error);
+            res.status(500).json({ error: 'Failed to like comment' });
         }
     });
     // ===== MESSAGING SYSTEM =====
@@ -933,7 +978,7 @@ export function registerSocialRoutes(app) {
             });
         }
         catch (error) {
-            console.error('Send message error:', error);
+            // console.error removed for production
             res.status(500).json({ error: "Failed to send message" });
         }
     });
@@ -1063,7 +1108,7 @@ export function registerSocialRoutes(app) {
             res.json({ success: true, message: 'User blocked' });
         }
         catch (error) {
-            console.error('Block user error:', error);
+            // console.error removed for production
             res.status(500).json({ error: 'Failed to block user' });
         }
     });
@@ -1080,7 +1125,7 @@ export function registerSocialRoutes(app) {
             res.json({ success: true, message: 'User unblocked' });
         }
         catch (error) {
-            console.error('Unblock user error:', error);
+            // console.error removed for production
             res.status(500).json({ error: 'Failed to unblock user' });
         }
     });
@@ -1141,7 +1186,7 @@ export function registerSocialRoutes(app) {
             });
         }
         catch (error) {
-            console.error('Add friend error:', error);
+            // console.error removed for production
             res.status(500).json({ error: "Failed to add friend" });
         }
     });
@@ -1178,7 +1223,7 @@ export function registerSocialRoutes(app) {
             res.json({ success: true, message: "Friend request accepted" });
         }
         catch (error) {
-            console.error('Accept friend error:', error);
+            // console.error removed for production
             res.status(500).json({ error: "Failed to accept friend" });
         }
     });
@@ -1207,7 +1252,7 @@ export function registerSocialRoutes(app) {
             res.json({ success: true, message: 'Friend request rejected' });
         }
         catch (error) {
-            console.error('Reject friend error:', error);
+            // console.error removed for production
             res.status(500).json({ error: 'Failed to reject friend' });
         }
     });
@@ -1224,7 +1269,7 @@ export function registerSocialRoutes(app) {
             res.json({ success: true, message: 'Friend removed' });
         }
         catch (error) {
-            console.error('Remove friend error:', error);
+            // console.error removed for production
             res.status(500).json({ error: 'Failed to remove friend' });
         }
     });
@@ -1255,7 +1300,7 @@ export function registerSocialRoutes(app) {
             res.json({ success: true, notifications: userNotifications });
         }
         catch (error) {
-            console.error('Notifications error:', error);
+            // console.error removed for production
             // Fail-soft
             res.json({ success: true, notifications: [] });
         }
@@ -1272,7 +1317,7 @@ export function registerSocialRoutes(app) {
             res.json({ success: true, message: "Notification marked as read" });
         }
         catch (error) {
-            console.error('Mark notification read error:', error);
+            // console.error removed for production
             res.status(500).json({ error: "Failed to mark notification as read" });
         }
     });
@@ -1300,7 +1345,7 @@ export function registerSocialRoutes(app) {
             res.json({ success: true, activities });
         }
         catch (error) {
-            console.error('User activity error:', error);
+            // console.error removed for production
             // Fail-soft
             res.json({ success: true, activities: [] });
         }
@@ -1334,7 +1379,7 @@ export function registerSocialRoutes(app) {
             res.json({ success: true, bookmarks });
         }
         catch (error) {
-            console.error('Bookmarks error:', error);
+            // console.error removed for production
             // Fail-soft
             res.json({ success: true, bookmarks: [] });
         }
@@ -1376,7 +1421,7 @@ export function registerSocialRoutes(app) {
             }
         }
         catch (error) {
-            console.error('Bookmark error:', error);
+            // console.error removed for production
             // Fail-soft: acknowledge request even if storage backend unavailable
             res.json({ success: true, bookmarked: true, message: "Bookmark recorded (temporary storage)" });
         }
@@ -1410,7 +1455,7 @@ export function registerSocialRoutes(app) {
             res.json({ success: true, shares });
         }
         catch (error) {
-            console.error('Shares error:', error);
+            // console.error removed for production
             // Fail-soft
             res.json({ success: true, shares: [] });
         }
@@ -1442,7 +1487,7 @@ export function registerSocialRoutes(app) {
             res.json({ success: true, share: share[0], message: "Post shared successfully" });
         }
         catch (error) {
-            console.error('Share post error:', error);
+            // console.error removed for production
             // Fail-soft
             res.json({ success: true, share: { id: 0, postId: parseInt(req.params.id), platform: (req.body?.platform || 'internal'), sharedAt: new Date().toISOString() } });
         }
@@ -1667,7 +1712,7 @@ export function registerSocialRoutes(app) {
             res.json({ success: true, followers });
         }
         catch (error) {
-            console.error('Get followers error:', error);
+            // console.error removed for production
             res.status(500).json({ error: "Failed to fetch followers" });
         }
     });
@@ -1690,7 +1735,7 @@ export function registerSocialRoutes(app) {
             res.json({ success: true, following });
         }
         catch (error) {
-            console.error('Get following error:', error);
+            // console.error removed for production
             res.status(500).json({ error: "Failed to fetch following" });
         }
     });
@@ -1749,7 +1794,7 @@ export function registerSocialRoutes(app) {
             });
         }
         catch (error) {
-            console.error('User stats error:', error);
+            // console.error removed for production
             res.status(500).json({ error: "Failed to fetch user stats" });
         }
     });

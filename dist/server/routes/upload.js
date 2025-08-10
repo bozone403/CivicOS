@@ -14,7 +14,7 @@ export function registerUploadRoutes(app) {
             });
         }
         catch (error) {
-            console.error('Image upload error:', error);
+            // console.error removed for production
             res.status(500).json({ error: "Failed to upload image" });
         }
     });
@@ -31,7 +31,7 @@ export function registerUploadRoutes(app) {
             });
         }
         catch (error) {
-            console.error('Video upload error:', error);
+            // console.error removed for production
             res.status(500).json({ error: "Failed to upload video" });
         }
     });

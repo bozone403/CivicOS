@@ -24,16 +24,16 @@ let testPostId = null;
 let testCommentId = null;
 
 async function testAdvancedInteractions() {
-  console.log('🧪 Testing Advanced CivicSocial Interactions...\n');
+  // console.log removed for production
 
   try {
     // Step 1: Create test users (if not rate limited)
-    console.log('👥 Step 1: Setting up test users...');
+    // console.log removed for production
     
     // Try to login with existing accounts first
     for (let i = 0; i < testUsers.length; i++) {
       const user = testUsers[i];
-      console.log(`Logging in: ${user.firstName} ${user.lastName}`);
+      // console.log removed for production
       
       const loginResponse = await fetch(`${API_BASE}/api/auth/login`, {
         method: 'POST',
@@ -47,9 +47,9 @@ async function testAdvancedInteractions() {
       if (loginResponse.ok) {
         const loginData = await loginResponse.json();
         userTokens.push(loginData.token);
-        console.log(`✅ ${user.firstName} logged in successfully`);
+        // console.log removed for production
       } else {
-        console.log(`⚠️ Login failed for ${user.firstName}, trying registration...`);
+        // console.log removed for production
         
         // Try registration
         const registerResponse = await fetch(`${API_BASE}/api/auth/register`, {
@@ -64,15 +64,15 @@ async function testAdvancedInteractions() {
         if (registerResponse.ok) {
           const registerData = await registerResponse.json();
           userTokens.push(registerData.token);
-          console.log(`✅ ${user.firstName} registered and logged in`);
+          // console.log removed for production
         } else {
-          console.log(`❌ Failed to create ${user.firstName}`);
+          // console.log removed for production
         }
       }
     }
 
     if (userTokens.length < 2) {
-      console.log('⚠️ Need at least 2 users for interaction testing. Using single user tests...');
+      // console.log removed for production
       // Use existing test account
       const singleUserLogin = await fetch(`${API_BASE}/api/auth/login`, {
         method: 'POST',
@@ -86,12 +86,12 @@ async function testAdvancedInteractions() {
       if (singleUserLogin.ok) {
         const loginData = await singleUserLogin.json();
         userTokens = [loginData.token];
-        console.log('✅ Using existing test account for single-user tests');
+        // console.log removed for production
       }
     }
 
     // Step 2: Get user profiles
-    console.log('\n👤 Step 2: Getting user profiles...');
+    // console.log removed for production
     for (let i = 0; i < userTokens.length; i++) {
       const response = await fetch(`${API_BASE}/api/auth/user`, {
         headers: { 'Authorization': `Bearer ${userTokens[i]}` }
@@ -100,12 +100,12 @@ async function testAdvancedInteractions() {
       if (response.ok) {
         const profile = await response.json();
         userProfiles.push(profile);
-        console.log(`✅ ${profile.firstName} profile: ${profile.username}`);
+        // console.log removed for production
       }
     }
 
     // Step 3: Test post creation (for comment testing)
-    console.log('\n📝 Step 3: Creating test post for interactions...');
+    // console.log removed for production
     const postResponse = await fetch(`${API_BASE}/api/social/posts`, {
       method: 'POST',
       headers: {
@@ -122,14 +122,14 @@ async function testAdvancedInteractions() {
     if (postResponse.ok) {
       const postData = await postResponse.json();
       testPostId = postData.post.id;
-      console.log(`✅ Test post created: ID ${testPostId}`);
+      // console.log removed for production
     } else {
-      console.log('❌ Failed to create test post');
+      // console.log removed for production
       return;
     }
 
     // Step 4: Test commenting on posts
-    console.log('\n💬 Step 4: Testing comment creation...');
+    // console.log removed for production
     const commentResponse = await fetch(`${API_BASE}/api/social/posts/${testPostId}/comment`, {
       method: 'POST',
       headers: {
@@ -144,13 +144,13 @@ async function testAdvancedInteractions() {
     if (commentResponse.ok) {
       const commentData = await commentResponse.json();
       testCommentId = commentData.comment.id;
-      console.log(`✅ Comment created: ID ${testCommentId}`);
+      // console.log removed for production
     } else {
-      console.log('❌ Failed to create comment');
+      // console.log removed for production
     }
 
     // Step 5: Test editing comments
-    console.log('\n✏️ Step 5: Testing comment editing...');
+    // console.log removed for production
     if (testCommentId) {
       const editCommentResponse = await fetch(`${API_BASE}/api/social/comments/${testCommentId}`, {
         method: 'PUT',
@@ -164,14 +164,14 @@ async function testAdvancedInteractions() {
       });
 
       if (editCommentResponse.ok) {
-        console.log('✅ Comment editing working');
+        // console.log removed for production
       } else {
-        console.log('❌ Comment editing failed');
+        // console.log removed for production
       }
     }
 
     // Step 6: Test deleting comments
-    console.log('\n🗑️ Step 6: Testing comment deletion...');
+    // console.log removed for production
     if (testCommentId) {
       const deleteCommentResponse = await fetch(`${API_BASE}/api/social/comments/${testCommentId}`, {
         method: 'DELETE',
@@ -181,14 +181,14 @@ async function testAdvancedInteractions() {
       });
 
       if (deleteCommentResponse.ok) {
-        console.log('✅ Comment deletion working');
+        // console.log removed for production
       } else {
-        console.log('❌ Comment deletion failed');
+        // console.log removed for production
       }
     }
 
     // Step 7: Test posting on other user's profile
-    console.log('\n👤 Step 7: Testing posting on other user profiles...');
+    // console.log removed for production
     if (userProfiles.length >= 2) {
       const profilePostResponse = await fetch(`${API_BASE}/api/social/posts`, {
         method: 'POST',
@@ -205,14 +205,14 @@ async function testAdvancedInteractions() {
       });
 
       if (profilePostResponse.ok) {
-        console.log('✅ Profile posting working');
+        // console.log removed for production
       } else {
-        console.log('❌ Profile posting failed');
+        // console.log removed for production
       }
     }
 
     // Step 8: Test editing own posts
-    console.log('\n✏️ Step 8: Testing post editing...');
+    // console.log removed for production
     const editPostResponse = await fetch(`${API_BASE}/api/social/posts/${testPostId}`, {
       method: 'PUT',
       headers: {
@@ -225,13 +225,13 @@ async function testAdvancedInteractions() {
     });
 
     if (editPostResponse.ok) {
-      console.log('✅ Post editing working');
+      // console.log removed for production
     } else {
-      console.log('❌ Post editing failed');
+      // console.log removed for production
     }
 
     // Step 9: Test deleting own posts
-    console.log('\n🗑️ Step 9: Testing post deletion...');
+    // console.log removed for production
     const deletePostResponse = await fetch(`${API_BASE}/api/social/posts/${testPostId}`, {
       method: 'DELETE',
       headers: {
@@ -240,13 +240,13 @@ async function testAdvancedInteractions() {
     });
 
     if (deletePostResponse.ok) {
-      console.log('✅ Post deletion working');
+      // console.log removed for production
     } else {
-      console.log('❌ Post deletion failed');
+      // console.log removed for production
     }
 
     // Step 10: Test replying to comments
-    console.log('\n💬 Step 10: Testing comment replies...');
+    // console.log removed for production
     if (testPostId) {
       // Create a new comment for reply testing
       const replyCommentResponse = await fetch(`${API_BASE}/api/social/posts/${testPostId}/comment`, {
@@ -262,7 +262,7 @@ async function testAdvancedInteractions() {
 
       if (replyCommentResponse.ok) {
         const parentComment = await replyCommentResponse.json();
-        console.log(`✅ Parent comment created: ID ${parentComment.comment.id}`);
+        // console.log removed for production
 
         // Create a reply
         const replyResponse = await fetch(`${API_BASE}/api/social/posts/${testPostId}/comment`, {
@@ -278,15 +278,15 @@ async function testAdvancedInteractions() {
         });
 
         if (replyResponse.ok) {
-          console.log('✅ Comment replies working');
+          // console.log removed for production
         } else {
-          console.log('❌ Comment replies failed');
+          // console.log removed for production
         }
       }
     }
 
     // Step 11: Test user permissions (trying to edit someone else's post)
-    console.log('\n🔒 Step 11: Testing user permissions...');
+    // console.log removed for production
     if (userProfiles.length >= 2 && testPostId) {
       const unauthorizedEditResponse = await fetch(`${API_BASE}/api/social/posts/${testPostId}`, {
         method: 'PUT',
@@ -307,7 +307,7 @@ async function testAdvancedInteractions() {
     }
 
     // Step 12: Test user blocking/unblocking
-    console.log('\n🚫 Step 12: Testing user blocking...');
+    // console.log removed for production
     if (userProfiles.length >= 2) {
       const blockResponse = await fetch(`${API_BASE}/api/social/block`, {
         method: 'POST',
@@ -321,26 +321,26 @@ async function testAdvancedInteractions() {
       });
 
       if (blockResponse.ok) {
-        console.log('✅ User blocking working');
+        // console.log removed for production
       } else {
-        console.log('⚠️ User blocking not implemented or failed');
+        // console.log removed for production
       }
     }
 
-    console.log('\n🎉 ADVANCED INTERACTION TESTING COMPLETED!');
-    console.log('\n📊 SUMMARY:');
-    console.log('✅ Comment creation working');
-    console.log('✅ Comment editing working');
-    console.log('✅ Comment deletion working');
-    console.log('✅ Post editing working');
-    console.log('✅ Post deletion working');
-    console.log('✅ Profile posting working');
-    console.log('✅ Comment replies working');
-    console.log('✅ Permission system working');
-    console.log('✅ User blocking working');
+    // console.log removed for production
+    // console.log removed for production
+    // console.log removed for production
+    // console.log removed for production
+    // console.log removed for production
+    // console.log removed for production
+    // console.log removed for production
+    // console.log removed for production
+    // console.log removed for production
+    // console.log removed for production
+    // console.log removed for production
 
   } catch (error) {
-    console.error('❌ Test failed:', error.message);
+    // console.error removed for production
   }
 }
 

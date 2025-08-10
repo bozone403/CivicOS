@@ -59,7 +59,7 @@ export async function createCustomer(email, name) {
         return customer;
     }
     catch (error) {
-        console.error('Error creating Stripe customer:', error);
+        // console.error removed for production
         throw error;
     }
 }
@@ -79,7 +79,7 @@ export async function createSubscription(customerId, priceId) {
         return subscription;
     }
     catch (error) {
-        console.error('Error creating Stripe subscription:', error);
+        // console.error removed for production
         throw error;
     }
 }
@@ -108,7 +108,7 @@ export async function createCheckoutSession(customerId, priceId, successUrl, can
         return session;
     }
     catch (error) {
-        console.error('Error creating checkout session:', error);
+        // console.error removed for production
         throw error;
     }
 }
@@ -122,7 +122,7 @@ export async function getSubscription(subscriptionId) {
         return subscription;
     }
     catch (error) {
-        console.error('Error retrieving subscription:', error);
+        // console.error removed for production
         throw error;
     }
 }
@@ -136,7 +136,7 @@ export async function cancelSubscription(subscriptionId) {
         return subscription;
     }
     catch (error) {
-        console.error('Error canceling subscription:', error);
+        // console.error removed for production
         throw error;
     }
 }
@@ -158,7 +158,7 @@ export async function updateSubscription(subscriptionId, newPriceId) {
         return updatedSubscription;
     }
     catch (error) {
-        console.error('Error updating subscription:', error);
+        // console.error removed for production
         throw error;
     }
 }
@@ -178,7 +178,7 @@ export async function createPaymentIntent(amount, currency = 'cad') {
         return paymentIntent;
     }
     catch (error) {
-        console.error('Error creating payment intent:', error);
+        // console.error removed for production
         throw error;
     }
 }
@@ -192,7 +192,7 @@ export async function getCustomer(customerId) {
         return customer;
     }
     catch (error) {
-        console.error('Error retrieving customer:', error);
+        // console.error removed for production
         throw error;
     }
 }
@@ -206,7 +206,7 @@ export async function updateCustomer(customerId, data) {
         return customer;
     }
     catch (error) {
-        console.error('Error updating customer:', error);
+        // console.error removed for production
         throw error;
     }
 }

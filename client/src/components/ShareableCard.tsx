@@ -133,7 +133,7 @@ export function ShareableCard({
           }
       }
     } catch (error) {
-      console.error('Share error:', error);
+      // console.error removed for production
       toast({
         title: "Share failed",
         description: "Failed to share. Please try again.",

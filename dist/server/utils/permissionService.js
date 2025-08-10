@@ -58,7 +58,7 @@ export class PermissionService {
             return false;
         }
         catch (error) {
-            console.error('Permission check error:', error);
+            // console.error removed for production
             return false;
         }
     }
@@ -92,7 +92,7 @@ export class PermissionService {
             };
         }
         catch (error) {
-            console.error('Get user permissions error:', error);
+            // console.error removed for production
             return {
                 userId,
                 membershipType,
@@ -114,7 +114,7 @@ export class PermissionService {
             return perms;
         }
         catch (error) {
-            console.error('Get all permissions error:', error);
+            // console.error removed for production
             return [];
         }
     }
@@ -131,7 +131,7 @@ export class PermissionService {
             return perms;
         }
         catch (error) {
-            console.error('Get permissions by category error:', error);
+            // console.error removed for production
             return [];
         }
     }
@@ -147,7 +147,7 @@ export class PermissionService {
                 .where(eq(permissions.name, permissionName))
                 .limit(1);
             if (perm.length === 0) {
-                console.error(`Permission '${permissionName}' not found`);
+                // console.error removed for production
                 return false;
             }
             await db.insert(userPermissions).values({
@@ -162,7 +162,7 @@ export class PermissionService {
             return true;
         }
         catch (error) {
-            console.error('Grant permission error:', error);
+            // console.error removed for production
             return false;
         }
     }
@@ -178,7 +178,7 @@ export class PermissionService {
             return true;
         }
         catch (error) {
-            console.error('Revoke permission error:', error);
+            // console.error removed for production
             return false;
         }
     }

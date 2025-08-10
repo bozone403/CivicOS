@@ -46,10 +46,10 @@ async function testEndpoint(endpoint, method = 'GET', headers = {}, body = null)
 }
 
 async function runCivicSocialTests() {
-  console.log('🔍 Testing CivicSocial Functionality\n');
+  // console.log removed for production
   
   // Test public endpoints that should work without auth
-  console.log('📋 Testing Public CivicSocial Endpoints:');
+  // console.log removed for production
   
   const publicEndpoints = [
     '/api/users/search?q=test&limit=5',
@@ -58,22 +58,22 @@ async function runCivicSocialTests() {
   ];
   
   for (const endpoint of publicEndpoints) {
-    console.log(`\nTesting ${endpoint}...`);
+    // console.log removed for production
     const result = await testEndpoint(endpoint);
     if (result.success) {
-      console.log(`✅ ${endpoint} - WORKING`);
+      // console.log removed for production
     } else if (result.status === 401) {
-      console.log(`✅ ${endpoint} - CORRECTLY REQUIRES AUTH`);
+      // console.log removed for production
     } else if (result.status === 404) {
       console.log(`✅ ${endpoint} - CORRECTLY RETURNS 404 (no test user)`);
     } else {
-      console.log(`❌ ${endpoint} - FAILED`);
-      console.log(`   Status: ${result.status}, Error: ${result.error}`);
+      // console.log removed for production
+      // console.log removed for production
     }
   }
   
   // Test authenticated endpoints (should return auth errors)
-  console.log('\n📋 Testing Authenticated CivicSocial Endpoints:');
+  // console.log removed for production
   
   const authEndpoints = [
     '/api/social/feed',
@@ -87,23 +87,23 @@ async function runCivicSocialTests() {
   ];
   
   for (const endpoint of authEndpoints) {
-    console.log(`\nTesting ${endpoint}...`);
+    // console.log removed for production
     const result = await testEndpoint(endpoint);
     if (result.status === 401) {
-      console.log(`✅ ${endpoint} - CORRECTLY REQUIRES AUTH`);
+      // console.log removed for production
     } else if (result.success) {
-      console.log(`✅ ${endpoint} - WORKING`);
+      // console.log removed for production
     } else {
-      console.log(`❌ ${endpoint} - UNEXPECTED ERROR`);
-      console.log(`   Status: ${result.status}, Error: ${result.error}`);
+      // console.log removed for production
+      // console.log removed for production
     }
   }
   
   // Test specific CivicSocial features
-  console.log('\n📋 Testing CivicSocial Features:');
+  // console.log removed for production
   
   // Test user registration (to get a valid token)
-  console.log('\nTesting user registration...');
+  // console.log removed for production
   const registerResult = await testEndpoint('/api/auth/register', 'POST', {}, {
     email: `test${Date.now()}@civicos.com`,
     password: 'testpass123',
@@ -113,11 +113,11 @@ async function runCivicSocialTests() {
   });
   
   if (registerResult.success) {
-    console.log('✅ User registration - WORKING');
+    // console.log removed for production
     const token = registerResult.data.token;
     
     // Test authenticated endpoints with valid token
-    console.log('\nTesting authenticated endpoints with valid token...');
+    // console.log removed for production
     
     const authHeaders = { 'Authorization': `Bearer ${token}` };
     
@@ -130,24 +130,24 @@ async function runCivicSocialTests() {
     ];
     
     for (const endpoint of authTests) {
-      console.log(`\nTesting ${endpoint} with token...`);
+      // console.log removed for production
       const result = await testEndpoint(endpoint, 'GET', authHeaders);
       if (result.success) {
-        console.log(`✅ ${endpoint} - WORKING WITH AUTH`);
+        // console.log removed for production
       } else {
-        console.log(`❌ ${endpoint} - FAILED WITH AUTH`);
-        console.log(`   Error: ${result.error}`);
+        // console.log removed for production
+        // console.log removed for production
       }
     }
   } else {
-    console.log('❌ User registration - FAILED');
-    console.log(`   Error: ${registerResult.error}`);
+    // console.log removed for production
+    // console.log removed for production
   }
   
-  console.log('\n🎯 CivicSocial Test Summary:');
-  console.log('- Public endpoints should work or return appropriate errors');
-  console.log('- Authenticated endpoints should require valid tokens');
-  console.log('- User registration should work to create test accounts');
+  // console.log removed for production
+  // console.log removed for production
+  // console.log removed for production
+  // console.log removed for production
 }
 
 runCivicSocialTests().catch(console.error); 

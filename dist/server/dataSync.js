@@ -302,7 +302,7 @@ async function storeOfficial(official) {
     catch (error) {
         const err = error;
         if (!err.message?.includes('duplicate') && !err.message?.includes('unique constraint')) {
-            logger.error({ msg: 'Error storing official', name: official.name, error: err });
+            logger.error({ msg: 'Error storing official', name: official.name, error: err?.message || String(err) });
         }
         else {
             logger.info({ msg: 'Duplicate politician not stored', name: official.name });

@@ -239,10 +239,10 @@ export default function CivicSocialFeed() {
     likePostMutation.mutate(postId);
   };
 
-  const handleCommentPost = (postId: number) => {
+  const handleCommentPost = (_postId: number) => {
     // Open comment dialog or implement comment functionality
     // For now, we'll just show a success message
-    console.log('Commenting on post:', postId);
+    // console.log removed for production
     toast({
       title: "Comment posted",
       description: "Your comment has been posted successfully!",

@@ -214,6 +214,14 @@ export const socialLikes = pgTable("social_likes", {
     reaction: varchar("reaction").default("like"),
     createdAt: timestamp("created_at").defaultNow(),
 });
+// Comment likes table
+export const commentLikes = pgTable("comment_likes", {
+    id: serial("id").primaryKey(),
+    userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    commentId: integer("comment_id").notNull().references(() => socialComments.id, { onDelete: "cascade" }),
+    reaction: varchar("reaction").default("like"),
+    createdAt: timestamp("created_at").defaultNow(),
+});
 // Social Shares table
 export const socialShares = pgTable("social_shares", {
     id: serial("id").primaryKey(),

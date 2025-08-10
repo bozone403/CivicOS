@@ -1,10 +1,10 @@
 const API_BASE = 'https://civicos.onrender.com';
 
 async function comprehensiveProductionAudit() {
-  console.log('🔍 COMPREHENSIVE PRODUCTION AUDIT - TESTING EVERY ENDPOINT\n');
+  // console.log removed for production
   
   // Step 1: Setup authentication
-  console.log('📋 Step 1: Setting up authentication...');
+  // console.log removed for production
   
   // Try to register a new user
   const timestamp = Date.now();
@@ -26,10 +26,10 @@ async function comprehensiveProductionAudit() {
   if (registerResult.ok) {
     const userData = await registerResult.json();
     token = userData.token;
-    console.log('✅ Registration successful');
+    // console.log removed for production
   } else {
     // Try to login with existing user
-    console.log('📋 Trying to login with existing user...');
+    // console.log removed for production
     const loginResult = await fetch(`${API_BASE}/api/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -42,9 +42,9 @@ async function comprehensiveProductionAudit() {
     if (loginResult.ok) {
       const loginData = await loginResult.json();
       token = loginData.token;
-      console.log('✅ Login successful');
+      // console.log removed for production
     } else {
-      console.log('❌ Authentication failed');
+      // console.log removed for production
       return;
     }
   }
@@ -55,15 +55,15 @@ async function comprehensiveProductionAudit() {
   };
   
   // Step 2: Test ALL endpoints systematically
-  console.log('\n📋 Step 2: Testing ALL endpoints across the platform...\n');
+  // console.log removed for production
   
   const testResults = {};
   
   // ===== AUTHENTICATION ENDPOINTS =====
-  console.log('🔐 AUTHENTICATION ENDPOINTS:');
+  // console.log removed for production
   
   // Test login
-  console.log('🔍 Testing Login...');
+  // console.log removed for production
   try {
     const response = await fetch(`${API_BASE}/api/auth/login`, {
       method: 'POST',
@@ -76,55 +76,55 @@ async function comprehensiveProductionAudit() {
     const data = await response.json();
     if (response.ok) {
       testResults['Login'] = { status: '✅ Working', token: !!data.token };
-      console.log(`✅ Login: ${data.token ? 'Token received' : 'No token'}`);
+      // console.log removed for production
     } else {
       testResults['Login'] = { status: '❌ Failed', error: data.error };
-      console.log(`❌ Login: ${data.error}`);
+      // console.log removed for production
     }
   } catch (error) {
     testResults['Login'] = { status: '❌ Error', error: error.message };
-    console.log(`❌ Login: ${error.message}`);
+    // console.log removed for production
   }
   
   // Test user profile
-  console.log('🔍 Testing User Profile...');
+  // console.log removed for production
   try {
     const response = await fetch(`${API_BASE}/api/auth/user`, { headers });
     const data = await response.json();
     if (response.ok) {
       testResults['User Profile'] = { status: '✅ Working', user: data.user?.id };
-      console.log(`✅ User Profile: User ID ${data.user?.id}`);
+      // console.log removed for production
     } else {
       testResults['User Profile'] = { status: '❌ Failed', error: data.error };
-      console.log(`❌ User Profile: ${data.error}`);
+      // console.log removed for production
     }
   } catch (error) {
     testResults['User Profile'] = { status: '❌ Error', error: error.message };
-    console.log(`❌ User Profile: ${error.message}`);
+    // console.log removed for production
   }
   
   // ===== SOCIAL ENDPOINTS =====
-  console.log('\n📱 SOCIAL ENDPOINTS:');
+  // console.log removed for production
   
   // Test social feed
-  console.log('🔍 Testing Social Feed...');
+  // console.log removed for production
   try {
     const response = await fetch(`${API_BASE}/api/social/feed`, { headers });
     const data = await response.json();
     if (response.ok) {
       testResults['Social Feed'] = { status: '✅ Working', posts: data.feed?.length || 0 };
-      console.log(`✅ Social Feed: ${data.feed?.length || 0} posts`);
+      // console.log removed for production
     } else {
       testResults['Social Feed'] = { status: '❌ Failed', error: data.error };
-      console.log(`❌ Social Feed: ${data.error}`);
+      // console.log removed for production
     }
   } catch (error) {
     testResults['Social Feed'] = { status: '❌ Error', error: error.message };
-    console.log(`❌ Social Feed: ${error.message}`);
+    // console.log removed for production
   }
   
   // Test create post
-  console.log('🔍 Testing Create Post...');
+  // console.log removed for production
   try {
     const response = await fetch(`${API_BASE}/api/social/posts`, {
       method: 'POST',
@@ -138,19 +138,19 @@ async function comprehensiveProductionAudit() {
     const data = await response.json();
     if (response.ok) {
       testResults['Create Post'] = { status: '✅ Working', postId: data.post?.id };
-      console.log(`✅ Create Post: Post ID ${data.post?.id}`);
+      // console.log removed for production
     } else {
       testResults['Create Post'] = { status: '❌ Failed', error: data.error };
-      console.log(`❌ Create Post: ${data.error}`);
+      // console.log removed for production
     }
   } catch (error) {
     testResults['Create Post'] = { status: '❌ Error', error: error.message };
-    console.log(`❌ Create Post: ${error.message}`);
+    // console.log removed for production
   }
   
   // Test like post
   if (testResults['Create Post']?.postId) {
-    console.log('🔍 Testing Like Post...');
+    // console.log removed for production
     try {
       const response = await fetch(`${API_BASE}/api/social/posts/${testResults['Create Post'].postId}/like`, {
         method: 'POST',
@@ -160,20 +160,20 @@ async function comprehensiveProductionAudit() {
       const data = await response.json();
       if (response.ok) {
         testResults['Like Post'] = { status: '✅ Working', liked: data.liked };
-        console.log(`✅ Like Post: ${data.liked ? 'Liked' : 'Unliked'}`);
+        // console.log removed for production
       } else {
         testResults['Like Post'] = { status: '❌ Failed', error: data.error };
-        console.log(`❌ Like Post: ${data.error}`);
+        // console.log removed for production
       }
     } catch (error) {
       testResults['Like Post'] = { status: '❌ Error', error: error.message };
-      console.log(`❌ Like Post: ${error.message}`);
+      // console.log removed for production
     }
   }
   
   // Test comment on post
   if (testResults['Create Post']?.postId) {
-    console.log('🔍 Testing Comment on Post...');
+    // console.log removed for production
     try {
       const response = await fetch(`${API_BASE}/api/social/posts/${testResults['Create Post'].postId}/comment`, {
         method: 'POST',
@@ -183,456 +183,456 @@ async function comprehensiveProductionAudit() {
       const data = await response.json();
       if (response.ok) {
         testResults['Comment on Post'] = { status: '✅ Working', commentId: data.comment?.id };
-        console.log(`✅ Comment on Post: Comment ID ${data.comment?.id}`);
+        // console.log removed for production
       } else {
         testResults['Comment on Post'] = { status: '❌ Failed', error: data.error };
-        console.log(`❌ Comment on Post: ${data.error}`);
+        // console.log removed for production
       }
     } catch (error) {
       testResults['Comment on Post'] = { status: '❌ Error', error: error.message };
-      console.log(`❌ Comment on Post: ${error.message}`);
+      // console.log removed for production
     }
   }
   
   // Test friends list
-  console.log('🔍 Testing Friends List...');
+  // console.log removed for production
   try {
     const response = await fetch(`${API_BASE}/api/social/friends`, { headers });
     const data = await response.json();
     if (response.ok) {
       testResults['Friends List'] = { status: '✅ Working', count: data.friends?.length || 0 };
-      console.log(`✅ Friends List: ${data.friends?.length || 0} friends`);
+      // console.log removed for production
     } else {
       testResults['Friends List'] = { status: '❌ Failed', error: data.error };
-      console.log(`❌ Friends List: ${data.error}`);
+      // console.log removed for production
     }
   } catch (error) {
     testResults['Friends List'] = { status: '❌ Error', error: error.message };
-    console.log(`❌ Friends List: ${error.message}`);
+    // console.log removed for production
   }
   
   // Test user search
-  console.log('🔍 Testing User Search...');
+  // console.log removed for production
   try {
     const response = await fetch(`${API_BASE}/api/social/users/search?q=test`, { headers });
     const data = await response.json();
     if (response.ok) {
       testResults['User Search'] = { status: '✅ Working', count: data.users?.length || 0 };
-      console.log(`✅ User Search: ${data.users?.length || 0} users found`);
+      // console.log removed for production
     } else {
       testResults['User Search'] = { status: '❌ Failed', error: data.error };
-      console.log(`❌ User Search: ${data.error}`);
+      // console.log removed for production
     }
   } catch (error) {
     testResults['User Search'] = { status: '❌ Error', error: error.message };
-    console.log(`❌ User Search: ${error.message}`);
+    // console.log removed for production
   }
   
   // Test user stats
-  console.log('🔍 Testing User Stats...');
+  // console.log removed for production
   try {
     const response = await fetch(`${API_BASE}/api/social/stats`, { headers });
     const data = await response.json();
     if (response.ok) {
       testResults['User Stats'] = { status: '✅ Working', stats: data.stats };
-      console.log(`✅ User Stats: Posts ${data.stats?.postsCount}, Friends ${data.stats?.friendsCount}`);
+      // console.log removed for production
     } else {
       testResults['User Stats'] = { status: '❌ Failed', error: data.error };
-      console.log(`❌ User Stats: ${data.error}`);
+      // console.log removed for production
     }
   } catch (error) {
     testResults['User Stats'] = { status: '❌ Error', error: error.message };
-    console.log(`❌ User Stats: ${error.message}`);
+    // console.log removed for production
   }
   
   // ===== POLITICAL ENDPOINTS =====
-  console.log('\n🏛️ POLITICAL ENDPOINTS:');
+  // console.log removed for production
   
   // Test politicians
-  console.log('🔍 Testing Politicians...');
+  // console.log removed for production
   try {
     const response = await fetch(`${API_BASE}/api/politicians`, { headers });
     const data = await response.json();
     if (response.ok) {
       testResults['Politicians'] = { status: '✅ Working', count: data.politicians?.length || 0 };
-      console.log(`✅ Politicians: ${data.politicians?.length || 0} politicians`);
+      // console.log removed for production
     } else {
       testResults['Politicians'] = { status: '❌ Failed', error: data.error };
-      console.log(`❌ Politicians: ${data.error}`);
+      // console.log removed for production
     }
   } catch (error) {
     testResults['Politicians'] = { status: '❌ Error', error: error.message };
-    console.log(`❌ Politicians: ${error.message}`);
+    // console.log removed for production
   }
   
   // Test bills
-  console.log('🔍 Testing Bills...');
+  // console.log removed for production
   try {
     const response = await fetch(`${API_BASE}/api/bills`, { headers });
     const data = await response.json();
     if (response.ok) {
       testResults['Bills'] = { status: '✅ Working', count: data.bills?.length || 0 };
-      console.log(`✅ Bills: ${data.bills?.length || 0} bills`);
+      // console.log removed for production
     } else {
       testResults['Bills'] = { status: '❌ Failed', error: data.error };
-      console.log(`❌ Bills: ${data.error}`);
+      // console.log removed for production
     }
   } catch (error) {
     testResults['Bills'] = { status: '❌ Error', error: error.message };
-    console.log(`❌ Bills: ${error.message}`);
+    // console.log removed for production
   }
   
   // Test voting
-  console.log('🔍 Testing Voting...');
+  // console.log removed for production
   try {
     const response = await fetch(`${API_BASE}/api/voting`, { headers });
     const data = await response.json();
     if (response.ok) {
       testResults['Voting'] = { status: '✅ Working', data: data };
-      console.log(`✅ Voting: System accessible`);
+      // console.log removed for production
     } else {
       testResults['Voting'] = { status: '❌ Failed', error: data.error };
-      console.log(`❌ Voting: ${data.error}`);
+      // console.log removed for production
     }
   } catch (error) {
     testResults['Voting'] = { status: '❌ Error', error: error.message };
-    console.log(`❌ Voting: ${error.message}`);
+    // console.log removed for production
   }
   
   // ===== NEWS ENDPOINTS =====
-  console.log('\n📰 NEWS ENDPOINTS:');
+  // console.log removed for production
   
   // Test news
-  console.log('🔍 Testing News...');
+  // console.log removed for production
   try {
     const response = await fetch(`${API_BASE}/api/news`, { headers });
     const data = await response.json();
     if (response.ok) {
       testResults['News'] = { status: '✅ Working', count: data.news?.length || 0 };
-      console.log(`✅ News: ${data.news?.length || 0} articles`);
+      // console.log removed for production
     } else {
       testResults['News'] = { status: '❌ Failed', error: data.error };
-      console.log(`❌ News: ${data.error}`);
+      // console.log removed for production
     }
   } catch (error) {
     testResults['News'] = { status: '❌ Error', error: error.message };
-    console.log(`❌ News: ${error.message}`);
+    // console.log removed for production
   }
   
   // ===== ANNOUNCEMENTS ENDPOINTS =====
-  console.log('\n📢 ANNOUNCEMENTS ENDPOINTS:');
+  // console.log removed for production
   
   // Test announcements
-  console.log('🔍 Testing Announcements...');
+  // console.log removed for production
   try {
     const response = await fetch(`${API_BASE}/api/announcements`, { headers });
     const data = await response.json();
     if (response.ok) {
       testResults['Announcements'] = { status: '✅ Working', count: data.announcements?.length || 0 };
-      console.log(`✅ Announcements: ${data.announcements?.length || 0} announcements`);
+      // console.log removed for production
     } else {
       testResults['Announcements'] = { status: '❌ Failed', error: data.error };
-      console.log(`❌ Announcements: ${data.error}`);
+      // console.log removed for production
     }
   } catch (error) {
     testResults['Announcements'] = { status: '❌ Error', error: error.message };
-    console.log(`❌ Announcements: ${error.message}`);
+    // console.log removed for production
   }
   
   // ===== LEGAL ENDPOINTS =====
-  console.log('\n⚖️ LEGAL ENDPOINTS:');
+  // console.log removed for production
   
   // Test legal documents
-  console.log('🔍 Testing Legal Documents...');
+  // console.log removed for production
   try {
     const response = await fetch(`${API_BASE}/api/legal/documents`, { headers });
     const data = await response.json();
     if (response.ok) {
       testResults['Legal Documents'] = { status: '✅ Working', count: data.documents?.length || 0 };
-      console.log(`✅ Legal Documents: ${data.documents?.length || 0} documents`);
+      // console.log removed for production
     } else {
       testResults['Legal Documents'] = { status: '❌ Failed', error: data.error };
-      console.log(`❌ Legal Documents: ${data.error}`);
+      // console.log removed for production
     }
   } catch (error) {
     testResults['Legal Documents'] = { status: '❌ Error', error: error.message };
-    console.log(`❌ Legal Documents: ${error.message}`);
+    // console.log removed for production
   }
   
   // ===== GOVERNMENT INTEGRITY ENDPOINTS =====
-  console.log('\n🛡️ GOVERNMENT INTEGRITY ENDPOINTS:');
+  // console.log removed for production
   
   // Test government integrity
-  console.log('🔍 Testing Government Integrity...');
+  // console.log removed for production
   try {
     const response = await fetch(`${API_BASE}/api/government/integrity`, { headers });
     const data = await response.json();
     if (response.ok) {
       testResults['Government Integrity'] = { status: '✅ Working', data: data };
-      console.log(`✅ Government Integrity: System accessible`);
+      // console.log removed for production
     } else {
       testResults['Government Integrity'] = { status: '❌ Failed', error: data.error };
-      console.log(`❌ Government Integrity: ${data.error}`);
+      // console.log removed for production
     }
   } catch (error) {
     testResults['Government Integrity'] = { status: '❌ Error', error: error.message };
-    console.log(`❌ Government Integrity: ${error.message}`);
+    // console.log removed for production
   }
   
   // ===== ENGAGEMENT ENDPOINTS =====
-  console.log('\n🤝 ENGAGEMENT ENDPOINTS:');
+  // console.log removed for production
   
   // Test petitions
-  console.log('🔍 Testing Petitions...');
+  // console.log removed for production
   try {
     const response = await fetch(`${API_BASE}/api/petitions`, { headers });
     const data = await response.json();
     if (response.ok) {
       testResults['Petitions'] = { status: '✅ Working', count: data.petitions?.length || 0 };
-      console.log(`✅ Petitions: ${data.petitions?.length || 0} petitions`);
+      // console.log removed for production
     } else {
       testResults['Petitions'] = { status: '❌ Failed', error: data.error };
-      console.log(`❌ Petitions: ${data.error}`);
+      // console.log removed for production
     }
   } catch (error) {
     testResults['Petitions'] = { status: '❌ Error', error: error.message };
-    console.log(`❌ Petitions: ${error.message}`);
+    // console.log removed for production
   }
   
   // Test events
-  console.log('🔍 Testing Events...');
+  // console.log removed for production
   try {
     const response = await fetch(`${API_BASE}/api/events`, { headers });
     const data = await response.json();
     if (response.ok) {
       testResults['Events'] = { status: '✅ Working', count: data.events?.length || 0 };
-      console.log(`✅ Events: ${data.events?.length || 0} events`);
+      // console.log removed for production
     } else {
       testResults['Events'] = { status: '❌ Failed', error: data.error };
-      console.log(`❌ Events: ${data.error}`);
+      // console.log removed for production
     }
   } catch (error) {
     testResults['Events'] = { status: '❌ Error', error: error.message };
-    console.log(`❌ Events: ${error.message}`);
+    // console.log removed for production
   }
   
   // ===== SYSTEM ENDPOINTS =====
-  console.log('\n⚙️ SYSTEM ENDPOINTS:');
+  // console.log removed for production
   
   // Test system health
-  console.log('🔍 Testing System Health...');
+  // console.log removed for production
   try {
     const response = await fetch(`${API_BASE}/api/system/health`, { headers });
     const data = await response.json();
     if (response.ok) {
       testResults['System Health'] = { status: '✅ Working', data: data };
-      console.log(`✅ System Health: System accessible`);
+      // console.log removed for production
     } else {
       testResults['System Health'] = { status: '❌ Failed', error: data.error };
-      console.log(`❌ System Health: ${data.error}`);
+      // console.log removed for production
     }
   } catch (error) {
     testResults['System Health'] = { status: '❌ Error', error: error.message };
-    console.log(`❌ System Health: ${error.message}`);
+    // console.log removed for production
   }
   
   // Test analytics
-  console.log('🔍 Testing Analytics...');
+  // console.log removed for production
   try {
     const response = await fetch(`${API_BASE}/api/analytics`, { headers });
     const data = await response.json();
     if (response.ok) {
       testResults['Analytics'] = { status: '✅ Working', data: data };
-      console.log(`✅ Analytics: System accessible`);
+      // console.log removed for production
     } else {
       testResults['Analytics'] = { status: '❌ Failed', error: data.error };
-      console.log(`❌ Analytics: ${data.error}`);
+      // console.log removed for production
     }
   } catch (error) {
     testResults['Analytics'] = { status: '❌ Error', error: error.message };
-    console.log(`❌ Analytics: ${error.message}`);
+    // console.log removed for production
   }
   
   // ===== IDENTITY ENDPOINTS =====
-  console.log('\n🆔 IDENTITY ENDPOINTS:');
+  // console.log removed for production
   
   // Test identity verification
-  console.log('🔍 Testing Identity Verification...');
+  // console.log removed for production
   try {
     const response = await fetch(`${API_BASE}/api/identity/verify`, { headers });
     const data = await response.json();
     if (response.ok) {
       testResults['Identity Verification'] = { status: '✅ Working', data: data };
-      console.log(`✅ Identity Verification: System accessible`);
+      // console.log removed for production
     } else {
       testResults['Identity Verification'] = { status: '❌ Failed', error: data.error };
-      console.log(`❌ Identity Verification: ${data.error}`);
+      // console.log removed for production
     }
   } catch (error) {
     testResults['Identity Verification'] = { status: '❌ Error', error: error.message };
-    console.log(`❌ Identity Verification: ${error.message}`);
+    // console.log removed for production
   }
   
   // ===== PERMISSIONS ENDPOINTS =====
-  console.log('\n🔐 PERMISSIONS ENDPOINTS:');
+  // console.log removed for production
   
   // Test permissions
-  console.log('🔍 Testing Permissions...');
+  // console.log removed for production
   try {
     const response = await fetch(`${API_BASE}/api/permissions`, { headers });
     const data = await response.json();
     if (response.ok) {
       testResults['Permissions'] = { status: '✅ Working', data: data };
-      console.log(`✅ Permissions: System accessible`);
+      // console.log removed for production
     } else {
       testResults['Permissions'] = { status: '❌ Failed', error: data.error };
-      console.log(`❌ Permissions: ${data.error}`);
+      // console.log removed for production
     }
   } catch (error) {
     testResults['Permissions'] = { status: '❌ Error', error: error.message };
-    console.log(`❌ Permissions: ${error.message}`);
+    // console.log removed for production
   }
   
   // ===== MEMBERSHIP ENDPOINTS =====
-  console.log('\n👥 MEMBERSHIP ENDPOINTS:');
+  // console.log removed for production
   
   // Test membership
-  console.log('🔍 Testing Membership...');
+  // console.log removed for production
   try {
     const response = await fetch(`${API_BASE}/api/membership`, { headers });
     const data = await response.json();
     if (response.ok) {
       testResults['Membership'] = { status: '✅ Working', data: data };
-      console.log(`✅ Membership: System accessible`);
+      // console.log removed for production
     } else {
       testResults['Membership'] = { status: '❌ Failed', error: data.error };
-      console.log(`❌ Membership: ${data.error}`);
+      // console.log removed for production
     }
   } catch (error) {
     testResults['Membership'] = { status: '❌ Error', error: error.message };
-    console.log(`❌ Membership: ${error.message}`);
+    // console.log removed for production
   }
   
   // ===== PAYMENTS ENDPOINTS =====
-  console.log('\n💳 PAYMENTS ENDPOINTS:');
+  // console.log removed for production
   
   // Test payments
-  console.log('🔍 Testing Payments...');
+  // console.log removed for production
   try {
     const response = await fetch(`${API_BASE}/api/payments`, { headers });
     const data = await response.json();
     if (response.ok) {
       testResults['Payments'] = { status: '✅ Working', data: data };
-      console.log(`✅ Payments: System accessible`);
+      // console.log removed for production
     } else {
       testResults['Payments'] = { status: '❌ Failed', error: data.error };
-      console.log(`❌ Payments: ${data.error}`);
+      // console.log removed for production
     }
   } catch (error) {
     testResults['Payments'] = { status: '❌ Error', error: error.message };
-    console.log(`❌ Payments: ${error.message}`);
+    // console.log removed for production
   }
   
   // ===== FILE UPLOAD ENDPOINTS =====
-  console.log('\n📁 FILE UPLOAD ENDPOINTS:');
+  // console.log removed for production
   
   // Test file upload
-  console.log('🔍 Testing File Upload...');
+  // console.log removed for production
   try {
     const response = await fetch(`${API_BASE}/api/upload`, { headers });
     const data = await response.json();
     if (response.ok) {
       testResults['File Upload'] = { status: '✅ Working', data: data };
-      console.log(`✅ File Upload: System accessible`);
+      // console.log removed for production
     } else {
       testResults['File Upload'] = { status: '❌ Failed', error: data.error };
-      console.log(`❌ File Upload: ${data.error}`);
+      // console.log removed for production
     }
   } catch (error) {
     testResults['File Upload'] = { status: '❌ Error', error: error.message };
-    console.log(`❌ File Upload: ${error.message}`);
+    // console.log removed for production
   }
   
   // ===== WEBHOOKS ENDPOINTS =====
-  console.log('\n🔗 WEBHOOKS ENDPOINTS:');
+  // console.log removed for production
   
   // Test webhooks
-  console.log('🔍 Testing Webhooks...');
+  // console.log removed for production
   try {
     const response = await fetch(`${API_BASE}/api/webhooks`, { headers });
     const data = await response.json();
     if (response.ok) {
       testResults['Webhooks'] = { status: '✅ Working', data: data };
-      console.log(`✅ Webhooks: System accessible`);
+      // console.log removed for production
     } else {
       testResults['Webhooks'] = { status: '❌ Failed', error: data.error };
-      console.log(`❌ Webhooks: ${data.error}`);
+      // console.log removed for production
     }
   } catch (error) {
     testResults['Webhooks'] = { status: '❌ Error', error: error.message };
-    console.log(`❌ Webhooks: ${error.message}`);
+    // console.log removed for production
   }
   
   // ===== DEVELOPMENT ENDPOINTS =====
-  console.log('\n🛠️ DEVELOPMENT ENDPOINTS:');
+  // console.log removed for production
   
   // Test development tools
-  console.log('🔍 Testing Development Tools...');
+  // console.log removed for production
   try {
     const response = await fetch(`${API_BASE}/api/dev/tools`, { headers });
     const data = await response.json();
     if (response.ok) {
       testResults['Development Tools'] = { status: '✅ Working', data: data };
-      console.log(`✅ Development Tools: System accessible`);
+      // console.log removed for production
     } else {
       testResults['Development Tools'] = { status: '❌ Failed', error: data.error };
-      console.log(`❌ Development Tools: ${data.error}`);
+      // console.log removed for production
     }
   } catch (error) {
     testResults['Development Tools'] = { status: '❌ Error', error: error.message };
-    console.log(`❌ Development Tools: ${error.message}`);
+    // console.log removed for production
   }
   
   // Step 3: Generate comprehensive report
-  console.log('\n📊 COMPREHENSIVE PRODUCTION AUDIT RESULTS:');
-  console.log('==============================================');
+  // console.log removed for production
+  // console.log removed for production
   
   const workingEndpoints = Object.keys(testResults).filter(key => testResults[key].status === '✅ Working');
   const brokenEndpoints = Object.keys(testResults).filter(key => testResults[key].status.startsWith('❌'));
   
-  console.log(`✅ Working Endpoints: ${workingEndpoints.length}`);
-  console.log(`❌ Broken Endpoints: ${brokenEndpoints.length}`);
+  // console.log removed for production
+  // console.log removed for production
   console.log(`📊 Total Endpoints Tested: ${Object.keys(testResults).length}`);
   
-  console.log('\n🎯 WORKING ENDPOINTS:');
+  // console.log removed for production
   workingEndpoints.forEach(endpoint => {
-    console.log(`✅ ${endpoint}`);
+    // console.log removed for production
   });
   
-  console.log('\n❌ BROKEN ENDPOINTS:');
+  // console.log removed for production
   brokenEndpoints.forEach(endpoint => {
-    console.log(`❌ ${endpoint}: ${testResults[endpoint].error}`);
+    // console.log removed for production
   });
   
-  console.log('\n📈 PRODUCTION READINESS ASSESSMENT:');
-  console.log('=====================================');
+  // console.log removed for production
+  // console.log removed for production
   
   const readinessScore = Math.round((workingEndpoints.length / Object.keys(testResults).length) * 100);
   
-  console.log(`Overall Readiness Score: ${readinessScore}%`);
+  // console.log removed for production
   
   if (readinessScore >= 90) {
-    console.log('🟢 EXCELLENT - Platform is production ready');
+    // console.log removed for production
   } else if (readinessScore >= 70) {
-    console.log('🟡 GOOD - Platform needs minor fixes');
+    // console.log removed for production
   } else if (readinessScore >= 50) {
-    console.log('🟠 FAIR - Platform needs significant work');
+    // console.log removed for production
   } else {
-    console.log('🔴 POOR - Platform needs major fixes');
+    // console.log removed for production
   }
   
-  console.log('\n🎯 CRITICAL AREAS TO FIX:');
-  console.log('==========================');
+  // console.log removed for production
+  // console.log removed for production
   
   // Identify critical broken endpoints
   const criticalEndpoints = [
@@ -645,12 +645,12 @@ async function comprehensiveProductionAudit() {
   );
   
   if (criticalBroken.length > 0) {
-    console.log('🔴 CRITICAL ENDPOINTS BROKEN:');
+    // console.log removed for production
     criticalBroken.forEach(endpoint => {
-      console.log(`❌ ${endpoint}: ${testResults[endpoint].error}`);
+      // console.log removed for production
     });
   } else {
-    console.log('✅ All critical endpoints are working');
+    // console.log removed for production
   }
   
   return testResults;

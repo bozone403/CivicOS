@@ -146,7 +146,7 @@ export function UnifiedSocialPost({
 
       createPostMutation.mutate(postData);
     } catch (error) {
-      console.error('Post creation error:', error);
+      // console.error removed for production
       toast({
         title: "Post failed",
         description: "Failed to create post. Please try again.",

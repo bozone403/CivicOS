@@ -17,3 +17,36 @@ export async function ingestLobbyistsCurated(sample) {
     }
     return upserts;
 }
+/**
+ * Ingest lobbyist organizations from CKAN/Open Government datasets when available.
+ * Uses a simple package search and maps to `lobbyist_orgs` table.
+ * Env overrides:
+ * - CKAN_LOBBYISTS_QUERY (default: 'lobbyist registry')
+ */
+export async function ingestLobbyistsFromCKAN(query) {
+    const q = query || process.env.CKAN_LOBBYISTS_QUERY || 'lobbyist registry';
+    const url = `https://open.canada.ca/data/api/action/package_search?q=${encodeURIComponent(q)}&rows=50`;
+    const res = await fetch(url);
+    if (!res.ok)
+        return 0;
+    const data = (await res.json().catch(() => null));
+    const results = data?.result?.results || [];
+    let upserts = 0;
+    for (const pkg of results) {
+        const name = String(pkg.title || pkg.name || '').trim();
+        if (!name)
+            continue;
+        const existing = await db.select().from(lobbyistOrgs).where(eq(lobbyistOrgs.name, name)).limit(1);
+        if (existing.length === 0) {
+            const clients = Array.isArray(pkg?.organization?.title) ? pkg.organization.title : [];
+            await db.insert(lobbyistOrgs).values({
+                name,
+                clients: (clients || []),
+                sectors: null,
+                lastActivity: pkg.metadata_modified ? new Date(pkg.metadata_modified) : null,
+            });
+        }
+        upserts++;
+    }
+    return upserts;
+}

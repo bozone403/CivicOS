@@ -7,14 +7,14 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 async function applyDatabaseMigration() {
-  console.log('🔧 APPLYING COMPREHENSIVE DATABASE MIGRATION\n');
+  // console.log removed for production
   
   // Read the SQL migration file
   const migrationPath = path.join(__dirname, '..', 'fix-all-production-issues.sql');
   const migrationSQL = fs.readFileSync(migrationPath, 'utf8');
   
   try {
-    console.log('✅ Connected to database successfully\n');
+    // console.log removed for production
     
     // Split the SQL into individual statements
     const statements = migrationSQL
@@ -22,7 +22,7 @@ async function applyDatabaseMigration() {
       .map(stmt => stmt.trim())
       .filter(stmt => stmt.length > 0 && !stmt.startsWith('--'));
     
-    console.log(`📋 Executing ${statements.length} SQL statements...\n`);
+    // console.log removed for production
     
     let successCount = 0;
     let errorCount = 0;
@@ -32,28 +32,28 @@ async function applyDatabaseMigration() {
       try {
         await pool.query(statement);
         successCount++;
-        console.log(`✅ Statement ${i + 1}/${statements.length} executed successfully`);
+        // console.log removed for production
       } catch (error: any) {
         errorCount++;
-        console.log(`❌ Statement ${i + 1}/${statements.length} failed: ${error.message}`);
+        // console.log removed for production
       }
     }
     
-    console.log(`\n📊 MIGRATION RESULTS:`);
-    console.log(`✅ Successful statements: ${successCount}`);
-    console.log(`❌ Failed statements: ${errorCount}`);
-    console.log(`📊 Total statements: ${statements.length}`);
+    // console.log removed for production
+    // console.log removed for production
+    // console.log removed for production
+    // console.log removed for production
     
     if (errorCount === 0) {
-      console.log('\n🎉 DATABASE MIGRATION COMPLETED SUCCESSFULLY');
+      // console.log removed for production
     } else {
-      console.log('\n⚠️ DATABASE MIGRATION COMPLETED WITH ERRORS');
+      // console.log removed for production
     }
     
     return { successCount, errorCount, total: statements.length };
     
   } catch (error: any) {
-    console.error('❌ Database connection failed:', error.message);
+    // console.error removed for production
     return { error: error.message };
   } finally {
     await pool.end();

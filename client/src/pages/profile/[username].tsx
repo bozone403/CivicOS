@@ -142,7 +142,7 @@ export default function PublicProfile() {
         });
       }
     } catch (error) {
-      console.error('Share error:', error);
+      // console.error removed for production
     }
   };
 

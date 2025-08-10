@@ -1,6 +1,6 @@
 import { db } from "../db.js";
-import { politicians, procurementContracts } from "../../shared/schema.js";
-import { eq, desc, count } from "drizzle-orm";
+import { procurementContracts } from "../../shared/schema.js";
+import { eq, desc, sql } from "drizzle-orm";
 import jwt from "jsonwebtoken";
 import { ResponseFormatter } from "../utils/responseFormatter.js";
 // JWT Auth middleware
@@ -59,15 +59,22 @@ export function registerProcurementRoutes(app) {
     // Get procurement statistics
     app.get('/api/procurement/stats', async (req, res) => {
         try {
-            const [totalContracts, totalValue, activeContracts] = await Promise.all([
-                db.select({ count: count() }).from(politicians),
-                db.select({ count: count() }).from(politicians),
-                db.select({ count: count() }).from(politicians)
-            ]);
+            const result = await db.execute(sql `
+        SELECT 
+          COUNT(*)::int AS total_contracts,
+          COALESCE(SUM(value)::numeric, 0) AS total_value,
+          COUNT(CASE WHEN awarded_on IS NOT NULL THEN 1 END)::int AS with_award_date,
+          COUNT(DISTINCT department) AS departments,
+          COUNT(DISTINCT supplier) AS suppliers
+        FROM procurement_contracts
+      `);
+            const agg = result?.rows?.[0] || {};
             res.json({
-                totalContracts: totalContracts[0]?.count || 0,
-                totalValue: totalValue[0]?.count || 0,
-                activeContracts: activeContracts[0]?.count || 0,
+                totalContracts: Number(agg.total_contracts ?? 0),
+                totalValue: Number(agg.total_value ?? 0),
+                withAwardDate: Number(agg.with_award_date ?? 0),
+                departments: Number(agg.departments ?? 0),
+                suppliers: Number(agg.suppliers ?? 0),
                 message: "Procurement statistics retrieved successfully"
             });
         }

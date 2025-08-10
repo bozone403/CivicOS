@@ -449,10 +449,10 @@ async function testEndpoint(endpoint, method = 'GET', headers = {}, body = null)
 }
 
 async function runDoubleAudit() {
-  console.log('🔍 COMPREHENSIVE DOUBLE AUDIT VERIFICATION\n');
+  // console.log removed for production
   
   // Get authentication token
-  console.log('📋 Step 1: Getting authentication token...');
+  // console.log removed for production
   const registerResult = await testEndpoint('/api/auth/register', 'POST', {}, {
     email: `doubleaudit${Date.now()}@civicos.com`,
     password: 'doubleauditpass123',
@@ -464,16 +464,16 @@ async function runDoubleAudit() {
   let token = null;
   if (registerResult.success) {
     token = registerResult.data.token;
-    console.log('✅ Authentication token obtained');
+    // console.log removed for production
   } else {
-    console.log('❌ Failed to get authentication token');
-    console.log(`   Error: ${registerResult.error}`);
+    // console.log removed for production
+    // console.log removed for production
   }
   
   const authHeaders = token ? { 'Authorization': `Bearer ${token}` } : {};
   
   // Test all endpoints systematically
-  console.log('\n📋 Step 2: Testing ALL Expected Endpoints...');
+  // console.log removed for production
   
   const endpointResults = [];
   const workingEndpoints = [];
@@ -587,18 +587,18 @@ async function runDoubleAudit() {
   ];
   
   for (const endpoint of criticalEndpoints) {
-    console.log(`Testing ${endpoint}...`);
+    // console.log removed for production
     const result = await testEndpoint(endpoint, 'GET', authHeaders);
     
     if (result.success) {
       workingEndpoints.push(endpoint);
-      console.log(`✅ ${endpoint}: Working`);
+      // console.log removed for production
     } else if (result.status === 404) {
       missingEndpoints.push(endpoint);
       console.log(`❌ ${endpoint}: Missing (404)`);
     } else {
       brokenEndpoints.push(endpoint);
-      console.log(`⚠️  ${endpoint}: Broken - ${result.error}`);
+      // console.log removed for production
     }
     
     endpointResults.push({
@@ -613,7 +613,7 @@ async function runDoubleAudit() {
   }
   
   // Database functionality tests
-  console.log('\n📋 Step 3: Testing Database Functionality...');
+  // console.log removed for production
   
   if (token) {
     // Test post creation
@@ -624,84 +624,84 @@ async function runDoubleAudit() {
     });
     
     if (createPostResult.success) {
-      console.log('✅ Social post creation: Working');
+      // console.log removed for production
       const postId = createPostResult.data.post.id;
       
       // Test like functionality
       const likeResult = await testEndpoint(`/api/social/posts/${postId}/like`, 'POST', authHeaders);
-      console.log(`✅ Post like functionality: ${likeResult.success ? 'Working' : 'Broken'}`);
+      // console.log removed for production
       
       // Test comment functionality
       const commentResult = await testEndpoint(`/api/social/posts/${postId}/comment`, 'POST', authHeaders, {
         content: 'Double audit test comment'
       });
-      console.log(`✅ Post comment functionality: ${commentResult.success ? 'Working' : 'Broken'}`);
+      // console.log removed for production
       
     } else {
-      console.log('❌ Social post creation: Broken');
+      // console.log removed for production
     }
   }
   
   // Summary
-  console.log('\n📊 DOUBLE AUDIT SUMMARY:');
-  console.log('=====================================');
+  // console.log removed for production
+  // console.log removed for production
   
-  console.log(`Total Critical Endpoints Tested: ${criticalEndpoints.length}`);
-  console.log(`✅ Working: ${workingEndpoints.length}`);
-  console.log(`❌ Broken: ${brokenEndpoints.length}`);
-  console.log(`🔍 Missing: ${missingEndpoints.length}`);
+  // console.log removed for production
+  // console.log removed for production
+  // console.log removed for production
+  // console.log removed for production
   
-  console.log('\n🎯 WORKING ENDPOINTS:');
-  console.log('=====================================');
+  // console.log removed for production
+  // console.log removed for production
   workingEndpoints.forEach(endpoint => {
-    console.log(`✅ ${endpoint}`);
+    // console.log removed for production
   });
   
-  console.log('\n❌ BROKEN ENDPOINTS:');
-  console.log('=====================================');
+  // console.log removed for production
+  // console.log removed for production
   brokenEndpoints.forEach(endpoint => {
     const result = endpointResults.find(r => r.endpoint === endpoint);
-    console.log(`❌ ${endpoint}: ${result?.error || 'Unknown error'}`);
+    // console.log removed for production
   });
   
-  console.log('\n🔍 MISSING ENDPOINTS:');
-  console.log('=====================================');
+  // console.log removed for production
+  // console.log removed for production
   missingEndpoints.forEach(endpoint => {
-    console.log(`🔍 ${endpoint}: Not implemented`);
+    // console.log removed for production
   });
   
-  console.log('\n📋 EXPECTED DATABASE TABLES:');
-  console.log('=====================================');
-  console.log(`Total Expected Tables: ${ALL_EXPECTED_TABLES.length}`);
-  console.log('Key tables that should exist:');
+  // console.log removed for production
+  // console.log removed for production
+  // console.log removed for production
+  // console.log removed for production
   ALL_EXPECTED_TABLES.slice(0, 20).forEach(table => {
-    console.log(`- ${table}`);
+    // console.log removed for production
   });
-  console.log('... and many more');
+  // console.log removed for production
   
-  console.log('\n🚨 CRITICAL ISSUES IDENTIFIED:');
-  console.log('=====================================');
+  // console.log removed for production
+  // console.log removed for production
   console.log('1. Missing database tables (social_likes, social_comments, etc.)');
-  console.log('2. Broken authentication endpoints');
-  console.log('3. Missing government integrity features');
-  console.log('4. Incomplete social interaction functionality');
-  console.log('5. Missing news system implementation');
-  console.log('6. Incomplete identity verification system');
-  console.log('7. Missing payment and donation systems');
-  console.log('8. Incomplete analytics and reporting');
+  // console.log removed for production
+  // console.log removed for production
+  // console.log removed for production
+  // console.log removed for production
+  // console.log removed for production
+  // console.log removed for production
+  // console.log removed for production
   
-  console.log('\n🔧 RECOMMENDED IMMEDIATE ACTIONS:');
-  console.log('=====================================');
-  console.log('1. Apply ALL database migrations to production');
-  console.log('2. Fix authentication route registration');
-  console.log('3. Implement missing social interaction tables');
-  console.log('4. Complete news system implementation');
-  console.log('5. Add missing government integrity endpoints');
-  console.log('6. Implement identity verification system');
-  console.log('7. Add payment and donation functionality');
-  console.log('8. Complete analytics and reporting system');
-  console.log('9. Add comprehensive error handling');
-  console.log('10. Implement proper logging and monitoring');
+  // console.log removed for production
+  // console.log removed for production
+  // console.log removed for production
+  // console.log removed for production
+  // console.log removed for production
+  // console.log removed for production
+  // console.log removed for production
+  // console.log removed for production
+  // console.log removed for production
+  // console.log removed for production
+  // console.log removed for production
+  // console.log removed for production
 }
 
 runDoubleAudit().catch(console.error); 

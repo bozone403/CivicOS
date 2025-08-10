@@ -65,6 +65,6 @@ const body = `export const CivicOS = {
 const out = header + body;
 const target = path.join(process.cwd(), 'client', 'src', 'lib', 'civicos-sdk.ts');
 fs.writeFileSync(target, out);
-console.log('SDK generated at', target);
+// console.log removed for production
 
 

@@ -105,8 +105,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       queryClient.setQueryData(['auth-user'], userData);
       setIsLoading(false);
     },
-    onError: (error) => {
-      console.error('Login failed:', error);
+    onError: () => {
+      // console.error removed for production
       localStorage.removeItem('civicos-jwt');
       queryClient.setQueryData(['auth-user'], null);
       setIsLoading(false);
@@ -134,8 +134,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       queryClient.setQueryData(['auth-user'], userData);
       setIsLoading(false);
     },
-    onError: (error) => {
-      console.error('Registration failed:', error);
+    onError: () => {
+      // console.error removed for production
       localStorage.removeItem('civicos-jwt');
       queryClient.setQueryData(['auth-user'], null);
       setIsLoading(false);
@@ -151,8 +151,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     onSuccess: (updatedUser) => {
       queryClient.setQueryData(['auth-user'], updatedUser);
     },
-    onError: (error) => {
-      console.error('Profile update failed:', error);
+    onError: () => {
+      // console.error removed for production
     },
   });
 
@@ -174,7 +174,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Handle user error and loading state
   useEffect(() => {
     if (userError) {
-      console.error('User authentication error:', userError);
+      // console.error removed for production
       localStorage.removeItem('civicos-jwt');
       setIsLoading(false);
     }

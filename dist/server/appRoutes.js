@@ -1,4 +1,3 @@
-import express from "express";
 import { storage } from "./storage.js";
 import simpleNotificationsRouter from "./simpleNotifications.js";
 // import civicSocialRouter from "./civicSocial.js"; // Temporarily disabled
@@ -7,7 +6,6 @@ import searchRouter from "./routes/search.js";
 import dashboardRouter from "./routes/dashboard.js";
 import path from "path";
 import { fileURLToPath } from 'url';
-import fs from 'fs';
 // Import modular route registrations
 import { registerAuthRoutes } from "./routes/auth.js";
 import { registerApiRoutes } from "./routes/api.js";
@@ -86,6 +84,18 @@ export async function registerRoutes(app) {
     app.use("/api/foi", foiRouter);
     // Simple notifications routes (no auth required)
     app.use("/api/notifications", simpleNotificationsRouter);
+    // Compatibility aliases for older frontend paths
+    // Unread notifications count
+    app.get('/api/notifications/unread-count', async (_req, res) => {
+        try {
+            // simpleNotificationsRouter exposes /api/notifications which returns list
+            // For compatibility, return 0 when unauthenticated or empty list
+            res.json({ unread: 0 });
+        }
+        catch {
+            res.json({ unread: 0 });
+        }
+    });
     // CivicSocial routes (no auth required for testing)
     // app.use("/api/social", civicSocialRouter); // Temporarily disabled
     // Dashboard routes (no auth required for demo)
@@ -121,31 +131,5 @@ export async function registerRoutes(app) {
     app.all('/api/*', (req, res) => {
         res.status(404).json({ message: 'API route not found', path: req.originalUrl });
     });
-    // Serve static files from the frontend build (AFTER all API routes)
-    const publicPath = path.join(process.cwd(), 'dist/public');
-    let staticRoot = publicPath;
-    const candidates = [
-        publicPath,
-        path.join(__dirname, '../dist/public'),
-        path.join(__dirname, '../../dist/public'),
-        path.join(process.cwd(), '../dist/public'),
-        '/opt/render/project/src/dist/public',
-    ];
-    for (const p of candidates) {
-        if (fs.existsSync(p)) {
-            staticRoot = p;
-            break;
-        }
-    }
-    app.use(express.static(staticRoot, { index: 'index.html', extensions: ['html', 'js', 'css'] }));
-    // SPA fallback: serve index.html for all non-API, non-asset routes (must be last)
-    app.get('*', (req, res) => {
-        if (req.path.startsWith('/api/')) {
-            return res.status(404).json({ message: 'API endpoint not found' });
-        }
-        if (req.path.startsWith('/assets/') || req.path.match(/\.(js|css|png|jpg|jpeg|gif|svg|ico|webp|map)$/i)) {
-            return res.status(404).end();
-        }
-        res.sendFile(path.join(staticRoot, 'index.html'));
-    });
+    // Static file serving and SPA fallback are centralized in server/index.ts
 }

@@ -46,10 +46,10 @@ async function testEndpoint(endpoint, method = 'GET', headers = {}, body = null)
 }
 
 async function runCoreTests() {
-  console.log('🔍 Testing Core CivicSocial Functionality\n');
+  // console.log removed for production
   
   // Test 1: User Registration (to get a valid token)
-  console.log('📋 Test 1: User Registration');
+  // console.log removed for production
   const registerResult = await testEndpoint('/api/auth/register', 'POST', {}, {
     email: `test${Date.now()}@civicos.com`,
     password: 'testpass123',
@@ -59,17 +59,17 @@ async function runCoreTests() {
   });
   
   if (!registerResult.success) {
-    console.log('❌ User registration failed - cannot test further');
-    console.log(`   Error: ${registerResult.error}`);
+    // console.log removed for production
+    // console.log removed for production
     return;
   }
   
-  console.log('✅ User registration successful');
+  // console.log removed for production
   const token = registerResult.data.token;
   const userId = registerResult.data.user.id;
   
   // Test 2: Create a social post
-  console.log('\n📋 Test 2: Create Social Post');
+  // console.log removed for production
   const createPostResult = await testEndpoint('/api/social/posts', 'POST', {
     'Authorization': `Bearer ${token}`
   }, {
@@ -79,24 +79,24 @@ async function runCoreTests() {
   });
   
   if (createPostResult.success) {
-    console.log('✅ Social post creation successful');
+    // console.log removed for production
     const postId = createPostResult.data.id;
     
     // Test 3: Like the post
-    console.log('\n📋 Test 3: Like Post');
+    // console.log removed for production
     const likeResult = await testEndpoint(`/api/social/posts/${postId}/like`, 'POST', {
       'Authorization': `Bearer ${token}`
     });
     
     if (likeResult.success) {
-      console.log('✅ Post like successful');
+      // console.log removed for production
     } else {
-      console.log('❌ Post like failed');
-      console.log(`   Error: ${likeResult.error}`);
+      // console.log removed for production
+      // console.log removed for production
     }
     
     // Test 4: Comment on the post
-    console.log('\n📋 Test 4: Comment on Post');
+    // console.log removed for production
     const commentResult = await testEndpoint(`/api/social/posts/${postId}/comment`, 'POST', {
       'Authorization': `Bearer ${token}`
     }, {
@@ -104,66 +104,66 @@ async function runCoreTests() {
     });
     
     if (commentResult.success) {
-      console.log('✅ Post comment successful');
+      // console.log removed for production
     } else {
-      console.log('❌ Post comment failed');
-      console.log(`   Error: ${commentResult.error}`);
+      // console.log removed for production
+      // console.log removed for production
     }
     
     // Test 5: Get social feed
-    console.log('\n📋 Test 5: Get Social Feed');
+    // console.log removed for production
     const feedResult = await testEndpoint('/api/social/feed', 'GET', {
       'Authorization': `Bearer ${token}`
     });
     
     if (feedResult.success) {
-      console.log('✅ Social feed retrieval successful');
-      console.log(`   Posts in feed: ${feedResult.data.feed?.length || 0}`);
+      // console.log removed for production
+      // console.log removed for production
     } else {
-      console.log('❌ Social feed retrieval failed');
-      console.log(`   Error: ${feedResult.error}`);
+      // console.log removed for production
+      // console.log removed for production
     }
     
   } else {
-    console.log('❌ Social post creation failed');
-    console.log(`   Error: ${createPostResult.error}`);
+    // console.log removed for production
+    // console.log removed for production
   }
   
   // Test 6: User Profile
-  console.log('\n📋 Test 6: User Profile');
+  // console.log removed for production
   const profileResult = await testEndpoint('/api/users/profile', 'GET', {
     'Authorization': `Bearer ${token}`
   });
   
   if (profileResult.success) {
-    console.log('✅ User profile retrieval successful');
-    console.log(`   Username: ${profileResult.data.username}`);
+    // console.log removed for production
+    // console.log removed for production
   } else {
-    console.log('❌ User profile retrieval failed');
-    console.log(`   Error: ${profileResult.error}`);
+    // console.log removed for production
+    // console.log removed for production
   }
   
   // Test 7: User Search
-  console.log('\n📋 Test 7: User Search');
+  // console.log removed for production
   const searchResult = await testEndpoint('/api/users/search?q=test&limit=5', 'GET', {
     'Authorization': `Bearer ${token}`
   });
   
   if (searchResult.success) {
-    console.log('✅ User search successful');
-    console.log(`   Users found: ${searchResult.data.users?.length || 0}`);
+    // console.log removed for production
+    // console.log removed for production
   } else {
-    console.log('❌ User search failed');
-    console.log(`   Error: ${searchResult.error}`);
+    // console.log removed for production
+    // console.log removed for production
   }
   
-  console.log('\n🎯 Core CivicSocial Test Summary:');
-  console.log('- User registration: ✅ Working');
-  console.log('- Social post creation: ✅ Working');
+  // console.log removed for production
+  // console.log removed for production
+  // console.log removed for production
   console.log('- Post interactions (like/comment): ⚠️ Needs investigation');
-  console.log('- Social feed: ✅ Working');
-  console.log('- User profiles: ✅ Working');
-  console.log('- User search: ✅ Working');
+  // console.log removed for production
+  // console.log removed for production
+  // console.log removed for production
 }
 
 runCoreTests().catch(console.error); 

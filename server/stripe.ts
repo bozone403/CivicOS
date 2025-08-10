@@ -71,7 +71,7 @@ export async function createCustomer(email: string, name: string) {
     });
     return customer;
   } catch (error) {
-    console.error('Error creating Stripe customer:', error);
+    // console.error removed for production
     throw error;
   }
 }
@@ -92,7 +92,7 @@ export async function createSubscription(customerId: string, priceId: string) {
     });
     return subscription;
   } catch (error) {
-    console.error('Error creating Stripe subscription:', error);
+    // console.error removed for production
     throw error;
   }
 }
@@ -122,7 +122,7 @@ export async function createCheckoutSession(customerId: string, priceId: string,
     });
     return session;
   } catch (error) {
-    console.error('Error creating checkout session:', error);
+    // console.error removed for production
     throw error;
   }
 }
@@ -137,7 +137,7 @@ export async function getSubscription(subscriptionId: string) {
     const subscription = await stripeInstance.subscriptions.retrieve(subscriptionId);
     return subscription;
   } catch (error) {
-    console.error('Error retrieving subscription:', error);
+    // console.error removed for production
     throw error;
   }
 }
@@ -152,7 +152,7 @@ export async function cancelSubscription(subscriptionId: string) {
     const subscription = await stripeInstance.subscriptions.cancel(subscriptionId);
     return subscription;
   } catch (error) {
-    console.error('Error canceling subscription:', error);
+    // console.error removed for production
     throw error;
   }
 }
@@ -175,7 +175,7 @@ export async function updateSubscription(subscriptionId: string, newPriceId: str
     });
     return updatedSubscription;
   } catch (error) {
-    console.error('Error updating subscription:', error);
+    // console.error removed for production
     throw error;
   }
 }
@@ -196,7 +196,7 @@ export async function createPaymentIntent(amount: number, currency: string = 'ca
     });
     return paymentIntent;
   } catch (error) {
-    console.error('Error creating payment intent:', error);
+    // console.error removed for production
     throw error;
   }
 }
@@ -211,7 +211,7 @@ export async function getCustomer(customerId: string) {
     const customer = await stripeInstance.customers.retrieve(customerId);
     return customer;
   } catch (error) {
-    console.error('Error retrieving customer:', error);
+    // console.error removed for production
     throw error;
   }
 }
@@ -226,7 +226,7 @@ export async function updateCustomer(customerId: string, data: any) {
     const customer = await stripeInstance.customers.update(customerId, data);
     return customer;
   } catch (error) {
-    console.error('Error updating customer:', error);
+    // console.error removed for production
     throw error;
   }
 }

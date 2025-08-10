@@ -152,29 +152,5 @@ export async function registerRoutes(app: Express): Promise<void> {
     res.status(404).json({ message: 'API route not found', path: req.originalUrl });
   });
 
-  // Serve static files from the frontend build (AFTER all API routes)
-  const publicPath = path.join(process.cwd(), 'dist/public');
-  let staticRoot = publicPath;
-  const candidates = [
-    publicPath,
-    path.join(__dirname, '../dist/public'),
-    path.join(__dirname, '../../dist/public'),
-    path.join(process.cwd(), '../dist/public'),
-    '/opt/render/project/src/dist/public',
-  ];
-  for (const p of candidates) {
-    if (fs.existsSync(p)) { staticRoot = p; break; }
-  }
-  app.use(express.static(staticRoot, { index: 'index.html', extensions: ['html','js','css'] }));
-
-  // SPA fallback: serve index.html for all non-API, non-asset routes (must be last)
-  app.get('*', (req, res) => {
-    if (req.path.startsWith('/api/')) {
-      return res.status(404).json({ message: 'API endpoint not found' });
-    }
-    if (req.path.startsWith('/assets/') || req.path.match(/\.(js|css|png|jpg|jpeg|gif|svg|ico|webp|map)$/i)) {
-      return res.status(404).end();
-    }
-    res.sendFile(path.join(staticRoot, 'index.html'));
-  });
+  // Static file serving and SPA fallback are centralized in server/index.ts
 }

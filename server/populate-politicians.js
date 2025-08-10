@@ -111,19 +111,19 @@ const samplePoliticians = [
 
 async function populatePoliticians() {
   try {
-    console.log('Starting politician population...');
+    // console.log removed for production
     
     // Clear existing data
     await db.delete(politicians);
-    console.log('Cleared existing politicians data');
+    // console.log removed for production
     
     // Insert sample politicians
     const insertedPoliticians = await db.insert(politicians).values(samplePoliticians).returning();
-    console.log(`Successfully inserted ${insertedPoliticians.length} politicians`);
+    // console.log removed for production
     
-    console.log('Politician population completed successfully');
+    // console.log removed for production
   } catch (error) {
-    console.error('Error populating politicians:', error);
+    // console.error removed for production
   }
 }
 

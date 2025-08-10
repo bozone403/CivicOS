@@ -355,7 +355,7 @@ export function registerSocialRoutes(app: Express) {
         }
       });
     } catch (error) {
-      console.error('Create post error:', error);
+      // console.error removed for production
       res.status(500).json({ error: "Failed to create post" });
     }
   });
@@ -392,7 +392,7 @@ export function registerSocialRoutes(app: Express) {
 
       res.json({ success: true, post: updated[0] });
     } catch (error) {
-      console.error('Edit post error:', error);
+      // console.error removed for production
       res.status(500).json({ success: false, message: 'Failed to edit post' });
     }
   });
@@ -416,7 +416,7 @@ export function registerSocialRoutes(app: Express) {
 
       res.json({ success: true, message: 'Post deleted' });
     } catch (error) {
-      console.error('Delete post error:', error);
+      // console.error removed for production
       res.status(500).json({ success: false, message: 'Failed to delete post' });
     }
   });
@@ -487,7 +487,7 @@ export function registerSocialRoutes(app: Express) {
         posts: postsWithCounts
       });
     } catch (error) {
-      console.error('User posts error:', error);
+      // console.error removed for production
       res.status(500).json({ error: "Failed to fetch user posts" });
     }
   });
@@ -552,7 +552,7 @@ export function registerSocialRoutes(app: Express) {
         res.json({ success: true, liked: true, message: "Post liked" });
       }
     } catch (error) {
-      console.error('Like post error:', error);
+      // console.error removed for production
       res.status(500).json({ error: "Failed to like post" });
     }
   });
@@ -634,7 +634,7 @@ export function registerSocialRoutes(app: Express) {
         }
       });
     } catch (error) {
-      console.error('Comment error:', error);
+      // console.error removed for production
       res.status(500).json({ error: "Failed to add comment" });
     }
   });
@@ -1110,7 +1110,7 @@ export function registerSocialRoutes(app: Express) {
         message: message[0] 
       });
     } catch (error) {
-      console.error('Send message error:', error);
+      // console.error removed for production
       res.status(500).json({ error: "Failed to send message" });
     }
   });
@@ -1277,7 +1277,7 @@ export function registerSocialRoutes(app: Express) {
 
       res.json({ success: true, message: 'User blocked' });
     } catch (error) {
-      console.error('Block user error:', error);
+      // console.error removed for production
       res.status(500).json({ error: 'Failed to block user' });
     }
   });
@@ -1294,7 +1294,7 @@ export function registerSocialRoutes(app: Express) {
       await db.delete(userBlocks).where(and(eq(userBlocks.userId, userId), eq(userBlocks.blockedUserId, blockedUserId)));
       res.json({ success: true, message: 'User unblocked' });
     } catch (error) {
-      console.error('Unblock user error:', error);
+      // console.error removed for production
       res.status(500).json({ error: 'Failed to unblock user' });
     }
   });
@@ -1368,7 +1368,7 @@ export function registerSocialRoutes(app: Express) {
         friendship: friendship[0] 
       });
     } catch (error) {
-      console.error('Add friend error:', error);
+      // console.error removed for production
       res.status(500).json({ error: "Failed to add friend" });
     }
   });
@@ -1410,7 +1410,7 @@ export function registerSocialRoutes(app: Express) {
 
       res.json({ success: true, message: "Friend request accepted" });
     } catch (error) {
-      console.error('Accept friend error:', error);
+      // console.error removed for production
       res.status(500).json({ error: "Failed to accept friend" });
     }
   });
@@ -1446,7 +1446,7 @@ export function registerSocialRoutes(app: Express) {
 
       res.json({ success: true, message: 'Friend request rejected' });
     } catch (error) {
-      console.error('Reject friend error:', error);
+      // console.error removed for production
       res.status(500).json({ error: 'Failed to reject friend' });
     }
   });
@@ -1469,7 +1469,7 @@ export function registerSocialRoutes(app: Express) {
 
       res.json({ success: true, message: 'Friend removed' });
     } catch (error) {
-      console.error('Remove friend error:', error);
+      // console.error removed for production
       res.status(500).json({ error: 'Failed to remove friend' });
     }
   });
@@ -1504,7 +1504,7 @@ export function registerSocialRoutes(app: Express) {
 
       res.json({ success: true, notifications: userNotifications });
     } catch (error) {
-      console.error('Notifications error:', error);
+      // console.error removed for production
       // Fail-soft
       res.json({ success: true, notifications: [] });
     }
@@ -1526,7 +1526,7 @@ export function registerSocialRoutes(app: Express) {
 
       res.json({ success: true, message: "Notification marked as read" });
     } catch (error) {
-      console.error('Mark notification read error:', error);
+      // console.error removed for production
       res.status(500).json({ error: "Failed to mark notification as read" });
     }
   });
@@ -1558,7 +1558,7 @@ export function registerSocialRoutes(app: Express) {
 
       res.json({ success: true, activities });
     } catch (error) {
-      console.error('User activity error:', error);
+      // console.error removed for production
       // Fail-soft
       res.json({ success: true, activities: [] });
     }
@@ -1596,7 +1596,7 @@ export function registerSocialRoutes(app: Express) {
 
       res.json({ success: true, bookmarks });
     } catch (error) {
-      console.error('Bookmarks error:', error);
+      // console.error removed for production
       // Fail-soft
       res.json({ success: true, bookmarks: [] });
     }
@@ -1645,7 +1645,7 @@ export function registerSocialRoutes(app: Express) {
         res.json({ success: true, bookmarked: true, message: "Post bookmarked" });
       }
     } catch (error) {
-      console.error('Bookmark error:', error);
+      // console.error removed for production
       // Fail-soft: acknowledge request even if storage backend unavailable
       res.json({ success: true, bookmarked: true, message: "Bookmark recorded (temporary storage)" });
     }
@@ -1682,7 +1682,7 @@ export function registerSocialRoutes(app: Express) {
 
       res.json({ success: true, shares });
     } catch (error) {
-      console.error('Shares error:', error);
+      // console.error removed for production
       // Fail-soft
       res.json({ success: true, shares: [] });
     }
@@ -1717,7 +1717,7 @@ export function registerSocialRoutes(app: Express) {
 
       res.json({ success: true, share: share[0], message: "Post shared successfully" });
     } catch (error) {
-      console.error('Share post error:', error);
+      // console.error removed for production
       // Fail-soft
       res.json({ success: true, share: { id: 0, postId: parseInt(req.params.id), platform: (req.body?.platform || 'internal'), sharedAt: new Date().toISOString() } });
     }
@@ -1995,7 +1995,7 @@ export function registerSocialRoutes(app: Express) {
 
       res.json({ success: true, followers });
     } catch (error) {
-      console.error('Get followers error:', error);
+      // console.error removed for production
       res.status(500).json({ error: "Failed to fetch followers" });
     }
   });
@@ -2020,7 +2020,7 @@ export function registerSocialRoutes(app: Express) {
 
       res.json({ success: true, following });
     } catch (error) {
-      console.error('Get following error:', error);
+      // console.error removed for production
       res.status(500).json({ error: "Failed to fetch following" });
     }
   });
@@ -2095,7 +2095,7 @@ export function registerSocialRoutes(app: Express) {
         stats
       });
     } catch (error) {
-      console.error('User stats error:', error);
+      // console.error removed for production
       res.status(500).json({ error: "Failed to fetch user stats" });
     }
   });

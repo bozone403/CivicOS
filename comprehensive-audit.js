@@ -46,10 +46,10 @@ async function testEndpoint(endpoint, method = 'GET', headers = {}, body = null)
 }
 
 async function runComprehensiveAudit() {
-  console.log('🔍 COMPREHENSIVE CIVICOS AUDIT\n');
+  // console.log removed for production
   
   // Get a valid token for authenticated tests
-  console.log('📋 Step 1: Getting authentication token...');
+  // console.log removed for production
   const registerResult = await testEndpoint('/api/auth/register', 'POST', {}, {
     email: `audit${Date.now()}@civicos.com`,
     password: 'auditpass123',
@@ -61,16 +61,16 @@ async function runComprehensiveAudit() {
   let token = null;
   if (registerResult.success) {
     token = registerResult.data.token;
-    console.log('✅ Authentication token obtained');
+    // console.log removed for production
   } else {
-    console.log('❌ Failed to get authentication token');
-    console.log(`   Error: ${registerResult.error}`);
+    // console.log removed for production
+    // console.log removed for production
   }
   
   const authHeaders = token ? { 'Authorization': `Bearer ${token}` } : {};
   
   // 1. AUTHENTICATION ENDPOINTS
-  console.log('\n📋 1. AUTHENTICATION ENDPOINTS:');
+  // console.log removed for production
   const authEndpoints = [
     '/api/auth/register',
     '/api/auth/login',
@@ -80,11 +80,11 @@ async function runComprehensiveAudit() {
   
   for (const endpoint of authEndpoints) {
     const result = await testEndpoint(endpoint);
-    console.log(`${endpoint}: ${result.success ? '✅' : '❌'} ${result.error || 'Working'}`);
+    // console.log removed for production
   }
   
   // 2. USER MANAGEMENT ENDPOINTS
-  console.log('\n📋 2. USER MANAGEMENT ENDPOINTS:');
+  // console.log removed for production
   const userEndpoints = [
     '/api/users/profile',
     '/api/users/search?q=test&limit=5',
@@ -93,11 +93,11 @@ async function runComprehensiveAudit() {
   
   for (const endpoint of userEndpoints) {
     const result = await testEndpoint(endpoint, 'GET', authHeaders);
-    console.log(`${endpoint}: ${result.success ? '✅' : '❌'} ${result.error || 'Working'}`);
+    // console.log removed for production
   }
   
   // 3. SOCIAL/CIVICSOCIAL ENDPOINTS
-  console.log('\n📋 3. SOCIAL/CIVICSOCIAL ENDPOINTS:');
+  // console.log removed for production
   const socialEndpoints = [
     '/api/social/feed',
     '/api/social/posts',
@@ -110,11 +110,11 @@ async function runComprehensiveAudit() {
   
   for (const endpoint of socialEndpoints) {
     const result = await testEndpoint(endpoint, 'GET', authHeaders);
-    console.log(`${endpoint}: ${result.success ? '✅' : '❌'} ${result.error || 'Working'}`);
+    // console.log removed for production
   }
   
   // 4. POLITICAL INTELLIGENCE ENDPOINTS
-  console.log('\n📋 4. POLITICAL INTELLIGENCE ENDPOINTS:');
+  // console.log removed for production
   const politicalEndpoints = [
     '/api/politicians',
     '/api/politicians/1',
@@ -127,11 +127,11 @@ async function runComprehensiveAudit() {
   
   for (const endpoint of politicalEndpoints) {
     const result = await testEndpoint(endpoint);
-    console.log(`${endpoint}: ${result.success ? '✅' : '❌'} ${result.error || 'Working'}`);
+    // console.log removed for production
   }
   
   // 5. NEWS & MEDIA ENDPOINTS
-  console.log('\n📋 5. NEWS & MEDIA ENDPOINTS:');
+  // console.log removed for production
   const newsEndpoints = [
     '/api/news',
     '/api/news/articles',
@@ -141,11 +141,11 @@ async function runComprehensiveAudit() {
   
   for (const endpoint of newsEndpoints) {
     const result = await testEndpoint(endpoint);
-    console.log(`${endpoint}: ${result.success ? '✅' : '❌'} ${result.error || 'Working'}`);
+    // console.log removed for production
   }
   
   // 6. LEGAL & RIGHTS ENDPOINTS
-  console.log('\n📋 6. LEGAL & RIGHTS ENDPOINTS:');
+  // console.log removed for production
   const legalEndpoints = [
     '/api/legal',
     '/api/legal/search',
@@ -156,11 +156,11 @@ async function runComprehensiveAudit() {
   
   for (const endpoint of legalEndpoints) {
     const result = await testEndpoint(endpoint);
-    console.log(`${endpoint}: ${result.success ? '✅' : '❌'} ${result.error || 'Working'}`);
+    // console.log removed for production
   }
   
   // 7. GOVERNMENT INTEGRITY ENDPOINTS
-  console.log('\n📋 7. GOVERNMENT INTEGRITY ENDPOINTS:');
+  // console.log removed for production
   const integrityEndpoints = [
     '/api/finance',
     '/api/lobbyists',
@@ -173,11 +173,11 @@ async function runComprehensiveAudit() {
   
   for (const endpoint of integrityEndpoints) {
     const result = await testEndpoint(endpoint);
-    console.log(`${endpoint}: ${result.success ? '✅' : '❌'} ${result.error || 'Working'}`);
+    // console.log removed for production
   }
   
   // 8. ENGAGEMENT ENDPOINTS
-  console.log('\n📋 8. ENGAGEMENT ENDPOINTS:');
+  // console.log removed for production
   const engagementEndpoints = [
     '/api/petitions',
     '/api/petitions/1',
@@ -191,11 +191,11 @@ async function runComprehensiveAudit() {
   
   for (const endpoint of engagementEndpoints) {
     const result = await testEndpoint(endpoint);
-    console.log(`${endpoint}: ${result.success ? '✅' : '❌'} ${result.error || 'Working'}`);
+    // console.log removed for production
   }
   
   // 9. SYSTEM ENDPOINTS
-  console.log('\n📋 9. SYSTEM ENDPOINTS:');
+  // console.log removed for production
   const systemEndpoints = [
     '/api/announcements',
     '/api/notifications',
@@ -209,11 +209,11 @@ async function runComprehensiveAudit() {
   
   for (const endpoint of systemEndpoints) {
     const result = await testEndpoint(endpoint);
-    console.log(`${endpoint}: ${result.success ? '✅' : '❌'} ${result.error || 'Working'}`);
+    // console.log removed for production
   }
   
   // 10. DATABASE FUNCTIONALITY TESTS
-  console.log('\n📋 10. DATABASE FUNCTIONALITY TESTS:');
+  // console.log removed for production
   
   if (token) {
     // Test post creation
@@ -224,27 +224,27 @@ async function runComprehensiveAudit() {
     });
     
     if (createPostResult.success) {
-      console.log('✅ Social post creation: Working');
+      // console.log removed for production
       const postId = createPostResult.data.post.id;
       
       // Test like functionality
       const likeResult = await testEndpoint(`/api/social/posts/${postId}/like`, 'POST', authHeaders);
-      console.log(`✅ Post like functionality: ${likeResult.success ? 'Working' : 'Broken'}`);
+      // console.log removed for production
       
       // Test comment functionality
       const commentResult = await testEndpoint(`/api/social/posts/${postId}/comment`, 'POST', authHeaders, {
         content: 'Comprehensive audit test comment'
       });
-      console.log(`✅ Post comment functionality: ${commentResult.success ? 'Working' : 'Broken'}`);
+      // console.log removed for production
       
     } else {
-      console.log('❌ Social post creation: Broken');
+      // console.log removed for production
     }
   }
   
-  console.log('\n🎯 COMPREHENSIVE AUDIT SUMMARY:');
-  console.log('This audit has tested all major endpoints across the CivicOS platform.');
-  console.log('Check the results above to identify missing or broken functionality.');
+  // console.log removed for production
+  // console.log removed for production
+  // console.log removed for production
 }
 
 runComprehensiveAudit().catch(console.error); 

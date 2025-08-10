@@ -12,11 +12,11 @@ let authToken = null;
 let userProfile = null;
 
 async function testCivicSocial() {
-  console.log('🧪 Starting CivicSocial Functionality Test...\n');
+  // console.log removed for production
 
   try {
     // Step 1: Login with existing test account
-    console.log('🔐 Step 1: Authenticating with test account...');
+    // console.log removed for production
     const loginResponse = await fetch(`${API_BASE}/api/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -26,14 +26,14 @@ async function testCivicSocial() {
     if (loginResponse.ok) {
       const loginData = await loginResponse.json();
       authToken = loginData.token;
-      console.log('✅ Authentication successful');
+      // console.log removed for production
     } else {
       const errorData = await loginResponse.json();
       throw new Error(`Authentication failed: ${errorData.message || 'Unknown error'}`);
     }
 
     // Step 2: Get user profile
-    console.log('\n👤 Step 2: Getting user profile...');
+    // console.log removed for production
     const profileResponse = await fetch(`${API_BASE}/api/auth/user`, {
       headers: { 'Authorization': `Bearer ${authToken}` }
     });
@@ -46,20 +46,20 @@ async function testCivicSocial() {
     }
 
     // Step 3: Test user search
-    console.log('\n🔍 Step 3: Testing user search...');
+    // console.log removed for production
     const searchResponse = await fetch(`${API_BASE}/api/social/users/search?q=test`, {
       headers: { 'Authorization': `Bearer ${authToken}` }
     });
 
     if (searchResponse.ok) {
       const searchData = await searchResponse.json();
-      console.log(`✅ User search working: Found ${searchData.users.length} users`);
+      // console.log removed for production
     } else {
-      console.log('❌ User search failed');
+      // console.log removed for production
     }
 
     // Step 4: Test post creation
-    console.log('\n📝 Step 4: Testing post creation...');
+    // console.log removed for production
     const postResponse = await fetch(`${API_BASE}/api/social/posts`, {
       method: 'POST',
       headers: {
@@ -75,13 +75,13 @@ async function testCivicSocial() {
 
     if (postResponse.ok) {
       const postData = await postResponse.json();
-      console.log(`✅ Post created successfully: ID ${postData.post.id}`);
+      // console.log removed for production
     } else {
-      console.log('❌ Post creation failed');
+      // console.log removed for production
     }
 
     // Step 5: Test social feed
-    console.log('\n📰 Step 5: Testing social feed...');
+    // console.log removed for production
     const feedResponse = await fetch(`${API_BASE}/api/social/feed`, {
       headers: { 'Authorization': `Bearer ${authToken}` }
     });
@@ -89,37 +89,37 @@ async function testCivicSocial() {
     if (feedResponse.ok) {
       const feedData = await feedResponse.json();
       const postsCount = feedData.posts ? feedData.posts.length : feedData.feed ? feedData.feed.length : 0;
-      console.log(`✅ Social feed working: ${postsCount} posts loaded`);
+      // console.log removed for production
     } else {
-      console.log('❌ Social feed failed');
+      // console.log removed for production
     }
 
     // Step 6: Test personal profile page
-    console.log('\n👤 Step 6: Testing personal profile page...');
+    // console.log removed for production
     const profilePageResponse = await fetch(`${API_BASE}/api/users/profile/${userProfile.username}`);
 
     if (profilePageResponse.ok) {
       const profilePageData = await profilePageResponse.json();
-      console.log(`✅ Personal profile page working: ${profilePageData.profile.username}`);
+      // console.log removed for production
     } else {
-      console.log('❌ Personal profile page failed');
+      // console.log removed for production
     }
 
     // Step 7: Test user posts by username
-    console.log('\n📄 Step 7: Testing user posts by username...');
+    // console.log removed for production
     const userPostsResponse = await fetch(`${API_BASE}/api/social/posts/user/${userProfile.username}`, {
       headers: { 'Authorization': `Bearer ${authToken}` }
     });
 
     if (userPostsResponse.ok) {
       const userPostsData = await userPostsResponse.json();
-      console.log(`✅ User posts by username working: ${userPostsData.posts.length} posts`);
+      // console.log removed for production
     } else {
-      console.log('❌ User posts by username failed');
+      // console.log removed for production
     }
 
     // Step 8: Test image upload
-    console.log('\n📸 Step 8: Testing image upload...');
+    // console.log removed for production
     const uploadResponse = await fetch(`${API_BASE}/api/upload/image`, {
       method: 'POST',
       headers: {
@@ -133,24 +133,24 @@ async function testCivicSocial() {
       const uploadData = await uploadResponse.json();
       console.log('✅ Image upload working (mock URL generated)');
     } else {
-      console.log('❌ Image upload failed');
+      // console.log removed for production
     }
 
     // Step 9: Test conversations
-    console.log('\n💭 Step 9: Testing conversations...');
+    // console.log removed for production
     const conversationsResponse = await fetch(`${API_BASE}/api/social/conversations`, {
       headers: { 'Authorization': `Bearer ${authToken}` }
     });
 
     if (conversationsResponse.ok) {
       const conversationsData = await conversationsResponse.json();
-      console.log(`✅ Conversations working: ${conversationsData.conversations.length} conversations`);
+      // console.log removed for production
     } else {
-      console.log('❌ Conversations failed');
+      // console.log removed for production
     }
 
     // Step 10: Test follow functionality (self-follow to test API)
-    console.log('\n👥 Step 10: Testing follow functionality...');
+    // console.log removed for production
     const followResponse = await fetch(`${API_BASE}/api/social/follow`, {
       method: 'POST',
       headers: {
@@ -167,12 +167,12 @@ async function testCivicSocial() {
       if (followError.error === 'You cannot follow yourself') {
         console.log('✅ Follow API working correctly (prevents self-follow)');
       } else {
-        console.log('❌ Follow functionality failed');
+        // console.log removed for production
       }
     }
 
     // Step 11: Test like functionality
-    console.log('\n👍 Step 11: Testing like functionality...');
+    // console.log removed for production
     const feedForLikes = await fetch(`${API_BASE}/api/social/feed`, {
       headers: { 'Authorization': `Bearer ${authToken}` }
     });
@@ -192,17 +192,17 @@ async function testCivicSocial() {
         });
 
         if (likeResponse.ok) {
-          console.log('✅ Like functionality working');
+          // console.log removed for production
         } else {
-          console.log('❌ Like functionality failed');
+          // console.log removed for production
         }
       } else {
-        console.log('⚠️ No posts available for liking test');
+        // console.log removed for production
       }
     }
 
     // Step 12: Test messaging (self-message to test API)
-    console.log('\n💬 Step 12: Testing messaging API...');
+    // console.log removed for production
     const messageResponse = await fetch(`${API_BASE}/api/social/messages`, {
       method: 'POST',
       headers: {
@@ -216,33 +216,33 @@ async function testCivicSocial() {
     });
 
     if (messageResponse.ok) {
-      console.log('✅ Messaging API working');
+      // console.log removed for production
     } else {
       const messageError = await messageResponse.json();
       if (messageError.error && messageError.error.includes('cannot message yourself')) {
         console.log('✅ Messaging API working correctly (prevents self-messaging)');
       } else {
-        console.log('❌ Messaging failed');
+        // console.log removed for production
       }
     }
 
-    console.log('\n🎉 CIVICSOCIAL FUNCTIONALITY TEST COMPLETED!');
-    console.log('\n📊 SUMMARY:');
-    console.log('✅ Authentication working');
-    console.log('✅ User search working');
-    console.log('✅ Post creation working');
-    console.log('✅ Social feed working');
-    console.log('✅ Personal profile pages working');
-    console.log('✅ User posts by username working');
-    console.log('✅ Image upload working');
-    console.log('✅ Conversations working');
-    console.log('✅ Follow functionality working');
-    console.log('✅ Like functionality working');
-    console.log('✅ Messaging API working');
-    console.log('\n🎯 All core CivicSocial features are functional!');
+    // console.log removed for production
+    // console.log removed for production
+    // console.log removed for production
+    // console.log removed for production
+    // console.log removed for production
+    // console.log removed for production
+    // console.log removed for production
+    // console.log removed for production
+    // console.log removed for production
+    // console.log removed for production
+    // console.log removed for production
+    // console.log removed for production
+    // console.log removed for production
+    // console.log removed for production
 
   } catch (error) {
-    console.error('❌ Test failed:', error.message);
+    // console.error removed for production
   }
 }
 
