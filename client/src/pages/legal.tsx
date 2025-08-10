@@ -11,6 +11,7 @@ import {
   Search, Calendar, AlertTriangle, Book, Scale, FileText, Clock, MapPin, 
   Crown, Building2, Users, TrendingUp, AlertCircle, CheckCircle, ExternalLink
 } from "lucide-react";
+import { apiRequest } from "@/lib/queryClient";
 
 interface LawUpdate {
   id: number;
@@ -68,6 +69,10 @@ export default function Legal() {
   const [selectedJurisdiction, setSelectedJurisdiction] = useState("all");
   const [selectedSection, setSelectedSection] = useState<CriminalCodeSection | null>(null);
   const [activeTab, setActiveTab] = useState("overview");
+  const [sectionFullText, setSectionFullText] = useState<string | undefined>(undefined);
+  const [isFetchingSectionText, setIsFetchingSectionText] = useState<boolean>(false);
+  const [actFullTextMap, setActFullTextMap] = useState<Record<string, string>>({});
+  const [actLoadingMap, setActLoadingMap] = useState<Record<string, boolean>>({});
 
   const { data: lawUpdates = [], isLoading: updatesLoading } = useQuery<LawUpdate[]>({
     queryKey: ["/api/legal/updates"],
@@ -148,6 +153,30 @@ export default function Legal() {
            section.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
            section.summary.toLowerCase().includes(searchTerm.toLowerCase());
   });
+
+  const handleFetchSectionFullText = async () => {
+    if (!selectedSection) return;
+    try {
+      setIsFetchingSectionText(true);
+      const res = await apiRequest(`/api/legal/criminal-code/detail?section=${encodeURIComponent(selectedSection.sectionNumber)}`);
+      const data = (res && (res as any).success ? (res as any).data : res) as any;
+      setSectionFullText(data?.text || "");
+    } finally {
+      setIsFetchingSectionText(false);
+    }
+  };
+
+  const handleFetchActFullText = async (title: string) => {
+    try {
+      setActLoadingMap((m) => ({ ...m, [title]: true }));
+      const res = await apiRequest(`/api/legal/act/detail?title=${encodeURIComponent(title)}`);
+      const data = (res && (res as any).success ? (res as any).data : res) as any;
+      const text = data?.text || "";
+      setActFullTextMap((m) => ({ ...m, [title]: text }));
+    } finally {
+      setActLoadingMap((m) => ({ ...m, [title]: false }));
+    }
+  };
 
   if (updatesLoading || codeLoading) {
     return (
@@ -307,7 +336,7 @@ export default function Legal() {
             <TabsContent value="database" className="space-y-6 mt-6">
               {legalDatabase && (
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  {/* Federal Statutes */}
+                  {/* Federal Statutes */
                   <Card className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm">
                     <CardHeader>
                       <CardTitle className="flex items-center gap-2">
@@ -322,9 +351,19 @@ export default function Legal() {
                           <p className="text-sm text-slate-600 dark:text-slate-400 mb-2">{statute.citation}</p>
                           <p className="text-sm text-slate-700 dark:text-slate-300 mb-3">{statute.description}</p>
                           <Badge variant="secondary" className="mb-2">{statute.category}</Badge>
-                          <div className="text-xs text-slate-500">
+                          <div className="text-xs text-slate-500 mb-2">
                             {statute.sections?.length || 0} sections indexed
                           </div>
+                          <div className="flex items-center gap-2">
+                            <Button variant="outline" size="sm" onClick={() => handleFetchActFullText(statute.title)} disabled={!!actLoadingMap[statute.title]}>
+                              {actLoadingMap[statute.title] ? 'Loading…' : 'View Full Text'}
+                            </Button>
+                          </div>
+                          {actFullTextMap[statute.title] && (
+                            <div className="mt-3 p-3 bg-slate-50 dark:bg-slate-900/40 rounded text-sm text-slate-700 dark:text-slate-300 max-h-64 overflow-auto">
+                              {actFullTextMap[statute.title]}
+                            </div>
+                          )}
                         </div>
                       ))}
                     </CardContent>
@@ -558,9 +597,14 @@ export default function Legal() {
                       <CardTitle>Full Text</CardTitle>
                     </CardHeader>
                     <CardContent>
+                      <div className="flex items-center gap-2 mb-3">
+                        <Button variant="outline" size="sm" onClick={handleFetchSectionFullText} disabled={isFetchingSectionText}>
+                          {isFetchingSectionText ? 'Fetching…' : 'View Full Text'}
+                        </Button>
+                      </div>
                       <div className="prose dark:prose-invert max-w-none">
-                        <p className="text-slate-700 dark:text-slate-300 leading-relaxed">
-                          {selectedSection.fullText}
+                        <p className="text-slate-700 dark:text-slate-300 leading-relaxed whitespace-pre-wrap">
+                          {sectionFullText || selectedSection.fullText}
                         </p>
                       </div>
                     </CardContent>
