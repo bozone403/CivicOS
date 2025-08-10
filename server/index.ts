@@ -395,16 +395,9 @@ app.get("/health", (_req, res) => {
       const fs = require('fs');
       const idxPath = path.join(staticRoot, 'index.html');
       let html = fs.readFileSync(idxPath, 'utf8');
-      const latestJs = findLatestAsset('index-', '.js');
-      const latestCss = findLatestAsset('index-', '.css');
-      if (latestJs) {
-        const relJs = '/assets/' + path.basename(latestJs);
-        html = html.replace(/\/assets\/index-[A-Za-z0-9_-]+\.js/g, relJs);
-      }
-      if (latestCss) {
-        const relCss = '/assets/' + path.basename(latestCss);
-        html = html.replace(/\/assets\/index-[A-Za-z0-9_-]+\.css/g, relCss);
-      }
+      // Always point to stable aliases to avoid stale hashes
+      html = html.replace(/\/assets\/index-[A-Za-z0-9_-]+\.js/g, '/assets/index.js');
+      html = html.replace(/\/assets\/index-[A-Za-z0-9_-]+\.css/g, '/assets/index.css');
       res.setHeader('Cache-Control', 'no-store');
       res.setHeader('Content-Type', 'text/html; charset=UTF-8');
       return res.send(html);
@@ -478,6 +471,25 @@ app.get("/health", (_req, res) => {
       res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
     }
   }));
+  // Stable aliases to the latest entry assets
+  app.get('/assets/index.js', (req, res, next) => {
+    const latest = findLatestAsset('index-', '.js');
+    if (latest) {
+      res.setHeader('Content-Type', 'application/javascript; charset=UTF-8');
+      res.setHeader('Cache-Control', 'no-store');
+      return res.sendFile(latest);
+    }
+    return next();
+  });
+  app.get('/assets/index.css', (req, res, next) => {
+    const latest = findLatestAsset('index-', '.css');
+    if (latest) {
+      res.setHeader('Content-Type', 'text/css; charset=UTF-8');
+      res.setHeader('Cache-Control', 'no-store');
+      return res.sendFile(latest);
+    }
+    return next();
+  });
   app.use(express.static(staticRoot, {
     setHeaders: (res, filePath) => {
       const isIndex = filePath.endsWith('index.html');
