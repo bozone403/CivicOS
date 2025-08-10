@@ -436,10 +436,29 @@ app.get("/health", (_req, res) => {
       }
     }
   }));
-  // Ensure SPA fallback for all non-API routes
+  // Ensure SPA fallback for all non-API routes (rewrite to latest entry chunk)
   app.get(/^\/(?!api\/).*/, (_req, res) => {
-    res.setHeader('Cache-Control', 'no-store');
-    res.sendFile(path.join(staticRoot, 'index.html'));
+    try {
+      const idxPath = path.join(staticRoot, 'index.html');
+      const fs = require('fs');
+      let html = fs.readFileSync(idxPath, 'utf8');
+      const latestJs = findLatestAsset('index-', '.js');
+      const latestCss = findLatestAsset('index-', '.css');
+      if (latestJs) {
+        const relJs = '/assets/' + path.basename(latestJs);
+        html = html.replace(/\/assets\/index-[A-Za-z0-9_-]+\.js/g, relJs);
+      }
+      if (latestCss) {
+        const relCss = '/assets/' + path.basename(latestCss);
+        html = html.replace(/\/assets\/index-[A-Za-z0-9_-]+\.css/g, relCss);
+      }
+      res.setHeader('Cache-Control', 'no-store');
+      res.setHeader('Content-Type', 'text/html; charset=UTF-8');
+      return res.send(html);
+    } catch {
+      res.setHeader('Cache-Control', 'no-store');
+      return res.sendFile(path.join(staticRoot, 'index.html'));
+    }
   });
 
   // ALWAYS serve the app on the correct port for Render
