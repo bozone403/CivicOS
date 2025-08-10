@@ -402,14 +402,14 @@ app.get("/health", (_req, res) => {
       return null;
     }
   }
+  // Redirect old hashed entry requests to the latest built asset (visible to logs)
   app.get('/assets/index-:hash.js', (req, res, next) => {
     const requested = path.join(assetsDir, `index-${req.params.hash}.js`);
     if (existsSync(requested)) return next();
     const latest = findLatestAsset('index-', '.js');
     if (latest) {
-      res.setHeader('Content-Type', 'application/javascript; charset=UTF-8');
-      res.setHeader('Cache-Control', 'no-store');
-      return res.sendFile(latest);
+      const rel = '/assets/' + path.basename(latest);
+      return res.redirect(302, rel);
     }
     return next();
   });
@@ -418,9 +418,8 @@ app.get("/health", (_req, res) => {
     if (existsSync(requested)) return next();
     const latest = findLatestAsset('index-', '.css');
     if (latest) {
-      res.setHeader('Content-Type', 'text/css; charset=UTF-8');
-      res.setHeader('Cache-Control', 'no-store');
-      return res.sendFile(latest);
+      const rel = '/assets/' + path.basename(latest);
+      return res.redirect(302, rel);
     }
     return next();
   });
