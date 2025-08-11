@@ -72,6 +72,8 @@ export function registerPoliticiansRoutes(app: Express) {
               createdAt: new Date(),
               updatedAt: new Date()
             }));
+            // Filter out resigned officials if present in stub data
+            politiciansData = (politiciansData as any[]).filter(p => !/trudeau/i.test(p.name));
           } else {
             throw new Error('No real MP data available');
           }

@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Calendar, MapPin, ExternalLink, Info, Clock, Users, Vote } from 'lucide-react';
-import { useAuth } from '@/hooks/useAuth';
+// Elections page is public-viewable; no auth gating
 import { useLocation } from "wouter";
 
 interface Election {
@@ -30,14 +30,17 @@ interface ElectionData {
 }
 
 export default function Elections() {
-  const { isAuthenticated, isLoading: authLoading } = useAuth();
   const [selectedTab, setSelectedTab] = useState('upcoming');
   const [, navigate] = useLocation();
 
   // Fetch authentic election data
   const [locationQuery, setLocationQuery] = useState('');
   const { data: electionData, isLoading, error, refetch } = useQuery<ElectionData>({
-    queryKey: ['/api/elections', locationQuery],
+    queryKey: [
+      locationQuery.trim()
+        ? `/api/elections?location=${encodeURIComponent(locationQuery.trim())}`
+        : '/api/elections'
+    ],
     enabled: true,
     refetchInterval: 1000 * 60 * 60, // Refetch every hour
     retry: false
@@ -79,27 +82,7 @@ export default function Elections() {
 
   const electionsToShow = (!electionData || (electionData as any)?.elections?.length === 0) ? fallbackElections : (electionData as any);
 
-  // Redirect to login if not authenticated
-  useEffect(() => {
-    if (!authLoading && !isAuthenticated) {
-      navigate('/auth');
-    }
-  }, [isAuthenticated, authLoading, navigate]);
-
-  if (authLoading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading authentication...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (!isAuthenticated) {
-    return null; // Will redirect via useEffect
-  }
+  // Page is public; no auth loader/redirect
 
   if (isLoading) {
     return (
