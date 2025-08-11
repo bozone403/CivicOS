@@ -186,6 +186,24 @@ export function registerAdminRoutes(app: Express) {
       res.status(500).json({ success: false, message: 'Failed to refresh legal data' });
     }
   });
+
+  // Admin: ingestion status
+  app.get('/api/admin/ingestion/status', jwtAuth, requirePermission('view_analytics'), async (_req: Request, res: Response) => {
+    try {
+      const [pol] = await db.select({ c: count() }).from(users);
+      const [politix] = await db.select({ c: count() }).from(politicians);
+      const [acts] = await db.select({ c: count() }).from(legalActs);
+      const [casesC] = await db.select({ c: count() }).from(legalCases);
+      res.json({ success: true, counts: {
+        users: Number(pol?.c) || 0,
+        politicians: Number(politix?.c) || 0,
+        legalActs: Number(acts?.c) || 0,
+        legalCases: Number(casesC?.c) || 0,
+      }});
+    } catch (error) {
+      res.status(500).json({ success: false, message: 'Failed to load ingestion status' });
+    }
+  });
 }
 
 
