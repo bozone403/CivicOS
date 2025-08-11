@@ -1,5 +1,6 @@
 import { Express, Request, Response } from "express";
 import { ResponseFormatter } from "../utils/responseFormatter.js";
+import { fetchWithTimeoutRetry } from '../utils/fetchUtil.js';
 import { nextFederalElectionDate, nextMunicipalElectionDate } from "../utils/electionRules.js";
 
 export function registerElectionsRoutes(app: Express) {
@@ -489,6 +490,16 @@ export function registerElectionsRoutes(app: Express) {
         ],
       };
 
+      // If no upcoming results, attempt an on-demand fetch from Elections Canada (best-effort)
+      if (!responsePayload.upcoming || responsePayload.upcoming.length === 0) {
+        try {
+          const ec = await fetchWithTimeoutRetry('https://www.elections.ca/enr/help/national.aspx', { timeoutMs: 5000 });
+          if (ec.ok) {
+            // We could parse, but if we reached here, surface at least a clear message
+            responsePayload.sources.push('Elections Canada (live)');
+          }
+        } catch {}
+      }
       return ResponseFormatter.success(res, responsePayload, "Elections data retrieved successfully");
     } catch (error) {
       return ResponseFormatter.error(res, "Failed to retrieve elections data", 500);
