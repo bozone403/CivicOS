@@ -6,9 +6,10 @@
   "scripts": {
     "dev": "tsx server/index.ts",
     "dev:local": "NODE_ENV=development tsx server/index.ts",
-    "build": "npm run build:full",
+    "build": "npm run build:server && npm run build:client",
+    "build:server": "tsc --project tsconfig.server.json --outDir dist",
     "build:client": "cd client && npm run build",
-    "build:full": "npm run build && npm run build:client",
+    "build:full": "npm run build:server && npm run build:client",
     "start": "./start.sh",
     "start:render": "bash start-render.sh",
     "postinstall": "echo 'Mock AI mode - no external AI dependencies'",
