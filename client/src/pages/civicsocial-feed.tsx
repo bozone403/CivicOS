@@ -126,6 +126,9 @@ export default function CivicSocialFeed() {
   const [filterVisibility, setFilterVisibility] = useState<'all' | 'public' | 'friends' | 'private'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<'latest' | 'popular' | 'trending'>('latest');
+  // Inline comment input per post
+  const [commentInputs, setCommentInputs] = useState<Record<number, string>>({});
+  const setCommentInput = (postId: number, value: string) => setCommentInputs((p) => ({ ...p, [postId]: value }));
   
   // Form state
   const [postContent, setPostContent] = useState('');
@@ -239,14 +242,11 @@ export default function CivicSocialFeed() {
     likePostMutation.mutate(postId);
   };
 
-  const handleCommentPost = (_postId: number) => {
-    // Open comment dialog or implement comment functionality
-    // For now, we'll just show a success message
-    // console.log removed for production
-    toast({
-      title: "Comment posted",
-      description: "Your comment has been posted successfully!",
-    });
+  const handleCommentPost = (postId: number) => {
+    const content = (commentInputs[postId] || '').trim();
+    if (!content) return;
+    commentPostMutation.mutate({ postId, content });
+    setCommentInput(postId, '');
   };
 
   const handleSharePost = (postId: number) => {
@@ -470,6 +470,31 @@ export default function CivicSocialFeed() {
             />
           ))}
         </CivicSocialList>
+      </CivicSocialSection>
+
+      <CivicSocialSection>
+        {feed.map((post: SocialPost) => (
+          <div key={`comment-box-${post.id}`} className="mt-2 p-3 border border-border rounded-lg bg-card">
+            <div className="flex items-start gap-2">
+              <Textarea
+                placeholder="Write a comment..."
+                value={commentInputs[post.id] || ''}
+                onChange={(e) => setCommentInput(post.id, e.target.value)}
+                className="min-h-[60px]"
+              />
+            </div>
+            <div className="flex justify-end mt-2">
+              <Button
+                size="sm"
+                className="social-button-primary"
+                disabled={commentPostMutation.isPending || !(commentInputs[post.id] || '').trim()}
+                onClick={() => handleCommentPost(post.id)}
+              >
+                {commentPostMutation.isPending ? 'Posting…' : 'Comment'}
+              </Button>
+            </div>
+          </div>
+        ))}
       </CivicSocialSection>
 
       {/* Create Post Dialog */}

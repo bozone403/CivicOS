@@ -46,41 +46,8 @@ export default function Elections() {
     retry: false
   });
 
-  // Fallback data for elections
-  const fallbackElections: ElectionData = {
-    upcoming: [
-      {
-        id: "1",
-        type: 'federal',
-        region: 'Canada',
-        date: '2025-10-20',
-        status: 'upcoming',
-        description: 'Next scheduled federal general election in Canada.',
-        source: 'Elections Canada',
-        sourceUrl: 'https://www.elections.ca',
-        registrationDeadline: '2025-09-15',
-        advanceVotingDates: ['2025-10-10', '2025-10-17']
-      }
-    ],
-    recent: [
-      {
-        id: "2",
-        type: 'federal',
-        region: 'Canada',
-        date: '2021-09-20',
-        status: 'completed',
-        description: 'Most recent federal general election in Canada.',
-        source: 'Elections Canada',
-        sourceUrl: 'https://www.elections.ca',
-        registrationDeadline: '2021-08-20',
-        advanceVotingDates: ['2021-09-01', '2021-09-08']
-      }
-    ],
-    lastUpdated: new Date().toISOString(),
-    sources: ['Elections Canada', 'Government of Canada', 'Provincial Election Authorities']
-  };
-
-  const electionsToShow = (!electionData || (electionData as any)?.elections?.length === 0) ? fallbackElections : (electionData as any);
+  // Real-only policy: do not render synthetic fallbacks; show empty state if API returns none
+  const electionsToShow = (electionData as any) || { upcoming: [], recent: [], lastUpdated: new Date().toISOString(), sources: [] };
 
   // Page is public; no auth loader/redirect
 

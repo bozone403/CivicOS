@@ -250,11 +250,9 @@ export default function App() {
                   </Route>
                   
                   <Route path="/politicians">
-                    <ProtectedRoute>
-                      <Layout>
-                        <Politicians />
-                      </Layout>
-                    </ProtectedRoute>
+                    <Layout>
+                      <Politicians />
+                    </Layout>
                   </Route>
                   
                   <Route path="/petitions">
@@ -274,11 +272,9 @@ export default function App() {
                   </Route>
                   
                   <Route path="/elections">
-                    <ProtectedRoute>
-                      <Layout>
-                        <Elections />
-                      </Layout>
-                    </ProtectedRoute>
+                    <Layout>
+                      <Elections />
+                    </Layout>
                   </Route>
                   
                   <Route path="/contacts">
@@ -290,11 +286,9 @@ export default function App() {
                   </Route>
                   
                   <Route path="/legal">
-                    <ProtectedRoute>
-                      <Layout>
-                        <Legal />
-                      </Layout>
-                    </ProtectedRoute>
+                    <Layout>
+                      <Legal />
+                    </Layout>
                   </Route>
                   
                   <Route path="/rights">

@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { db } from '../db.js';
-import { users, votes, bills, petitions, petitionSignatures, politicians, socialPosts } from '../../shared/schema.js';
-import { eq, count } from 'drizzle-orm';
+import { users, votes, bills, petitions, petitionSignatures, politicians, socialPosts, userActivity, userFollows } from '../../shared/schema.js';
+import { eq, count, desc } from 'drizzle-orm';
 import { jwtAuth } from '../routes/auth.js';
 const router = Router();
 // Public dashboard endpoint for testing (no auth required)
@@ -70,29 +70,72 @@ router.get('/public-stats', async (req, res) => {
         });
     }
 });
-// Get comprehensive dashboard statistics (temporarily without auth for testing)
+// Get comprehensive dashboard statistics (public aggregates + per-user when authed)
 router.get('/stats', async (req, res) => {
     try {
-        // For now, return basic stats without user authentication
-        const activeBillsCount = await db
+        // Public aggregates
+        const [activeBillsCount] = await db
             .select({ count: count() })
             .from(bills)
             .where(eq(bills.status, 'active'));
-        const politiciansCount = await db
+        const [politiciansCount] = await db
             .select({ count: count() })
             .from(politicians);
-        const totalPetitionsCount = await db
+        const [totalPetitionsCount] = await db
             .select({ count: count() })
             .from(petitions);
+        // If user is authenticated, enrich with per-user stats
+        let totalVotesUser = 0;
+        let petitionsSignedUser = 0;
+        let politiciansTrackedUser = politiciansCount?.count || 0; // default to overall if not authed
+        let civicPoints = 0;
+        let trustScore = 100;
+        let recentActivity = [];
+        const authHeader = req.headers?.authorization;
+        if (authHeader && authHeader.startsWith('Bearer ')) {
+            // Minimal decode: downstream handlers already verify; here we only attempt if present
+            try {
+                const token = authHeader.split(' ')[1];
+                const jwt = await import('jsonwebtoken');
+                const decoded = jwt.verify(token, process.env.SESSION_SECRET);
+                const userId = decoded?.id;
+                if (userId) {
+                    const [voteCount] = await db.select({ count: count() }).from(votes).where(eq(votes.userId, userId));
+                    totalVotesUser = voteCount?.count || 0;
+                    const [sigCount] = await db.select({ count: count() }).from(petitionSignatures).where(eq(petitionSignatures.userId, userId));
+                    petitionsSignedUser = sigCount?.count || 0;
+                    const [followsCount] = await db.select({ count: count() }).from(userFollows).where(eq(userFollows.userId, userId));
+                    politiciansTrackedUser = followsCount?.count || 0;
+                    const userRow = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+                    civicPoints = userRow[0]?.civicPoints || 0;
+                    trustScore = Math.min(100, Math.max(0, Math.round((civicPoints / 1000) * 100)));
+                    const activityRows = await db
+                        .select()
+                        .from(userActivity)
+                        .where(eq(userActivity.userId, userId))
+                        .orderBy(desc(userActivity.createdAt))
+                        .limit(10);
+                    recentActivity = activityRows.map((a) => ({
+                        id: String(a.id),
+                        type: a.type || 'general',
+                        title: getActivityTitle(a.type || 'general', a.data),
+                        timestamp: a.createdAt?.toISOString?.() || new Date().toISOString(),
+                        icon: getActivityIcon(a.type || 'general'),
+                    }));
+                }
+            }
+            catch { }
+        }
         res.json({
             success: true,
-            totalVotes: 0,
-            activeBills: activeBillsCount[0]?.count || 0,
-            politiciansTracked: politiciansCount[0]?.count || 0,
-            petitionsSigned: 0,
-            civicPoints: 0,
-            trustScore: 100,
-            recentActivity: []
+            totalVotes: totalVotesUser,
+            activeBills: activeBillsCount?.count || 0,
+            politiciansTracked: politiciansTrackedUser,
+            petitionsSigned: petitionsSignedUser,
+            civicPoints,
+            trustScore,
+            recentActivity,
+            totalOfficials: politiciansCount?.count || 0,
         });
     }
     catch (error) {
@@ -167,15 +210,15 @@ router.get('/profile', jwtAuth, async (req, res) => {
         // Calculate rank percentile based on civic points
         const allUsers = await db.select({ civicPoints: users.civicPoints }).from(users);
         const sortedUsers = allUsers.sort((a, b) => (b.civicPoints || 0) - (a.civicPoints || 0));
-        const userRank = sortedUsers.findIndex(user => user.civicPoints === currentUser.civicPoints) + 1;
+        const userRank = sortedUsers.findIndex(u => u.civicPoints === currentUser.civicPoints) + 1;
         const rankPercentile = Math.round(((sortedUsers.length - userRank) / sortedUsers.length) * 100);
         const profileData = {
             civicLevel: currentUser.civicLevel || "Registered",
             rankPercentile: rankPercentile,
             badgesEarned: [
-                { name: "First Vote", icon: "vote", date: currentUser.createdAt?.toISOString().split('T')[0] || "2025-01-01" },
-                { name: "Profile Complete", icon: "user", date: currentUser.updatedAt?.toISOString().split('T')[0] || "2025-01-01" },
-                { name: "Engaged Citizen", icon: "activity", date: currentUser.lastActivityDate?.toISOString().split('T')[0] || "2025-01-01" }
+                { name: "First Vote", icon: "vote", date: currentUser.createdAt?.toISOString?.().split('T')[0] || "2025-01-01" },
+                { name: "Profile Complete", icon: "user", date: currentUser.updatedAt?.toISOString?.().split('T')[0] || "2025-01-01" },
+                { name: "Engaged Citizen", icon: "activity", date: currentUser.lastActivityDate?.toISOString?.().split('T')[0] || "2025-01-01" }
             ],
             nextBadge: {
                 name: "Petition Creator",

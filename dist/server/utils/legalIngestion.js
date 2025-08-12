@@ -1,5 +1,6 @@
 import { db } from '../db.js';
 import { legalActs, legalCases } from '../../shared/schema.js';
+import * as cheerio from 'cheerio';
 export async function ingestLegalActsCurated(acts) {
     let inserted = 0;
     for (const act of acts) {
@@ -27,4 +28,100 @@ export async function ingestLegalCasesCurated(casesIn) {
         inserted++;
     }
     return inserted;
+}
+// Fetch federal acts list from laws-lois (Justice Laws Website) index pages (best-effort)
+export async function ingestFederalActsFromJustice() {
+    try {
+        const indexUrl = 'https://laws-lois.justice.gc.ca/eng/acts/';
+        const html = await (await fetch(indexUrl)).text();
+        const $ = cheerio.load(html);
+        let inserted = 0;
+        $('a').each((_, el) => {
+            const href = $(el).attr('href') || '';
+            const text = $(el).text().trim();
+            if (/^eng\/acts\//.test(href) && text.length > 2) {
+                const title = text;
+                // Attempt to infer act number/year if present in text
+                const actNumber = undefined;
+                db.insert(legalActs).values({ title, actNumber: actNumber || null, jurisdiction: 'federal' }).onConflictDoNothing().execute().then(() => inserted++).catch(() => undefined);
+            }
+        });
+        return inserted;
+    }
+    catch {
+        return 0;
+    }
+}
+// Fetch Criminal Code sections index page as a fallback to populate key sections
+export async function ingestCriminalCodeFromJustice() {
+    try {
+        const url = 'https://laws-lois.justice.gc.ca/eng/acts/C-46/';
+        const html = await (await fetch(url)).text();
+        const $ = cheerio.load(html);
+        let inserted = 0;
+        $('a').each((_, el) => {
+            const text = $(el).text().trim();
+            const secMatch = text.match(/^(\d+[\w\.-]*)\s+-\s+(.*)$/);
+            if (secMatch) {
+                const sectionNumber = secMatch[1];
+                const title = secMatch[2];
+                db.insert(legalActs).values({ title: `Criminal Code s. ${sectionNumber} — ${title}`, actNumber: sectionNumber, jurisdiction: 'federal' }).onConflictDoNothing().execute().then(() => inserted++).catch(() => undefined);
+            }
+        });
+        return inserted;
+    }
+    catch {
+        return 0;
+    }
+}
+// On-demand: resolve a federal act by title from Justice Laws, fetch detail page, return content and cache
+export async function resolveFederalActDetailByTitle(titleQuery) {
+    const indexUrl = 'https://laws-lois.justice.gc.ca/eng/acts/';
+    const html = await (await fetch(indexUrl)).text();
+    const $ = cheerio.load(html);
+    const q = titleQuery.trim().toLowerCase();
+    let actUrl;
+    $('a').each((_, el) => {
+        const href = $(el).attr('href') || '';
+        const t = $(el).text().trim().toLowerCase();
+        if (!actUrl && /^eng\/acts\//.test(href) && t.includes(q)) {
+            actUrl = new URL(href, indexUrl).toString();
+        }
+    });
+    if (!actUrl)
+        return { title: titleQuery };
+    const page = await (await fetch(actUrl)).text();
+    const $p = cheerio.load(page);
+    const main = $p('#wb-main, main, body').first();
+    const text = main.text().replace(/\s+/g, ' ').trim();
+    // Cache best-effort into DB by title
+    try {
+        const existing = await db.select().from(legalActs).where(legalActs.title.eq(titleQuery)).limit(1);
+        if (existing.length) {
+            await db.update(legalActs).set({ fullText: text, updatedAt: new Date() }).where(legalActs.id.eq(existing[0].id));
+        }
+    }
+    catch { }
+    return { title: titleQuery, url: actUrl, html: undefined, text };
+}
+// On-demand: fetch Criminal Code section content by section number (e.g., "83.01")
+export async function fetchCriminalCodeSectionDetail(sectionNumber) {
+    const baseUrl = 'https://laws-lois.justice.gc.ca/eng/acts/C-46/';
+    const page = await (await fetch(baseUrl)).text();
+    const $ = cheerio.load(page);
+    // Attempt to find an anchor or heading containing the section number
+    let text;
+    const sec = sectionNumber.trim();
+    const candidates = [];
+    $('*:contains("' + sec + '")').each((_, el) => {
+        const t = $(el).text();
+        if (t && t.includes(sec))
+            candidates.push($(el));
+    });
+    if (candidates.length) {
+        // Take the first candidate's parent block text as a rough section content
+        const block = candidates[0].closest('section, article, div');
+        text = (block.length ? block : candidates[0]).text().replace(/\s+/g, ' ').trim();
+    }
+    return { section: sectionNumber, url: baseUrl, text };
 }

@@ -33,101 +33,45 @@ function jwtAuth(req: any, res: any, next: any) {
 export function registerPoliticiansRoutes(app: Express) {
   const parliamentAPI = new ParliamentAPIService();
 
-  // Get all politicians (DB-first; on-demand refresh if empty)
+  // Get all politicians (strict DB-first; on-demand refresh if empty; no synthetic fallback)
   app.get('/api/politicians', async (req: Request, res: Response) => {
     const startTime = Date.now();
     
     try {
       const { level, jurisdiction, party, search, location } = req.query as any;
-      
-      // Try to fetch real Parliament data first
-      let politiciansData;
-      
-      try {
-        // Prefer DB (incumbents) but attempt real MPs as enrichment if needed
-        const dbRows = await db.select().from(politicians).where(eq(politicians.isIncumbent as any, true as any));
-        if (dbRows && dbRows.length) {
-          politiciansData = dbRows;
-        } else {
-          const realMPs = await parliamentAPI.fetchCurrentMPs();
-          if (realMPs && realMPs.length > 0) {
-            politiciansData = realMPs.map(mp => ({
-              id: Math.floor(Math.random() * 10000),
-              name: mp.name,
-              party: mp.party,
-              position: mp.position || 'Member of Parliament',
-              riding: mp.constituency,
-              level: mp.level || 'Federal',
-              jurisdiction: mp.jurisdiction || 'Canada',
-              image: undefined,
-              trustScore: 75,
-              civicLevel: 'Federal',
-              recentActivity: 'Active in Parliament',
-              policyPositions: [],
-              votingRecord: { yes: 0, no: 0, abstain: 0 },
-              contactInfo: { email: mp.email, phone: mp.phone, office: 'Parliament Hill', website: mp.website, social: {} },
-              bio: `${mp.name} is a Member of Parliament representing ${mp.constituency}.`,
-              keyAchievements: [],
-              committees: [],
-              expenses: { travel: 0, hospitality: 0, office: 0, total: 0, year: '2025' },
-              createdAt: new Date(),
-              updatedAt: new Date()
-            }));
-            // Filter out resigned officials if present in stub data
-            politiciansData = (politiciansData as any[]).filter(p => !/trudeau/i.test(p.name));
-          } else {
-            throw new Error('No real MP data available');
-          }
-        }
-      } catch (error) {
-        // Fallback to database if real API fails
-        if (level || jurisdiction || party || search || location) {
-          const conditions: any[] = [];
 
-          if (level) {
-            conditions.push(eq(politicians.level, level as string));
-          }
-          if (jurisdiction) {
-            conditions.push(eq(politicians.jurisdiction, jurisdiction as string));
-          }
-          if (party) {
-            conditions.push(eq(politicians.party, party as string));
-          }
-          if (search) {
-            conditions.push(
-              or(
-                like(politicians.name, `%${search}%`),
-                like(politicians.position, `%${search}%`),
-                like(politicians.constituency, `%${search}%`)
-              )
-            );
-          }
-          if (location) {
-            const q = String(location);
-            conditions.push(
-              or(
-                like(politicians.jurisdiction, `%${q}%`),
-                like(politicians.constituency, `%${q}%`)
-              )
-            );
-          }
+      // Strict DB-first
+      const conditions: any[] = [];
+      if (level) conditions.push(eq(politicians.level, level as string));
+      if (jurisdiction) conditions.push(eq(politicians.jurisdiction, jurisdiction as string));
+      if (party) conditions.push(eq(politicians.party, party as string));
+      if (search) {
+        conditions.push(
+          or(
+            like(politicians.name, `%${search}%`),
+            like(politicians.position, `%${search}%`),
+            like(politicians.constituency, `%${search}%`)
+          )
+        );
+      }
+      if (location) {
+        const q = String(location);
+        conditions.push(
+          or(
+            like(politicians.jurisdiction, `%${q}%`),
+            like(politicians.constituency, `%${q}%`)
+          )
+        );
+      }
 
-          politiciansData = await db
-            .select()
-            .from(politicians)
-            .where(and(...conditions))
-            .orderBy(desc(politicians.updatedAt));
-        } else {
-          politiciansData = await db
-            .select()
-            .from(politicians)
-            .orderBy(desc(politicians.updatedAt));
-        }
-        // If database is empty, attempt on-demand refresh and return latest DB (no hardcoded fallback)
-        if (!politiciansData || politiciansData.length === 0) {
-          try { await syncIncumbentPoliticiansFromParliament(); } catch {}
-          politiciansData = await db.select().from(politicians).orderBy(desc(politicians.updatedAt));
-        }
+      let politiciansData = conditions.length
+        ? await db.select().from(politicians).where(and(...conditions)).orderBy(desc(politicians.updatedAt))
+        : await db.select().from(politicians).orderBy(desc(politicians.updatedAt));
+
+      // If empty, trigger on-demand sync and re-read
+      if (!politiciansData || politiciansData.length === 0) {
+        try { await syncIncumbentPoliticiansFromParliament(); } catch {}
+        politiciansData = await db.select().from(politicians).orderBy(desc(politicians.updatedAt));
       }
       
       const processingTime = Date.now() - startTime;

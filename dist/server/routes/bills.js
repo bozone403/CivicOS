@@ -1,117 +1,41 @@
 import { db } from "../db.js";
 import { bills, votes } from "../../shared/schema.js";
 import { eq, and, desc, sql, count, like, or } from "drizzle-orm";
-import { parliamentAPI } from "../parliamentAPI.js";
 import { ResponseFormatter } from "../utils/responseFormatter.js";
 export function registerBillsRoutes(app) {
-    // Get all bills with real Parliament data
+    // Get all bills with real Parliament data (DB-first; auto-ingest from OpenParliament if empty)
     app.get('/api/bills', async (req, res) => {
         try {
             const { status, jurisdiction, category, search } = req.query;
             const userId = req.user?.id;
-            // Try to fetch real Parliament bills first
-            let billsData;
-            try {
-                // Fetch real bills from Parliament of Canada
-                const realBills = await parliamentAPI.getBills(50, 0);
-                if (realBills.bills && realBills.bills.length > 0) {
-                    billsData = realBills.bills;
-                }
-                else {
-                    // Fallback to database bills
-                    const dbBills = await db.select().from(bills).orderBy(desc(bills.createdAt));
-                    // If no bills exist, create sample bills for testing
-                    if (dbBills.length === 0) {
-                        const sampleBills = [
-                            {
-                                billNumber: "C-62",
-                                title: "An Act to establish the Canadian Housing Benefit",
-                                description: "This bill establishes a new housing benefit program to help Canadians with housing costs.",
-                                category: "Housing",
-                                jurisdiction: "Federal",
-                                status: "Active",
-                                sponsor: "Hon. Sean Fraser",
-                                sponsorParty: "Liberal",
-                                summary: "A comprehensive housing benefit program that will provide direct financial assistance to eligible Canadians struggling with housing costs.",
-                                keyProvisions: [
-                                    "Establishes direct housing benefit payments",
-                                    "Creates eligibility criteria based on income",
-                                    "Provides $2.5B in funding over 5 years",
-                                    "Includes oversight and reporting mechanisms"
-                                ],
-                                estimatedCost: 2500000000,
-                                estimatedRevenue: 1800000000,
-                                publicSupport: { yes: 65, no: 25, neutral: 10 },
-                                nextVoteDate: "2025-08-15"
-                            },
-                            {
-                                billNumber: "C-63",
-                                title: "An Act to strengthen environmental protection",
-                                description: "This bill enhances environmental regulations and climate action measures.",
-                                category: "Environment",
-                                jurisdiction: "Federal",
-                                status: "Active",
-                                sponsor: "Hon. Steven Guilbeault",
-                                sponsorParty: "Liberal",
-                                summary: "Comprehensive environmental protection legislation that strengthens climate action and environmental regulations.",
-                                keyProvisions: [
-                                    "Strengthens emissions reduction targets",
-                                    "Increases funding for clean energy",
-                                    "Enhances environmental assessment process",
-                                    "Creates new protected areas"
-                                ],
-                                estimatedCost: 3500000000,
-                                estimatedRevenue: 2200000000,
-                                publicSupport: { yes: 72, no: 18, neutral: 10 },
-                                nextVoteDate: "2025-08-20"
-                            },
-                            {
-                                billNumber: "C-64",
-                                title: "An Act to improve healthcare access",
-                                description: "This bill expands healthcare coverage and improves access to medical services.",
-                                category: "Health",
-                                jurisdiction: "Federal",
-                                status: "Active",
-                                sponsor: "Hon. Mark Holland",
-                                sponsorParty: "Liberal",
-                                summary: "Healthcare improvement legislation that expands coverage and reduces barriers to medical services.",
-                                keyProvisions: [
-                                    "Expands prescription drug coverage",
-                                    "Improves mental health services",
-                                    "Reduces wait times for procedures",
-                                    "Increases healthcare funding"
-                                ],
-                                estimatedCost: 4200000000,
-                                estimatedRevenue: 2800000000,
-                                publicSupport: { yes: 78, no: 12, neutral: 10 },
-                                nextVoteDate: "2025-08-25"
-                            }
-                        ];
-                        // Insert sample bills
-                        for (const sampleBill of sampleBills) {
+            // DB-first
+            let billsData = await db.select().from(bills).orderBy(desc(bills.createdAt));
+            // If empty, attempt ingestion from OpenParliament votes feed to backfill bills minimally
+            if (!billsData || billsData.length === 0) {
+                try {
+                    const listUrl = process.env.OPENPARLIAMENT_VOTES_URL || `https://api.openparliament.ca/votes/?format=json&limit=50`;
+                    const listRes = await fetch(listUrl);
+                    if (listRes.ok) {
+                        const listJson = await listRes.json();
+                        const items = listJson?.results || listJson?.objects || listJson?.votes || [];
+                        const seen = new Set();
+                        for (const item of items) {
+                            const billNumber = String(item?.bill?.number || item?.bill_number || '').trim();
+                            const title = String(item?.bill?.short_title || item?.short_title || item?.title || '').trim();
+                            if (!billNumber || seen.has(billNumber))
+                                continue;
+                            seen.add(billNumber);
                             await db.insert(bills).values({
-                                billNumber: sampleBill.billNumber,
-                                title: sampleBill.title,
-                                description: sampleBill.description,
-                                category: sampleBill.category,
-                                status: sampleBill.status,
-                                sponsorName: sampleBill.sponsor,
-                                introducedDate: new Date().toISOString().split('T')[0]
-                            });
+                                billNumber,
+                                title: title || billNumber,
+                                status: 'Active',
+                                introducedDate: new Date().toISOString().split('T')[0],
+                            }).catch(() => undefined);
                         }
-                        // Fetch the newly created bills
                         billsData = await db.select().from(bills).orderBy(desc(bills.createdAt));
                     }
-                    else {
-                        billsData = dbBills;
-                    }
                 }
-            }
-            catch (error) {
-                // console.error removed for production
-                // Fallback to database bills
-                const dbBills = await db.select().from(bills).orderBy(desc(bills.createdAt));
-                billsData = dbBills;
+                catch { }
             }
             // Get user votes if authenticated
             let userVotes = {};
@@ -162,19 +86,6 @@ export function registerBillsRoutes(app) {
                     governmentUrl,
                     legiscanUrl,
                     fullTextUrl,
-                    // Add enhanced bill details
-                    keyProvisions: [
-                        "Establishes new regulatory framework",
-                        "Increases funding for affected programs",
-                        "Creates oversight mechanisms",
-                        "Implements reporting requirements"
-                    ],
-                    amendments: [
-                        "Amendment 1: Increased funding allocation",
-                        "Amendment 2: Enhanced oversight provisions"
-                    ],
-                    fiscalNote: "Estimated $2.5B over 5 years with $1.8B in revenue",
-                    regulatoryImpact: "New compliance requirements for affected industries",
                     publicSupport: {
                         yes: Math.round((voteStat.yes_votes / Math.max(voteStat.total_votes, 1)) * 100),
                         no: Math.round((voteStat.no_votes / Math.max(voteStat.total_votes, 1)) * 100),

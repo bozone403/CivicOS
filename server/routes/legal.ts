@@ -186,18 +186,25 @@ export function registerLegalRoutes(app: Express) {
     ]
   };
 
-  // Root legal endpoint (DB-first for acts/cases, fallback to curated)
+  // Root legal endpoint (DB-first for acts/cases, no synthetic fallback; on-demand scrape if empty)
   app.get('/api/legal', async (req: Request, res: Response) => {
     try {
-      const acts = await db.select().from(legalActs).limit(100);
-      const casesRows = await db.select().from(legalCases).limit(100);
+      let acts = await db.select().from(legalActs).limit(200);
+      let casesRows = await db.select().from(legalCases).limit(200);
+      if (acts.length === 0) {
+        try {
+          const { ingestFederalActsFromJustice } = await import('../utils/legalIngestion.js');
+          await ingestFederalActsFromJustice();
+          acts = await db.select().from(legalActs).limit(200);
+        } catch {}
+      }
+      if (casesRows.length === 0) {
+        // No authoritative federal case list scraper yet; leave empty
+      }
       const payload = {
-        acts: acts.length ? acts : canadianLaws.federalActs,
-        cases: casesRows.length ? casesRows : [
-          { id: 1, title: "R. v. Oakes", year: 1986, summary: "Oakes test", category: "Constitutional Law" },
-          { id: 2, title: "R. v. Jordan", year: 2016, summary: "Jordan delay", category: "Criminal Law" },
-        ],
-        sections: canadianLaws.criminalCode,
+        acts,
+        cases: casesRows,
+        sections: [],
         message: "Legal data retrieved successfully"
       };
       return ResponseFormatter.success(res, payload, "Legal data retrieved successfully", 200);
@@ -278,7 +285,7 @@ export function registerLegalRoutes(app: Express) {
     }
   });
 
-  // Legal search (DB-first, fallback to curated)
+  // Legal search (DB-only)
   app.get('/api/legal/search', async (req: Request, res: Response) => {
     try {
       const q = String(req.query.q || '').trim();
@@ -294,25 +301,7 @@ export function registerLegalRoutes(app: Express) {
         ...acts.rows.map((a) => ({ id: a.id, title: a.title, description: a.summary, type: 'legal_act', source: 'db' })),
         ...cases.rows.map((c) => ({ id: c.id, title: c.title, description: c.description, type: 'legal_case', source: 'db' })),
       ];
-      if (results.length > 0) {
-        return ResponseFormatter.success(res, { query: q, totalResults: results.length, results }, 'Legal search (DB) completed', 200, results.length);
-      }
-      // Fallback to curated
-      const cq = q.toLowerCase();
-      const curated: any[] = [];
-      curated.push(
-        ...canadianLaws.criminalCode.filter(s => s.title.toLowerCase().includes(cq) || s.summary.toLowerCase().includes(cq) || s.sectionNumber.toLowerCase().includes(cq))
-          .map(r => ({ id: r.id, title: `${r.sectionNumber} ${r.title}`, description: r.summary, type: 'criminal_code', source: 'curated' }))
-      );
-      curated.push(
-        ...canadianLaws.federalActs.filter(a => a.title.toLowerCase().includes(cq) || a.summary.toLowerCase().includes(cq))
-          .map(r => ({ id: r.id, title: r.title, description: r.summary, type: 'federal_act', source: 'curated' }))
-      );
-      curated.push(
-        ...canadianLaws.provincialLaws.filter(p => p.title.toLowerCase().includes(cq) || p.summary.toLowerCase().includes(cq))
-          .map(r => ({ id: r.id, title: r.title, description: r.summary, type: 'provincial_law', source: 'curated' }))
-      );
-      return ResponseFormatter.success(res, { query: q, totalResults: curated.length, results: curated.slice(0, 50) }, 'Legal search (curated) completed', 200, curated.length);
+      return ResponseFormatter.success(res, { query: q, totalResults: results.length, results }, 'Legal search completed', 200, results.length);
     } catch (error) {
       return ResponseFormatter.databaseError(res, `Failed to search legal database: ${(error as Error).message}`);
     }

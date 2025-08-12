@@ -1,6 +1,8 @@
 import { ResponseFormatter } from "../utils/responseFormatter.js";
 import { db } from "../db.js";
+import { sql } from 'drizzle-orm';
 import { legalActs, legalCases } from "../../shared/schema.js";
+import { resolveFederalActDetailByTitle, fetchCriminalCodeSectionDetail } from '../utils/legalIngestion.js';
 import jwt from "jsonwebtoken";
 // JWT Auth middleware
 function jwtAuth(req, res, next) {
@@ -180,18 +182,26 @@ export function registerLegalRoutes(app) {
             }
         ]
     };
-    // Root legal endpoint (DB-first for acts/cases, fallback to curated)
+    // Root legal endpoint (DB-first for acts/cases, no synthetic fallback; on-demand scrape if empty)
     app.get('/api/legal', async (req, res) => {
         try {
-            const acts = await db.select().from(legalActs).limit(100);
-            const casesRows = await db.select().from(legalCases).limit(100);
+            let acts = await db.select().from(legalActs).limit(200);
+            let casesRows = await db.select().from(legalCases).limit(200);
+            if (acts.length === 0) {
+                try {
+                    const { ingestFederalActsFromJustice } = await import('../utils/legalIngestion.js');
+                    await ingestFederalActsFromJustice();
+                    acts = await db.select().from(legalActs).limit(200);
+                }
+                catch { }
+            }
+            if (casesRows.length === 0) {
+                // No authoritative federal case list scraper yet; leave empty
+            }
             const payload = {
-                acts: acts.length ? acts : canadianLaws.federalActs,
-                cases: casesRows.length ? casesRows : [
-                    { id: 1, title: "R. v. Oakes", year: 1986, summary: "Oakes test", category: "Constitutional Law" },
-                    { id: 2, title: "R. v. Jordan", year: 2016, summary: "Jordan delay", category: "Criminal Law" },
-                ],
-                sections: canadianLaws.criminalCode,
+                acts,
+                cases: casesRows,
+                sections: [],
                 message: "Legal data retrieved successfully"
             };
             return ResponseFormatter.success(res, payload, "Legal data retrieved successfully", 200);
@@ -245,65 +255,66 @@ export function registerLegalRoutes(app) {
             return ResponseFormatter.databaseError(res, `Failed to fetch federal acts: ${error.message}`);
         }
     });
-    // Legal search
+    // Legal search (DB-only)
     app.get('/api/legal/search', async (req, res) => {
         try {
-            const { q, type } = req.query;
-            const query = q?.toLowerCase() || '';
-            const searchType = type || 'all';
-            let results = [];
-            if (searchType === 'all' || searchType === 'criminal_code') {
-                const criminalResults = canadianLaws.criminalCode.filter(section => section.title.toLowerCase().includes(query) ||
-                    section.summary.toLowerCase().includes(query) ||
-                    section.sectionNumber.toLowerCase().includes(query));
-                results.push(...criminalResults.map(r => ({ ...r, type: 'criminal_code' })));
-            }
-            if (searchType === 'all' || searchType === 'federal_acts') {
-                const actResults = canadianLaws.federalActs.filter(act => act.title.toLowerCase().includes(query) ||
-                    act.summary.toLowerCase().includes(query));
-                results.push(...actResults.map(r => ({ ...r, type: 'federal_act' })));
-            }
-            if (searchType === 'all' || searchType === 'provincial_laws') {
-                const provincialResults = canadianLaws.provincialLaws.filter(law => law.title.toLowerCase().includes(query) ||
-                    law.summary.toLowerCase().includes(query) ||
-                    law.province.toLowerCase().includes(query));
-                results.push(...provincialResults.map(r => ({ ...r, type: 'provincial_law' })));
-            }
-            return ResponseFormatter.success(res, {
-                query: q,
-                totalResults: results.length,
-                results: results.slice(0, 50), // Limit results
-                categories: {
-                    criminal_code: results.filter(r => r.type === 'criminal_code').length,
-                    federal_acts: results.filter(r => r.type === 'federal_act').length,
-                    provincial_laws: results.filter(r => r.type === 'provincial_law').length
-                }
-            }, "Legal search completed successfully", 200, results.length);
+            const q = String(req.query.q || '').trim();
+            if (!q)
+                return ResponseFormatter.success(res, { query: q, totalResults: 0, results: [] }, 'Empty query', 200, 0);
+            const qp = `%${q}%`;
+            const acts = await db.execute(sql `SELECT id, title, summary, category FROM legal_acts WHERE title ILIKE ${qp} OR summary ILIKE ${qp} LIMIT 50`);
+            const cases = await db.execute(sql `SELECT id, title, description, jurisdiction FROM legal_cases WHERE title ILIKE ${qp} OR description ILIKE ${qp} LIMIT 50`);
+            const results = [
+                ...acts.rows.map((a) => ({ id: a.id, title: a.title, description: a.summary, type: 'legal_act', source: 'db' })),
+                ...cases.rows.map((c) => ({ id: c.id, title: c.title, description: c.description, type: 'legal_case', source: 'db' })),
+            ];
+            return ResponseFormatter.success(res, { query: q, totalResults: results.length, results }, 'Legal search completed', 200, results.length);
         }
         catch (error) {
             return ResponseFormatter.databaseError(res, `Failed to search legal database: ${error.message}`);
         }
     });
-    // Get legal statistics
+    // Get legal statistics (DB-first)
     app.get('/api/legal/stats', async (req, res) => {
         try {
+            const actsCount = await db.execute(sql `SELECT COUNT(*)::text as count FROM legal_acts`);
+            const casesCount = await db.execute(sql `SELECT COUNT(*)::text as count FROM legal_cases`);
             const stats = {
-                totalCriminalCodeSections: canadianLaws.criminalCode.length,
-                totalFederalActs: canadianLaws.federalActs.length,
-                totalProvincialLaws: canadianLaws.provincialLaws.length,
-                categories: {
-                    "National Security": canadianLaws.criminalCode.filter(s => s.category === "National Security").length,
-                    "Sexual Offences": canadianLaws.criminalCode.filter(s => s.category === "Sexual Offences").length,
-                    "Property Crimes": canadianLaws.criminalCode.filter(s => s.category === "Property Crimes").length,
-                    "Human Rights": canadianLaws.federalActs.filter(a => a.category === "Human Rights").length,
-                    "Privacy": canadianLaws.federalActs.filter(a => a.category === "Privacy").length
-                },
-                lastUpdated: new Date().toISOString()
+                criminalCodeSections: 0,
+                acts: Number(actsCount.rows?.[0]?.count || 0),
+                recentUpdates: 1,
+                lastUpdated: new Date().toISOString(),
             };
-            return ResponseFormatter.success(res, stats, "Legal statistics retrieved successfully", 200);
+            return ResponseFormatter.success(res, stats, 'Legal statistics retrieved successfully', 200);
         }
         catch (error) {
             return ResponseFormatter.databaseError(res, `Failed to fetch legal statistics: ${error.message}`);
+        }
+    });
+    // Legal act detail by title (on-demand fetch + cache)
+    app.get('/api/legal/act/detail', async (req, res) => {
+        try {
+            const title = String(req.query.title || '').trim();
+            if (!title)
+                return ResponseFormatter.error(res, 'Missing title', 400);
+            const detail = await resolveFederalActDetailByTitle(title);
+            return ResponseFormatter.success(res, detail, 'Act detail resolved', 200);
+        }
+        catch (error) {
+            return ResponseFormatter.databaseError(res, `Failed to resolve act detail: ${error.message}`);
+        }
+    });
+    // Criminal Code section detail by section number
+    app.get('/api/legal/criminal-code/detail', async (req, res) => {
+        try {
+            const section = String(req.query.section || '').trim();
+            if (!section)
+                return ResponseFormatter.error(res, 'Missing section', 400);
+            const detail = await fetchCriminalCodeSectionDetail(section);
+            return ResponseFormatter.success(res, detail, 'Criminal Code section detail', 200);
+        }
+        catch (error) {
+            return ResponseFormatter.databaseError(res, `Failed to fetch section detail: ${error.message}`);
         }
     });
     // Recent law updates (free curated + placeholder)

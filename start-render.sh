@@ -1,14 +1,9 @@
 #!/bin/bash
 
-# CivicOS Suite - Render Startup Script (Mock AI Only - No Ollama)
-# Completely disabled Ollama to avoid resource issues
-# Using comprehensive mock data with accurate Canadian political information
+# CivicOS Suite - Render Startup Script (Production, real-only data)
 
-echo "🚀 CIVICOS SUITE - RENDER STARTUP SCRIPT v4.0 (MOCK AI ONLY)"
-echo "============================================================"
-echo "🎯 Mock AI deployment - no external AI dependencies"
-echo "📊 Comprehensive Canadian political data included"
-echo "⚡ Fast startup without Ollama installation"
+echo "🚀 CIVICOS SUITE - RENDER STARTUP (REAL-ONLY DATA)"
+echo "=================================================="
 
 # System information
 echo ""
@@ -27,40 +22,41 @@ echo "🎯 MAIN STARTUP SEQUENCE"
 echo "========================"
 
 # Set environment variables for mock AI
-echo "📋 Step 1: Environment Configuration (Mock AI)"
+echo "📋 Step 1: Environment Configuration"
+export NODE_ENV=production
+export RENDER=true
 export AI_SERVICE_ENABLED=false
-export USE_MOCK_AI=true
+export USE_MOCK_AI=false
 export OLLAMA_ENABLED=false
 export OLLAMA_INSTALLED=false
 export AI_READY=true
+# Real-only data ingestion defaults
+export DATA_SYNC_ENABLED=true
+export AUTO_INGEST_ON_START=true
 export NODE_ENV=production
 export RENDER=true
 
 echo "✅ Environment configured:"
+echo "   - NODE_ENV: $NODE_ENV"
+echo "   - RENDER: $RENDER"
 echo "   - AI_SERVICE_ENABLED: $AI_SERVICE_ENABLED"
 echo "   - USE_MOCK_AI: $USE_MOCK_AI"
 echo "   - OLLAMA_ENABLED: $OLLAMA_ENABLED"
-echo "   - NODE_ENV: $NODE_ENV"
+echo "   - DATA_SYNC_ENABLED: $DATA_SYNC_ENABLED"
+echo "   - AUTO_INGEST_ON_START: $AUTO_INGEST_ON_START"
 echo ""
 
 # Start the Node.js application
-echo "📋 Step 2: Starting CivicOS Application (Mock AI Mode)"
-echo "🚀 Starting Node.js server with comprehensive mock data..."
+echo "📋 Step 2: Starting CivicOS Application"
+echo "🚀 Starting Node.js server with production configuration..."
 echo ""
 
 if [ "$NODE_ENV" = "production" ]; then
-    echo "📈 Production mode detected (Mock AI)"
-    echo "🔧 Starting with optimized mock data settings..."
-    echo "📊 Mock data includes:"
-    echo "   - Mark Carney as current PM (accurate as of July 2025)"
-    echo "   - Current bills: C-60, C-56, C-21, C-61"
-    echo "   - Economic indicators and government data"
-    echo "   - Comprehensive politician profiles"
-    echo "   - News analysis and fact-checking"
-    echo ""
-    cd /opt/render/project/src
-    exec node dist/server/index.js
+  echo "📈 Production mode detected"
+  echo "🔧 Real-only data policy enabled; ingestion will run on boot if DB low"
+  cd /opt/render/project/src
+  exec node dist/server/index.js
 else
-    echo "🔧 Development mode (Mock AI)"
-    exec npm run dev
-fi 
+  echo "🔧 Development mode"
+  exec npm run dev
+fi

@@ -1,6 +1,6 @@
 import { Express, Request, Response } from 'express';
 import { db } from '../db.js';
-import { users, socialPosts, socialComments, notifications, newsArticles, votes } from '../../shared/schema.js';
+import { users, socialPosts, socialComments, notifications, newsArticles, votes, politicians, legalActs, legalCases } from '../../shared/schema.js';
 import { count } from 'drizzle-orm';
 import { jwtAuth } from './auth.js';
 import { requirePermission } from '../utils/permissionService.js';

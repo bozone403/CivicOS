@@ -1,9 +1,11 @@
 import { db } from "../db.js";
 import { politicians, politicianStatements, politicianPositions, campaignFinance, politicianTruthTracking, billRollcalls, billRollcallRecords } from "../../shared/schema.js";
+import { computeTrustScore } from "../utils/trustScore.js";
 import { eq, and, desc, sql, count, like, or } from "drizzle-orm";
 import { ResponseFormatter } from "../utils/responseFormatter.js";
 import jwt from "jsonwebtoken";
 import { ParliamentAPIService } from "../parliamentAPI.js";
+import { syncIncumbentPoliticiansFromParliament } from '../utils/politicianSync.js';
 // JWT Auth middleware
 function jwtAuth(req, res, next) {
     const authHeader = req.headers.authorization;
@@ -26,175 +28,36 @@ function jwtAuth(req, res, next) {
 }
 export function registerPoliticiansRoutes(app) {
     const parliamentAPI = new ParliamentAPIService();
-    // Get all politicians with real Parliament data
+    // Get all politicians (strict DB-first; on-demand refresh if empty; no synthetic fallback)
     app.get('/api/politicians', async (req, res) => {
         const startTime = Date.now();
         try {
-            const { level, jurisdiction, party, search } = req.query;
-            // Try to fetch real Parliament data first
-            let politiciansData;
-            try {
-                // Fetch real MPs from Parliament of Canada
-                const realMPs = await parliamentAPI.fetchCurrentMPs();
-                if (realMPs && realMPs.length > 0) {
-                    // Transform real Parliament data to our format
-                    politiciansData = realMPs.map(mp => ({
-                        id: Math.floor(Math.random() * 10000), // Generate ID for real data
-                        name: mp.name,
-                        party: mp.party,
-                        position: mp.position || 'Member of Parliament',
-                        riding: mp.constituency,
-                        level: mp.level || 'Federal',
-                        jurisdiction: mp.jurisdiction || 'Federal',
-                        image: undefined,
-                        trustScore: Math.floor(Math.random() * 30) + 70, // 70-100 range
-                        civicLevel: Math.random() > 0.5 ? 'Gold' : 'Silver',
-                        recentActivity: 'Active in Parliament',
-                        policyPositions: ['Government Accountability', 'Transparency', 'Public Service'],
-                        votingRecord: {
-                            yes: Math.floor(Math.random() * 200) + 50,
-                            no: Math.floor(Math.random() * 50) + 10,
-                            abstain: Math.floor(Math.random() * 20) + 5
-                        },
-                        contactInfo: {
-                            email: mp.email,
-                            phone: mp.phone,
-                            office: 'Parliament Hill',
-                            website: mp.website,
-                            social: {
-                                twitter: undefined,
-                                facebook: undefined
-                            }
-                        },
-                        bio: `${mp.name} is a Member of Parliament representing ${mp.constituency} in the ${mp.party} party.`,
-                        keyAchievements: ['Parliamentary Service', 'Constituency Representation'],
-                        committees: ['Parliamentary Committees'],
-                        expenses: {
-                            travel: Math.floor(Math.random() * 50000) + 10000,
-                            hospitality: Math.floor(Math.random() * 15000) + 5000,
-                            office: Math.floor(Math.random() * 80000) + 20000,
-                            total: Math.floor(Math.random() * 150000) + 50000,
-                            year: '2025'
-                        },
-                        createdAt: new Date(),
-                        updatedAt: new Date()
-                    }));
-                }
-                else {
-                    throw new Error('No real MP data available');
-                }
+            const { level, jurisdiction, party, search, location } = req.query;
+            // Strict DB-first
+            const conditions = [];
+            if (level)
+                conditions.push(eq(politicians.level, level));
+            if (jurisdiction)
+                conditions.push(eq(politicians.jurisdiction, jurisdiction));
+            if (party)
+                conditions.push(eq(politicians.party, party));
+            if (search) {
+                conditions.push(or(like(politicians.name, `%${search}%`), like(politicians.position, `%${search}%`), like(politicians.constituency, `%${search}%`)));
             }
-            catch (error) {
-                // Fallback to database if real API fails
-                if (level || jurisdiction || party || search) {
-                    const conditions = [];
-                    if (level) {
-                        conditions.push(eq(politicians.level, level));
-                    }
-                    if (jurisdiction) {
-                        conditions.push(eq(politicians.jurisdiction, jurisdiction));
-                    }
-                    if (party) {
-                        conditions.push(eq(politicians.party, party));
-                    }
-                    if (search) {
-                        conditions.push(or(like(politicians.name, `%${search}%`), like(politicians.position, `%${search}%`), like(politicians.constituency, `%${search}%`)));
-                    }
-                    politiciansData = await db
-                        .select()
-                        .from(politicians)
-                        .where(and(...conditions))
-                        .orderBy(desc(politicians.updatedAt));
+            if (location) {
+                const q = String(location);
+                conditions.push(or(like(politicians.jurisdiction, `%${q}%`), like(politicians.constituency, `%${q}%`)));
+            }
+            let politiciansData = conditions.length
+                ? await db.select().from(politicians).where(and(...conditions)).orderBy(desc(politicians.updatedAt))
+                : await db.select().from(politicians).orderBy(desc(politicians.updatedAt));
+            // If empty, trigger on-demand sync and re-read
+            if (!politiciansData || politiciansData.length === 0) {
+                try {
+                    await syncIncumbentPoliticiansFromParliament();
                 }
-                else {
-                    politiciansData = await db
-                        .select()
-                        .from(politicians)
-                        .orderBy(desc(politicians.updatedAt));
-                }
-                // If database is also empty, provide fallback data
-                if (!politiciansData || politiciansData.length === 0) {
-                    politiciansData = [
-                        {
-                            id: 1,
-                            name: "Mark Carney",
-                            party: "Liberal",
-                            position: "Prime Minister",
-                            riding: "Ottawa Centre, Ontario",
-                            level: "Federal",
-                            jurisdiction: "Canada",
-                            trustScore: 78,
-                            civicLevel: "Federal",
-                            recentActivity: "Sworn in as PM, announced climate finance initiatives",
-                            policyPositions: ["Economic Stability", "Climate Finance", "Housing Reform"],
-                            votingRecord: { yes: 89, no: 3, abstain: 2 },
-                            contactInfo: {
-                                email: "mark.carney@parl.gc.ca",
-                                phone: "613-992-4211",
-                                office: "Office of the Prime Minister, Ottawa",
-                                website: "pm.gc.ca"
-                            },
-                            bio: "Mark Carney became the 24th Prime Minister of Canada on July 24, 2025.",
-                            keyAchievements: ["Former Bank of Canada Governor", "Former Bank of England Governor"],
-                            committees: ["Prime Minister's Office", "Cabinet"],
-                            expenses: { travel: 45230, hospitality: 12890, office: 28450, total: 86570, year: "2025" },
-                            createdAt: new Date(),
-                            updatedAt: new Date()
-                        },
-                        {
-                            id: 2,
-                            name: "Justin Trudeau",
-                            party: "Liberal",
-                            position: "Member of Parliament",
-                            riding: "Papineau, Quebec",
-                            level: "Federal",
-                            jurisdiction: "Canada",
-                            trustScore: 68,
-                            civicLevel: "Federal",
-                            recentActivity: "Gracefully transitioned PM role to Carney",
-                            policyPositions: ["Climate Action", "Reconciliation", "Progressive Policies"],
-                            votingRecord: { yes: 487, no: 23, abstain: 12 },
-                            contactInfo: {
-                                email: "justin.trudeau@parl.gc.ca",
-                                phone: "613-992-4211",
-                                office: "House of Commons, Ottawa",
-                                website: "justintrudeau.liberal.ca"
-                            },
-                            bio: "Justin Trudeau served as the 23rd Prime Minister of Canada from 2015-2025.",
-                            keyAchievements: ["23rd Prime Minister of Canada (2015-2025)", "Legalized cannabis nationwide"],
-                            committees: ["Liberal Caucus", "House of Commons"],
-                            expenses: { travel: 89567, hospitality: 15450, office: 52690, total: 157707, year: "2025" },
-                            createdAt: new Date(),
-                            updatedAt: new Date()
-                        },
-                        {
-                            id: 3,
-                            name: "Pierre Poilievre",
-                            party: "Conservative",
-                            position: "Leader of the Opposition",
-                            riding: "Carleton, Ontario",
-                            level: "Federal",
-                            jurisdiction: "Canada",
-                            trustScore: 65,
-                            civicLevel: "Federal",
-                            recentActivity: "Criticizing Carney government policies",
-                            policyPositions: ["Fiscal Responsibility", "Housing Affordability", "Energy Independence"],
-                            votingRecord: { yes: 234, no: 189, abstain: 23 },
-                            contactInfo: {
-                                email: "pierre.poilievre@parl.gc.ca",
-                                phone: "613-992-3312",
-                                office: "House of Commons, Ottawa",
-                                website: "pierrepoilievre.ca"
-                            },
-                            bio: "Pierre Poilievre is the Leader of the Opposition and Conservative Party leader.",
-                            keyAchievements: ["Conservative Party Leader", "Opposition Leader"],
-                            committees: ["Conservative Caucus", "House of Commons"],
-                            expenses: { travel: 67890, hospitality: 12340, office: 45670, total: 125900, year: "2025" },
-                            createdAt: new Date(),
-                            updatedAt: new Date()
-                        }
-                    ];
-                }
+                catch { }
+                politiciansData = await db.select().from(politicians).orderBy(desc(politicians.updatedAt));
             }
             const processingTime = Date.now() - startTime;
             return ResponseFormatter.success(res, politiciansData, "Politicians data retrieved successfully", 200, politiciansData.length, undefined, processingTime);
@@ -231,8 +94,14 @@ export function registerPoliticiansRoutes(app) {
                 .select()
                 .from(politicianTruthTracking)
                 .where(eq(politicianTruthTracking.politicianId, parseInt(id)));
+            // Compute trust score live if missing
+            const computedTrust = await computeTrustScore(parseInt(id)).catch(() => null);
+            if (computedTrust !== null) {
+                await db.update(politicians).set({ trustScore: String(computedTrust), updatedAt: new Date() }).where(eq(politicians.id, parseInt(id)));
+            }
             res.json({
                 ...politician,
+                trustScore: computedTrust ?? politician.trustScore,
                 stats: {
                     statements: statements?.count || 0,
                     positions: positions?.count || 0

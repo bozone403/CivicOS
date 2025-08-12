@@ -659,6 +659,78 @@ app.get("/health", (_req, res) => {
     else {
         logger.info({ msg: "Real-time monitoring disabled by env (MONITORING_ENABLED != 'true')" });
     }
+    // Schedule nightly incumbents refresh at ~03:30 UTC
+    setInterval(async () => {
+        try {
+            const { ingestProvincialIncumbents, ingestMunicipalIncumbents } = await import('./utils/provincialMunicipalIngestion.js');
+            await ingestProvincialIncumbents();
+            await ingestMunicipalIncumbents();
+            logger.info({ msg: 'Nightly incumbents refresh completed' });
+        }
+        catch (error) {
+            logger.error({ msg: 'Nightly incumbents refresh failed', error: error instanceof Error ? error.message : String(error) });
+        }
+    }, 24 * 60 * 60 * 1000);
+    // Weekly legal refresh (Justice Laws scrapes) ~7 days
+    setInterval(async () => {
+        try {
+            const { ingestFederalActsFromJustice, ingestCriminalCodeFromJustice } = await import('./utils/legalIngestion.js');
+            const acts = await ingestFederalActsFromJustice();
+            const cc = await ingestCriminalCodeFromJustice();
+            logger.info({ msg: 'Weekly legal refresh completed', acts, cc });
+        }
+        catch (error) {
+            logger.error({ msg: 'Weekly legal refresh failed', error: error instanceof Error ? error.message : String(error) });
+        }
+    }, 7 * 24 * 60 * 60 * 1000);
+    // One-time automatic ingestion after boot if DB is empty (opt-in)
+    if (process.env.AUTO_INGEST_ON_START === 'true') {
+        setTimeout(async () => {
+            try {
+                const { db } = await import('./db.js');
+                const { count } = await import('drizzle-orm');
+                const { users, politicians, legalActs, legalCases } = await import('../shared/schema.js');
+                const polRows = await db.select({ c: count() }).from(politicians);
+                const polCount = Number(polRows[0]?.c || 0);
+                const actRows = await db.select({ c: count() }).from(legalActs);
+                const actsCount = Number(actRows[0]?.c || 0);
+                const caseRows = await db.select({ c: count() }).from(legalCases);
+                const casesCount = Number(caseRows[0]?.c || 0);
+                const needsOfficials = polCount < 50;
+                const needsLegal = actsCount < 50 || casesCount < 1;
+                if (needsOfficials) {
+                    try {
+                        const { ingestParliamentMembers, ingestBillRollcallsForCurrentSession } = await import('./utils/parliamentIngestion.js');
+                        const { syncIncumbentPoliticiansFromParliament } = await import('./utils/politicianSync.js');
+                        await ingestParliamentMembers();
+                        await syncIncumbentPoliticiansFromParliament();
+                        await ingestBillRollcallsForCurrentSession();
+                        const { ingestProvincialIncumbents, ingestMunicipalIncumbents } = await import('./utils/provincialMunicipalIngestion.js');
+                        await ingestProvincialIncumbents();
+                        await ingestMunicipalIncumbents();
+                        logger.info({ msg: 'Initial officials ingestion completed' });
+                    }
+                    catch (error) {
+                        logger.error({ msg: 'Initial officials ingestion failed', error: error instanceof Error ? error.message : String(error) });
+                    }
+                }
+                if (needsLegal) {
+                    try {
+                        const { ingestFederalActsFromJustice, ingestCriminalCodeFromJustice } = await import('./utils/legalIngestion.js');
+                        await ingestFederalActsFromJustice();
+                        await ingestCriminalCodeFromJustice();
+                        logger.info({ msg: 'Initial legal ingestion completed' });
+                    }
+                    catch (error) {
+                        logger.error({ msg: 'Initial legal ingestion failed', error: error instanceof Error ? error.message : String(error) });
+                    }
+                }
+            }
+            catch (error) {
+                logger.error({ msg: 'AUTO_INGEST_ON_START failed', error: error instanceof Error ? error.message : String(error) });
+            }
+        }, 15000);
+    }
     // Initialize comprehensive legal database
     setTimeout(() => {
         // Legal data populator removed during cleanup

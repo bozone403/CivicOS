@@ -745,9 +745,12 @@ app.get("/health", (_req, res) => {
         const { db } = await import('./db.js');
         const { count } = await import('drizzle-orm');
         const { users, politicians, legalActs, legalCases } = await import('../shared/schema.js');
-        const polCount = Number((await db.select({ c: count() }).from(politicians)).[0]?.c || 0);
-        const actsCount = Number((await db.select({ c: count() }).from(legalActs)).[0]?.c || 0);
-        const casesCount = Number((await db.select({ c: count() }).from(legalCases)).[0]?.c || 0);
+        const polRows = await db.select({ c: count() }).from(politicians);
+        const polCount = Number((polRows[0] as any)?.c || 0);
+        const actRows = await db.select({ c: count() }).from(legalActs);
+        const actsCount = Number((actRows[0] as any)?.c || 0);
+        const caseRows = await db.select({ c: count() }).from(legalCases);
+        const casesCount = Number((caseRows[0] as any)?.c || 0);
         const needsOfficials = polCount < 50;
         const needsLegal = actsCount < 50 || casesCount < 1;
         if (needsOfficials) {

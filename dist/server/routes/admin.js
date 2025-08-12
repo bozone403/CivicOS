@@ -1,13 +1,15 @@
 import { db } from '../db.js';
-import { users, socialPosts, socialComments, notifications, newsArticles, votes } from '../../shared/schema.js';
+import { users, socialPosts, socialComments, notifications, newsArticles, votes, politicians, legalActs, legalCases } from '../../shared/schema.js';
 import { count } from 'drizzle-orm';
 import { jwtAuth } from './auth.js';
 import { requirePermission } from '../utils/permissionService.js';
 import { ingestNewsFeeds } from '../utils/newsIngestion.js';
 import { ingestParliamentMembers, ingestBillRollcallsForCurrentSession } from '../utils/parliamentIngestion.js';
+import { syncIncumbentPoliticiansFromParliament } from '../utils/politicianSync.js';
 import { ingestProcurementFromCKAN } from '../utils/procurementIngestion.js';
 import { ingestLobbyistsFromCKAN } from '../utils/lobbyistsIngestion.js';
-import { ingestLegalActsCurated, ingestLegalCasesCurated } from '../utils/legalIngestion.js';
+import { ingestLegalActsCurated, ingestLegalCasesCurated, ingestFederalActsFromJustice, ingestCriminalCodeFromJustice } from '../utils/legalIngestion.js';
+import { ingestProvincialIncumbents, ingestMunicipalIncumbents, loadMunicipalCatalog, saveMunicipalCatalog } from '../utils/provincialMunicipalIngestion.js';
 export function registerAdminRoutes(app) {
     // Aggregated platform summary for admin dashboards
     app.get('/api/admin/summary', jwtAuth, requirePermission('view_analytics'), async (_req, res) => {
@@ -91,11 +93,55 @@ export function registerAdminRoutes(app) {
     app.post('/api/admin/refresh/parliament', jwtAuth, requirePermission('admin.identity.review'), async (_req, res) => {
         try {
             const members = await ingestParliamentMembers();
+            const upserts = await syncIncumbentPoliticiansFromParliament();
             const votes = await ingestBillRollcallsForCurrentSession();
-            res.json({ success: true, membersInserted: members, rollcalls: votes.rollcalls, records: votes.records });
+            res.json({ success: true, membersInserted: members, politiciansUpserted: upserts, rollcalls: votes.rollcalls, records: votes.records });
         }
         catch (error) {
             res.status(500).json({ success: false, message: 'Failed to refresh parliament data' });
+        }
+    });
+    // Admin: trigger provincial incumbents ingestion
+    app.post('/api/admin/refresh/provincial-incumbents', jwtAuth, requirePermission('admin.identity.review'), async (req, res) => {
+        try {
+            const province = req.body?.province;
+            const result = await ingestProvincialIncumbents(province);
+            res.json({ success: true, ...result });
+        }
+        catch (error) {
+            res.status(500).json({ success: false, message: 'Failed to refresh provincial incumbents' });
+        }
+    });
+    // Admin: trigger municipal incumbents ingestion
+    app.post('/api/admin/refresh/municipal-incumbents', jwtAuth, requirePermission('admin.identity.review'), async (req, res) => {
+        try {
+            const targets = Array.isArray(req.body?.targets) ? req.body.targets : undefined;
+            const result = await ingestMunicipalIncumbents(targets);
+            res.json({ success: true, ...result });
+        }
+        catch (error) {
+            res.status(500).json({ success: false, message: 'Failed to refresh municipal incumbents' });
+        }
+    });
+    // Admin: upsert municipal sources catalog entries
+    app.post('/api/admin/municipal-sources/upsert', jwtAuth, requirePermission('admin.identity.review'), async (req, res) => {
+        try {
+            const entries = Array.isArray(req.body?.entries) ? req.body.entries : [];
+            if (!entries.length)
+                return res.status(400).json({ success: false, message: 'No entries provided' });
+            const current = loadMunicipalCatalog();
+            for (const e of entries) {
+                current[`${e.city}, ${e.province}`] = e.url;
+            }
+            const out = Object.entries(current).map(([k, url]) => {
+                const [city, province] = k.split(',').map(s => s.trim());
+                return { city, province, url };
+            });
+            saveMunicipalCatalog(out);
+            res.json({ success: true, count: entries.length });
+        }
+        catch (error) {
+            res.status(500).json({ success: false, message: 'Failed to upsert municipal sources' });
         }
     });
     // Admin: trigger procurement data ingestion (CKAN)
@@ -127,10 +173,30 @@ export function registerAdminRoutes(app) {
             const casesIn = Array.isArray(req.body?.cases) ? req.body.cases : [];
             const actsInserted = acts.length ? await ingestLegalActsCurated(acts) : 0;
             const casesInserted = casesIn.length ? await ingestLegalCasesCurated(casesIn) : 0;
-            res.json({ success: true, actsInserted, casesInserted });
+            const federalActs = await ingestFederalActsFromJustice();
+            const ccSections = await ingestCriminalCodeFromJustice();
+            res.json({ success: true, actsInserted, casesInserted, federalActs, ccSections });
         }
         catch (error) {
             res.status(500).json({ success: false, message: 'Failed to refresh legal data' });
+        }
+    });
+    // Admin: ingestion status
+    app.get('/api/admin/ingestion/status', jwtAuth, requirePermission('view_analytics'), async (_req, res) => {
+        try {
+            const [pol] = await db.select({ c: count() }).from(users);
+            const [politix] = await db.select({ c: count() }).from(politicians);
+            const [acts] = await db.select({ c: count() }).from(legalActs);
+            const [casesC] = await db.select({ c: count() }).from(legalCases);
+            res.json({ success: true, counts: {
+                    users: Number(pol?.c) || 0,
+                    politicians: Number(politix?.c) || 0,
+                    legalActs: Number(acts?.c) || 0,
+                    legalCases: Number(casesC?.c) || 0,
+                } });
+        }
+        catch (error) {
+            res.status(500).json({ success: false, message: 'Failed to load ingestion status' });
         }
     });
 }

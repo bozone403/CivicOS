@@ -336,7 +336,7 @@ export default function Legal() {
             <TabsContent value="database" className="space-y-6 mt-6">
               {legalDatabase && (
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  {/* Federal Statutes */
+                  {/* Federal Statutes */}
                   <Card className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm">
                     <CardHeader>
                       <CardTitle className="flex items-center gap-2">
