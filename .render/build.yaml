@@ -1,0 +1,10 @@
+build:
+  steps:
+    - name: Install dependencies
+      command: npm ci --no-audit --no-fund
+    - name: Build server
+      command: npm run build:server
+    - name: Install client dependencies
+      command: cd client && npm ci --no-audit --no-fund
+    - name: Build client
+      command: cd client && npm run build
