@@ -1,5 +1,8 @@
 import pino from 'pino';
 import { mockAiService } from './mockAiService.js';
+import { db } from '../db.js';
+import { sql } from 'drizzle-orm';
+import { politicians, bills, newsArticles, legalActs, legalCases } from '../../shared/schema.js';
 
 const logger = pino({ name: 'ai-service' });
 
@@ -44,8 +47,75 @@ class AiService {
   }
 
   async generateResponse(prompt: string, context?: any): Promise<string> {
+    try {
+      // Try to build context from live database data first
+      const liveContext = await this.buildLiveContext(prompt);
+      if (liveContext) {
+        return this.generateMockResponse(prompt, { ...context, ...liveContext });
+      }
+    } catch (error) {
+      logger.warn('Failed to build live context, falling back to mock data:', error);
+    }
+    
     // Always use mock AI - no external dependencies
     return this.generateMockResponse(prompt, context);
+  }
+
+  private async buildLiveContext(prompt: string): Promise<any> {
+    const lowerPrompt = prompt.toLowerCase();
+    const context: any = {};
+
+    try {
+      // Politician context
+      if (lowerPrompt.includes('politician') || lowerPrompt.includes('trudeau') || lowerPrompt.includes('poilievre') || lowerPrompt.includes('singh')) {
+        const politiciansData = await db.execute(sql`
+          SELECT id, name, party, position, constituency, trust_score, level, jurisdiction
+          FROM politicians 
+          WHERE is_incumbent = true 
+          ORDER BY trust_score DESC 
+          LIMIT 10
+        `);
+        context.politicians = politiciansData.rows;
+      }
+
+      // Bills context
+      if (lowerPrompt.includes('bill') || lowerPrompt.includes('legislation')) {
+        const billsData = await db.execute(sql`
+          SELECT id, title, description, status, sponsor_name, introduced_date, summary
+          FROM bills 
+          ORDER BY created_at DESC 
+          LIMIT 10
+        `);
+        context.bills = billsData.rows;
+      }
+
+      // News context
+      if (lowerPrompt.includes('news') || lowerPrompt.includes('current') || lowerPrompt.includes('today')) {
+        const newsData = await db.execute(sql`
+          SELECT id, title, content, source, published_at, credibility_score
+          FROM news_articles 
+          ORDER BY published_at DESC 
+          LIMIT 5
+        `);
+        context.news = newsData.rows;
+      }
+
+      // Legal context
+      if (lowerPrompt.includes('law') || lowerPrompt.includes('legal') || lowerPrompt.includes('act')) {
+        const legalData = await db.execute(sql`
+          SELECT id, title, summary, category, jurisdiction
+          FROM legal_acts 
+          ORDER BY created_at DESC 
+          LIMIT 10
+        `);
+        context.legal = legalData.rows;
+      }
+
+      return context;
+    } catch (error) {
+      logger.error('Error building live context:', error);
+      return null;
+    }
   }
 
   private generateMockResponse(prompt: string, context?: any): string {

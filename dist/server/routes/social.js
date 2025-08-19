@@ -562,6 +562,180 @@ export function registerSocialRoutes(app) {
             res.status(500).json({ error: "Failed to add comment" });
         }
     });
+    // ===== GENERAL COMMENT SYSTEM =====
+    // GET /api/social/comments/:targetType/:targetId - Get comments for a specific target
+    // Note: This endpoint works with the existing schema by treating targetId as postId
+    app.get('/api/social/comments/:targetType/:targetId', async (req, res) => {
+        try {
+            const { targetType, targetId } = req.params;
+            const userId = req.user?.id;
+            // For now, we'll use the existing postId field and treat targetId as postId
+            // In the future, we can extend the schema to support multiple target types
+            const postId = parseInt(targetId);
+            if (isNaN(postId)) {
+                return res.status(400).json({
+                    success: false,
+                    message: "Invalid target ID"
+                });
+            }
+            // Get comments with user info and interaction counts
+            const comments = await db
+                .select({
+                id: socialComments.id,
+                content: socialComments.content,
+                userId: socialComments.userId,
+                postId: socialComments.postId,
+                parentCommentId: socialComments.parentCommentId,
+                createdAt: socialComments.createdAt,
+                updatedAt: socialComments.updatedAt,
+                user: {
+                    firstName: users.firstName,
+                    lastName: users.lastName,
+                    email: users.email,
+                    profileImageUrl: users.profileImageUrl,
+                }
+            })
+                .from(socialComments)
+                .leftJoin(users, eq(socialComments.userId, users.id))
+                .where(eq(socialComments.postId, postId))
+                .orderBy(asc(socialComments.createdAt));
+            // Get interaction counts and user interaction status
+            const commentsWithInteractions = await Promise.all(comments.map(async (comment) => {
+                // Get like/dislike counts
+                const likeCount = await db
+                    .select({ count: count() })
+                    .from(commentLikes)
+                    .where(and(eq(commentLikes.commentId, comment.id), eq(commentLikes.reaction, 'like')));
+                const dislikeCount = await db
+                    .select({ count: count() })
+                    .from(commentLikes)
+                    .where(and(eq(commentLikes.commentId, comment.id), eq(commentLikes.reaction, 'dislike')));
+                // Check if current user reacted
+                let userVote = null;
+                if (userId) {
+                    const userReaction = await db
+                        .select()
+                        .from(commentLikes)
+                        .where(and(eq(commentLikes.commentId, comment.id), eq(commentLikes.userId, userId)))
+                        .limit(1);
+                    if (userReaction.length > 0) {
+                        userVote = userReaction[0].reaction === 'like' ? 'like' : 'dislike';
+                    }
+                }
+                return {
+                    ...comment,
+                    targetType, // Add targetType for frontend compatibility
+                    targetId: postId, // Add targetId for frontend compatibility
+                    likeCount: likeCount[0]?.count || 0,
+                    dislikeCount: dislikeCount[0]?.count || 0,
+                    userVote,
+                    canEdit: userId === comment.userId,
+                    canDelete: userId === comment.userId,
+                };
+            }));
+            // Build comment tree structure
+            const commentMap = new Map();
+            const rootComments = [];
+            commentsWithInteractions.forEach(comment => {
+                commentMap.set(comment.id, { ...comment, replies: [] });
+            });
+            commentsWithInteractions.forEach(comment => {
+                if (comment.parentCommentId) {
+                    const parent = commentMap.get(comment.parentCommentId);
+                    if (parent) {
+                        parent.replies.push(commentMap.get(comment.id));
+                    }
+                }
+                else {
+                    rootComments.push(commentMap.get(comment.id));
+                }
+            });
+            res.json({
+                success: true,
+                comments: rootComments
+            });
+        }
+        catch (error) {
+            logger.error('Fetch comments error:', error);
+            res.status(500).json({ success: false, message: 'Failed to fetch comments' });
+        }
+    });
+    // POST /api/social/comments - Create a new comment
+    app.post('/api/social/comments', jwtAuth, async (req, res) => {
+        try {
+            const userId = req.user?.id;
+            const { content, targetType, targetId, parentCommentId } = req.body;
+            if (!content || !targetType || !targetId) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Missing required fields: content, targetType, targetId'
+                });
+            }
+            if (content.length > 1000) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Comment too long. Maximum 1000 characters.'
+                });
+            }
+            // For now, treat targetId as postId to work with existing schema
+            const postId = parseInt(targetId);
+            if (isNaN(postId)) {
+                return res.status(400).json({
+                    success: false,
+                    message: "Invalid target ID"
+                });
+            }
+            const [newComment] = await db
+                .insert(socialComments)
+                .values({
+                content: content.trim(),
+                userId,
+                postId,
+                parentCommentId: parentCommentId ? parseInt(parentCommentId) : undefined,
+                createdAt: new Date(),
+            })
+                .returning();
+            // Get the full comment with user info
+            const [fullComment] = await db
+                .select({
+                id: socialComments.id,
+                content: socialComments.content,
+                userId: socialComments.userId,
+                postId: socialComments.postId,
+                parentCommentId: socialComments.parentCommentId,
+                createdAt: socialComments.createdAt,
+                updatedAt: socialComments.updatedAt,
+                user: {
+                    firstName: users.firstName,
+                    lastName: users.lastName,
+                    email: users.email,
+                    profileImageUrl: users.profileImageUrl,
+                }
+            })
+                .from(socialComments)
+                .leftJoin(users, eq(socialComments.userId, users.id))
+                .where(eq(socialComments.id, newComment.id))
+                .limit(1);
+            res.status(201).json({
+                success: true,
+                comment: {
+                    ...fullComment,
+                    targetType, // Add targetType for frontend compatibility
+                    targetId: postId, // Add targetId for frontend compatibility
+                    likeCount: 0,
+                    dislikeCount: 0,
+                    userVote: null,
+                    canEdit: true,
+                    canDelete: true,
+                    replies: []
+                }
+            });
+        }
+        catch (error) {
+            logger.error('Create comment error:', error);
+            res.status(500).json({ success: false, message: 'Failed to create comment' });
+        }
+    });
     // GET /api/social/posts/:id/comments - Fetch comments for a post
     app.get('/api/social/posts/:id/comments', jwtAuth, async (req, res) => {
         try {

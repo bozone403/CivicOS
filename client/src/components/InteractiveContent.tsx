@@ -1,48 +1,16 @@
 import React, { useState } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
-import { VotingButtons } from "./VotingButtons";
+import { VotingButtons } from "@/components/VotingButtons";
+import { CommentSystem } from "@/components/CommentSystem";
+import { Share2, MessageCircle } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
-import { apiRequest } from "@/lib/queryClient";
-import { 
-  MessageCircle, 
-  Reply, 
-  Clock,
-  Share2,
-  Flag,
-  Heart,
-  MoreHorizontal
-} from "lucide-react";
-import { formatDistanceToNow } from "date-fns";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-
-interface Comment {
-  id: number;
-  content: string;
-  author_id: string;
-  target_type: string;
-  target_id: number;
-  parent_comment_id?: number;
-  created_at: string;
-  like_count: number;
-  can_delete: boolean;
-  first_name?: string;
-  last_name?: string;
-  email?: string;
-  profile_image_url?: string;
-  replies?: Comment[];
-}
 
 interface InteractiveContentProps {
-  targetType: 'politician' | 'bill' | 'petition' | 'post' | 'news';
+  targetType: 'politician' | 'bill' | 'post' | 'comment' | 'petition' | 'news' | 'finance';
   targetId: number;
   title: string;
-  description?: string;
+  description: string;
   showVoting?: boolean;
   showComments?: boolean;
   showSharing?: boolean;
@@ -59,8 +27,6 @@ export function InteractiveContent({
 }: InteractiveContentProps) {
   const { user } = useAuth();
   const { toast } = useToast();
-  const queryClient = useQueryClient();
-  // Using CommentSystem component instead of local state
 
   const handleShare = async () => {
     try {
@@ -111,17 +77,23 @@ export function InteractiveContent({
         </div>
       </div>
 
-      {/* Comments Section - Placeholder */}
+      {/* Comments Section - Now fully functional */}
       {showComments && (
         <div className="p-4 bg-gray-50 rounded-lg">
           <div className="flex items-center space-x-2 mb-4">
             <MessageCircle className="w-4 h-4 text-gray-600" />
             <span className="font-medium text-gray-900">Comments</span>
           </div>
-          <div className="text-center py-8 text-gray-500">
-            <MessageCircle className="w-8 h-8 mx-auto mb-2 text-gray-400" />
-            <p>Comments feature coming soon</p>
-          </div>
+          
+          <CommentSystem 
+            targetType={targetType}
+            targetId={targetId}
+            allowReplies={true}
+            allowEditing={true}
+            allowDeleting={true}
+            showUserAvatars={true}
+            maxDepth={3}
+          />
         </div>
       )}
     </div>

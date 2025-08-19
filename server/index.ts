@@ -15,6 +15,7 @@ import rateLimit from "express-rate-limit";
 import jwt from "jsonwebtoken";
 import pino from "pino";
 import { existsSync, readdirSync, statSync } from 'fs';
+import { jwtAuth } from "./routes/auth.js";
 
 // Import middleware
 import { authRateLimit, apiRateLimit, socialRateLimit, votingRateLimit } from './middleware/rateLimit.js';
@@ -56,59 +57,7 @@ interface AuthenticatedRequest extends Request {
   user: JwtPayload;
 }
 
-// Enhanced JWT authentication middleware
-function jwtAuth(req: Request, res: Response, next: NextFunction) {
-  const authHeader = req.headers.authorization;
-  
-  if (!authHeader || !authHeader.startsWith("Bearer ")) {
-    return res.status(401).json({ 
-      message: "Missing or invalid token",
-      code: "MISSING_TOKEN"
-    });
-  }
-  
-  try {
-    const token = authHeader.split(" ")[1];
-    
-    // Verify token with enhanced security
-    const decoded = jwt.verify(token, JWT_SECRET as jwt.Secret, {
-      algorithms: ['HS256'],
-      issuer: 'civicos',
-      audience: 'civicos-users',
-      clockTolerance: 30, // 30 seconds tolerance for clock skew
-    }) as unknown as JwtPayload;
-    
-    // Additional validation
-    if (!decoded.id || !decoded.email) {
-      return res.status(401).json({ 
-        message: "Invalid token payload",
-        code: "INVALID_PAYLOAD"
-      });
-    }
-    
-    // Check if token is expired (with 5 minute buffer)
-    const now = Math.floor(Date.now() / 1000);
-    if (decoded.exp < now - 300) {
-      return res.status(401).json({ 
-        message: "Token expired",
-        code: "TOKEN_EXPIRED"
-      });
-    }
-    
-    (req as any).user = decoded;
-    next();
-  } catch (err) {
-    logger.error('JWT verification failed', { 
-      error: err instanceof Error ? err.message : 'Unknown error',
-      token: authHeader.substring(0, 20) + '...' // Log first 20 chars for debugging
-    });
-    
-    return res.status(401).json({ 
-      message: "Invalid or expired token",
-      code: "INVALID_TOKEN"
-    });
-  }
-}
+// JWT authentication middleware is imported from auth.ts
 
 const app = express();
 // Trust proxy chain on Render to ensure correct client IP for rate limiting (IPv6-safe)

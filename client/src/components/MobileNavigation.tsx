@@ -98,6 +98,7 @@ export function MobileNavigation() {
     { title: "Profile", href: "/civicsocial/profile", icon: User },
     { title: "Friends", href: "/civicsocial/friends", icon: UserPlus },
     { title: "News", href: "/news", icon: FileText },
+    { title: "Bills", href: "/bills", icon: FileText },
   ];
 
   // CivicSocial navigation items (additional items not in primary nav)

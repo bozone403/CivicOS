@@ -26,6 +26,7 @@ import { registerMemoryRoutes } from "./routes/memory.js";
 import { registerLedgerRoutes } from "./routes/ledger.js";
 import { registerCasesRoutes } from "./routes/cases.js";
 import { registerLeaksRoutes } from "./routes/leaks.js";
+import { registerWhistleblowerRoutes } from "./routes/whistleblower.js";
 import { registerTrustRoutes } from "./routes/trust.js";
 import { registerCorruptionRoutes } from "./routes/corruption.js";
 import { registerElectionsRoutes } from "./routes/elections.js";
@@ -65,6 +66,7 @@ export async function registerRoutes(app) {
     registerLedgerRoutes(app);
     registerCasesRoutes(app);
     registerLeaksRoutes(app);
+    registerWhistleblowerRoutes(app);
     registerTrustRoutes(app);
     registerCorruptionRoutes(app);
     registerElectionsRoutes(app);

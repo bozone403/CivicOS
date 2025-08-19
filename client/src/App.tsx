@@ -23,6 +23,7 @@ const News = lazy(() => import("@/pages/news"));
 const Politicians = lazy(() => import("@/pages/politicians"));
 const Petitions = lazy(() => import("@/pages/petitions"));
 const Voting = lazy(() => import("@/pages/voting"));
+const Bills = lazy(() => import("@/pages/bills"));
 const Elections = lazy(() => import("@/pages/elections"));
 const Contacts = lazy(() => import("@/pages/contacts"));
 const Legal = lazy(() => import("@/pages/legal"));
@@ -59,6 +60,7 @@ const Terms = lazy(() => import("@/pages/terms"));
 const Accessibility = lazy(() => import("@/pages/accessibility"));
 const Notifications = lazy(() => import("@/pages/notifications"));
 const AdminModeration = lazy(() => import("@/pages/admin/moderation"));
+const AdminDashboard = lazy(() => import("@/pages/admin-dashboard"));
 const Support = lazy(() => import("@/pages/support"));
 const NotFound = lazy(() => import("@/pages/not-found"));
 
@@ -195,6 +197,14 @@ export default function App() {
                     </ProtectedRoute>
                   </Route>
 
+                  <Route path="/admin-dashboard">
+                    <ProtectedRoute>
+                      <Layout>
+                        <AdminDashboard />
+                      </Layout>
+                    </ProtectedRoute>
+                  </Route>
+
                   <Route path="/admin/moderation">
                     <ProtectedRoute>
                       <Layout>
@@ -269,6 +279,12 @@ export default function App() {
                         <Voting />
                       </Layout>
                     </ProtectedRoute>
+                  </Route>
+                  
+                  <Route path="/bills">
+                    <Layout>
+                      <Bills />
+                    </Layout>
                   </Route>
                   
                   <Route path="/elections">

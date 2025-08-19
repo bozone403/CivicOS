@@ -4,6 +4,8 @@ import { bills, votes, electoralCandidates, electoralVotes, billRollcalls, billR
 import { jwtAuth } from './auth.js';
 import { eq, and, desc, count } from 'drizzle-orm';
 import { z } from 'zod';
+import { sql } from 'drizzle-orm';
+import * as schema from '../../shared/schema.js';
 
 // Input validation schemas
 const createVoteSchema = z.object({
@@ -13,6 +15,270 @@ const createVoteSchema = z.object({
 });
 
 export function registerVotingRoutes(app: Express) {
+  
+  // ===== GENERAL VOTING ENDPOINTS (for VotingButtons component) =====
+  
+  // Get vote data for a specific target (used by VotingButtons)
+  app.get("/api/vote/:targetType/:targetId", async (req: Request, res: Response) => {
+    try {
+      const { targetType, targetId } = req.params;
+      const userId = (req as any).user?.id;
+      
+      if (!targetId || isNaN(Number(targetId))) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid target ID"
+        });
+      }
+
+      // Get vote counts and user's vote
+      let upvotes = 0;
+      let downvotes = 0;
+      let userVote: 'upvote' | 'downvote' | null = null;
+
+      if (targetType === 'bill') {
+        // For bills, use the existing votes table
+        const voteCounts = await db.execute(sql`
+          SELECT 
+            COUNT(CASE WHEN vote = 'yes' THEN 1 END) as upvotes,
+            COUNT(CASE WHEN vote = 'no' THEN 1 END) as downvotes
+          FROM votes 
+          WHERE bill_id = ${Number(targetId)}
+        `);
+        
+        if (voteCounts.rows.length > 0) {
+          upvotes = Number(voteCounts.rows[0].upvotes) || 0;
+          downvotes = Number(voteCounts.rows[0].downvotes) || 0;
+        }
+
+        // Get user's vote if authenticated
+        if (userId) {
+          const userVoteResult = await db.execute(sql`
+            SELECT vote FROM votes 
+            WHERE user_id = ${userId} AND bill_id = ${Number(targetId)}
+            LIMIT 1
+          `);
+          if (userVoteResult.rows.length > 0) {
+            userVote = userVoteResult.rows[0].vote === 'yes' ? 'upvote' : 'downvote';
+          }
+        }
+      } else if (targetType === 'post') {
+        // For social posts, use social likes
+        const likeCounts = await db.execute(sql`
+          SELECT 
+            COUNT(CASE WHEN reaction = 'like' THEN 1 END) as upvotes,
+            COUNT(CASE WHEN reaction = 'dislike' THEN 1 END) as downvotes
+          FROM social_likes 
+          WHERE post_id = ${Number(targetId)}
+        `);
+        
+        if (likeCounts.rows.length > 0) {
+          upvotes = Number(likeCounts.rows[0].upvotes) || 0;
+          downvotes = Number(likeCounts.rows[0].downvotes) || 0;
+        }
+
+        // Get user's reaction if authenticated
+        if (userId) {
+          const userReaction = await db.execute(sql`
+            SELECT reaction FROM social_likes 
+            WHERE user_id = ${userId} AND post_id = ${Number(targetId)}
+            LIMIT 1
+          `);
+          if (userReaction.rows.length > 0) {
+            userVote = userReaction.rows[0].reaction === 'like' ? 'upvote' : 'downvote';
+          }
+        }
+      } else if (targetType === 'comment') {
+        // For comments, use comment likes
+        const likeCounts = await db.execute(sql`
+          SELECT 
+            COUNT(CASE WHEN reaction = 'like' THEN 1 END) as upvotes,
+            COUNT(CASE WHEN reaction = 'dislike' THEN 1 END) as downvotes
+          FROM comment_likes 
+          WHERE comment_id = ${Number(targetId)}
+        `);
+        
+        if (likeCounts.rows.length > 0) {
+          upvotes = Number(likeCounts.rows[0].upvotes) || 0;
+          downvotes = Number(likeCounts.rows[0].downvotes) || 0;
+        }
+
+        // Get user's reaction if authenticated
+        if (userId) {
+          const userReaction = await db.execute(sql`
+            SELECT reaction FROM comment_likes 
+            WHERE user_id = ${userId} AND comment_id = ${Number(targetId)}
+            LIMIT 1
+          `);
+          if (userReaction.rows.length > 0) {
+            userVote = userReaction.rows[0].reaction === 'like' ? 'upvote' : 'downvote';
+          }
+        }
+      } else if (targetType === 'politician') {
+        // For politicians, use trust tracking (positive/negative)
+        const trustData = await db.execute(sql`
+          SELECT 
+            COUNT(CASE WHEN trust_change > 0 THEN 1 END) as upvotes,
+            COUNT(CASE WHEN trust_change < 0 THEN 1 END) as downvotes
+          FROM politician_truth_tracking 
+          WHERE politician_id = ${Number(targetId)}
+        `);
+        
+        if (trustData.rows.length > 0) {
+          upvotes = Number(trustData.rows[0].upvotes) || 0;
+          downvotes = Number(trustData.rows[0].downvotes) || 0;
+        }
+      }
+
+      const totalScore = upvotes - downvotes;
+
+      res.json({
+        success: true,
+        upvotes,
+        downvotes,
+        totalScore,
+        userVote,
+        targetType,
+        targetId: Number(targetId)
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: "Failed to fetch vote data",
+        error: (error as any)?.message || String(error)
+      });
+    }
+  });
+
+  // Cast a general vote (used by VotingButtons)
+  app.post("/api/vote", jwtAuth, async (req: Request, res: Response) => {
+    try {
+      const userId = (req as any).user?.id;
+      const { targetType, targetId, voteType } = req.body;
+
+      if (!targetId || !targetType || !voteType) {
+        return res.status(400).json({
+          success: false,
+          message: "Missing required fields: targetId, targetType, voteType"
+        });
+      }
+
+      if (!['upvote', 'downvote'].includes(voteType)) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid vote type. Must be 'upvote' or 'downvote'"
+        });
+      }
+
+      let success = false;
+      let message = '';
+
+      if (targetType === 'bill') {
+        // Convert upvote/downvote to yes/no for bills
+        const billVote = voteType === 'upvote' ? 'yes' : 'no';
+        
+        // Check if user already voted
+        const existingVote = await db.execute(sql`
+          SELECT id FROM votes 
+          WHERE user_id = ${userId} AND bill_id = ${Number(targetId)}
+        `);
+
+        if (existingVote.rows.length > 0) {
+          // Update existing vote
+          await db.execute(sql`
+            UPDATE votes SET vote = ${billVote}, updated_at = NOW()
+            WHERE user_id = ${userId} AND bill_id = ${Number(targetId)}
+          `);
+        } else {
+          // Create new vote
+          await db.insert(votes).values({
+            userId,
+            billId: Number(targetId),
+            vote: billVote,
+            timestamp: new Date(),
+            createdAt: new Date(),
+          });
+        }
+        success = true;
+        message = 'Bill vote recorded successfully';
+      } else if (targetType === 'post') {
+        // Handle social post reactions
+        const reaction = voteType === 'upvote' ? 'like' : 'dislike';
+        
+        // Check if user already reacted
+        const existingReaction = await db.execute(sql`
+          SELECT id FROM social_likes 
+          WHERE user_id = ${userId} AND post_id = ${Number(targetId)}
+        `);
+
+        if (existingReaction.rows.length > 0) {
+          // Update existing reaction
+          await db.execute(sql`
+            UPDATE social_likes SET reaction = ${reaction}, updated_at = NOW()
+            WHERE user_id = ${userId} AND post_id = ${Number(targetId)}
+          `);
+        } else {
+          // Create new reaction
+          await db.insert(schema.socialLikes).values({
+            userId,
+            postId: Number(targetId),
+            reaction,
+            createdAt: new Date(),
+          });
+        }
+        success = true;
+        message = 'Post reaction recorded successfully';
+      } else if (targetType === 'comment') {
+        // Handle comment reactions
+        const reaction = voteType === 'upvote' ? 'like' : 'dislike';
+        
+        // Check if user already reacted
+        const existingReaction = await db.execute(sql`
+          SELECT id FROM comment_likes 
+          WHERE user_id = ${userId} AND comment_id = ${Number(targetId)}
+        `);
+
+        if (existingReaction.rows.length > 0) {
+          // Update existing reaction
+          await db.execute(sql`
+            UPDATE comment_likes SET reaction = ${reaction}, updated_at = NOW()
+            WHERE user_id = ${userId} AND comment_id = ${Number(targetId)}
+          `);
+        } else {
+          // Create new reaction
+          await db.insert(schema.commentLikes).values({
+            userId,
+            commentId: Number(targetId),
+            reaction,
+            createdAt: new Date(),
+          });
+        }
+        success = true;
+        message = 'Comment reaction recorded successfully';
+      } else {
+        return res.status(400).json({
+          success: false,
+          message: `Unsupported target type: ${targetType}`
+        });
+      }
+
+      res.json({
+        success,
+        message,
+        targetType,
+        targetId: Number(targetId),
+        voteType
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: "Failed to process vote",
+        error: (error as any)?.message || String(error)
+      });
+    }
+  });
+
+  // ===== EXISTING BILL VOTING ENDPOINTS =====
   
   // Get all bills for voting
   app.get("/api/voting/bills", async (req: Request, res: Response) => {
