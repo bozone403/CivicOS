@@ -9,7 +9,7 @@ import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Bell, Shield, Globe, Eye, Mail, Smartphone, Lock, Check, Camera, Upload } from "lucide-react";
-import { useState, useRef } from "react";
+import { useState, useRef, useCallback } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -80,7 +80,7 @@ export default function Settings() {
     },
   });
 
-  const handlePasswordChange = (e: React.FormEvent) => {
+  const handlePasswordChange = useCallback((e: React.FormEvent) => {
     e.preventDefault();
     setPasswordError('');
     
@@ -98,97 +98,66 @@ export default function Settings() {
       setPasswordError('New password must be at least 6 characters');
       return;
     }
-
+    
     changePasswordMutation.mutate({
       currentPassword: passwordForm.currentPassword,
       newPassword: passwordForm.newPassword
     });
-  };
+  }, [passwordForm, changePasswordMutation]);
 
-  // Profile picture upload mutation
+  const handleProfileUpdate = useCallback((e: React.FormEvent) => {
+    e.preventDefault();
+    const formData = new FormData(e.target as HTMLFormElement);
+    const fields = {
+      firstName: formData.get('firstName') as string,
+      lastName: formData.get('lastName') as string,
+      email: formData.get('email') as string
+    };
+    updateProfileMutation.mutate(fields);
+  }, [updateProfileMutation]);
+
+  const handleImageSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setSelectedImage(file);
+      const reader = new FileReader();
+      reader.onload = (e) => setImagePreview(e.target?.result as string);
+      reader.readAsDataURL(file);
+    }
+  }, []);
+
   const uploadProfilePictureMutation = useMutation({
     mutationFn: async (file: File) => {
       const formData = new FormData();
       formData.append('profileImage', file);
-      const token = localStorage.getItem('civicos-jwt');
-      const res = await fetch('/api/auth/upload-profile-picture', {
-        method: 'POST',
-        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-        body: formData,
-        credentials: 'include',
-      });
-      if (!res.ok) {
-        const text = await res.text();
-        throw new Error(text || 'Failed to upload profile picture');
-      }
-      return await res.json();
+      return await apiRequest("/api/users/profile-picture", "POST", formData);
     },
     onSuccess: () => {
-      toast({
-        title: "Profile Picture Updated",
-        description: "Your profile picture has been updated successfully",
-      });
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
       setSelectedImage(null);
       setImagePreview(null);
-      // Refresh the page to show new profile picture
-      window.location.reload();
+      toast({ title: "Profile picture updated!", description: "Your new profile picture has been saved." });
     },
     onError: (error: any) => {
-      toast({
-        title: "Upload Failed",
-        description: error.message || "Failed to upload profile picture",
-        variant: "destructive",
-      });
+      toast({ title: "Upload failed", description: error.message || "Failed to upload profile picture", variant: "destructive" });
     },
   });
 
-  const handleImageSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      if (file.size > 5 * 1024 * 1024) { // 5MB limit
-        toast({
-          title: "File Too Large",
-          description: "Please select an image smaller than 5MB",
-          variant: "destructive",
-        });
-        return;
-      }
-      
-      if (!file.type.startsWith('image/')) {
-        toast({
-          title: "Invalid File Type",
-          description: "Please select an image file",
-          variant: "destructive",
-        });
-        return;
-      }
-      
-      setSelectedImage(file);
-      
-      // Create preview
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        setImagePreview(e.target?.result as string);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const handleUploadProfilePicture = () => {
+  const handleUploadProfilePicture = useCallback(() => {
     if (selectedImage) {
       uploadProfilePictureMutation.mutate(selectedImage);
     }
-  };
+  }, [selectedImage, uploadProfilePictureMutation]);
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-4xl mx-auto py-8 px-4">
-        <div className="space-y-6">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">Settings</h1>
-            <p className="text-gray-600">Manage your account preferences and privacy settings</p>
-          </div>
+    <div className="min-h-screen bg-gray-50 py-8">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-gray-900">Settings</h1>
+          <p className="text-gray-600 mt-2">Manage your account preferences and privacy settings</p>
+        </div>
 
+        <div className="space-y-6">
           {/* Profile Picture */}
           <Card>
             <CardHeader>
@@ -253,21 +222,21 @@ export default function Settings() {
               <CardDescription>Update your personal information</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <form onSubmit={(e) => { e.preventDefault(); updateProfileMutation.mutate({ firstName: (e.target as any).firstName?.value, lastName: (e.target as any).lastName?.value, email: (e.target as any).email?.value }); }} className="space-y-4">
+              <form onSubmit={handleProfileUpdate} className="space-y-4">
                 <div className="grid gap-4 md:grid-cols-2">
                   <div className="space-y-2">
-                    <Label htmlFor="profileFirstName">First Name</Label>
+                    <Label htmlFor="settings-profile-first-name">First Name</Label>
                     <Input
-                      id="profileFirstName"
+                      id="settings-profile-first-name"
                       name="firstName"
                       defaultValue={(user as any)?.firstName || ''}
                       placeholder="Enter your first name"
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="profileLastName">Last Name</Label>
+                    <Label htmlFor="settings-profile-last-name">Last Name</Label>
                     <Input
-                      id="profileLastName"
+                      id="settings-profile-last-name"
                       name="lastName"
                       defaultValue={(user as any)?.lastName || ''}
                       placeholder="Enter your last name"
@@ -275,9 +244,9 @@ export default function Settings() {
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="profileEmail">Email Address</Label>
+                  <Label htmlFor="settings-profile-email">Email Address</Label>
                   <Input
-                    id="profileEmail"
+                    id="settings-profile-email"
                     name="email"
                     type="email"
                     defaultValue={(user as any)?.email || ''}
@@ -317,9 +286,9 @@ export default function Settings() {
                 )}
 
                 <div className="space-y-2">
-                  <Label htmlFor="currentPasswordInput">Current Password</Label>
+                  <Label htmlFor="settings-current-password">Current Password</Label>
                   <Input
-                    id="currentPasswordInput"
+                    id="settings-current-password"
                     type="password"
                     value={passwordForm.currentPassword}
                     onChange={(e) => setPasswordForm(prev => ({ ...prev, currentPassword: e.target.value }))}
@@ -330,9 +299,9 @@ export default function Settings() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="newPasswordInput">New Password</Label>
+                  <Label htmlFor="settings-new-password">New Password</Label>
                   <Input
-                    id="newPasswordInput"
+                    id="settings-new-password"
                     type="password"
                     value={passwordForm.newPassword}
                     onChange={(e) => setPasswordForm(prev => ({ ...prev, newPassword: e.target.value }))}
@@ -343,9 +312,9 @@ export default function Settings() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="confirmPasswordInput">Confirm New Password</Label>
+                  <Label htmlFor="settings-confirm-password">Confirm New Password</Label>
                   <Input
-                    id="confirmPasswordInput"
+                    id="settings-confirm-password"
                     type="password"
                     value={passwordForm.confirmPassword}
                     onChange={(e) => setPasswordForm(prev => ({ ...prev, confirmPassword: e.target.value }))}
@@ -498,25 +467,25 @@ export default function Settings() {
             <CardContent className="space-y-4">
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
-                    <Label htmlFor="provinceInput">Province/Territory</Label>
+                    <Label htmlFor="settings-province-input">Province/Territory</Label>
                   <Input
-                      id="provinceInput"
+                      id="settings-province-input"
                     placeholder="Select your province"
                     defaultValue="Ontario"
                   />
                 </div>
                 <div className="space-y-2">
-                    <Label htmlFor="ridingInput">Federal Riding</Label>
+                    <Label htmlFor="settings-riding-input">Federal Riding</Label>
                   <Input
-                      id="ridingInput"
+                      id="settings-riding-input"
                     placeholder="Enter your riding"
                   />
                 </div>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="municipalityInput">Municipality</Label>
+                <Label htmlFor="settings-municipality-input">Municipality</Label>
                 <Input
-                  id="municipalityInput"
+                  id="settings-municipality-input"
                   placeholder="Enter your city/town"
                 />
               </div>
