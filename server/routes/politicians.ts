@@ -9,6 +9,7 @@ import jwt from "jsonwebtoken";
 import { ParliamentAPIService } from "../parliamentAPI.js";
 import * as cheerio from "cheerio";
 import { syncIncumbentPoliticiansFromParliament } from '../utils/politicianSync.js';
+import { politicianIngestionService } from '../utils/politicianIngestion.js';
 
 // JWT Auth middleware
 function jwtAuth(req: any, res: any, next: any) {
@@ -86,6 +87,21 @@ export function registerPoliticiansRoutes(app: Express) {
       );
     } catch (error) {
       return ResponseFormatter.databaseError(res, `Failed to fetch politicians: ${(error as Error).message}`);
+    }
+  });
+
+  // Admin: Trigger comprehensive politician ingestion
+  app.post('/api/politicians/ingest', jwtAuth, async (req: Request, res: Response) => {
+    try {
+      const result = await politicianIngestionService.ingestAllPoliticians();
+      
+      if (result.success) {
+        return ResponseFormatter.success(res, result, "Politician ingestion completed successfully");
+      } else {
+        return ResponseFormatter.error(res, result.message || "Politician ingestion failed", 500);
+      }
+    } catch (error) {
+      return ResponseFormatter.databaseError(res, `Failed to ingest politicians: ${(error as Error).message}`);
     }
   });
 

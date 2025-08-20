@@ -7,6 +7,9 @@ import { ingestLobbyistsFromCKAN } from './lobbyistsIngestion.js';
 import { ingestFederalActsFromJustice, ingestCriminalCodeFromJustice } from './legalIngestion.js';
 import { ingestProvincialIncumbents, ingestMunicipalIncumbents } from './provincialMunicipalIngestion.js';
 import { ingestNewsFeeds } from './newsIngestion.js';
+import { billIngestionService } from './billIngestion.js';
+import { politicianIngestionService } from './politicianIngestion.js';
+import { electionIngestionService } from './electionIngestion.js';
 
 const logger = pino({ name: 'comprehensive-data-ingestion' });
 
@@ -90,30 +93,12 @@ class ComprehensiveDataIngestion {
     try {
       logger.info('Starting politician ingestion');
       
-      // 1. Federal Parliament members
-      const parliamentResult = await ingestParliamentMembers();
-      logger.info('Parliament members ingested:', parliamentResult);
-
-      // 2. Provincial incumbents
-      const provincialResult = await ingestProvincialIncumbents();
-      logger.info('Provincial incumbents ingested:', provincialResult);
-
-      // 3. Municipal incumbents
-      const municipalResult = await ingestMunicipalIncumbents();
-      logger.info('Municipal incumbents ingested:', municipalResult);
-
-      // 4. Sync all incumbent politicians
-      const syncResult = await this.syncAllIncumbentPoliticians();
-
+      const result = await politicianIngestionService.ingestAllPoliticians();
+      
       return {
-        success: true,
-        message: 'Politician ingestion completed successfully',
-        data: {
-          parliament: parliamentResult,
-          provincial: provincialResult,
-          municipal: municipalResult,
-          sync: syncResult
-        },
+        success: result.success,
+        message: result.message,
+        data: result.data,
         timestamp: new Date().toISOString()
       };
     } catch (error) {
@@ -131,20 +116,12 @@ class ComprehensiveDataIngestion {
     try {
       logger.info('Starting bill ingestion');
       
-      // 1. Current session roll-calls
-      const rollcallResult = await ingestBillRollcallsForCurrentSession();
-      logger.info('Bill roll-calls ingested:', rollcallResult);
-
-      // 2. Additional bill sources (OpenParliament, Our Commons)
-      const additionalBillsResult = await this.ingestAdditionalBillSources();
-
+      const result = await billIngestionService.ingestAllBills();
+      
       return {
-        success: true,
-        message: 'Bill ingestion completed successfully',
-        data: {
-          rollcalls: rollcallResult,
-          additional: additionalBillsResult
-        },
+        success: result.success,
+        message: result.message,
+        data: result.data,
         timestamp: new Date().toISOString()
       };
     } catch (error) {
@@ -162,23 +139,12 @@ class ComprehensiveDataIngestion {
     try {
       logger.info('Starting election ingestion');
       
-      // 1. Federal elections
-      const federalResult = await this.ingestFederalElections();
+      const result = await electionIngestionService.ingestAllElections();
       
-      // 2. Provincial elections
-      const provincialResult = await this.ingestProvincialElections();
-      
-      // 3. Municipal elections
-      const municipalResult = await this.ingestMunicipalElections();
-
       return {
-        success: true,
-        message: 'Election ingestion completed successfully',
-        data: {
-          federal: federalResult,
-          provincial: provincialResult,
-          municipal: municipalResult
-        },
+        success: result.success,
+        message: result.message,
+        data: result.data,
         timestamp: new Date().toISOString()
       };
     } catch (error) {
@@ -323,66 +289,7 @@ class ComprehensiveDataIngestion {
     }
   }
 
-  private async syncAllIncumbentPoliticians(): Promise<any> {
-    try {
-      // This would sync all politicians and ensure they're properly categorized
-      // For now, return a placeholder
-      return { message: 'Politician sync completed' };
-    } catch (error) {
-      logger.error('Politician sync failed:', error);
-      throw error;
-    }
-  }
 
-  private async ingestAdditionalBillSources(): Promise<any> {
-    try {
-      // Additional bill sources would go here
-      return { message: 'Additional bill sources processed' };
-    } catch (error) {
-      logger.error('Additional bill sources failed:', error);
-      throw error;
-    }
-  }
-
-  private async ingestFederalElections(): Promise<any> {
-    try {
-      // Federal election data would go here
-      return { message: 'Federal elections processed' };
-    } catch (error) {
-      logger.error('Federal elections failed:', error);
-      throw error;
-    }
-  }
-
-  private async ingestProvincialElections(): Promise<any> {
-    try {
-      // Provincial election data would go here
-      return { message: 'Provincial elections processed' };
-    } catch (error) {
-      logger.error('Provincial elections failed:', error);
-      throw error;
-    }
-  }
-
-  private async ingestMunicipalElections(): Promise<any> {
-    try {
-      // Municipal election data would go here
-      return { message: 'Municipal elections processed' };
-    } catch (error) {
-      logger.error('Municipal elections failed:', error);
-      throw error;
-    }
-  }
-
-  private async ingestAdditionalLegalSources(): Promise<any> {
-    try {
-      // Additional legal sources would go here
-      return { message: 'Additional legal sources processed' };
-    } catch (error) {
-      logger.error('Additional legal sources failed:', error);
-      throw error;
-    }
-  }
 
   private async createSamplePetitions(): Promise<void> {
     try {
