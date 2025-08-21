@@ -97,12 +97,13 @@ export default function Bills() {
   const [selectedBill, setSelectedBill] = useState<Bill | null>(null);
 
   // Fetch bills data
-  const { data: bills = [], isLoading, error } = useQuery({
+  const { data: billsResponse, isLoading, error } = useQuery({
     queryKey: ['/api/bills'],
     queryFn: async (): Promise<Bill[]> => {
       try {
         const response = await apiRequest('/api/bills', 'GET');
-        return response || [];
+        // ResponseFormatter wraps data in { success: true, data: [...], message: "..." }
+        return response?.data || [];
       } catch (error) {
         console.error('Failed to fetch bills:', error);
         return [];
@@ -110,6 +111,9 @@ export default function Bills() {
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
+
+  // Extract bills array from response, with fallback to empty array
+  const bills = Array.isArray(billsResponse) ? billsResponse : [];
 
   // Filter bills based on search and filters
   const filteredBills = bills.filter(bill => {

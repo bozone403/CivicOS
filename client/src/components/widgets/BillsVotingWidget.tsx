@@ -18,11 +18,24 @@ interface Bill {
 }
 
 export default function BillsVotingWidget() {
-  const { data: bills = [], isLoading, error } = useQuery({
+  const { data: billsResponse, isLoading, error } = useQuery({
     queryKey: ['/api/bills'],
-    queryFn: () => api.get('/api/bills').then(res => res.json()),
+    queryFn: async () => {
+      try {
+        const response = await api.get('/api/bills');
+        const data = await response.json();
+        // ResponseFormatter wraps data in { success: true, data: [...], message: "..." }
+        return data?.data || [];
+      } catch (error) {
+        console.error('Failed to fetch bills:', error);
+        return [];
+      }
+    },
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
+
+  // Extract bills array from response, with fallback to empty array
+  const bills = Array.isArray(billsResponse) ? billsResponse : [];
 
   if (isLoading) {
     return (
