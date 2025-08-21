@@ -9,9 +9,10 @@ import { ingestParliamentMembers, ingestBillRollcallsForCurrentSession } from '.
 import { syncIncumbentPoliticiansFromParliament } from '../utils/politicianSync.js';
 import { ingestProcurementFromCKAN } from '../utils/procurementIngestion.js';
 import { ingestLobbyistsFromCKAN } from '../utils/lobbyistsIngestion.js';
-import { ingestLegalActsCurated, ingestLegalCasesCurated, ingestFederalActsFromJustice, ingestCriminalCodeFromJustice } from '../utils/legalIngestion.js';
+import { legalIngestionService } from '../utils/legalIngestion.js';
 import { ingestProvincialIncumbents, ingestMunicipalIncumbents, loadMunicipalCatalog, saveMunicipalCatalog } from '../utils/provincialMunicipalIngestion.js';
 import { comprehensiveDataIngestion } from '../utils/comprehensiveDataIngestion.js';
+import { bills, elections, procurementContracts, lobbyistOrgs, petitions } from '../../shared/schema.js';
 
 export function registerAdminRoutes(app: Express) {
   // Aggregated platform summary for admin dashboards
@@ -91,7 +92,7 @@ export function registerAdminRoutes(app: Express) {
   app.post('/api/admin/refresh/news', jwtAuth, requirePermission('admin.news.manage'), async (_req: Request, res: Response) => {
     try {
       const result = await ingestNewsFeeds();
-      res.json({ success: true, ...result });
+      res.json({ success: true, data: result });
     } catch (error) {
       res.status(500).json({ success: false, message: 'Failed to refresh news' });
     }
@@ -107,41 +108,40 @@ export function registerAdminRoutes(app: Express) {
       
       res.json({ 
         success: true, 
-        members: membersResult, 
-        rollcalls: rollcallsResult 
+        data: { members: membersResult, rollcalls: rollcallsResult }
       });
     } catch (error) {
       res.status(500).json({ success: false, message: 'Failed to refresh parliament data' });
     }
   });
 
-  // Admin: trigger politician sync
+  // Admin: trigger politician ingestion
   app.post('/api/admin/refresh/politicians', jwtAuth, requirePermission('admin.identity.review'), async (_req: Request, res: Response) => {
     try {
-      const result = await syncIncumbentPoliticiansFromParliament();
-      res.json({ success: true, ...result });
+      const result = await comprehensiveDataIngestion.ingestPoliticians();
+      res.json({ success: true, data: result });
     } catch (error) {
       res.status(500).json({ success: false, message: 'Failed to refresh politicians' });
     }
   });
 
   // Admin: trigger procurement ingestion
-  app.post('/api/admin/refresh/procurement', jwtAuth, requirePermission('admin.data.manage'), async (_req: Request, res: Response) => {
+  app.post('/api/admin/refresh/procurement', jwtAuth, requirePermission('admin.procurement.manage'), async (_req: Request, res: Response) => {
     try {
       const result = await ingestProcurementFromCKAN();
-      res.json({ success: true, ...result });
+      res.json({ success: true, data: result });
     } catch (error) {
-      res.status(500).json({ success: false, message: 'Failed to refresh procurement data' });
+      res.status(500).json({ success: false, message: 'Failed to refresh procurement' });
     }
   });
 
   // Admin: trigger lobbyist ingestion
-  app.post('/api/admin/refresh/lobbyists', jwtAuth, requirePermission('admin.data.manage'), async (_req: Request, res: Response) => {
+  app.post('/api/admin/refresh/lobbyists', jwtAuth, requirePermission('admin.lobbyists.manage'), async (_req: Request, res: Response) => {
     try {
       const result = await ingestLobbyistsFromCKAN();
-      res.json({ success: true, ...result });
+      res.json({ success: true, data: result });
     } catch (error) {
-      res.status(500).json({ success: false, message: 'Failed to refresh lobbyist data' });
+      res.status(500).json({ success: false, message: 'Failed to refresh lobbyists' });
     }
   });
 
@@ -149,8 +149,8 @@ export function registerAdminRoutes(app: Express) {
   app.post('/api/admin/refresh/legal', jwtAuth, requirePermission('admin.data.manage'), async (_req: Request, res: Response) => {
     try {
       const [federalActsResult, criminalCodeResult] = await Promise.all([
-        ingestFederalActsFromJustice(),
-        ingestCriminalCodeFromJustice()
+        legalIngestionService.ingestFederalActs(),
+        legalIngestionService.ingestCriminalCode()
       ]);
       
       res.json({ 
@@ -224,8 +224,10 @@ export function registerAdminRoutes(app: Express) {
   app.post('/api/admin/refresh/municipal-catalog', jwtAuth, requirePermission('admin.data.manage'), async (_req: Request, res: Response) => {
     try {
       const catalog = await loadMunicipalCatalog();
-      await saveMunicipalCatalog(catalog);
-      res.json({ success: true, message: 'Municipal catalog updated', catalog });
+      // Convert Record<string, string> to array format
+      const catalogArray = Object.entries(catalog).map(([city, url]) => ({ city, province: 'Unknown', url }));
+      await saveMunicipalCatalog(catalogArray);
+      res.json({ success: true, message: 'Municipal catalog updated', catalog: catalogArray });
     } catch (error) {
       res.status(500).json({ success: false, message: 'Failed to update municipal catalog' });
     }
@@ -235,8 +237,8 @@ export function registerAdminRoutes(app: Express) {
   app.post('/api/admin/refresh/legal-curated', jwtAuth, requirePermission('admin.data.manage'), async (_req: Request, res: Response) => {
     try {
       const [actsResult, casesResult] = await Promise.all([
-        ingestLegalActsCurated(),
-        ingestLegalCasesCurated()
+        legalIngestionService.ingestFederalActs(),
+        legalIngestionService.ingestLegalCases()
       ]);
       
       res.json({ 

@@ -3,7 +3,7 @@ import { ResponseFormatter } from "../utils/responseFormatter.js";
 import { db } from "../db.js";
 import { sql } from 'drizzle-orm';
 import { legalActs, legalCases } from "../../shared/schema.js";
-import { resolveFederalActDetailByTitle, fetchCriminalCodeSectionDetail } from '../utils/legalIngestion.js';
+import { legalIngestionService } from '../utils/legalIngestion.js';
 import jwt from "jsonwebtoken";
 
 // JWT Auth middleware
@@ -193,8 +193,7 @@ export function registerLegalRoutes(app: Express) {
       let casesRows = await db.select().from(legalCases).limit(200);
       if (acts.length === 0) {
         try {
-          const { ingestFederalActsFromJustice } = await import('../utils/legalIngestion.js');
-          await ingestFederalActsFromJustice();
+          await legalIngestionService.ingestFederalActs();
           acts = await db.select().from(legalActs).limit(200);
         } catch {}
       }
@@ -288,22 +287,58 @@ export function registerLegalRoutes(app: Express) {
   // Legal search (DB-only)
   app.get('/api/legal/search', async (req: Request, res: Response) => {
     try {
-      const q = String(req.query.q || '').trim();
-      if (!q) return ResponseFormatter.success(res, { query: q, totalResults: 0, results: [] }, 'Empty query', 200, 0);
-      const qp = `%${q}%`;
-      const acts = await db.execute<{ id: number; title: string; summary: string | null; category: string | null; }>(
-        sql`SELECT id, title, summary, category FROM legal_acts WHERE title ILIKE ${qp} OR summary ILIKE ${qp} LIMIT 50`
-      );
-      const cases = await db.execute<{ id: number; title: string; description: string | null; jurisdiction: string | null }>(
-        sql`SELECT id, title, description, jurisdiction FROM legal_cases WHERE title ILIKE ${qp} OR description ILIKE ${qp} LIMIT 50`
-      );
-      const results = [
-        ...acts.rows.map((a) => ({ id: a.id, title: a.title, description: a.summary, type: 'legal_act', source: 'db' })),
-        ...cases.rows.map((c) => ({ id: c.id, title: c.title, description: c.description, type: 'legal_case', source: 'db' })),
-      ];
-      return ResponseFormatter.success(res, { query: q, totalResults: results.length, results }, 'Legal search completed', 200, results.length);
+      const { query, type } = req.query;
+      if (!query) return ResponseFormatter.error(res, 'Missing search query', 400);
+      
+      const searchTerm = String(query).trim();
+      let results: any[] = [];
+      
+      if (!type || type === 'acts') {
+        const acts = await legalIngestionService.searchLegalActs(searchTerm);
+        results.push(...acts.map(act => ({ ...act, type: 'act' })));
+      }
+      
+      if (!type || type === 'cases') {
+        const cases = await legalIngestionService.searchLegalCases(searchTerm);
+        results.push(...cases.map(caseItem => ({ ...caseItem, type: 'case' })));
+      }
+      
+      if (!type || type === 'criminal') {
+        const sections = await legalIngestionService.searchCriminalCodeSections(searchTerm);
+        results.push(...sections.map(section => ({ ...section, type: 'criminal' })));
+      }
+      
+      return ResponseFormatter.success(res, results, 'Legal search completed', 200, results.length);
     } catch (error) {
-      return ResponseFormatter.databaseError(res, `Failed to search legal database: ${(error as Error).message}`);
+      return ResponseFormatter.databaseError(res, `Legal search failed: ${(error as Error).message}`);
+    }
+  });
+
+  // Get federal act detail by title
+  app.get('/api/legal/act/:title', async (req: Request, res: Response) => {
+    try {
+      const title = String(req.query.title || '').trim();
+      if (!title) return ResponseFormatter.error(res, 'Missing title', 400);
+      // Use search instead of non-existent resolve function
+      const results = await legalIngestionService.searchLegalActs(title);
+      const detail = results.find(act => act.title.toLowerCase().includes(title.toLowerCase()));
+      return ResponseFormatter.success(res, detail, 'Act detail resolved', 200);
+    } catch (error) {
+      return ResponseFormatter.databaseError(res, `Failed to resolve act detail: ${(error as Error).message}`);
+    }
+  });
+
+  // Get criminal code section detail
+  app.get('/api/legal/criminal-code/:section', async (req: Request, res: Response) => {
+    try {
+      const section = String(req.query.section || '').trim();
+      if (!section) return ResponseFormatter.error(res, 'Missing section', 400);
+      // Use search instead of non-existent fetch function
+      const results = await legalIngestionService.searchCriminalCodeSections(section);
+      const detail = results.find(s => s.sectionNumber === section);
+      return ResponseFormatter.success(res, detail, 'Criminal Code section detail', 200);
+    } catch (error) {
+      return ResponseFormatter.databaseError(res, `Failed to fetch section detail: ${(error as Error).message}`);
     }
   });
 
@@ -321,30 +356,6 @@ export function registerLegalRoutes(app: Express) {
       return ResponseFormatter.success(res, stats, 'Legal statistics retrieved successfully', 200);
     } catch (error) {
       return ResponseFormatter.databaseError(res, `Failed to fetch legal statistics: ${(error as Error).message}`);
-    }
-  });
-
-  // Legal act detail by title (on-demand fetch + cache)
-  app.get('/api/legal/act/detail', async (req: Request, res: Response) => {
-    try {
-      const title = String(req.query.title || '').trim();
-      if (!title) return ResponseFormatter.error(res, 'Missing title', 400);
-      const detail = await resolveFederalActDetailByTitle(title);
-      return ResponseFormatter.success(res, detail, 'Act detail resolved', 200);
-    } catch (error) {
-      return ResponseFormatter.databaseError(res, `Failed to resolve act detail: ${(error as Error).message}`);
-    }
-  });
-
-  // Criminal Code section detail by section number
-  app.get('/api/legal/criminal-code/detail', async (req: Request, res: Response) => {
-    try {
-      const section = String(req.query.section || '').trim();
-      if (!section) return ResponseFormatter.error(res, 'Missing section', 400);
-      const detail = await fetchCriminalCodeSectionDetail(section);
-      return ResponseFormatter.success(res, detail, 'Criminal Code section detail', 200);
-    } catch (error) {
-      return ResponseFormatter.databaseError(res, `Failed to fetch section detail: ${(error as Error).message}`);
     }
   });
 
@@ -387,6 +398,24 @@ export function registerLegalRoutes(app: Express) {
       return ResponseFormatter.success(res, cases, 'Cases retrieved', 200, cases.length);
     } catch (error) {
       return ResponseFormatter.databaseError(res, `Failed to fetch cases: ${(error as Error).message}`);
+    }
+  });
+
+  // Admin: trigger legal data ingestion
+  app.post('/api/admin/refresh/legal', jwtAuth, async (_req: Request, res: Response) => {
+    try {
+      const [actsResult, casesResult] = await Promise.all([
+        legalIngestionService.ingestFederalActs(),
+        legalIngestionService.ingestLegalCases()
+      ]);
+      
+      res.json({ 
+        success: true, 
+        acts: actsResult, 
+        cases: casesResult 
+      });
+    } catch (error) {
+      res.status(500).json({ success: false, message: 'Failed to refresh legal data' });
     }
   });
 } 

@@ -678,9 +678,9 @@ app.get("/health", (_req, res) => {
   // Weekly legal refresh (Justice Laws scrapes) ~7 days
   setInterval(async () => {
     try {
-      const { ingestFederalActsFromJustice, ingestCriminalCodeFromJustice } = await import('./utils/legalIngestion.js');
-      const acts = await ingestFederalActsFromJustice();
-      const cc = await ingestCriminalCodeFromJustice();
+      const { legalIngestionService } = await import('./utils/legalIngestion.js');
+      const acts = await legalIngestionService.ingestFederalActs();
+      const cc = await legalIngestionService.ingestCriminalCode();
       logger.info({ msg: 'Weekly legal refresh completed', acts, cc });
     } catch (error) {
       logger.error({ msg: 'Weekly legal refresh failed', error: error instanceof Error ? error.message : String(error) });
@@ -719,9 +719,9 @@ app.get("/health", (_req, res) => {
         }
         if (needsLegal) {
           try {
-            const { ingestFederalActsFromJustice, ingestCriminalCodeFromJustice } = await import('./utils/legalIngestion.js');
-            await ingestFederalActsFromJustice();
-            await ingestCriminalCodeFromJustice();
+            const { legalIngestionService } = await import('./utils/legalIngestion.js');
+            await legalIngestionService.ingestFederalActs();
+            await legalIngestionService.ingestCriminalCode();
             logger.info({ msg: 'Initial legal ingestion completed' });
           } catch (error) {
             logger.error({ msg: 'Initial legal ingestion failed', error: error instanceof Error ? error.message : String(error) });

@@ -1,49 +1,150 @@
 import pino from 'pino';
-import { mockAiService } from './mockAiService.js';
 import { db } from '../db.js';
 import { sql } from 'drizzle-orm';
 const logger = pino({ name: 'ai-service' });
 class AiService {
     config;
-    useMockAi;
+    useHuggingFace;
+    huggingfaceToken;
     constructor() {
+        this.huggingfaceToken = process.env.HUGGINGFACE_TOKEN;
         this.config = {
-            baseUrl: 'disabled', // Ollama permanently disabled
-            model: 'mock-ai',
+            baseUrl: 'https://api-inference.huggingface.co',
+            model: 'microsoft/DialoGPT-medium',
             timeout: 30000,
-            retries: 3
+            retries: 3,
+            huggingfaceToken: this.huggingfaceToken
         };
-        // Force mock AI permanently - no external AI dependencies
-        this.useMockAi = true;
-        logger.info('AI Service initialized with MOCK data only - Ollama permanently disabled');
+        this.useHuggingFace = !!this.huggingfaceToken;
+        if (this.useHuggingFace) {
+            logger.info('AI Service initialized with HuggingFace API');
+        }
+        else {
+            logger.info('AI Service initialized with MOCK data - No HuggingFace token provided');
+        }
     }
     async healthCheck() {
+        if (this.useHuggingFace) {
+            try {
+                const testResponse = await this.callHuggingFaceAPI('Hello');
+                return {
+                    service: true,
+                    model: true,
+                    message: 'HuggingFace AI service is operational'
+                };
+            }
+            catch (error) {
+                logger.warn('HuggingFace API test failed, falling back to mock:', error);
+                return {
+                    service: true,
+                    model: false,
+                    message: 'HuggingFace API unavailable, using mock AI service'
+                };
+            }
+        }
         return {
             service: true,
             model: true,
-            message: 'Mock AI service is operational with comprehensive Canadian political data (Ollama disabled)'
+            message: 'Mock AI service is operational with comprehensive Canadian political data'
         };
     }
     async generateResponse(prompt, context) {
         try {
             // Try to build context from live database data first
             const liveContext = await this.buildLiveContext(prompt);
-            if (liveContext) {
-                return this.generateMockResponse(prompt, { ...context, ...liveContext });
+            const enhancedContext = { ...context, ...liveContext };
+            if (this.useHuggingFace) {
+                try {
+                    const response = await this.callHuggingFaceAPI(prompt, enhancedContext);
+                    return response;
+                }
+                catch (error) {
+                    logger.warn('HuggingFace API failed, falling back to mock:', error);
+                    return this.generateMockResponse(prompt, enhancedContext);
+                }
             }
+            // Always use mock AI if no HuggingFace token
+            return this.generateMockResponse(prompt, enhancedContext);
         }
         catch (error) {
-            logger.warn('Failed to build live context, falling back to mock data:', error);
+            logger.error('AI response generation failed:', error);
+            return 'I apologize, but I encountered an error while processing your request. Please try again.';
         }
-        // Always use mock AI - no external dependencies
-        return this.generateMockResponse(prompt, context);
+    }
+    async callHuggingFaceAPI(prompt, context) {
+        if (!this.huggingfaceToken) {
+            throw new Error('No HuggingFace token available');
+        }
+        try {
+            const enhancedPrompt = this.buildEnhancedPrompt(prompt, context);
+            const response = await fetch(`${this.config.baseUrl}/models/${this.config.model}`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${this.huggingfaceToken}`,
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    inputs: enhancedPrompt,
+                    parameters: {
+                        max_length: 500,
+                        temperature: 0.7,
+                        do_sample: true,
+                        return_full_text: false
+                    }
+                }),
+                signal: AbortSignal.timeout(this.config.timeout)
+            });
+            if (!response.ok) {
+                throw new Error(`HuggingFace API error: ${response.status} ${response.statusText}`);
+            }
+            const data = await response.json();
+            if (Array.isArray(data) && data.length > 0) {
+                return data[0].generated_text || data[0].text || 'I apologize, but I could not generate a proper response.';
+            }
+            return data.generated_text || data.text || 'I apologize, but I could not generate a proper response.';
+        }
+        catch (error) {
+            logger.error('HuggingFace API call failed:', error);
+            throw error;
+        }
+    }
+    buildEnhancedPrompt(prompt, context) {
+        let enhancedPrompt = `You are CivicOS, a Canadian government transparency and civic engagement AI assistant. `;
+        enhancedPrompt += `You have access to current Canadian political data and should provide accurate, helpful responses. `;
+        enhancedPrompt += `User question: ${prompt}\n\n`;
+        if (context) {
+            if (context.politicians && context.politicians.length > 0) {
+                enhancedPrompt += `Current Canadian politicians data:\n`;
+                context.politicians.forEach((pol) => {
+                    enhancedPrompt += `- ${pol.name} (${pol.party}) - ${pol.position} in ${pol.constituency}\n`;
+                });
+                enhancedPrompt += `\n`;
+            }
+            if (context.bills && context.bills.length > 0) {
+                enhancedPrompt += `Recent bills:\n`;
+                context.bills.forEach((bill) => {
+                    enhancedPrompt += `- ${bill.title} (${bill.status}) - ${bill.summary}\n`;
+                });
+                enhancedPrompt += `\n`;
+            }
+            if (context.news && context.news.length > 0) {
+                enhancedPrompt += `Recent news:\n`;
+                context.news.forEach((article) => {
+                    enhancedPrompt += `- ${article.title} (${article.source})\n`;
+                });
+                enhancedPrompt += `\n`;
+            }
+        }
+        enhancedPrompt += `Please provide a helpful, accurate response based on the available information. `;
+        enhancedPrompt += `If you don't have specific information, acknowledge that and suggest where the user might find more details.`;
+        return enhancedPrompt;
     }
     async buildLiveContext(prompt) {
         const lowerPrompt = prompt.toLowerCase();
         const context = {};
         try {
             // Politician context
-            if (lowerPrompt.includes('politician') || lowerPrompt.includes('trudeau') || lowerPrompt.includes('poilievre') || lowerPrompt.includes('singh')) {
+            if (lowerPrompt.includes('politician') || lowerPrompt.includes('trudeau') || lowerPrompt.includes('poilievre') || lowerPrompt.includes('singh') || lowerPrompt.includes('mp') || lowerPrompt.includes('minister')) {
                 const politiciansData = await db.execute(sql `
           SELECT id, name, party, position, constituency, trust_score, level, jurisdiction
           FROM politicians 
@@ -54,7 +155,7 @@ class AiService {
                 context.politicians = politiciansData.rows;
             }
             // Bills context
-            if (lowerPrompt.includes('bill') || lowerPrompt.includes('legislation')) {
+            if (lowerPrompt.includes('bill') || lowerPrompt.includes('legislation') || lowerPrompt.includes('law') || lowerPrompt.includes('act')) {
                 const billsData = await db.execute(sql `
           SELECT id, title, description, status, sponsor_name, introduced_date, summary
           FROM bills 
@@ -64,7 +165,7 @@ class AiService {
                 context.bills = billsData.rows;
             }
             // News context
-            if (lowerPrompt.includes('news') || lowerPrompt.includes('current') || lowerPrompt.includes('today')) {
+            if (lowerPrompt.includes('news') || lowerPrompt.includes('current') || lowerPrompt.includes('today') || lowerPrompt.includes('recent')) {
                 const newsData = await db.execute(sql `
           SELECT id, title, content, source, published_at, credibility_score
           FROM news_articles 
@@ -74,14 +175,34 @@ class AiService {
                 context.news = newsData.rows;
             }
             // Legal context
-            if (lowerPrompt.includes('law') || lowerPrompt.includes('legal') || lowerPrompt.includes('act')) {
+            if (lowerPrompt.includes('legal') || lowerPrompt.includes('court') || lowerPrompt.includes('justice') || lowerPrompt.includes('criminal')) {
                 const legalData = await db.execute(sql `
-          SELECT id, title, summary, category, jurisdiction
+          SELECT id, title, description, type, jurisdiction, status
           FROM legal_acts 
           ORDER BY created_at DESC 
-          LIMIT 10
+          LIMIT 5
         `);
                 context.legal = legalData.rows;
+            }
+            // Elections context
+            if (lowerPrompt.includes('election') || lowerPrompt.includes('vote') || lowerPrompt.includes('campaign') || lowerPrompt.includes('candidate')) {
+                const electionsData = await db.execute(sql `
+          SELECT id, title, type, jurisdiction, election_date, status
+          FROM elections 
+          ORDER BY election_date DESC 
+          LIMIT 5
+        `);
+                context.elections = electionsData.rows;
+            }
+            // Procurement context
+            if (lowerPrompt.includes('procurement') || lowerPrompt.includes('contract') || lowerPrompt.includes('spending') || lowerPrompt.includes('government contract')) {
+                const procurementData = await db.execute(sql `
+          SELECT id, title, description, vendor, amount, contract_date, status
+          FROM procurement_contracts 
+          ORDER BY contract_date DESC 
+          LIMIT 5
+        `);
+                context.procurement = procurementData.rows;
             }
             return context;
         }
@@ -91,97 +212,63 @@ class AiService {
         }
     }
     generateMockResponse(prompt, context) {
+        // Enhanced mock responses with context awareness
         const lowerPrompt = prompt.toLowerCase();
-        // Politician analysis
-        if (lowerPrompt.includes('politician') || lowerPrompt.includes('trudeau') || lowerPrompt.includes('poilievre') || lowerPrompt.includes('singh') || lowerPrompt.includes('carney')) {
-            const politicianId = this.extractPoliticianId(prompt);
-            const result = mockAiService.generatePoliticianAnalysis(politicianId);
-            return result.response;
+        if (context?.politicians && context.politicians.length > 0) {
+            if (lowerPrompt.includes('trudeau')) {
+                const trudeau = context.politicians.find((p) => p.name.toLowerCase().includes('trudeau'));
+                if (trudeau) {
+                    return `Based on current data, Justin Trudeau is the leader of the Liberal Party and serves as Prime Minister of Canada. He represents the riding of Papineau, Quebec. His current trust score is ${trudeau.trust_score || 'N/A'}.`;
+                }
+            }
+            if (lowerPrompt.includes('poilievre')) {
+                const poilievre = context.politicians.find((p) => p.name.toLowerCase().includes('poilievre'));
+                if (poilievre) {
+                    return `Pierre Poilievre is the leader of the Conservative Party of Canada. He represents the riding of Carleton, Ontario. His current trust score is ${poilievre.trust_score || 'N/A'}.`;
+                }
+            }
         }
-        // Bill analysis
-        if (lowerPrompt.includes('bill') || lowerPrompt.includes('c-21') || lowerPrompt.includes('c-60') || lowerPrompt.includes('c-56') || lowerPrompt.includes('legislation')) {
-            const billId = this.extractBillId(prompt);
-            const result = mockAiService.generateBillSummary(billId);
-            return result.response;
+        if (context?.bills && context.bills.length > 0) {
+            if (lowerPrompt.includes('bill') || lowerPrompt.includes('legislation')) {
+                const recentBill = context.bills[0];
+                return `The most recent bill in our system is "${recentBill.title}" which is currently ${recentBill.status}. It was introduced by ${recentBill.sponsor_name} and focuses on ${recentBill.summary || 'various policy matters'}.`;
+            }
         }
-        // Fact checking
-        if (lowerPrompt.includes('fact check') || lowerPrompt.includes('housing crisis') || lowerPrompt.includes('inflation')) {
-            const topic = this.extractFactCheckTopic(prompt);
-            const result = mockAiService.factCheckClaim(topic);
-            return result.response;
+        if (context?.elections && context.elections.length > 0) {
+            if (lowerPrompt.includes('election')) {
+                const nextElection = context.elections.find((e) => e.status === 'upcoming');
+                if (nextElection) {
+                    return `The next ${nextElection.type} election in ${nextElection.jurisdiction} is scheduled for ${nextElection.election_date}. This will be an important opportunity for citizens to participate in the democratic process.`;
+                }
+            }
         }
-        // Economic questions
-        if (lowerPrompt.includes('economy') || lowerPrompt.includes('budget') || lowerPrompt.includes('deficit') || lowerPrompt.includes('inflation')) {
-            const result = mockAiService.generateEconomicSummary();
-            return result.response;
+        // Default responses for common queries
+        if (lowerPrompt.includes('hello') || lowerPrompt.includes('hi')) {
+            return 'Hello! I\'m CivicOS, your AI assistant for Canadian government transparency and civic engagement. How can I help you today?';
         }
-        // Current events
-        if (lowerPrompt.includes('current') || lowerPrompt.includes('news') || lowerPrompt.includes('today')) {
-            const result = mockAiService.generateChatbotResponse(prompt);
-            return result.response;
+        if (lowerPrompt.includes('help')) {
+            return 'I can help you with information about Canadian politicians, bills, elections, legal matters, government spending, and more. Just ask me a specific question!';
         }
-        // General chatbot response
-        const result = mockAiService.generateChatbotResponse(prompt);
-        return result.response;
+        if (lowerPrompt.includes('canada') || lowerPrompt.includes('canadian')) {
+            return 'Canada is a parliamentary democracy with a federal system of government. The country has three levels of government: federal, provincial/territorial, and municipal. I can provide you with current information about Canadian politics and government.';
+        }
+        if (lowerPrompt.includes('government') || lowerPrompt.includes('politics')) {
+            return 'Canadian government operates at three levels: federal (Parliament in Ottawa), provincial/territorial (10 provinces and 3 territories), and municipal (cities, towns, and villages). The current federal government is led by Prime Minister Justin Trudeau of the Liberal Party.';
+        }
+        return 'I\'m here to help you with information about Canadian government and civic matters. Please ask me a specific question about politicians, bills, elections, or any other government-related topic.';
     }
-    extractPoliticianId(prompt) {
-        const lowerPrompt = prompt.toLowerCase();
-        if (lowerPrompt.includes('carney'))
-            return 'mark-carney';
-        if (lowerPrompt.includes('trudeau'))
-            return 'justin-trudeau';
-        if (lowerPrompt.includes('poilievre'))
-            return 'pierre-poilievre';
-        if (lowerPrompt.includes('singh'))
-            return 'jagmeet-singh';
-        if (lowerPrompt.includes('blanchet'))
-            return 'yves-francois-blanchet';
-        if (lowerPrompt.includes('may'))
-            return 'elizabeth-may';
-        return 'mark-carney'; // Default to current PM
-    }
-    extractBillId(prompt) {
-        const lowerPrompt = prompt.toLowerCase();
-        if (lowerPrompt.includes('c-60'))
-            return 'C-60';
-        if (lowerPrompt.includes('c-56'))
-            return 'C-56';
-        if (lowerPrompt.includes('c-21'))
-            return 'C-21';
-        if (lowerPrompt.includes('c-61'))
-            return 'C-61';
-        return 'C-60'; // Default to climate finance bill
-    }
-    extractFactCheckTopic(prompt) {
-        const lowerPrompt = prompt.toLowerCase();
-        if (lowerPrompt.includes('carney'))
-            return 'carney-transition';
-        if (lowerPrompt.includes('housing'))
-            return 'housing-crisis';
-        if (lowerPrompt.includes('inflation'))
-            return 'inflation-rates';
-        if (lowerPrompt.includes('deficit'))
-            return 'federal-deficit';
-        return 'carney-transition';
-    }
-    // Offline response for any remaining edge cases
-    getOfflineResponse(prompt) {
-        return `I understand you're asking about "${prompt}". I'm currently operating with comprehensive Canadian political data from July 2025. Here's what I can help with:
-
-**Current Information Available:**
-• Prime Minister Mark Carney and all federal politicians
-• Current bills: C-60 (Climate Finance), C-56 (Housing), C-21 (Firearms)
-• Economic data: GDP, inflation, housing prices, unemployment
-• Government transition details from Trudeau to Carney era
-• News analysis and fact-checking
-
-**For specific questions, try:**
-• "Who is the current Prime Minister?"
-• "What's in Bill C-60?"
-• "How is the Canadian economy doing?"
-• "What changed with Mark Carney becoming PM?"
-
-Would you like me to help with any of these topics?`;
+    async getServiceInfo() {
+        return {
+            type: this.useHuggingFace ? 'HuggingFace AI' : 'Mock AI',
+            status: this.useHuggingFace ? 'Operational' : 'Mock Mode',
+            features: [
+                'Canadian political data integration',
+                'Real-time context building',
+                'Multi-source information synthesis',
+                'Government transparency assistance',
+                'Civic engagement support'
+            ]
+        };
     }
 }
 export const aiService = new AiService();

@@ -6,6 +6,8 @@ import { ResponseFormatter } from "../utils/responseFormatter.js";
 import jwt from "jsonwebtoken";
 import { ParliamentAPIService } from "../parliamentAPI.js";
 import { syncIncumbentPoliticiansFromParliament } from '../utils/politicianSync.js';
+import { politicianIngestionService } from '../utils/politicianIngestion.js';
+import { requirePermission } from '../utils/permissionService.js';
 // JWT Auth middleware
 function jwtAuth(req, res, next) {
     const authHeader = req.headers.authorization;
@@ -64,6 +66,16 @@ export function registerPoliticiansRoutes(app) {
         }
         catch (error) {
             return ResponseFormatter.databaseError(res, `Failed to fetch politicians: ${error.message}`);
+        }
+    });
+    // Admin: trigger politician ingestion
+    app.post('/api/politicians/ingest', jwtAuth, requirePermission('admin.data.manage'), async (_req, res) => {
+        try {
+            const result = await politicianIngestionService.ingestAllPoliticians();
+            return ResponseFormatter.success(res, { inserted: result }, `Politician ingestion completed. Inserted: ${result}`);
+        }
+        catch (error) {
+            return ResponseFormatter.databaseError(res, `Failed to ingest politicians: ${error.message}`);
         }
     });
     // Get politician by ID

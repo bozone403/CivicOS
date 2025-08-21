@@ -26,10 +26,10 @@ export default defineConfig({
   },
   server: {
     port: 5173,
-    // Production-only configuration - no localhost proxy
+    host: true,
   },
   define: {
-    // Make environment variables available to the client
-    'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV),
+    // Ensure development mode is properly detected
+    __DEV__: JSON.stringify(true),
   },
 }) 

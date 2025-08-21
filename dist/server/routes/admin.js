@@ -1,15 +1,16 @@
 import { db } from '../db.js';
-import { users, socialPosts, socialComments, notifications, newsArticles, votes, politicians, legalActs, legalCases } from '../../shared/schema.js';
+import { users, socialPosts, socialComments, notifications, newsArticles, votes, politicians, legalActs } from '../../shared/schema.js';
 import { count } from 'drizzle-orm';
 import { jwtAuth } from './auth.js';
 import { requirePermission } from '../utils/permissionService.js';
 import { ingestNewsFeeds } from '../utils/newsIngestion.js';
 import { ingestParliamentMembers, ingestBillRollcallsForCurrentSession } from '../utils/parliamentIngestion.js';
-import { syncIncumbentPoliticiansFromParliament } from '../utils/politicianSync.js';
 import { ingestProcurementFromCKAN } from '../utils/procurementIngestion.js';
 import { ingestLobbyistsFromCKAN } from '../utils/lobbyistsIngestion.js';
-import { ingestLegalActsCurated, ingestLegalCasesCurated, ingestFederalActsFromJustice, ingestCriminalCodeFromJustice } from '../utils/legalIngestion.js';
+import { legalIngestionService } from '../utils/legalIngestion.js';
 import { ingestProvincialIncumbents, ingestMunicipalIncumbents, loadMunicipalCatalog, saveMunicipalCatalog } from '../utils/provincialMunicipalIngestion.js';
+import { comprehensiveDataIngestion } from '../utils/comprehensiveDataIngestion.js';
+import { bills, elections, procurementContracts, lobbyistOrgs, petitions } from '../../shared/schema.js';
 export function registerAdminRoutes(app) {
     // Aggregated platform summary for admin dashboards
     app.get('/api/admin/summary', jwtAuth, requirePermission('view_analytics'), async (_req, res) => {
@@ -83,7 +84,7 @@ export function registerAdminRoutes(app) {
     app.post('/api/admin/refresh/news', jwtAuth, requirePermission('admin.news.manage'), async (_req, res) => {
         try {
             const result = await ingestNewsFeeds();
-            res.json({ success: true, ...result });
+            res.json({ success: true, data: result });
         }
         catch (error) {
             res.status(500).json({ success: false, message: 'Failed to refresh news' });
@@ -92,111 +93,202 @@ export function registerAdminRoutes(app) {
     // Admin: trigger parliament data ingestion (members + votes)
     app.post('/api/admin/refresh/parliament', jwtAuth, requirePermission('admin.identity.review'), async (_req, res) => {
         try {
-            const members = await ingestParliamentMembers();
-            const upserts = await syncIncumbentPoliticiansFromParliament();
-            const votes = await ingestBillRollcallsForCurrentSession();
-            res.json({ success: true, membersInserted: members, politiciansUpserted: upserts, rollcalls: votes.rollcalls, records: votes.records });
+            const [membersResult, rollcallsResult] = await Promise.all([
+                ingestParliamentMembers(),
+                ingestBillRollcallsForCurrentSession()
+            ]);
+            res.json({
+                success: true,
+                data: { members: membersResult, rollcalls: rollcallsResult }
+            });
         }
         catch (error) {
             res.status(500).json({ success: false, message: 'Failed to refresh parliament data' });
         }
     });
-    // Admin: trigger provincial incumbents ingestion
-    app.post('/api/admin/refresh/provincial-incumbents', jwtAuth, requirePermission('admin.identity.review'), async (req, res) => {
+    // Admin: trigger politician ingestion
+    app.post('/api/admin/refresh/politicians', jwtAuth, requirePermission('admin.identity.review'), async (_req, res) => {
         try {
-            const province = req.body?.province;
-            const result = await ingestProvincialIncumbents(province);
-            res.json({ success: true, ...result });
+            const result = await comprehensiveDataIngestion.ingestPoliticians();
+            res.json({ success: true, data: result });
         }
         catch (error) {
-            res.status(500).json({ success: false, message: 'Failed to refresh provincial incumbents' });
+            res.status(500).json({ success: false, message: 'Failed to refresh politicians' });
         }
     });
-    // Admin: trigger municipal incumbents ingestion
-    app.post('/api/admin/refresh/municipal-incumbents', jwtAuth, requirePermission('admin.identity.review'), async (req, res) => {
+    // Admin: trigger procurement ingestion
+    app.post('/api/admin/refresh/procurement', jwtAuth, requirePermission('admin.procurement.manage'), async (_req, res) => {
         try {
-            const targets = Array.isArray(req.body?.targets) ? req.body.targets : undefined;
-            const result = await ingestMunicipalIncumbents(targets);
-            res.json({ success: true, ...result });
+            const result = await ingestProcurementFromCKAN();
+            res.json({ success: true, data: result });
         }
         catch (error) {
-            res.status(500).json({ success: false, message: 'Failed to refresh municipal incumbents' });
+            res.status(500).json({ success: false, message: 'Failed to refresh procurement' });
         }
     });
-    // Admin: upsert municipal sources catalog entries
-    app.post('/api/admin/municipal-sources/upsert', jwtAuth, requirePermission('admin.identity.review'), async (req, res) => {
+    // Admin: trigger lobbyist ingestion
+    app.post('/api/admin/refresh/lobbyists', jwtAuth, requirePermission('admin.lobbyists.manage'), async (_req, res) => {
         try {
-            const entries = Array.isArray(req.body?.entries) ? req.body.entries : [];
-            if (!entries.length)
-                return res.status(400).json({ success: false, message: 'No entries provided' });
-            const current = loadMunicipalCatalog();
-            for (const e of entries) {
-                current[`${e.city}, ${e.province}`] = e.url;
-            }
-            const out = Object.entries(current).map(([k, url]) => {
-                const [city, province] = k.split(',').map(s => s.trim());
-                return { city, province, url };
+            const result = await ingestLobbyistsFromCKAN();
+            res.json({ success: true, data: result });
+        }
+        catch (error) {
+            res.status(500).json({ success: false, message: 'Failed to refresh lobbyists' });
+        }
+    });
+    // Admin: trigger legal ingestion
+    app.post('/api/admin/refresh/legal', jwtAuth, requirePermission('admin.data.manage'), async (_req, res) => {
+        try {
+            const [federalActsResult, criminalCodeResult] = await Promise.all([
+                legalIngestionService.ingestFederalActs(),
+                legalIngestionService.ingestCriminalCode()
+            ]);
+            res.json({
+                success: true,
+                federalActs: federalActsResult,
+                criminalCode: criminalCodeResult
             });
-            saveMunicipalCatalog(out);
-            res.json({ success: true, count: entries.length });
-        }
-        catch (error) {
-            res.status(500).json({ success: false, message: 'Failed to upsert municipal sources' });
-        }
-    });
-    // Admin: trigger procurement data ingestion (CKAN)
-    app.post('/api/admin/refresh/procurement', jwtAuth, requirePermission('admin.news.manage'), async (req, res) => {
-        try {
-            const query = String((req.body && req.body.query) || process.env.CKAN_PROCUREMENT_QUERY || 'contract awards');
-            const inserted = await ingestProcurementFromCKAN(query);
-            res.json({ success: true, inserted });
-        }
-        catch (error) {
-            res.status(500).json({ success: false, message: 'Failed to refresh procurement data' });
-        }
-    });
-    // Admin: trigger lobbyists data ingestion (CKAN/curated)
-    app.post('/api/admin/refresh/lobbyists', jwtAuth, requirePermission('admin.news.manage'), async (req, res) => {
-        try {
-            const query = String((req.body && req.body.query) || process.env.CKAN_LOBBYISTS_QUERY || 'lobbyist registry');
-            const upserts = await ingestLobbyistsFromCKAN(query);
-            res.json({ success: true, upserts });
-        }
-        catch (error) {
-            res.status(500).json({ success: false, message: 'Failed to refresh lobbyists data' });
-        }
-    });
-    // Admin: trigger legal curated ingestion
-    app.post('/api/admin/refresh/legal', jwtAuth, requirePermission('admin.news.manage'), async (req, res) => {
-        try {
-            const acts = Array.isArray(req.body?.acts) ? req.body.acts : [];
-            const casesIn = Array.isArray(req.body?.cases) ? req.body.cases : [];
-            const actsInserted = acts.length ? await ingestLegalActsCurated(acts) : 0;
-            const casesInserted = casesIn.length ? await ingestLegalCasesCurated(casesIn) : 0;
-            const federalActs = await ingestFederalActsFromJustice();
-            const ccSections = await ingestCriminalCodeFromJustice();
-            res.json({ success: true, actsInserted, casesInserted, federalActs, ccSections });
         }
         catch (error) {
             res.status(500).json({ success: false, message: 'Failed to refresh legal data' });
         }
     });
-    // Admin: ingestion status
-    app.get('/api/admin/ingestion/status', jwtAuth, requirePermission('view_analytics'), async (_req, res) => {
+    // Admin: trigger provincial/municipal ingestion
+    app.post('/api/admin/refresh/provincial-municipal', jwtAuth, requirePermission('admin.data.manage'), async (_req, res) => {
         try {
-            const [pol] = await db.select({ c: count() }).from(users);
-            const [politix] = await db.select({ c: count() }).from(politicians);
-            const [acts] = await db.select({ c: count() }).from(legalActs);
-            const [casesC] = await db.select({ c: count() }).from(legalCases);
-            res.json({ success: true, counts: {
-                    users: Number(pol?.c) || 0,
-                    politicians: Number(politix?.c) || 0,
-                    legalActs: Number(acts?.c) || 0,
-                    legalCases: Number(casesC?.c) || 0,
-                } });
+            const [provincialResult, municipalResult] = await Promise.all([
+                ingestProvincialIncumbents(),
+                ingestMunicipalIncumbents()
+            ]);
+            res.json({
+                success: true,
+                provincial: provincialResult,
+                municipal: municipalResult
+            });
         }
         catch (error) {
-            res.status(500).json({ success: false, message: 'Failed to load ingestion status' });
+            res.status(500).json({ success: false, message: 'Failed to refresh provincial/municipal data' });
+        }
+    });
+    // NEW: Comprehensive data ingestion endpoint
+    app.post('/api/admin/refresh/all', jwtAuth, requirePermission('admin.data.manage'), async (_req, res) => {
+        try {
+            const result = await comprehensiveDataIngestion.runFullIngestion();
+            res.json({ success: true, result });
+        }
+        catch (error) {
+            res.status(500).json({ success: false, message: 'Failed to run comprehensive data ingestion', error: error?.message });
+        }
+    });
+    // NEW: Get comprehensive ingestion status
+    app.get('/api/admin/ingestion/status', jwtAuth, requirePermission('admin.data.manage'), async (_req, res) => {
+        try {
+            const status = await comprehensiveDataIngestion.getIngestionStatus();
+            res.json({ success: true, status });
+        }
+        catch (error) {
+            res.status(500).json({ success: false, message: 'Failed to get ingestion status', error: error?.message });
+        }
+    });
+    // NEW: Individual data source refresh endpoints
+    app.post('/api/admin/refresh/elections', jwtAuth, requirePermission('admin.data.manage'), async (_req, res) => {
+        try {
+            const result = await comprehensiveDataIngestion.ingestElections();
+            res.json({ success: true, result });
+        }
+        catch (error) {
+            res.status(500).json({ success: false, message: 'Failed to refresh elections data', error: error?.message });
+        }
+    });
+    app.post('/api/admin/refresh/petitions', jwtAuth, requirePermission('admin.data.manage'), async (_req, res) => {
+        try {
+            const result = await comprehensiveDataIngestion.ingestPetitions();
+            res.json({ success: true, result });
+        }
+        catch (error) {
+            res.status(500).json({ success: false, message: 'Failed to refresh petitions data', error: error?.message });
+        }
+    });
+    // Admin: trigger municipal catalog update
+    app.post('/api/admin/refresh/municipal-catalog', jwtAuth, requirePermission('admin.data.manage'), async (_req, res) => {
+        try {
+            const catalog = await loadMunicipalCatalog();
+            // Convert Record<string, string> to array format
+            const catalogArray = Object.entries(catalog).map(([city, url]) => ({ city, province: 'Unknown', url }));
+            await saveMunicipalCatalog(catalogArray);
+            res.json({ success: true, message: 'Municipal catalog updated', catalog: catalogArray });
+        }
+        catch (error) {
+            res.status(500).json({ success: false, message: 'Failed to update municipal catalog' });
+        }
+    });
+    // Admin: trigger curated legal data ingestion
+    app.post('/api/admin/refresh/legal-curated', jwtAuth, requirePermission('admin.data.manage'), async (_req, res) => {
+        try {
+            const [actsResult, casesResult] = await Promise.all([
+                legalIngestionService.ingestFederalActs(),
+                legalIngestionService.ingestLegalCases()
+            ]);
+            res.json({
+                success: true,
+                acts: actsResult,
+                cases: casesResult
+            });
+        }
+        catch (error) {
+            res.status(500).json({ success: false, message: 'Failed to refresh curated legal data' });
+        }
+    });
+    // Admin: get data ingestion status
+    app.get('/api/admin/ingestion/status', jwtAuth, requirePermission('admin.data.manage'), async (_req, res) => {
+        try {
+            const status = await comprehensiveDataIngestion.getIngestionStatus();
+            res.json({ success: true, status });
+        }
+        catch (error) {
+            res.status(500).json({ success: false, message: 'Failed to get ingestion status', error: error?.message });
+        }
+    });
+    // Admin: get platform health metrics
+    app.get('/api/admin/health', jwtAuth, requirePermission('admin.system.view'), async (_req, res) => {
+        try {
+            const [usersCount] = await db.select({ count: count() }).from(users);
+            const [postsCount] = await db.select({ count: count() }).from(socialPosts);
+            const [commentsCount] = await db.select({ count: count() }).from(socialComments);
+            const [politiciansCount] = await db.select({ count: count() }).from(politicians);
+            const [billsCount] = await db.select({ count: count() }).from(bills);
+            const [electionsCount] = await db.select({ count: count() }).from(elections);
+            const [legalActsCount] = await db.select({ count: count() }).from(legalActs);
+            const [procurementCount] = await db.select({ count: count() }).from(procurementContracts);
+            const [lobbyistsCount] = await db.select({ count: count() }).from(lobbyistOrgs);
+            const [newsCount] = await db.select({ count: count() }).from(newsArticles);
+            const [petitionsCount] = await db.select({ count: count() }).from(petitions);
+            res.json({
+                success: true,
+                platformHealth: {
+                    users: Number(usersCount?.count) || 0,
+                    social: {
+                        posts: Number(postsCount?.count) || 0,
+                        comments: Number(commentsCount?.count) || 0
+                    },
+                    government: {
+                        politicians: Number(politiciansCount?.count) || 0,
+                        bills: Number(billsCount?.count) || 0,
+                        elections: Number(electionsCount?.count) || 0,
+                        legalActs: Number(legalActsCount?.count) || 0,
+                        procurement: Number(procurementCount?.count) || 0,
+                        lobbyists: Number(lobbyistsCount?.count) || 0
+                    },
+                    content: {
+                        news: Number(newsCount?.count) || 0,
+                        petitions: Number(petitionsCount?.count) || 0
+                    },
+                    timestamp: new Date().toISOString()
+                }
+            });
+        }
+        catch (error) {
+            res.status(500).json({ success: false, message: 'Failed to get platform health metrics' });
         }
     });
 }
