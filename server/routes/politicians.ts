@@ -1,7 +1,7 @@
 import { Express, Request, Response } from "express";
 import { storage } from "../storage.js";
 import { db } from "../db.js";
-import { politicians, politicianStatements, politicianPositions, campaignFinance, politicianTruthTracking, billRollcalls, billRollcallRecords } from "../../shared/schema.js";
+import { politicians, politicianStatements, politicianPositions, campaignFinance, politicianTruthTracking, billRollcalls, billRollcallRecords, parliamentMembers } from "../../shared/schema.js";
 import { computeTrustScore } from "../utils/trustScore.js";
 import { eq, and, desc, sql, count, like, or, inArray } from "drizzle-orm";
 import { ResponseFormatter } from "../utils/responseFormatter.js";
@@ -70,23 +70,34 @@ export function registerPoliticiansRoutes(app: Express) {
         ? await db.select().from(politicians).where(and(...conditions)).orderBy(desc(politicians.updatedAt))
         : await db.select().from(politicians).orderBy(desc(politicians.updatedAt));
 
-      // If empty, trigger on-demand sync and re-read
+      // If empty, try to trigger on-demand sync but don't fail if it doesn't work
       if (!politiciansData || politiciansData.length === 0) {
-        try { await syncIncumbentPoliticiansFromParliament(); } catch {}
-        politiciansData = await db.select().from(politicians).orderBy(desc(politicians.updatedAt));
+        try {
+          // Check if parliamentMembers table has data before attempting sync
+          const parliamentMembersCount = await db.select({ count: count() }).from(parliamentMembers);
+          if (parliamentMembersCount[0]?.count > 0) {
+            await syncIncumbentPoliticiansFromParliament();
+            // Re-read after sync attempt
+            politiciansData = await db.select().from(politicians).orderBy(desc(politicians.updatedAt));
+          }
+        } catch (syncError) {
+          // Log sync error but don't fail the request
+          console.error('Politician sync failed:', syncError);
+        }
       }
       
       const processingTime = Date.now() - startTime;
       return ResponseFormatter.success(
         res,
-        politiciansData,
+        politiciansData || [],
         "Politicians data retrieved successfully",
         200,
-        politiciansData.length,
+        politiciansData?.length || 0,
         undefined,
         processingTime
       );
     } catch (error) {
+      console.error('Politicians API error:', error);
       return ResponseFormatter.databaseError(res, `Failed to fetch politicians: ${(error as Error).message}`);
     }
   });
