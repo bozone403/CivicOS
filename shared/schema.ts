@@ -190,6 +190,8 @@ export const politicians = pgTable("politicians", {
   name: varchar("name").notNull(),
   party: varchar("party"),
   position: varchar("position"),
+  riding: varchar("riding"),
+  image: varchar("image"),
   parliamentMemberId: varchar("parliament_member_id").unique(),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
@@ -206,6 +208,13 @@ export const politicians = pgTable("politicians", {
   level: varchar("level"),
   jurisdiction: varchar("jurisdiction"),
   trustScore: decimal("trust_score", { precision: 5, scale: 2 }).default("50.00"),
+  civicLevel: varchar("civic_level"),
+  recentActivity: text("recent_activity"),
+  policyPositions: text("policy_positions").array(),
+  expenses: jsonb("expenses").default("{}"),
+  committees: text("committees").array(),
+  bio: text("bio"),
+  officeAddress: varchar("office_address"),
 });
 
 // Social posts table
@@ -488,6 +497,9 @@ export const criminalCodeSections = pgTable("criminal_code_sections", {
   content: text("content"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
+  source: varchar("source"),
+  sourceUrl: varchar("source_url"),
+  lastUpdated: timestamp("last_updated"),
 });
 
 // Legal acts table
@@ -501,6 +513,9 @@ export const legalActs = pgTable("legal_acts", {
   updatedAt: timestamp("updated_at").defaultNow(),
   fullText: text("full_text"),
   summary: text("summary"),
+  source: varchar("source"),
+  sourceUrl: varchar("source_url"),
+  lastUpdated: timestamp("last_updated"),
 });
 
 // Legal cases table
@@ -509,10 +524,14 @@ export const legalCases = pgTable("legal_cases", {
   caseNumber: varchar("case_number").notNull(),
   title: varchar("title").notNull(),
   description: text("description"),
+  summary: text("summary"),
   jurisdiction: varchar("jurisdiction"),
   status: varchar("status"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
+  source: varchar("source"),
+  sourceUrl: varchar("source_url"),
+  lastUpdated: timestamp("last_updated"),
 });
 
 // Legislative acts table
@@ -638,14 +657,25 @@ export const petitions = pgTable("petitions", {
   title: varchar("title").notNull(),
   description: text("description"),
   creatorId: varchar("creator_id").notNull(),
+  category: varchar("category"),
+  jurisdiction: varchar("jurisdiction"),
   targetSignatures: integer("target_signatures"),
   currentSignatures: integer("current_signatures").default(0),
   status: varchar("status").default("active"),
+  urgency: varchar("urgency"),
+  verified: boolean("verified").default(false),
+  image: text("image"),
+  tags: text("tags").array(),
+  supporters: jsonb("supporters"),
+  deadline: varchar("deadline"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
   relatedBillId: integer("related_bill_id"),
   autoCreated: boolean("auto_created").default(false),
   deadlineDate: timestamp("deadline_date"),
+  source: varchar("source"),
+  sourceUrl: varchar("source_url"),
+  lastUpdated: timestamp("last_updated"),
 });
 
 // Petition signatures table

@@ -115,7 +115,7 @@ export default function AdminDashboard() {
       setIsRunningIngestion(true);
       return await apiRequest('/api/admin/refresh/all', 'POST');
     },
-    onSuccess: (data) => {
+    onSuccess: () => {
       toast({
         title: "Data Ingestion Complete",
         description: "All data sources have been refreshed successfully",

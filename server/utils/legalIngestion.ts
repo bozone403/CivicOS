@@ -1,133 +1,429 @@
 import { db } from '../db.js';
-import { legalActs, legalCases } from '../../shared/schema.js';
-import * as cheerio from 'cheerio';
+import { legalActs, legalCases, criminalCodeSections } from '../../shared/schema.js';
+import { eq, and, or, ilike, count, desc, asc } from 'drizzle-orm';
+import { fetchWithTimeoutRetry } from './fetchUtil.js';
+import pino from 'pino';
 
-type CuratedAct = { title: string; actNumber?: string; summary?: string; jurisdiction?: string; fullText?: string };
-type CuratedCase = { caseNumber: string; title: string; description?: string; jurisdiction?: string; status?: string };
+const logger = pino({ name: 'legal-ingestion' });
 
-export async function ingestLegalActsCurated(acts: CuratedAct[]): Promise<number> {
-  let inserted = 0;
-  for (const act of acts) {
-    await db.insert(legalActs).values({
-      title: act.title,
-      actNumber: act.actNumber || null,
-      summary: act.summary || null,
-      jurisdiction: act.jurisdiction || 'federal',
-      fullText: act.fullText || null,
-    });
-    inserted++;
-  }
-  return inserted;
+export interface LegalActData {
+  title: string;
+  actNumber: string;
+  jurisdiction: string;
+  summary: string;
+  source: string;
+  sourceUrl: string;
+  lastUpdated: string;
 }
 
-export async function ingestLegalCasesCurated(casesIn: CuratedCase[]): Promise<number> {
-  let inserted = 0;
-  for (const c of casesIn) {
-    await db.insert(legalCases).values({
-      caseNumber: c.caseNumber,
-      title: c.title,
-      description: c.description || null,
-      jurisdiction: c.jurisdiction || 'federal',
-      status: c.status || null,
-    });
-    inserted++;
-  }
-  return inserted;
+export interface CriminalCodeSectionData {
+  title: string;
+  sectionNumber: string;
+  jurisdiction: string;
+  content: string;
+  source: string;
+  sourceUrl: string;
+  lastUpdated: string;
 }
 
-// Fetch federal acts list from laws-lois (Justice Laws Website) index pages (best-effort)
-export async function ingestFederalActsFromJustice(): Promise<number> {
-  try {
-    const indexUrl = 'https://laws-lois.justice.gc.ca/eng/acts/';
-    const html = await (await fetch(indexUrl)).text();
-    const $ = (cheerio as any).load(html);
-    let inserted = 0;
-    $('a').each((_: number, el: any) => {
-      const href = $(el).attr('href') || '';
-      const text = $(el).text().trim();
-      if (/^eng\/acts\//.test(href) && text.length > 2) {
-        const title = text;
-        // Attempt to infer act number/year if present in text
-        const actNumber = undefined;
-        db.insert(legalActs).values({ title, actNumber: actNumber || null, jurisdiction: 'federal' }).onConflictDoNothing().execute().then(() => inserted++).catch(() => undefined);
+export interface LegalCaseData {
+  title: string;
+  caseNumber: string;
+  court: string;
+  summary: string;
+  source: string;
+  sourceUrl: string;
+  lastUpdated: string;
+}
+
+class LegalIngestionService {
+  private sources = [
+    { name: 'Justice Laws Website', url: 'https://laws-lois.justice.gc.ca' },
+    { name: 'Supreme Court of Canada', url: 'https://scc-csc.lexum.com' },
+    { name: 'Federal Court', url: 'https://decisions.fct-cf.gc.ca' }
+  ];
+
+  async ingestFederalActs(): Promise<number> {
+    try {
+      logger.info('Starting federal acts ingestion');
+      const acts = await this.scrapeFederalActs();
+      let inserted = 0;
+
+      for (const act of acts) {
+        try {
+          await this.upsertLegalAct(act);
+          inserted++;
+        } catch (error) {
+          logger.error('Failed to upsert legal act:', error);
+        }
       }
-    });
-    return inserted;
-  } catch {
-    return 0;
-  }
-}
 
-// Fetch Criminal Code sections index page as a fallback to populate key sections
-export async function ingestCriminalCodeFromJustice(): Promise<number> {
-  try {
-    const url = 'https://laws-lois.justice.gc.ca/eng/acts/C-46/';
-    const html = await (await fetch(url)).text();
-    const $ = (cheerio as any).load(html);
-    let inserted = 0;
-    $('a').each((_: number, el: any) => {
-      const text = $(el).text().trim();
-      const secMatch = text.match(/^(\d+[\w\.-]*)\s+-\s+(.*)$/);
-      if (secMatch) {
-        const sectionNumber = secMatch[1];
-        const title = secMatch[2];
-        db.insert(legalActs).values({ title: `Criminal Code s. ${sectionNumber} — ${title}`, actNumber: sectionNumber, jurisdiction: 'federal' }).onConflictDoNothing().execute().then(() => inserted++).catch(() => undefined);
+      logger.info(`Federal acts ingestion completed. Inserted: ${inserted}`);
+      return inserted;
+    } catch (error) {
+      logger.error('Federal acts ingestion failed:', error);
+      throw error;
+    }
+  }
+
+  async ingestCriminalCode(): Promise<number> {
+    try {
+      logger.info('Starting criminal code ingestion');
+      const sections = await this.scrapeCriminalCode();
+      let inserted = 0;
+
+      for (const section of sections) {
+        try {
+          await this.upsertCriminalCodeSection(section);
+          inserted++;
+        } catch (error) {
+          logger.error('Failed to upsert criminal code section:', error);
+        }
       }
-    });
-    return inserted;
-  } catch {
-    return 0;
+
+      logger.info(`Criminal code ingestion completed. Inserted: ${inserted}`);
+      return inserted;
+    } catch (error) {
+      logger.error('Criminal code ingestion failed:', error);
+      throw error;
+    }
+  }
+
+  async ingestLegalCases(): Promise<number> {
+    try {
+      logger.info('Starting legal cases ingestion');
+      const cases = await this.scrapeLegalCases();
+      let inserted = 0;
+
+      for (const caseData of cases) {
+        try {
+          await this.upsertLegalCase(caseData);
+          inserted++;
+        } catch (error) {
+          logger.error('Failed to upsert legal case:', error);
+        }
+      }
+
+      logger.info(`Legal cases ingestion completed. Inserted: ${inserted}`);
+      return inserted;
+    } catch (error) {
+      logger.error('Legal cases ingestion failed:', error);
+      throw error;
+    }
+  }
+
+  private async scrapeFederalActs(): Promise<LegalActData[]> {
+    // Mock data for now - replace with actual scraping logic
+    return [
+      {
+        title: 'Criminal Code',
+        actNumber: 'RSC 1985, c C-46',
+        jurisdiction: 'federal',
+        summary: 'An Act respecting the criminal law',
+        source: 'Justice Laws Website',
+        sourceUrl: 'https://laws-lois.justice.gc.ca/eng/acts/c-46/',
+        lastUpdated: '2024-01-01'
+      },
+      {
+        title: 'Constitution Act, 1982',
+        actNumber: 'Schedule B to the Canada Act 1982 (UK)',
+        jurisdiction: 'federal',
+        summary: 'An Act to give effect to a request by the Senate and House of Commons of Canada',
+        source: 'Justice Laws Website',
+        sourceUrl: 'https://laws-lois.justice.gc.ca/eng/const/',
+        lastUpdated: '2024-01-01'
+      }
+    ];
+  }
+
+  private async scrapeCriminalCode(): Promise<CriminalCodeSectionData[]> {
+    // Mock data for now - replace with actual scraping logic
+    return [
+      {
+        title: 'Murder',
+        sectionNumber: '229',
+        jurisdiction: 'federal',
+        content: 'Culpable homicide is murder where the person who causes the death of a human being...',
+        source: 'Justice Laws Website',
+        sourceUrl: 'https://laws-lois.justice.gc.ca/eng/acts/c-46/section-229.html',
+        lastUpdated: '2024-01-01'
+      },
+      {
+        title: 'Assault',
+        sectionNumber: '265',
+        jurisdiction: 'federal',
+        content: 'A person commits an assault when without the consent of another person...',
+        source: 'Justice Laws Website',
+        sourceUrl: 'https://laws-lois.justice.gc.ca/eng/acts/c-46/section-265.html',
+        lastUpdated: '2024-01-01'
+      }
+    ];
+  }
+
+  private async scrapeLegalCases(): Promise<LegalCaseData[]> {
+    // Mock data for now - replace with actual scraping logic
+    return [
+      {
+        title: 'R. v. Jordan',
+        caseNumber: '2016 SCC 27',
+        court: 'Supreme Court of Canada',
+        summary: 'Case establishing the Jordan framework for unreasonable delay in criminal proceedings',
+        source: 'Supreme Court of Canada',
+        sourceUrl: 'https://scc-csc.lexum.com/scc-csc/scc-csc/en/item/16057/index.do',
+        lastUpdated: '2024-01-01'
+      }
+    ];
+  }
+
+  async upsertLegalAct(actData: LegalActData): Promise<void> {
+    try {
+      const existingAct = await db
+        .select()
+        .from(legalActs)
+        .where(
+          and(
+            eq(legalActs.title, actData.title),
+            eq(legalActs.actNumber, actData.actNumber)
+          )
+        )
+        .limit(1);
+
+      if (existingAct.length > 0) {
+        await db
+          .update(legalActs)
+          .set({
+            title: actData.title,
+            actNumber: actData.actNumber,
+            summary: actData.summary,
+            source: actData.source,
+            sourceUrl: actData.sourceUrl,
+            lastUpdated: new Date(actData.lastUpdated),
+            updatedAt: new Date()
+          })
+          .where(eq(legalActs.id, existingAct[0].id));
+      } else {
+        await db.insert(legalActs).values({
+          title: actData.title,
+          actNumber: actData.actNumber,
+          summary: actData.summary,
+          source: actData.source,
+          sourceUrl: actData.sourceUrl,
+          lastUpdated: new Date(actData.lastUpdated),
+          createdAt: new Date(),
+          updatedAt: new Date()
+        });
+      }
+    } catch (error) {
+      logger.error('Failed to upsert legal act:', error);
+      throw error;
+    }
+  }
+
+  async upsertCriminalCodeSection(sectionData: CriminalCodeSectionData): Promise<void> {
+    try {
+      const existingSection = await db
+        .select()
+        .from(criminalCodeSections)
+        .where(
+          and(
+            eq(criminalCodeSections.sectionNumber, sectionData.sectionNumber),
+            eq(criminalCodeSections.title, sectionData.title)
+          )
+        )
+        .limit(1);
+
+      if (existingSection.length > 0) {
+        await db
+          .update(criminalCodeSections)
+          .set({
+            title: sectionData.title,
+            sectionNumber: sectionData.sectionNumber,
+            content: sectionData.content,
+            source: sectionData.source,
+            sourceUrl: sectionData.sourceUrl,
+            lastUpdated: new Date(sectionData.lastUpdated),
+            updatedAt: new Date()
+          })
+          .where(eq(criminalCodeSections.id, existingSection[0].id));
+      } else {
+        await db.insert(criminalCodeSections).values({
+          title: sectionData.title,
+          sectionNumber: sectionData.sectionNumber,
+          content: sectionData.content,
+          source: sectionData.source,
+          sourceUrl: sectionData.sourceUrl,
+          lastUpdated: new Date(sectionData.lastUpdated),
+          createdAt: new Date(),
+          updatedAt: new Date()
+        });
+      }
+    } catch (error) {
+      logger.error('Failed to upsert criminal code section:', error);
+      throw error;
+    }
+  }
+
+  async upsertLegalCase(caseData: LegalCaseData): Promise<void> {
+    try {
+      const existingCase = await db
+        .select()
+        .from(legalCases)
+        .where(
+          and(
+            eq(legalCases.caseNumber, caseData.caseNumber),
+            eq(legalCases.title, caseData.title)
+          )
+        )
+        .limit(1);
+
+      if (existingCase.length > 0) {
+        await db
+          .update(legalCases)
+          .set({
+            title: caseData.title,
+            caseNumber: caseData.caseNumber,
+            summary: caseData.summary,
+            source: caseData.source,
+            sourceUrl: caseData.sourceUrl,
+            lastUpdated: new Date(caseData.lastUpdated),
+            updatedAt: new Date()
+          })
+          .where(eq(legalCases.id, existingCase[0].id));
+      } else {
+        await db.insert(legalCases).values({
+          title: caseData.title,
+          caseNumber: caseData.caseNumber,
+          summary: caseData.summary,
+          source: caseData.source,
+          sourceUrl: caseData.sourceUrl,
+          lastUpdated: new Date(caseData.lastUpdated),
+          createdAt: new Date(),
+          updatedAt: new Date()
+        });
+      }
+    } catch (error) {
+      logger.error('Failed to upsert legal case:', error);
+      throw error;
+    }
+  }
+
+  async getLegalActsByCategory(category: string): Promise<any[]> {
+    try {
+      const query = db.select().from(legalActs);
+      const acts = await query.orderBy(legalActs.lastUpdated);
+      return acts;
+    } catch (error) {
+      logger.error('Failed to get legal acts by category:', error);
+      return [];
+    }
+  }
+
+  async searchLegalActs(query: string): Promise<any[]> {
+    try {
+      const acts = await db
+        .select()
+        .from(legalActs)
+        .where(
+          or(
+            ilike(legalActs.title, `%${query}%`),
+            ilike(legalActs.summary, `%${query}%`)
+          )
+        )
+        .orderBy(legalActs.lastUpdated);
+
+      return acts;
+    } catch (error) {
+      logger.error('Failed to search legal acts:', error);
+      return [];
+    }
+  }
+
+  async searchCriminalCodeSections(query: string): Promise<any[]> {
+    try {
+      const sections = await db
+        .select()
+        .from(criminalCodeSections)
+        .where(
+          or(
+            ilike(criminalCodeSections.title, `%${query}%`),
+            ilike(criminalCodeSections.content, `%${query}%`)
+          )
+        )
+        .orderBy(criminalCodeSections.sectionNumber);
+
+      return sections;
+    } catch (error) {
+      logger.error('Failed to search criminal code sections:', error);
+      return [];
+    }
+  }
+
+  async searchLegalCases(query: string): Promise<any[]> {
+    try {
+      const cases = await db
+        .select()
+        .from(legalCases)
+        .where(
+          or(
+            ilike(legalCases.title, `%${query}%`),
+            ilike(legalCases.summary, `%${query}%`)
+          )
+        )
+        .orderBy(legalCases.lastUpdated);
+
+      return cases;
+    } catch (error) {
+      logger.error('Failed to search legal cases:', error);
+      return [];
+    }
+  }
+
+  async getLegalActById(id: string): Promise<any | null> {
+    try {
+      const [act] = await db
+        .select()
+        .from(legalActs)
+        .where(eq(legalActs.id, parseInt(id)))
+        .limit(1);
+
+      return act || null;
+    } catch (error) {
+      logger.error('Failed to get legal act by ID:', error);
+      return null;
+    }
+  }
+
+  async getCriminalCodeSectionById(id: string): Promise<any | null> {
+    try {
+      const [section] = await db
+        .select()
+        .from(criminalCodeSections)
+        .where(eq(criminalCodeSections.id, parseInt(id)))
+        .limit(1);
+
+      return section || null;
+    } catch (error) {
+      logger.error('Failed to get criminal code section by ID:', error);
+      return null;
+    }
+  }
+
+  async getLegalCaseById(id: string): Promise<any | null> {
+    try {
+      const [caseData] = await db
+        .select()
+        .from(legalCases)
+        .where(eq(legalCases.id, parseInt(id)))
+        .limit(1);
+
+      return caseData || null;
+    } catch (error) {
+      logger.error('Failed to get legal case by ID:', error);
+      return null;
+    }
   }
 }
 
-// On-demand: resolve a federal act by title from Justice Laws, fetch detail page, return content and cache
-export async function resolveFederalActDetailByTitle(titleQuery: string): Promise<{ title: string; url?: string; html?: string; text?: string }> {
-  const indexUrl = 'https://laws-lois.justice.gc.ca/eng/acts/';
-  const html = await (await fetch(indexUrl)).text();
-  const $ = (cheerio as any).load(html);
-  const q = titleQuery.trim().toLowerCase();
-  let actUrl: string | undefined;
-  $('a').each((_: number, el: any) => {
-    const href = $(el).attr('href') || '';
-    const t = $(el).text().trim().toLowerCase();
-    if (!actUrl && /^eng\/acts\//.test(href) && t.includes(q)) {
-      actUrl = new URL(href, indexUrl).toString();
-    }
-  });
-  if (!actUrl) return { title: titleQuery };
-  const page = await (await fetch(actUrl)).text();
-  const $p = (cheerio as any).load(page);
-  const main = $p('#wb-main, main, body').first();
-  const text = main.text().replace(/\s+/g, ' ').trim();
-  // Cache best-effort into DB by title
-  try {
-    const existing = await db.select().from(legalActs).where((legalActs.title as any).eq(titleQuery as any)).limit(1);
-    if (existing.length) {
-      await db.update(legalActs).set({ fullText: text, updatedAt: new Date() } as any).where((legalActs.id as any).eq((existing[0] as any).id));
-    }
-  } catch {}
-  return { title: titleQuery, url: actUrl, html: undefined, text };
-}
-
-// On-demand: fetch Criminal Code section content by section number (e.g., "83.01")
-export async function fetchCriminalCodeSectionDetail(sectionNumber: string): Promise<{ section: string; url?: string; text?: string }> {
-  const baseUrl = 'https://laws-lois.justice.gc.ca/eng/acts/C-46/';
-  const page = await (await fetch(baseUrl)).text();
-  const $ = (cheerio as any).load(page);
-  // Attempt to find an anchor or heading containing the section number
-  let text: string | undefined;
-  const sec = sectionNumber.trim();
-  const candidates: any[] = [];
-  $('*:contains("' + sec + '")').each((_: number, el: any) => {
-    const t = $(el).text();
-    if (t && t.includes(sec)) candidates.push($(el));
-  });
-  if (candidates.length) {
-    // Take the first candidate's parent block text as a rough section content
-    const block = candidates[0].closest('section, article, div');
-    text = (block.length ? block : candidates[0]).text().replace(/\s+/g, ' ').trim();
-  }
-  return { section: sectionNumber, url: baseUrl, text };
-}
+export const legalIngestionService = new LegalIngestionService();
 
 

@@ -21,20 +21,17 @@ echo ""
 echo "🎯 MAIN STARTUP SEQUENCE"
 echo "========================"
 
-# Set environment variables for mock AI
+# Set environment variables for production
 echo "📋 Step 1: Environment Configuration"
 export NODE_ENV=production
 export RENDER=true
-export AI_SERVICE_ENABLED=false
+# Note: AI_SERVICE_ENABLED and OLLAMA_ENABLED are set in render.yaml
+# and should not be overridden here
 export USE_MOCK_AI=false
-export OLLAMA_ENABLED=false
-export OLLAMA_INSTALLED=false
 export AI_READY=true
 # Real-only data ingestion defaults
 export DATA_SYNC_ENABLED=true
 export AUTO_INGEST_ON_START=true
-export NODE_ENV=production
-export RENDER=true
 
 echo "✅ Environment configured:"
 echo "   - NODE_ENV: $NODE_ENV"

@@ -1,12 +1,14 @@
 import pino from 'pino';
 import { db } from '../db.js';
-import { bills, billRollcalls, billRollcallRecords, parliamentMembers } from '../../shared/schema.js';
+import { bills } from '../../shared/schema.js';
+import { eq, and, or, ilike, count, desc, asc } from 'drizzle-orm';
 import { fetchWithTimeoutRetry } from './fetchUtil.js';
 import { ingestBillRollcallsForCurrentSession } from './parliamentIngestion.js';
 
 const logger = pino({ name: 'bill-ingestion' });
 
 export interface BillData {
+  id?: number;
   billNumber: string;
   title: string;
   description: string;
@@ -52,488 +54,295 @@ export interface BillData {
   };
 }
 
+// Interface that matches the actual database schema
+export interface DatabaseBillData {
+  id: number;
+  title: string;
+  description: string | null;
+  billNumber: string | null;
+  status: string | null;
+  summary: string | null;
+  sponsorName: string | null;
+  billType: string | null;
+  category: string | null;
+  createdAt: Date | null;
+  updatedAt: Date | null;
+}
+
 class BillIngestionService {
   private sources = [
-    {
-      name: 'OpenParliament',
-      url: 'https://openparliament.ca',
-      type: 'federal'
-    },
-    {
-      name: 'Our Commons',
-      url: 'https://ourcommons.ca',
-      type: 'federal'
-    },
-    {
-      name: 'Justice Laws',
-      url: 'https://laws-lois.justice.gc.ca',
-      type: 'federal'
-    }
+    { name: 'Parliament of Canada', url: 'https://www.parl.ca' },
+    { name: 'LegisInfo', url: 'https://www.parl.ca/legisinfo' },
+    { name: 'Provincial Legislature Sites', url: 'various' }
   ];
 
-  async ingestAllBills(): Promise<{ success: boolean; message: string; data?: any }> {
+  async ingestAllBills(): Promise<number> {
     try {
       logger.info('Starting comprehensive bill ingestion');
-
+      
       const results = await Promise.allSettled([
         this.ingestFederalBills(),
         this.ingestProvincialBills(),
         this.ingestMunicipalBills()
       ]);
 
-      const federalResult = results[0].status === 'fulfilled' ? results[0].value : { success: false, message: 'Failed' };
-      const provincialResult = results[1].status === 'fulfilled' ? results[1].value : { success: false, message: 'Failed' };
-      const municipalResult = results[2].status === 'fulfilled' ? results[2].value : { success: false, message: 'Failed' };
+      const federalResult = results[0].status === 'fulfilled' ? results[0].value : 0;
+      const provincialResult = results[1].status === 'fulfilled' ? results[1].value : 0;
+      const municipalResult = results[2].status === 'fulfilled' ? results[2].value : 0;
 
       // Create sample bills if none exist
       await this.createSampleBillsIfNeeded();
 
-      return {
-        success: true,
-        message: 'Bill ingestion completed',
-        data: {
-          federal: federalResult,
-          provincial: provincialResult,
-          municipal: municipalResult
-        }
-      };
+      const total = federalResult + provincialResult + municipalResult;
+      logger.info(`Bill ingestion completed. Total inserted: ${total}`);
+      return total;
     } catch (error) {
       logger.error('Bill ingestion failed:', error);
-      return {
-        success: false,
-        message: 'Failed to ingest bills',
-        data: { error: (error as any)?.message }
-      };
+      throw error;
     }
   }
 
-  async ingestFederalBills(): Promise<{ success: boolean; message: string; data?: any }> {
+  async ingestFederalBills(): Promise<number> {
     try {
-      logger.info('Ingesting federal bills');
+      logger.info('Starting federal bill ingestion');
+      const bills = await this.createFederalBillRecords();
+      let inserted = 0;
 
-      // Use the existing parliament ingestion for roll-calls
-      const rollcallResult = await ingestBillRollcallsForCurrentSession();
-      
-      // Create comprehensive bill records
-      const federalBills = await this.createFederalBillRecords();
-      
-      return {
-        success: true,
-        message: `${federalBills.length} federal bills processed`,
-        data: { bills: federalBills.length, rollcalls: rollcallResult }
-      };
+      for (const bill of bills) {
+        try {
+          await this.upsertBill(bill);
+          inserted++;
+        } catch (error) {
+          logger.error('Failed to upsert federal bill:', error);
+        }
+      }
+
+      logger.info(`Federal bill ingestion completed. Inserted: ${inserted}`);
+      return inserted;
     } catch (error) {
       logger.error('Federal bill ingestion failed:', error);
-      return {
-        success: false,
-        message: 'Failed to ingest federal bills',
-        data: { error: (error as any)?.message }
-      };
+      throw error;
     }
   }
 
-  async ingestProvincialBills(): Promise<{ success: boolean; message: string; data?: any }> {
+  async ingestProvincialBills(): Promise<number> {
     try {
-      logger.info('Ingesting provincial bills');
+      logger.info('Starting provincial bill ingestion');
+      const bills = await this.createProvincialBillRecords();
+      let inserted = 0;
 
-      // Create sample provincial bills for now
-      const provincialBills = await this.createProvincialBillRecords();
-      
-      return {
-        success: true,
-        message: `${provincialBills.length} provincial bills processed`,
-        data: { bills: provincialBills.length }
-      };
+      for (const bill of bills) {
+        try {
+          await this.upsertBill(bill);
+          inserted++;
+        } catch (error) {
+          logger.error('Failed to upsert provincial bill:', error);
+        }
+      }
+
+      logger.info(`Provincial bill ingestion completed. Inserted: ${inserted}`);
+      return inserted;
     } catch (error) {
       logger.error('Provincial bill ingestion failed:', error);
-      return {
-        success: false,
-        message: 'Failed to ingest provincial bills',
-        data: { error: (error as any)?.message }
-      };
+      throw error;
     }
   }
 
-  async ingestMunicipalBills(): Promise<{ success: boolean; message: string; data?: any }> {
+  async ingestMunicipalBills(): Promise<number> {
     try {
-      logger.info('Ingesting municipal bills');
+      logger.info('Starting municipal bill ingestion');
+      const bills = await this.createMunicipalBillRecords();
+      let inserted = 0;
 
-      // Create sample municipal bills for now
-      const municipalBills = await this.createMunicipalBillRecords();
-      
-      return {
-        success: true,
-        message: `${municipalBills.length} municipal bills processed`,
-        data: { bills: municipalBills.length }
-      };
+      for (const bill of bills) {
+        try {
+          await this.upsertBill(bill);
+          inserted++;
+        } catch (error) {
+          logger.error('Failed to upsert municipal bill:', error);
+        }
+      }
+
+      logger.info(`Municipal bill ingestion completed. Inserted: ${inserted}`);
+      return inserted;
     } catch (error) {
       logger.error('Municipal bill ingestion failed:', error);
-      return {
-        success: false,
-        message: 'Failed to ingest municipal bills',
-        data: { error: (error as any)?.message }
-      };
+      throw error;
     }
   }
 
-  private async createFederalBillRecords(): Promise<any[]> {
-    try {
-      const federalBills = [
-        {
-          billNumber: 'C-60',
-          title: 'An Act to implement certain provisions of the budget tabled in Parliament on April 16, 2024',
-          description: 'Budget implementation act for fiscal year 2024-25',
-          status: 'active',
-          stage: 'Second Reading',
-          jurisdiction: 'federal',
-          category: 'budget',
-          introducedDate: '2024-04-16',
-          sponsor: 'Chrystia Freeland',
-          sponsorParty: 'Liberal',
-          summary: 'This bill implements measures from the 2024 federal budget including climate action, housing initiatives, and economic support.',
-          keyProvisions: [
-            'Climate action funding',
-            'Housing affordability measures',
-            'Economic support programs',
-            'Infrastructure investment'
-          ],
-          timeline: 'Introduced April 16, 2024 - Currently in Second Reading',
-          estimatedCost: 85000000000,
-          estimatedRevenue: 0,
-          publicSupport: { yes: 45, no: 35, neutral: 20 },
-          parliamentVotes: {
-            liberal: 'support',
-            conservative: 'oppose',
-            ndp: 'support',
-            bloc: 'support',
-            green: 'support'
-          },
-          totalVotes: 0,
-          readingStage: 2,
-          nextVoteDate: '2024-12-15',
-          governmentUrl: 'https://www.parl.ca/DocumentViewer/en/44-1/bill/C-60',
-          legiscanUrl: 'https://legiscan.com/CA/bill/C-60/2024',
-          fullTextUrl: 'https://www.parl.ca/DocumentViewer/en/44-1/bill/C-60/text',
-          committeeReports: ['Finance Committee Report'],
-          amendments: ['Amendment 1', 'Amendment 2'],
-          fiscalNote: 'Estimated cost: $85 billion over 5 years',
-          regulatoryImpact: 'Moderate impact on business regulations',
-          voteStats: {
-            total_votes: 0,
-            yes_votes: 0,
-            no_votes: 0,
-            abstentions: 0
-          }
+  private async createFederalBillRecords(): Promise<BillData[]> {
+    return [
+      {
+        billNumber: 'C-15',
+        title: 'An Act respecting the United Nations Declaration on the Rights of Indigenous Peoples',
+        description: 'Bill to implement the United Nations Declaration on the Rights of Indigenous Peoples',
+        status: 'Royal Assent',
+        stage: 'Completed',
+        jurisdiction: 'federal',
+        category: 'indigenous-rights',
+        introducedDate: '2020-12-03',
+        sponsor: 'David Lametti',
+        sponsorParty: 'Liberal',
+        summary: 'This bill provides a framework for the Government of Canada\'s implementation of the United Nations Declaration on the Rights of Indigenous Peoples.',
+        keyProvisions: ['Implementation framework', 'Action plan development', 'Annual reporting'],
+        timeline: 'Introduced December 2020, Royal Assent June 2021',
+        estimatedCost: 50000000,
+        estimatedRevenue: 0,
+        publicSupport: { yes: 75, no: 15, neutral: 10 },
+        parliamentVotes: {
+          liberal: 'For',
+          conservative: 'Against',
+          ndp: 'For',
+          bloc: 'For',
+          green: 'For'
         },
-        {
-          billNumber: 'C-56',
-          title: 'An Act to amend the Excise Tax Act and the Competition Act',
-          description: 'Bill to remove GST from new rental housing and strengthen competition law',
-          status: 'active',
-          stage: 'Third Reading',
-          jurisdiction: 'federal',
-          category: 'tax',
-          introducedDate: '2023-09-14',
-          sponsor: 'Chrystia Freeland',
-          sponsorParty: 'Liberal',
-          summary: 'This bill removes GST from new rental housing construction and strengthens competition law to address affordability concerns.',
-          keyProvisions: [
-            'Remove GST from new rental housing',
-            'Strengthen competition law',
-            'Address housing affordability',
-            'Support rental housing construction'
-          ],
-          timeline: 'Introduced September 14, 2023 - Currently in Third Reading',
-          estimatedCost: 4500000000,
-          estimatedRevenue: -4500000000,
-          publicSupport: { yes: 65, no: 25, neutral: 10 },
-          parliamentVotes: {
-            liberal: 'support',
-            conservative: 'support',
-            ndp: 'support',
-            bloc: 'support',
-            green: 'support'
-          },
-          totalVotes: 0,
-          readingStage: 3,
-          nextVoteDate: '2024-12-10',
-          governmentUrl: 'https://www.parl.ca/DocumentViewer/en/44-1/bill/C-56',
-          legiscanUrl: 'https://legiscan.com/CA/bill/C-56/2024',
-          fullTextUrl: 'https://www.parl.ca/DocumentViewer/en/44-1/bill/C-56/text',
-          committeeReports: ['Finance Committee Report', 'Industry Committee Report'],
-          amendments: ['Amendment 1'],
-          fiscalNote: 'Estimated cost: $4.5 billion in tax relief',
-          regulatoryImpact: 'Low impact on business regulations',
-          voteStats: {
-            total_votes: 0,
-            yes_votes: 0,
-            no_votes: 0,
-            abstentions: 0
-          }
+        totalVotes: 338,
+        readingStage: 3,
+        governmentUrl: 'https://www.parl.ca/legisinfo/en/bill/43-2/c-15',
+        legiscanUrl: 'https://legiscan.com/CA/bill/C15/2021',
+        fullTextUrl: 'https://www.parl.ca/legisinfo/en/bill/43-2/c-15'
+      },
+      {
+        billNumber: 'C-18',
+        title: 'An Act respecting online communications platforms that make news content available to persons in Canada',
+        description: 'Bill to regulate online news platforms and support Canadian journalism',
+        status: 'Royal Assent',
+        stage: 'Completed',
+        jurisdiction: 'federal',
+        category: 'media',
+        introducedDate: '2022-04-05',
+        sponsor: 'Pablo Rodriguez',
+        sponsorParty: 'Liberal',
+        summary: 'This bill establishes a framework to regulate digital news intermediaries and support Canadian journalism.',
+        keyProvisions: ['Digital news intermediary regulation', 'Bargaining framework', 'Arbitration process'],
+        timeline: 'Introduced April 2022, Royal Assent June 2023',
+        estimatedCost: 10000000,
+        estimatedRevenue: 0,
+        publicSupport: { yes: 60, no: 25, neutral: 15 },
+        parliamentVotes: {
+          liberal: 'For',
+          conservative: 'Against',
+          ndp: 'For',
+          bloc: 'For',
+          green: 'For'
         },
-        {
-          billNumber: 'C-21',
-          title: 'An Act to amend certain Acts and to make certain consequential amendments (firearms)',
-          description: 'Firearms control and regulation amendments',
-          status: 'active',
-          stage: 'Committee',
-          jurisdiction: 'federal',
-          category: 'public-safety',
-          introducedDate: '2022-05-30',
-          sponsor: 'Marco Mendicino',
-          sponsorParty: 'Liberal',
-          summary: 'This bill strengthens firearms control measures including red flag laws and assault weapon prohibitions.',
-          keyProvisions: [
-            'Red flag laws',
-            'Assault weapon prohibitions',
-            'Enhanced background checks',
-            'Safe storage requirements'
-          ],
-          timeline: 'Introduced May 30, 2022 - Currently in Committee',
-          estimatedCost: 150000000,
-          estimatedRevenue: 0,
-          publicSupport: { yes: 55, no: 40, neutral: 5 },
-          parliamentVotes: {
-            liberal: 'support',
-            conservative: 'oppose',
-            ndp: 'support',
-            bloc: 'support',
-            green: 'support'
-          },
-          totalVotes: 0,
-          readingStage: 2,
-          nextVoteDate: '2024-12-20',
-          governmentUrl: 'https://www.parl.ca/DocumentViewer/en/44-1/bill/C-21',
-          legiscanUrl: 'https://legiscan.com/CA/bill/C-21/2024',
-          fullTextUrl: 'https://www.parl.ca/DocumentViewer/en/44-1/bill/C-21/text',
-          committeeReports: ['Public Safety Committee Report'],
-          amendments: ['Amendment 1', 'Amendment 2', 'Amendment 3'],
-          fiscalNote: 'Estimated cost: $150 million over 5 years',
-          regulatoryImpact: 'High impact on firearms regulations',
-          voteStats: {
-            total_votes: 0,
-            yes_votes: 0,
-            no_votes: 0,
-            abstentions: 0
-          }
-        }
-      ];
-
-      // Upsert federal bills
-      for (const bill of federalBills) {
-        await this.upsertBill(bill);
+        totalVotes: 338,
+        readingStage: 3,
+        governmentUrl: 'https://www.parl.ca/legisinfo/en/bill/44-1/c-18',
+        legiscanUrl: 'https://legiscan.com/CA/bill/C18/2023',
+        fullTextUrl: 'https://www.parl.ca/legisinfo/en/bill/44-1/c-18'
       }
-
-      return federalBills;
-    } catch (error) {
-      logger.error('Failed to create federal bill records:', error);
-      throw error;
-    }
+    ];
   }
 
-  private async createProvincialBillRecords(): Promise<any[]> {
-    try {
-      const provincialBills = [
-        {
-          billNumber: 'Bill 23',
-          title: 'More Homes Built Faster Act',
-          description: 'Ontario bill to accelerate housing construction',
-          status: 'active',
-          stage: 'Royal Assent',
-          jurisdiction: 'provincial',
-          category: 'housing',
-          introducedDate: '2022-10-25',
-          sponsor: 'Steve Clark',
-          sponsorParty: 'Progressive Conservative',
-          summary: 'This bill aims to build 1.5 million homes over 10 years by streamlining development approvals.',
-          keyProvisions: [
-            'Streamline development approvals',
-            'Reduce development charges',
-            'Expedite environmental assessments',
-            'Support affordable housing'
-          ],
-          timeline: 'Introduced October 25, 2022 - Royal Assent received',
-          estimatedCost: 1000000000,
-          estimatedRevenue: 0,
-          publicSupport: { yes: 60, no: 30, neutral: 10 },
-          parliamentVotes: {
-            liberal: 'oppose',
-            conservative: 'support',
-            ndp: 'oppose',
-            bloc: 'n/a',
-            green: 'oppose'
-          },
-          totalVotes: 0,
-          readingStage: 4,
-          nextVoteDate: 'N/A',
-          governmentUrl: 'https://www.ontario.ca/laws/bill/23',
-          legiscanUrl: 'https://legiscan.com/ON/bill/23/2022',
-          fullTextUrl: 'https://www.ontario.ca/laws/bill/23',
-          committeeReports: ['Standing Committee Report'],
-          amendments: ['Amendment 1'],
-          fiscalNote: 'Estimated cost: $1 billion over 10 years',
-          regulatoryImpact: 'High impact on development regulations',
-          voteStats: {
-            total_votes: 0,
-            yes_votes: 0,
-            no_votes: 0,
-            abstentions: 0
-          }
-        }
-      ];
-
-      // Upsert provincial bills
-      for (const bill of provincialBills) {
-        await this.upsertBill(bill);
+  private async createProvincialBillRecords(): Promise<BillData[]> {
+    return [
+      {
+        billNumber: 'Bill 23',
+        title: 'More Homes Built Faster Act',
+        description: 'Ontario bill to increase housing supply and speed up development',
+        status: 'Royal Assent',
+        stage: 'Completed',
+        jurisdiction: 'ontario',
+        category: 'housing',
+        introducedDate: '2022-10-25',
+        sponsor: 'Steve Clark',
+        sponsorParty: 'Progressive Conservative',
+        summary: 'This bill aims to build more homes faster by reducing development charges and streamlining approval processes.',
+        keyProvisions: ['Development charge reductions', 'Streamlined approvals', 'Housing targets'],
+        timeline: 'Introduced October 2022, Royal Assent November 2022',
+        estimatedCost: 0,
+        estimatedRevenue: 0,
+        publicSupport: { yes: 45, no: 40, neutral: 15 },
+        parliamentVotes: {
+          liberal: 'Against',
+          conservative: 'For',
+          ndp: 'Against',
+          bloc: 'N/A',
+          green: 'Against'
+        },
+        totalVotes: 124,
+        readingStage: 3,
+        governmentUrl: 'https://www.ola.org/en/legislative-business/bills/parliament-43/session-1/bill-23',
+        legiscanUrl: 'https://legiscan.com/ON/bill/23/2022',
+        fullTextUrl: 'https://www.ola.org/en/legislative-business/bills/parliament-43/session-1/bill-23'
       }
-
-      return provincialBills;
-    } catch (error) {
-      logger.error('Failed to create provincial bill records:', error);
-      throw error;
-    }
+    ];
   }
 
-  private async createMunicipalBillRecords(): Promise<any[]> {
-    try {
-      const municipalBills = [
-        {
-          billNumber: 'By-law 2024-001',
-          title: 'Toronto Housing Affordability By-law',
-          description: 'Municipal by-law to address housing affordability',
-          status: 'active',
-          stage: 'Council Approval',
-          jurisdiction: 'municipal',
-          category: 'housing',
-          introducedDate: '2024-01-15',
-          sponsor: 'Olivia Chow',
-          sponsorParty: 'Independent',
-          summary: 'This by-law introduces measures to increase affordable housing options in Toronto.',
-          keyProvisions: [
-            'Affordable housing requirements',
-            'Rent control measures',
-            'Development incentives',
-            'Tenant protection'
-          ],
-          timeline: 'Introduced January 15, 2024 - Council approval pending',
-          estimatedCost: 50000000,
-          estimatedRevenue: 0,
-          publicSupport: { yes: 70, no: 20, neutral: 10 },
-          parliamentVotes: {
-            liberal: 'n/a',
-            conservative: 'n/a',
-            ndp: 'n/a',
-            bloc: 'n/a',
-            green: 'n/a'
-          },
-          totalVotes: 0,
-          readingStage: 2,
-          nextVoteDate: '2024-12-30',
-          governmentUrl: 'https://www.toronto.ca/city-government/decisions-meetings/council/',
-          legiscanUrl: 'N/A',
-          fullTextUrl: 'https://www.toronto.ca/city-government/decisions-meetings/council/',
-          committeeReports: ['Planning Committee Report'],
-          amendments: ['Amendment 1'],
-          fiscalNote: 'Estimated cost: $50 million over 5 years',
-          regulatoryImpact: 'Moderate impact on development regulations',
-          voteStats: {
-            total_votes: 0,
-            yes_votes: 0,
-            no_votes: 0,
-            abstentions: 0
-          }
-        }
-      ];
-
-      // Upsert municipal bills
-      for (const bill of municipalBills) {
-        await this.upsertBill(bill);
+  private async createMunicipalBillRecords(): Promise<BillData[]> {
+    return [
+      {
+        billNumber: 'By-law 2023-001',
+        title: 'Property Standards By-law',
+        description: 'Toronto by-law establishing property maintenance standards',
+        status: 'Enacted',
+        stage: 'Completed',
+        jurisdiction: 'toronto',
+        category: 'property',
+        introducedDate: '2023-01-15',
+        sponsor: 'City Council',
+        sponsorParty: 'N/A',
+        summary: 'This by-law establishes minimum property maintenance standards for residential and commercial properties in Toronto.',
+        keyProvisions: ['Property maintenance standards', 'Enforcement procedures', 'Penalty provisions'],
+        timeline: 'Introduced January 2023, Enacted March 2023',
+        estimatedCost: 500000,
+        estimatedRevenue: 0,
+        publicSupport: { yes: 70, no: 20, neutral: 10 },
+        parliamentVotes: {
+          liberal: 'N/A',
+          conservative: 'N/A',
+          ndp: 'N/A',
+          bloc: 'N/A',
+          green: 'N/A'
+        },
+        totalVotes: 25,
+        readingStage: 3,
+        governmentUrl: 'https://www.toronto.ca/legislation/bylaws/',
+        legiscanUrl: 'N/A',
+        fullTextUrl: 'https://www.toronto.ca/legislation/bylaws/'
       }
-
-      return municipalBills;
-    } catch (error) {
-      logger.error('Failed to create municipal bill records:', error);
-      throw error;
-    }
+    ];
   }
 
-  private async upsertBill(billData: BillData): Promise<void> {
+  async upsertBill(billData: BillData): Promise<void> {
     try {
-      // Check if bill already exists
       const existingBill = await db
         .select()
         .from(bills)
         .where(
-          db.and(
-            db.eq(bills.billNumber, billData.billNumber),
-            db.eq(bills.jurisdiction, billData.jurisdiction)
+          and(
+            eq(bills.billNumber, billData.billNumber),
+            eq(bills.title, billData.title)
           )
         )
         .limit(1);
 
       if (existingBill.length > 0) {
-        // Update existing bill
         await db
           .update(bills)
           .set({
             title: billData.title,
             description: billData.description,
             status: billData.status,
-            stage: billData.stage,
-            category: billData.category,
-            sponsor: billData.sponsor,
-            sponsorParty: billData.sponsorParty,
             summary: billData.summary,
-            keyProvisions: billData.keyProvisions,
-            timeline: billData.timeline,
-            estimatedCost: billData.estimatedCost,
-            estimatedRevenue: billData.estimatedRevenue,
-            publicSupport: billData.publicSupport,
-            parliamentVotes: billData.parliamentVotes,
-            readingStage: billData.readingStage,
-            nextVoteDate: billData.nextVoteDate,
-            governmentUrl: billData.governmentUrl,
-            legiscanUrl: billData.legiscanUrl,
-            fullTextUrl: billData.fullTextUrl,
-            committeeReports: billData.committeeReports,
-            amendments: billData.amendments,
-            fiscalNote: billData.fiscalNote,
-            regulatoryImpact: billData.regulatoryImpact,
-            voteStats: billData.voteStats,
+            sponsorName: billData.sponsor,
+            billType: billData.stage,
+            category: billData.category,
             updatedAt: new Date()
           })
-          .where(db.eq(bills.id, existingBill[0].id));
+          .where(eq(bills.id, existingBill[0].id));
       } else {
-        // Insert new bill
         await db.insert(bills).values({
           billNumber: billData.billNumber,
           title: billData.title,
           description: billData.description,
           status: billData.status,
-          stage: billData.stage,
-          jurisdiction: billData.jurisdiction,
-          category: billData.category,
-          introducedDate: billData.introducedDate,
-          sponsor: billData.sponsor,
-          sponsorParty: billData.sponsorParty,
           summary: billData.summary,
-          keyProvisions: billData.keyProvisions,
-          timeline: billData.timeline,
-          estimatedCost: billData.estimatedCost,
-          estimatedRevenue: billData.estimatedRevenue,
-          publicSupport: billData.publicSupport,
-          parliamentVotes: billData.parliamentVotes,
-          totalVotes: billData.totalVotes,
-          readingStage: billData.readingStage,
-          nextVoteDate: billData.nextVoteDate,
-          governmentUrl: billData.governmentUrl,
-          legiscanUrl: billData.legiscanUrl,
-          fullTextUrl: billData.fullTextUrl,
-          committeeReports: billData.committeeReports,
-          amendments: billData.amendments,
-          fiscalNote: billData.fiscalNote,
-          regulatoryImpact: billData.regulatoryImpact,
-          voteStats: billData.voteStats,
+          sponsorName: billData.sponsor,
+          billType: billData.stage,
+          category: billData.category,
           createdAt: new Date(),
           updatedAt: new Date()
         });
@@ -550,45 +359,157 @@ class BillIngestionService {
       
       if (existingBills.length === 0) {
         logger.info('No bills found, creating sample data');
-        await this.ingestAllBills();
+        const sampleBills = [
+          ...await this.createFederalBillRecords(),
+          ...await this.createProvincialBillRecords(),
+          ...await this.createMunicipalBillRecords()
+        ];
+
+        for (const bill of sampleBills) {
+          await this.upsertBill(bill);
+        }
       }
     } catch (error) {
       logger.error('Failed to create sample bills:', error);
     }
   }
 
-  async getBillsByLocation(location?: string): Promise<any[]> {
+  async getBillsByLocation(location: string): Promise<BillData[]> {
     try {
-      let query = db.select().from(bills);
-      
-      if (location) {
-        const locationLower = location.toLowerCase();
-        query = query.where(
-          db.or(
-            db.ilike(bills.jurisdiction, `%${locationLower}%`),
-            db.ilike(bills.title, `%${locationLower}%`),
-            db.ilike(bills.sponsor, `%${locationLower}%`)
-          )
-        );
-      }
+      const billsData = await db
+        .select()
+        .from(bills)
+        .where(ilike(bills.sponsorName, `%${location}%`))
+        .orderBy(desc(bills.createdAt));
 
-      const bills = await query.orderBy(bills.introducedDate);
-      return bills;
+      return billsData.map(bill => ({
+        id: bill.id,
+        billNumber: bill.billNumber || '',
+        title: bill.title,
+        description: bill.description || '',
+        status: bill.status || '',
+        summary: bill.summary || '',
+        category: bill.category || '',
+        // Add placeholder values for fields not in DB schema but required by BillData
+        stage: bill.billType || '', // Mapped from DB
+        jurisdiction: 'federal', // Placeholder
+        introducedDate: bill.createdAt?.toISOString().split('T')[0] || '', // Mapped from DB
+        sponsor: bill.sponsorName || '', // Mapped from DB
+        sponsorParty: 'Unknown', // Placeholder
+        keyProvisions: [],
+        timeline: 'Unknown', // Placeholder
+        publicSupport: { yes: 0, no: 0, neutral: 0 },
+        totalVotes: 0,
+        readingStage: 0,
+      }));
     } catch (error) {
       logger.error('Failed to get bills by location:', error);
+      throw error;
+    }
+  }
+
+  async getBillsByCategory(category: string): Promise<BillData[]> {
+    try {
+      const billsData = await db
+        .select()
+        .from(bills)
+        .where(eq(bills.category, category))
+        .orderBy(desc(bills.createdAt));
+
+      return billsData.map(bill => ({
+        id: bill.id,
+        billNumber: bill.billNumber || '',
+        title: bill.title,
+        description: bill.description || '',
+        status: bill.status || '',
+        summary: bill.summary || '',
+        category: bill.category || '',
+        // Add placeholder values for fields not in DB schema but required by BillData
+        stage: bill.billType || '', // Mapped from DB
+        jurisdiction: 'federal', // Placeholder
+        introducedDate: bill.createdAt?.toISOString().split('T')[0] || '', // Mapped from DB
+        sponsor: bill.sponsorName || '', // Mapped from DB
+        sponsorParty: 'Unknown', // Placeholder
+        keyProvisions: [],
+        timeline: 'Unknown', // Placeholder
+        publicSupport: { yes: 0, no: 0, neutral: 0 },
+        totalVotes: 0,
+        readingStage: 0,
+      }));
+    } catch (error) {
+      logger.error('Failed to get bills by category:', error);
+      throw error;
+    }
+  }
+
+  async searchBills(query: string): Promise<BillData[]> {
+    try {
+      const billsData = await db
+        .select()
+        .from(bills)
+        .where(
+          or(
+            ilike(bills.title, `%${query}%`),
+            ilike(bills.description, `%${query}%`),
+            ilike(bills.summary, `%${query}%`)
+          )
+        )
+        .orderBy(bills.updatedAt);
+
+      return billsData.map(bill => ({
+        id: bill.id,
+        billNumber: bill.billNumber || '',
+        title: bill.title,
+        description: bill.description || '',
+        status: bill.status || '',
+        summary: bill.summary || '',
+        category: bill.category || '',
+        stage: bill.billType || '',
+        jurisdiction: 'federal',
+        introducedDate: bill.createdAt?.toISOString().split('T')[0] || '',
+        sponsor: bill.sponsorName || '',
+        sponsorParty: 'Unknown',
+        keyProvisions: [],
+        timeline: 'Unknown',
+        publicSupport: { yes: 0, no: 0, neutral: 0 },
+        totalVotes: 0,
+        readingStage: 0,
+      }));
+    } catch (error) {
+      logger.error('Failed to search bills:', error);
       return [];
     }
   }
 
-  async getBillById(id: string): Promise<any | null> {
+  async getBillById(id: string): Promise<BillData | null> {
     try {
       const [bill] = await db
         .select()
         .from(bills)
-        .where(db.eq(bills.id, parseInt(id)))
+        .where(eq(bills.id, parseInt(id)))
         .limit(1);
 
-      return bill || null;
+      if (!bill) return null;
+
+      return {
+        id: bill.id,
+        billNumber: bill.billNumber || '',
+        title: bill.title,
+        description: bill.description || '',
+        status: bill.status || '',
+        summary: bill.summary || '',
+        category: bill.category || '',
+        stage: bill.billType || '',
+        jurisdiction: 'federal',
+        introducedDate: bill.createdAt?.toISOString().split('T')[0] || '',
+        sponsor: bill.sponsorName || '',
+        sponsorParty: 'Unknown',
+        keyProvisions: [],
+        timeline: 'Unknown',
+        publicSupport: { yes: 0, no: 0, neutral: 0 },
+        totalVotes: 0,
+        readingStage: 0,
+      };
     } catch (error) {
       logger.error('Failed to get bill by ID:', error);
       return null;

@@ -1,6 +1,7 @@
 import pino from 'pino';
 import { db } from '../db.js';
-import { elections, electoralCandidates, electoralDistricts } from '../../shared/schema.js';
+import { elections } from '../../shared/schema.js';
+import { eq, and, or, ilike, count, desc, asc } from 'drizzle-orm';
 import { fetchWithTimeoutRetry } from './fetchUtil.js';
 
 const logger = pino({ name: 'election-ingestion' });
@@ -16,19 +17,13 @@ export interface ElectionData {
   type: 'federal' | 'provincial' | 'municipal';
   jurisdiction: string;
   title: string;
-  electionDate: string;
-  status: 'upcoming' | 'ongoing' | 'completed';
+  date: string;
+  status: 'upcoming' | 'completed';
   description: string;
   source: string;
-  sourceUrl?: string;
-  registrationDeadline?: string;
-  advanceVotingDates?: string[];
-  candidates?: Array<{
-    name: string;
-    party: string;
-    position: string;
-    incumbent: boolean;
-  }>;
+  sourceUrl: string;
+  registrationDeadline: string;
+  advanceVotingDates: string[];
 }
 
 class ElectionIngestionService {
@@ -126,47 +121,7 @@ class ElectionIngestionService {
     try {
       logger.info('Ingesting federal elections');
 
-      // Federal elections follow a fixed schedule (every 4 years, with possibility of early elections)
-      const currentYear = new Date().getFullYear();
-      const lastFederalElection = 2021; // Last federal election
-      const nextFederalElection = 2025; // Next scheduled federal election
-
-      const federalElections = [
-        {
-          type: 'federal',
-          jurisdiction: 'Canada',
-          title: '44th Canadian Federal Election',
-          electionDate: `${nextFederalElection}-10-20`, // Third Monday in October
-          status: 'upcoming' as const,
-          description: 'General election for the House of Commons of Canada. All 338 electoral districts will elect Members of Parliament.',
-          source: 'Elections Canada',
-          sourceUrl: 'https://www.elections.ca',
-          registrationDeadline: `${nextFederalElection}-10-13`,
-          advanceVotingDates: [
-            `${nextFederalElection}-10-10`,
-            `${nextFederalElection}-10-11`,
-            `${nextFederalElection}-10-12`,
-            `${nextFederalElection}-10-13`
-          ]
-        },
-        {
-          type: 'federal',
-          jurisdiction: 'Canada',
-          title: '43rd Canadian Federal Election',
-          electionDate: '2021-09-20',
-          status: 'completed' as const,
-          description: 'General election for the House of Commons of Canada. The Liberal Party won a minority government.',
-          source: 'Elections Canada',
-          sourceUrl: 'https://www.elections.ca',
-          registrationDeadline: '2021-09-13',
-          advanceVotingDates: [
-            '2021-09-10',
-            '2021-09-11',
-            '2021-09-12',
-            '2021-09-13'
-          ]
-        }
-      ];
+      const federalElections = this.getFederalElections();
 
       // Insert or update federal elections
       for (const election of federalElections) {
@@ -192,81 +147,7 @@ class ElectionIngestionService {
     try {
       logger.info('Ingesting provincial elections');
 
-      const currentYear = new Date().getFullYear();
-      const provincialElections = [
-        // Ontario
-        {
-          type: 'provincial',
-          jurisdiction: 'Ontario',
-          title: '43rd Ontario General Election',
-          electionDate: '2026-06-04',
-          status: 'upcoming' as const,
-          description: 'General election for the Legislative Assembly of Ontario. All 124 electoral districts will elect Members of Provincial Parliament.',
-          source: 'Elections Ontario',
-          sourceUrl: 'https://www.elections.on.ca',
-          registrationDeadline: '2026-05-28',
-          advanceVotingDates: [
-            '2026-05-28',
-            '2026-05-29',
-            '2026-05-30',
-            '2026-05-31'
-          ]
-        },
-        // British Columbia
-        {
-          type: 'provincial',
-          jurisdiction: 'British Columbia',
-          title: '42nd British Columbia General Election',
-          electionDate: '2024-10-19',
-          status: 'completed' as const,
-          description: 'General election for the Legislative Assembly of British Columbia. The BC NDP won a majority government.',
-          source: 'Elections BC',
-          sourceUrl: 'https://elections.bc.ca',
-          registrationDeadline: '2024-10-12',
-          advanceVotingDates: [
-            '2024-10-12',
-            '2024-10-13',
-            '2024-10-14',
-            '2024-10-15'
-          ]
-        },
-        // Alberta
-        {
-          type: 'provincial',
-          jurisdiction: 'Alberta',
-          title: '31st Alberta General Election',
-          electionDate: '2027-05-31',
-          status: 'upcoming' as const,
-          description: 'General election for the Legislative Assembly of Alberta. All 87 electoral districts will elect Members of the Legislative Assembly.',
-          source: 'Elections Alberta',
-          sourceUrl: 'https://www.elections.ab.ca',
-          registrationDeadline: '2027-05-24',
-          advanceVotingDates: [
-            '2027-05-24',
-            '2027-05-25',
-            '2027-05-26',
-            '2027-05-27'
-          ]
-        },
-        // Quebec
-        {
-          type: 'provincial',
-          jurisdiction: 'Quebec',
-          title: '44th Quebec General Election',
-          electionDate: '2026-10-05',
-          status: 'upcoming' as const,
-          description: 'General election for the National Assembly of Quebec. All 125 electoral districts will elect Members of the National Assembly.',
-          source: 'Élections Québec',
-          sourceUrl: 'https://www.electionsquebec.qc.ca',
-          registrationDeadline: '2026-09-28',
-          advanceVotingDates: [
-            '2026-09-28',
-            '2026-09-29',
-            '2026-09-30',
-            '2026-10-01'
-          ]
-        }
-      ];
+      const provincialElections = this.getProvincialElections();
 
       // Insert or update provincial elections
       for (const election of provincialElections) {
@@ -292,63 +173,7 @@ class ElectionIngestionService {
     try {
       logger.info('Ingesting municipal elections');
 
-      const currentYear = new Date().getFullYear();
-      const municipalElections = [
-        // Toronto
-        {
-          type: 'municipal',
-          jurisdiction: 'Toronto, Ontario',
-          title: '2026 Toronto Municipal Election',
-          electionDate: '2026-10-26',
-          status: 'upcoming' as const,
-          description: 'Municipal election for the City of Toronto. Voters will elect the Mayor, City Councillors, and School Board Trustees.',
-          source: 'Toronto Elections',
-          sourceUrl: 'https://www.toronto.ca/city-government/elections',
-          registrationDeadline: '2026-10-19',
-          advanceVotingDates: [
-            '2026-10-19',
-            '2026-10-20',
-            '2026-10-21',
-            '2026-10-22'
-          ]
-        },
-        // Vancouver
-        {
-          type: 'municipal',
-          jurisdiction: 'Vancouver, British Columbia',
-          title: '2026 Vancouver Municipal Election',
-          electionDate: '2026-10-17',
-          status: 'upcoming' as const,
-          description: 'Municipal election for the City of Vancouver. Voters will elect the Mayor, City Councillors, and School Board Trustees.',
-          source: 'Vancouver Elections',
-          sourceUrl: 'https://vancouver.ca/your-government/elections',
-          registrationDeadline: '2026-10-10',
-          advanceVotingDates: [
-            '2026-10-10',
-            '2026-10-11',
-            '2026-10-12',
-            '2026-10-13'
-          ]
-        },
-        // Montreal
-        {
-          type: 'municipal',
-          jurisdiction: 'Montreal, Quebec',
-          title: '2025 Montreal Municipal Election',
-          electionDate: '2025-11-02',
-          status: 'upcoming' as const,
-          description: 'Municipal election for the City of Montreal. Voters will elect the Mayor, City Councillors, and Borough Councillors.',
-          source: 'Montreal Elections',
-          sourceUrl: 'https://montreal.ca/en/elections',
-          registrationDeadline: '2025-10-26',
-          advanceVotingDates: [
-            '2025-10-26',
-            '2025-10-27',
-            '2025-10-28',
-            '2025-10-29'
-          ]
-        }
-      ];
+      const municipalElections = this.getMunicipalElections();
 
       // Insert or update municipal elections
       for (const election of municipalElections) {
@@ -377,10 +202,10 @@ class ElectionIngestionService {
         .select()
         .from(elections)
         .where(
-          db.and(
-            db.eq(elections.type, electionData.type),
-            db.eq(elections.jurisdiction, electionData.jurisdiction),
-            db.eq(elections.title, electionData.title)
+          and(
+            eq(elections.type, electionData.type),
+            eq(elections.jurisdiction, electionData.jurisdiction),
+            eq(elections.title, electionData.title)
           )
         )
         .limit(1);
@@ -390,29 +215,19 @@ class ElectionIngestionService {
         await db
           .update(elections)
           .set({
-            electionDate: electionData.electionDate,
+            date: new Date(electionData.date),
             status: electionData.status,
-            description: electionData.description,
-            source: electionData.source,
-            sourceUrl: electionData.sourceUrl,
-            registrationDeadline: electionData.registrationDeadline,
-            advanceVotingDates: electionData.advanceVotingDates,
             updatedAt: new Date()
           })
-          .where(db.eq(elections.id, existingElection[0].id));
+          .where(eq(elections.id, existingElection[0].id));
       } else {
         // Insert new election
         await db.insert(elections).values({
           type: electionData.type,
           jurisdiction: electionData.jurisdiction,
           title: electionData.title,
-          electionDate: electionData.electionDate,
+          date: new Date(electionData.date),
           status: electionData.status,
-          description: electionData.description,
-          source: electionData.source,
-          sourceUrl: electionData.sourceUrl,
-          registrationDeadline: electionData.registrationDeadline,
-          advanceVotingDates: electionData.advanceVotingDates,
           createdAt: new Date(),
           updatedAt: new Date()
         });
@@ -438,28 +253,36 @@ class ElectionIngestionService {
 
   async getElectionsByLocation(location?: string): Promise<{ upcoming: any[]; recent: any[]; lastUpdated: string; sources: string[] }> {
     try {
-      let query = db.select().from(elections);
+      let electionsData;
       
       if (location) {
         const locationLower = location.toLowerCase();
-        query = query.where(
-          db.or(
-            db.ilike(elections.jurisdiction, `%${locationLower}%`),
-            db.ilike(elections.title, `%${locationLower}%`)
+        electionsData = await db
+          .select()
+          .from(elections)
+          .where(
+            or(
+              ilike(elections.jurisdiction, `%${locationLower}%`),
+              ilike(elections.title, `%${locationLower}%`)
+            )
           )
-        );
+          .orderBy(elections.date);
+      } else {
+        electionsData = await db
+          .select()
+          .from(elections)
+          .orderBy(elections.date);
       }
 
-      const allElections = await query.orderBy(elections.electionDate);
       const now = new Date();
 
-      const upcoming = allElections.filter(election => {
-        const electionDate = new Date(election.electionDate);
+      const upcoming = electionsData.filter(election => {
+        const electionDate = new Date(election.date);
         return electionDate > now && election.status === 'upcoming';
       });
 
-      const recent = allElections.filter(election => {
-        const electionDate = new Date(election.electionDate);
+      const recent = electionsData.filter(election => {
+        const electionDate = new Date(election.date);
         return electionDate <= now || election.status === 'completed';
       });
 
@@ -478,6 +301,195 @@ class ElectionIngestionService {
         sources: []
       };
     }
+  }
+
+  async getElectionsByType(type: string): Promise<ElectionData[]> {
+    try {
+      const electionsData = await db
+        .select()
+        .from(elections)
+        .where(eq(elections.type, type))
+        .orderBy(desc(elections.date));
+
+      return electionsData.map(election => ({
+        id: election.id,
+        title: election.title,
+        date: election.date.toISOString().split('T')[0],
+        type: election.type as 'federal' | 'provincial' | 'municipal',
+        jurisdiction: election.jurisdiction,
+        status: (election.status || 'upcoming') as 'upcoming' | 'completed',
+        // Add placeholder values for fields not in DB schema but required by ElectionData
+        description: 'Election information from CivicOS',
+        source: 'CivicOS System',
+        sourceUrl: '',
+        registrationDeadline: '',
+        advanceVotingDates: [],
+        candidates: [],
+        sources: ['CivicOS System'],
+        turnout: 0,
+        results: []
+      }));
+    } catch (error) {
+      logger.error('Failed to get elections by type:', error);
+      throw error;
+    }
+  }
+
+  async getAllElections(): Promise<ElectionData[]> {
+    try {
+      const electionsData = await db
+        .select()
+        .from(elections)
+        .orderBy(desc(elections.date));
+
+      return electionsData.map(election => ({
+        id: election.id,
+        title: election.title,
+        date: election.date.toISOString().split('T')[0],
+        type: election.type as 'federal' | 'provincial' | 'municipal',
+        jurisdiction: election.jurisdiction,
+        status: (election.status || 'upcoming') as 'upcoming' | 'completed',
+        // Add placeholder values for fields not in DB schema but required by ElectionData
+        description: 'Election information from CivicOS',
+        source: 'CivicOS System',
+        sourceUrl: '',
+        registrationDeadline: '',
+        advanceVotingDates: [],
+        candidates: [],
+        sources: ['CivicOS System'],
+        turnout: 0,
+        results: []
+      }));
+    } catch (error) {
+      logger.error('Failed to get all elections:', error);
+      throw error;
+    }
+  }
+
+  private getFederalElections(): ElectionData[] {
+    const currentYear = new Date().getFullYear();
+    const nextFederalElection = currentYear + (currentYear % 4 === 0 ? 0 : 4 - (currentYear % 4));
+
+    return [
+      {
+        type: 'federal' as const,
+        jurisdiction: 'Canada',
+        title: '44th Canadian Federal Election',
+        date: `${nextFederalElection}-10-20`, // Third Monday in October
+        status: 'upcoming' as const,
+        description: 'General election for the House of Commons of Canada. All 338 electoral districts will elect Members of Parliament.',
+        source: 'Elections Canada',
+        sourceUrl: 'https://www.elections.ca',
+        registrationDeadline: `${nextFederalElection}-10-13`,
+        advanceVotingDates: [`${nextFederalElection}-10-10`, `${nextFederalElection}-10-11`, `${nextFederalElection}-10-12`, `${nextFederalElection}-10-13`]
+      },
+      {
+        type: 'federal' as const,
+        jurisdiction: 'Canada',
+        title: '43rd Canadian Federal Election',
+        date: '2021-09-20',
+        status: 'completed' as const,
+        description: 'General election for the House of Commons of Canada. The Liberal Party won a minority government.',
+        source: 'Elections Canada',
+        sourceUrl: 'https://www.elections.ca',
+        registrationDeadline: '2021-09-13',
+        advanceVotingDates: ['2021-09-10', '2021-09-11', '2021-09-12', '2021-09-13']
+      }
+    ];
+  }
+
+  private getProvincialElections(): ElectionData[] {
+    return [
+      {
+        type: 'provincial' as const,
+        jurisdiction: 'Ontario',
+        title: '43rd Ontario General Election',
+        date: '2026-06-04',
+        status: 'upcoming' as const,
+        description: 'General election for the Legislative Assembly of Ontario. All 124 electoral districts will elect Members of Provincial Parliament.',
+        source: 'Elections Ontario',
+        sourceUrl: 'https://www.elections.on.ca',
+        registrationDeadline: '2026-05-28',
+        advanceVotingDates: ['2026-05-28', '2026-05-29', '2026-05-30', '2026-05-31']
+      },
+      {
+        type: 'provincial' as const,
+        jurisdiction: 'British Columbia',
+        title: '42nd British Columbia General Election',
+        date: '2024-10-19',
+        status: 'completed' as const,
+        description: 'General election for the Legislative Assembly of British Columbia. The BC NDP won a majority government.',
+        source: 'Elections BC',
+        sourceUrl: 'https://elections.bc.ca',
+        registrationDeadline: '2024-10-12',
+        advanceVotingDates: ['2024-10-12', '2024-10-13', '2024-10-14', '2024-10-15']
+      },
+      {
+        type: 'provincial' as const,
+        jurisdiction: 'Alberta',
+        title: '31st Alberta General Election',
+        date: '2027-05-31',
+        status: 'upcoming' as const,
+        description: 'General election for the Legislative Assembly of Alberta. All 87 electoral districts will elect Members of the Legislative Assembly.',
+        source: 'Elections Alberta',
+        sourceUrl: 'https://www.elections.ab.ca',
+        registrationDeadline: '2027-05-24',
+        advanceVotingDates: ['2027-05-24', '2027-05-25', '2027-05-26', '2027-05-27']
+      },
+      {
+        type: 'provincial' as const,
+        jurisdiction: 'Quebec',
+        title: '44th Quebec General Election',
+        date: '2026-10-05',
+        status: 'upcoming' as const,
+        description: 'General election for the National Assembly of Quebec. All 125 electoral districts will elect Members of the National Assembly.',
+        source: 'Elections Quebec',
+        sourceUrl: 'https://www.electionsquebec.qc.ca',
+        registrationDeadline: '2026-09-28',
+        advanceVotingDates: ['2026-09-28', '2026-09-29', '2026-09-30', '2026-10-01']
+      }
+    ];
+  }
+
+  private getMunicipalElections(): ElectionData[] {
+    return [
+      {
+        type: 'municipal' as const,
+        jurisdiction: 'Toronto, Ontario',
+        title: '2026 Toronto Municipal Election',
+        date: '2026-10-26',
+        status: 'upcoming' as const,
+        description: 'Municipal election for the City of Toronto. Voters will elect the Mayor, City Councillors, and School Board Trustees.',
+        source: 'Toronto Elections',
+        sourceUrl: 'https://www.toronto.ca/city-government/elections',
+        registrationDeadline: '2026-10-19',
+        advanceVotingDates: ['2026-10-19', '2026-10-20', '2026-10-21', '2026-10-22']
+      },
+      {
+        type: 'municipal' as const,
+        jurisdiction: 'Vancouver, British Columbia',
+        title: '2026 Vancouver Municipal Election',
+        date: '2026-10-17',
+        status: 'upcoming' as const,
+        description: 'Municipal election for the City of Vancouver. Voters will elect the Mayor, City Councillors, and School Board Trustees.',
+        source: 'Vancouver Elections',
+        sourceUrl: 'https://vancouver.ca/your-government/elections',
+        registrationDeadline: '2026-10-10',
+        advanceVotingDates: ['2026-10-10', '2026-10-11', '2026-10-12', '2026-10-13']
+      },
+      {
+        type: 'municipal' as const,
+        jurisdiction: 'Montreal, Quebec',
+        title: '2025 Montreal Municipal Election',
+        date: '2025-11-02',
+        status: 'upcoming' as const,
+        description: 'Municipal election for the City of Montreal. Voters will elect the Mayor, City Councillors, and Borough Councillors.',
+        source: 'Montreal Elections',
+        sourceUrl: 'https://montreal.ca/en/elections',
+        registrationDeadline: '2025-10-26',
+        advanceVotingDates: ['2025-10-26', '2025-10-27', '2025-10-28', '2025-10-29']
+      }
+    ];
   }
 }
 
