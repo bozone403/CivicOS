@@ -3,7 +3,7 @@ services:
     name: civicos
     env: node
     plan: starter
-    buildCommand: npm ci && cd client && npm ci && cd .. && npm run build:full
+    buildCommand: npm ci && cd client && npm ci && cd .. && npm run build:server && cd client && npm run build
     startCommand: bash start-render.sh
     envVars:
       - key: NODE_ENV
