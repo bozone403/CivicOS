@@ -8,7 +8,7 @@
     "dev:local": "NODE_ENV=development tsx server/index.ts",
     "build": "npm run build:server && npm run build:client",
     "build:server": "tsc --project tsconfig.server.json --outDir dist",
-    "build:client": "cd client && npm ci --no-audit --no-fund --silent && npm run build",
+    "build:client": "cd client && npm install && npm run build",
     "build:full": "npm run build:server && npm run build:client",
     "start": "./start.sh",
     "start:render": "bash start-render.sh",
