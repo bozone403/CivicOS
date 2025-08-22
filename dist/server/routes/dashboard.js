@@ -7,18 +7,27 @@ const router = Router();
 // Main dashboard endpoint
 router.get('/', async (req, res) => {
     try {
-        // Temporarily disable database queries due to potential schema issues
-        // TODO: Fix database schema and re-enable database queries
+        // Get real data from database now that schema is fixed
+        const activeBillsCount = await db
+            .select({ count: count() })
+            .from(bills)
+            .where(eq(bills.status, 'active'));
+        const politiciansCount = await db
+            .select({ count: count() })
+            .from(politicians);
+        const totalPetitionsCount = await db
+            .select({ count: count() })
+            .from(petitions);
         res.json({
             success: true,
             data: {
-                activeBills: 0, // Temporarily hardcoded
-                totalPoliticians: 0, // Temporarily hardcoded
-                totalPetitions: 0, // Temporarily hardcoded
+                activeBills: activeBillsCount[0]?.count || 0,
+                totalPoliticians: politiciansCount[0]?.count || 0,
+                totalPetitions: totalPetitionsCount[0]?.count || 0,
                 platformStatus: 'operational',
                 lastUpdated: new Date().toISOString()
             },
-            message: "Dashboard data retrieved successfully (fallback mode)"
+            message: "Dashboard data retrieved successfully"
         });
     }
     catch (error) {

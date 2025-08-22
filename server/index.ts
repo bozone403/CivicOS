@@ -773,22 +773,7 @@ app.get("/api/admin/identity-review", jwtAuth, async (req, res) => {
   res.json({ message: "Admin endpoint" });
 });
 
-// Temporary admin endpoint to trigger migrations
-app.post('/api/admin/run-migrations', jwtAuth, async (req, res) => {
-  const user = req.user as JwtPayload;
-  if (!user || user.email !== process.env.ADMIN_EMAIL) {
-    return res.status(403).json({ message: 'Forbidden' });
-  }
-  try {
-    // Temporarily disabled due to TypeScript compilation issues
-    // const migrateModule = await import('./migrate.js') as any;
-    // await migrateModule.runMigrations();
-    res.json({ message: 'Migrations temporarily disabled' });
-  } catch (error) {
-    logger.error({ msg: 'Error running migrations', error });
-    res.status(500).json({ message: 'Failed to run migrations', error: String(error) });
-  }
-});
+
 
 // Identity verification routes are now registered in appRoutes
 

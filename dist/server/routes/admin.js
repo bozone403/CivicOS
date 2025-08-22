@@ -288,7 +288,18 @@ export function registerAdminRoutes(app) {
             });
         }
         catch (error) {
-            res.status(500).json({ success: false, message: 'Failed to get platform health metrics' });
+            res.status(500).json({ success: false, message: 'Failed to get platform health metrics', error: String(error) });
+        }
+    });
+    // Admin: run database migrations
+    app.post('/api/admin/run-migrations', jwtAuth, requirePermission('admin.system.manage'), async (_req, res) => {
+        try {
+            const { runMigrations } = await import('../migrate.js');
+            await runMigrations();
+            res.json({ success: true, message: 'Migrations completed successfully' });
+        }
+        catch (error) {
+            res.status(500).json({ success: false, message: 'Failed to run migrations', error: String(error) });
         }
     });
 }

@@ -262,7 +262,7 @@ export function registerAdminRoutes(app: Express) {
   });
 
   // Admin: get platform health metrics
-  app.get('/api/admin/health', jwtAuth, requirePermission('admin.system.view'), async (_req: Request, res: Response) => {
+  app.get('/api/admin/health', jwtAuth, requirePermission('admin.system.view'), async (_req, res) => {
     try {
       const [usersCount] = await db.select({ count: count() }).from(users);
       const [postsCount] = await db.select({ count: count() }).from(socialPosts);
@@ -275,7 +275,7 @@ export function registerAdminRoutes(app: Express) {
       const [lobbyistsCount] = await db.select({ count: count() }).from(lobbyistOrgs);
       const [newsCount] = await db.select({ count: count() }).from(newsArticles);
       const [petitionsCount] = await db.select({ count: count() }).from(petitions);
-
+      
       res.json({
         success: true,
         platformHealth: {
@@ -300,7 +300,18 @@ export function registerAdminRoutes(app: Express) {
         }
       });
     } catch (error) {
-      res.status(500).json({ success: false, message: 'Failed to get platform health metrics' });
+      res.status(500).json({ success: false, message: 'Failed to get platform health metrics', error: String(error) });
+    }
+  });
+
+  // Admin: run database migrations
+  app.post('/api/admin/run-migrations', jwtAuth, requirePermission('admin.system.manage'), async (_req, res) => {
+    try {
+      const { runMigrations } = await import('../migrate.js');
+      await runMigrations();
+      res.json({ success: true, message: 'Migrations completed successfully' });
+    } catch (error) {
+      res.status(500).json({ success: false, message: 'Failed to run migrations', error: String(error) });
     }
   });
 }
