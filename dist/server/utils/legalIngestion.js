@@ -105,7 +105,7 @@ class LegalIngestionService {
                 title: 'Murder',
                 sectionNumber: '229',
                 jurisdiction: 'federal',
-                content: 'Culpable homicide is murder where the person who causes the death of a human being...',
+                // content: 'Culpable homicide is murder where the person who causes the death of a human being...', // Field doesn't exist in DB
                 source: 'Justice Laws Website',
                 sourceUrl: 'https://laws-lois.justice.gc.ca/eng/acts/c-46/section-229.html',
                 lastUpdated: '2024-01-01'
@@ -114,7 +114,7 @@ class LegalIngestionService {
                 title: 'Assault',
                 sectionNumber: '265',
                 jurisdiction: 'federal',
-                content: 'A person commits an assault when without the consent of another person...',
+                // content: 'A person commits an assault when without the consent of another person...', // Field doesn't exist in DB
                 source: 'Justice Laws Website',
                 sourceUrl: 'https://laws-lois.justice.gc.ca/eng/acts/c-46/section-265.html',
                 lastUpdated: '2024-01-01'
@@ -187,7 +187,7 @@ class LegalIngestionService {
                     .set({
                     title: sectionData.title,
                     sectionNumber: sectionData.sectionNumber,
-                    content: sectionData.content,
+                    // content: sectionData.content, // Field doesn't exist in DB
                     source: sectionData.source,
                     sourceUrl: sectionData.sourceUrl,
                     lastUpdated: new Date(sectionData.lastUpdated),
@@ -199,7 +199,7 @@ class LegalIngestionService {
                 await db.insert(criminalCodeSections).values({
                     title: sectionData.title,
                     sectionNumber: sectionData.sectionNumber,
-                    content: sectionData.content,
+                    // content: sectionData.content, // Field doesn't exist in DB
                     source: sectionData.source,
                     sourceUrl: sectionData.sourceUrl,
                     lastUpdated: new Date(sectionData.lastUpdated),
