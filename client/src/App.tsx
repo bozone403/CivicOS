@@ -23,7 +23,6 @@ const News = lazy(() => import("@/pages/news"));
 const Politicians = lazy(() => import("@/pages/politicians"));
 const Petitions = lazy(() => import("@/pages/petitions"));
 const Voting = lazy(() => import("@/pages/voting"));
-const Bills = lazy(() => import("@/pages/bills"));
 const Elections = lazy(() => import("@/pages/elections"));
 const Contacts = lazy(() => import("@/pages/contacts"));
 const Legal = lazy(() => import("@/pages/legal"));
@@ -279,12 +278,6 @@ export default function App() {
                         <Voting />
                       </Layout>
                     </ProtectedRoute>
-                  </Route>
-                  
-                  <Route path="/bills">
-                    <Layout>
-                      <Bills />
-                    </Layout>
                   </Route>
                   
                   <Route path="/elections">

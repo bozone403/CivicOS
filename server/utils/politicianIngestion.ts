@@ -10,36 +10,36 @@ export interface PoliticianData {
   name: string;
   party: string;
   position: string;
-  riding: string;
+  // riding: string; // Field doesn't exist in DB
   level: 'federal' | 'provincial' | 'municipal';
   jurisdiction: string;
   image?: string;
   trustScore: string;
-  civicLevel: string;
-  recentActivity: string;
-  policyPositions: string[];
-  votingRecord: {
-    yes: number;
-    no: number;
-    abstain: number;
-  };
-  expenses: {
-    total: number;
-    breakdown: Record<string, number>;
-  };
-  committees: string[];
-  bio: string;
-  officeAddress: string;
-  contactInfo: {
-    email: string;
-    phone: string;
-    website: string;
-  };
-  socialMedia: {
-    twitter?: string;
-    facebook?: string;
-    linkedin?: string;
-  };
+  // civicLevel: string; // Field doesn't exist in DB
+  // recentActivity: string; // Field doesn't exist in DB
+  // policyPositions: string[]; // Field doesn't exist in DB
+  // votingRecord: { // Field doesn't exist in DB
+  //   yes: number;
+  //   no: number;
+  //   abstain: number;
+  // };
+  // expenses: { // Field doesn't exist in DB
+  //   total: number;
+  //   breakdown: Record<string, number>;
+  // };
+  // committees: string[]; // Field doesn't exist in DB
+  // bio: string; // Field doesn't exist in DB
+  // officeAddress: string; // Field doesn't exist in DB
+  // contactInfo: { // Field doesn't exist in DB
+  //   email: string;
+  //   phone: string;
+  //   website: string;
+  // };
+  // socialMedia: { // Field doesn't exist in DB
+  //   twitter?: string;
+  //   facebook?: string;
+  //   linkedin?: string;
+  // };
   parliamentMemberId?: string;
 }
 
@@ -148,58 +148,58 @@ class PoliticianIngestionService {
         name: 'Justin Trudeau',
         party: 'Liberal',
         position: 'Prime Minister',
-        riding: 'Papineau',
+        // riding: 'Papineau', // Field doesn't exist in DB
         level: 'federal',
         jurisdiction: 'federal',
         image: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=400&fit=crop',
         trustScore: '75',
-        civicLevel: 'expert',
-        recentActivity: 'Active in climate policy and international relations',
-        policyPositions: ['Climate action', 'International cooperation', 'Social programs'],
-        votingRecord: { yes: 245, no: 12, abstain: 3 },
-        expenses: { total: 125000, breakdown: { travel: 45000, office: 80000 } },
-        committees: ['Cabinet', 'National Security Committee'],
-        bio: 'Prime Minister of Canada since 2015, leader of the Liberal Party',
-        officeAddress: '80 Wellington Street, Ottawa, ON',
-        contactInfo: {
-          email: 'justin.trudeau@parl.gc.ca',
-          phone: '613-992-4211',
-          website: 'https://www.parl.ca/members/justin-trudeau'
-        },
-        socialMedia: {
-          twitter: '@JustinTrudeau',
-          facebook: 'justintrudeau',
-          linkedin: 'justin-trudeau'
-        },
+        // civicLevel: 'expert', // Field doesn't exist in DB
+        // recentActivity: 'Active in climate policy and international relations', // Field doesn't exist in DB
+        // policyPositions: ['Climate action', 'International cooperation', 'Social programs'], // Field doesn't exist in DB
+        // votingRecord: { yes: 245, no: 12, abstain: 3 }, // Field doesn't exist in DB
+        // expenses: { total: 125000, breakdown: { travel: 45000, office: 80000 } }, // Field doesn't exist in DB
+        // committees: ['Cabinet', 'National Security Committee'], // Field doesn't exist in DB
+        // bio: 'Prime Minister of Canada since 2015, leader of the Liberal Party', // Field doesn't exist in DB
+        // officeAddress: '80 Wellington Street, Ottawa, ON', // Field doesn't exist in DB
+        // contactInfo: { // Field doesn't exist in DB
+        //   email: 'justin.trudeau@parl.gc.ca',
+        //   phone: '613-992-4211',
+        //   website: 'https://www.parl.ca/members/justin-trudeau'
+        // },
+        // socialMedia: { // Field doesn't exist in DB
+        //   twitter: '@JustinTrudeau',
+        //   facebook: 'justintrudeau',
+        //   linkedin: 'justin-trudeau'
+        // },
         parliamentMemberId: 'MP001'
       },
       {
         name: 'Pierre Poilievre',
         party: 'Conservative',
         position: 'Leader of the Opposition',
-        riding: 'Carleton',
+        // riding: 'Carleton', // Field doesn't exist in DB
         level: 'federal',
         jurisdiction: 'federal',
         image: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=400&fit=crop',
         trustScore: '68',
-        civicLevel: 'expert',
-        recentActivity: 'Focusing on economic policy and government accountability',
-        policyPositions: ['Fiscal responsibility', 'Government transparency', 'Economic growth'],
-        votingRecord: { yes: 89, no: 156, abstain: 5 },
-        expenses: { total: 98000, breakdown: { travel: 35000, office: 63000 } },
-        committees: ['Standing Committee on Finance', 'Opposition Leader'],
-        bio: 'Leader of the Conservative Party and Leader of the Official Opposition',
-        officeAddress: '80 Wellington Street, Ottawa, ON',
-        contactInfo: {
-          email: 'pierre.poilievre@parl.gc.ca',
-          phone: '613-992-4211',
-          website: 'https://www.parl.ca/members/pierre-poilievre'
-        },
-        socialMedia: {
-          twitter: '@PierrePoilievre',
-          facebook: 'pierrepoilievre',
-          linkedin: 'pierre-poilievre'
-        },
+        // civicLevel: 'expert', // Field doesn't exist in DB
+        // recentActivity: 'Focusing on economic policy and government accountability', // Field doesn't exist in DB
+        // policyPositions: ['Fiscal responsibility', 'Government transparency', 'Economic growth'], // Field doesn't exist in DB
+        // votingRecord: { yes: 89, no: 156, abstain: 5 }, // Field doesn't exist in DB
+        // expenses: { total: 98000, breakdown: { travel: 35000, office: 63000 } }, // Field doesn't exist in DB
+        // committees: ['Standing Committee on Finance', 'Opposition Leader'], // Field doesn't exist in DB
+        // bio: 'Leader of the Conservative Party and Leader of the Official Opposition', // Field doesn't exist in DB
+        // officeAddress: '80 Wellington Street, Ottawa, ON', // Field doesn't exist in DB
+        // contactInfo: { // Field doesn't exist in DB
+        //   email: 'pierre.poilievre@parl.gc.ca',
+        //   phone: '613-992-4211',
+        //   website: 'https://www.parl.ca/members/pierre-poilievre'
+        // },
+        // socialMedia: { // Field doesn't exist in DB
+        //   twitter: '@PierrePoilievre',
+        //   facebook: 'pierrepoilievre',
+        //   linkedin: 'pierre-poilievre'
+        // },
         parliamentMemberId: 'MP002'
       }
     ];
@@ -211,29 +211,29 @@ class PoliticianIngestionService {
         name: 'Doug Ford',
         party: 'Progressive Conservative',
         position: 'Premier',
-        riding: 'Etobicoke North',
+        // riding: 'Etobicoke North', // Field doesn't exist in DB
         level: 'provincial',
         jurisdiction: 'ontario',
         image: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=400&fit=crop',
         trustScore: '62',
-        civicLevel: 'expert',
-        recentActivity: 'Leading Ontario government, focusing on infrastructure and healthcare',
-        policyPositions: ['Infrastructure development', 'Healthcare reform', 'Economic growth'],
-        votingRecord: { yes: 156, no: 23, abstain: 1 },
-        expenses: { total: 89000, breakdown: { travel: 32000, office: 57000 } },
-        committees: ['Cabinet', 'Treasury Board'],
-        bio: 'Premier of Ontario since 2018, leader of the Progressive Conservative Party',
-        officeAddress: 'Queen\'s Park, Toronto, ON',
-        contactInfo: {
-          email: 'doug.ford@ontario.ca',
-          phone: '416-325-1941',
-          website: 'https://www.ontario.ca/premier'
-        },
-        socialMedia: {
-          twitter: '@fordnation',
-          facebook: 'fordnation',
-          linkedin: 'doug-ford'
-        }
+        // civicLevel: 'expert', // Field doesn't exist in DB
+        // recentActivity: 'Leading Ontario government, focusing on infrastructure and healthcare', // Field doesn't exist in DB
+        // policyPositions: ['Infrastructure development', 'Healthcare reform', 'Economic growth'], // Field doesn't exist in DB
+        // votingRecord: { yes: 156, no: 23, abstain: 1 }, // Field doesn't exist in DB
+        // expenses: { total: 89000, breakdown: { travel: 32000, office: 57000 } }, // Field doesn't exist in DB
+        // committees: ['Cabinet', 'Treasury Board'], // Field doesn't exist in DB
+        // bio: 'Premier of Ontario since 2018, leader of the Progressive Conservative Party', // Field doesn't exist in DB
+        // officeAddress: 'Queen\'s Park, Toronto, ON', // Field doesn't exist in DB
+        // contactInfo: { // Field doesn't exist in DB
+        //   email: 'doug.ford@ontario.ca',
+        //   phone: '416-325-1941',
+        //   website: 'https://www.ontario.ca/premier'
+        // },
+        // socialMedia: { // Field doesn't exist in DB
+        //   twitter: '@fordnation',
+        //   facebook: 'fordnation',
+        //   linkedin: 'doug-ford'
+        // }
       }
     ];
   }
@@ -244,29 +244,29 @@ class PoliticianIngestionService {
         name: 'Olivia Chow',
         party: 'Independent',
         position: 'Mayor',
-        riding: 'Toronto',
+        // riding: 'Toronto', // Field doesn't exist in DB
         level: 'municipal',
         jurisdiction: 'toronto',
         image: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=400&fit=crop',
         trustScore: '78',
-        civicLevel: 'expert',
-        recentActivity: 'Leading Toronto city government, focusing on housing and transit',
-        policyPositions: ['Affordable housing', 'Public transit', 'Climate action'],
-        votingRecord: { yes: 45, no: 8, abstain: 2 },
-        expenses: { total: 65000, breakdown: { travel: 15000, office: 50000 } },
-        committees: ['Executive Committee', 'Budget Committee'],
-        bio: 'Mayor of Toronto since 2023, former Member of Parliament',
-        officeAddress: '100 Queen Street West, Toronto, ON',
-        contactInfo: {
-          email: 'mayor@toronto.ca',
-          phone: '416-397-3674',
-          website: 'https://www.toronto.ca/mayor'
-        },
-        socialMedia: {
-          twitter: '@oliviachow',
-          facebook: 'oliviachow',
-          linkedin: 'olivia-chow'
-        }
+        // civicLevel: 'expert', // Field doesn't exist in DB
+        // recentActivity: 'Leading Toronto city government, focusing on housing and transit', // Field doesn't exist in DB
+        // policyPositions: ['Affordable housing', 'Public transit', 'Climate action'], // Field doesn't exist in DB
+        // votingRecord: { yes: 45, no: 8, abstain: 2 }, // Field doesn't exist in DB
+        // expenses: { total: 65000, breakdown: { travel: 15000, office: 50000 } }, // Field doesn't exist in DB
+        // committees: ['Executive Committee', 'Budget Committee'], // Field doesn't exist in DB
+        // bio: 'Mayor of Toronto since 2023, former Member of Parliament', // Field doesn't exist in DB
+        // officeAddress: '100 Queen Street West, Toronto, ON', // Field doesn't exist in DB
+        // contactInfo: { // Field doesn't exist in DB
+        //   email: 'mayor@toronto.ca',
+        //   phone: '416-397-3674',
+        //   website: 'https://www.toronto.ca/mayor'
+        // },
+        // socialMedia: { // Field doesn't exist in DB
+        //   twitter: '@oliviachow',
+        //   facebook: 'oliviachow',
+        //   linkedin: 'olivia-chow'
+        // }
       }
     ];
   }
@@ -292,21 +292,21 @@ class PoliticianIngestionService {
             name: politicianData.name,
             party: politicianData.party,
             position: politicianData.position,
-            riding: politicianData.riding,
+            // riding: politicianData.riding, // Field doesn't exist in DB
             level: politicianData.level,
             jurisdiction: politicianData.jurisdiction,
             image: politicianData.image,
             trustScore: politicianData.trustScore,
-            civicLevel: politicianData.civicLevel,
-            recentActivity: politicianData.recentActivity,
-            policyPositions: politicianData.policyPositions,
-            votingRecord: politicianData.votingRecord,
-            expenses: politicianData.expenses,
-            committees: politicianData.committees,
-            bio: politicianData.bio,
-            officeAddress: politicianData.officeAddress,
-            contactInfo: politicianData.contactInfo,
-            socialMedia: politicianData.socialMedia,
+            // civicLevel: politicianData.civicLevel, // Field doesn't exist in DB
+            // recentActivity: politicianData.recentActivity, // Field doesn't exist in DB
+            // policyPositions: politicianData.policyPositions, // Field doesn't exist in DB
+            // votingRecord: politicianData.votingRecord, // Field doesn't exist in DB
+            // expenses: politicianData.expenses, // Field doesn't exist in DB
+            // committees: politicianData.committees, // Field doesn't exist in DB
+            // bio: politicianData.bio, // Field doesn't exist in DB
+            // officeAddress: politicianData.officeAddress, // Field doesn't exist in DB
+            // contactInfo: politicianData.contactInfo, // Field doesn't exist in DB
+            // socialMedia: politicianData.socialMedia, // Field doesn't exist in DB
             parliamentMemberId: politicianData.parliamentMemberId,
             updatedAt: new Date()
           })
@@ -316,21 +316,21 @@ class PoliticianIngestionService {
           name: politicianData.name,
           party: politicianData.party,
           position: politicianData.position,
-          riding: politicianData.riding,
+          // riding: politicianData.riding, // Field doesn't exist in DB
           level: politicianData.level,
           jurisdiction: politicianData.jurisdiction,
           image: politicianData.image,
           trustScore: politicianData.trustScore,
-          civicLevel: politicianData.civicLevel,
-          recentActivity: politicianData.recentActivity,
-          policyPositions: politicianData.policyPositions,
-          votingRecord: politicianData.votingRecord,
-          expenses: politicianData.expenses,
-          committees: politicianData.committees,
-          bio: politicianData.bio,
-          officeAddress: politicianData.officeAddress,
-          contactInfo: politicianData.contactInfo,
-          socialMedia: politicianData.socialMedia,
+          // civicLevel: politicianData.civicLevel, // Field doesn't exist in DB
+          // recentActivity: politicianData.recentActivity, // Field doesn't exist in DB
+          // policyPositions: politicianData.policyPositions, // Field doesn't exist in DB
+          // votingRecord: politicianData.votingRecord, // Field doesn't exist in DB
+          // expenses: politicianData.expenses, // Field doesn't exist in DB
+          // committees: politicianData.committees, // Field doesn't exist in DB
+          // bio: politicianData.bio, // Field doesn't exist in DB
+          // officeAddress: politicianData.officeAddress, // Field doesn't exist in DB
+          // contactInfo: politicianData.contactInfo, // Field doesn't exist in DB
+          // socialMedia: politicianData.socialMedia, // Field doesn't exist in DB
           parliamentMemberId: politicianData.parliamentMemberId,
           createdAt: new Date(),
           updatedAt: new Date()
@@ -417,21 +417,21 @@ class PoliticianIngestionService {
         name: politician.name,
         party: politician.party || '',
         position: politician.position || '',
-        riding: politician.riding || '',
+        // riding: politician.riding || '', // Field doesn't exist in DB
         level: (politician.level as 'federal' | 'provincial' | 'municipal') || 'federal',
         jurisdiction: politician.jurisdiction || '',
         image: politician.image || undefined,
         trustScore: politician.trustScore?.toString() || '50.00',
-        civicLevel: politician.civicLevel || 'Unknown',
-        recentActivity: politician.recentActivity || 'No recent activity',
-        policyPositions: politician.policyPositions || [],
-        votingRecord: politician.votingRecord ? (politician.votingRecord as any) : { yes: 0, no: 0, abstain: 0 },
-        expenses: politician.expenses ? (politician.expenses as any) : { total: 0, breakdown: {} },
-        committees: politician.committees || [],
-        bio: politician.bio || politician.biography || '',
-        officeAddress: politician.officeAddress || '',
-        contactInfo: politician.contactInfo ? (politician.contactInfo as any) : { email: '', phone: '', website: '' },
-        socialMedia: politician.socialMedia ? (politician.socialMedia as any) : {},
+        // civicLevel: politician.civicLevel || 'Unknown', // Field doesn't exist in DB
+        // recentActivity: politician.recentActivity || 'No recent activity', // Field doesn't exist in DB
+        // policyPositions: politician.policyPositions || [], // Field doesn't exist in DB
+        // votingRecord: politician.votingRecord ? (politician.votingRecord as any) : { yes: 0, no: 0, abstain: 0 }, // Field doesn't exist in DB
+        // expenses: politician.expenses ? (politician.expenses as any) : { total: 0, breakdown: {} }, // Field doesn't exist in DB
+        // committees: politician.committees || [], // Field doesn't exist in DB
+        // bio: politician.bio || politician.biography || '', // Field doesn't exist in DB
+        // officeAddress: politician.officeAddress || '', // Field doesn't exist in DB
+        // contactInfo: politician.contactInfo ? (politician.contactInfo as any) : { email: '', phone: '', website: '' }, // Field doesn't exist in DB
+        // socialMedia: politician.socialMedia ? (politician.socialMedia as any) : {}, // Field doesn't exist in DB
         parliamentMemberId: politician.parliamentMemberId || undefined
       }));
     } catch (error) {
@@ -463,7 +463,7 @@ class PoliticianIngestionService {
         .where(
           or(
             ilike(politicians.name, `%${query}%`),
-            ilike(politicians.riding, `%${query}%`),
+            // ilike(politicians.riding, `%${query}%`), // Field doesn't exist in DB
             ilike(politicians.party, `%${query}%`)
           )
         )
