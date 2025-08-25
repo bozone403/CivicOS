@@ -17,22 +17,15 @@ const getConfig = (): Config => {
     return {
       apiUrl: envApiUrl,
       environment: 'production',
-      version: '1.0.2' // Cache busting version - updated
+      version: '1.0.2'
     };
   }
   
-  // Force local development server for now
-  return {
-    apiUrl: 'http://localhost:5001',
-    environment: 'development',
-    version: '1.0.2'
-  };
-  
-  // Use production API in production mode
+  // Fallback to production API if no env var
   return {
     apiUrl: 'https://civicos.onrender.com',
     environment: 'production',
-    version: '1.0.2' // Cache busting version - updated
+    version: '1.0.2'
   };
 };
 
