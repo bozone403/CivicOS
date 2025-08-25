@@ -145,36 +145,18 @@ export function registerNewsRoutes(app: Express) {
             }
           ];
 
-          // Insert sample articles directly
-          console.log('Starting to insert sample articles...');
-          for (const article of sampleArticles) {
-            try {
-              console.log(`Attempting to insert: ${article.title}`);
-              const insertResult = await db.insert(newsArticles).values({
-                title: article.title,
-                content: article.content,
-                summary: article.summary,
-                category: article.category,
-                source: article.source,
-                publishedAt: article.publishedAt
-              });
-              console.log(`Inserted sample article: ${article.title}`, insertResult);
-            } catch (insertError) {
-              console.error('Failed to insert sample article:', insertError);
-              console.error('Error details:', insertError.message, insertError.stack);
-            }
-          }
-
-          // Retry query one more time
-          const finalArticles = await base.orderBy(desc(newsArticles.publishedAt ?? newsArticles.createdAt)).limit(limitNum).offset(offset);
-          if (finalArticles.length > 0) {
-            console.log(`Successfully retrieved ${finalArticles.length} articles after adding samples`);
-            return res.json({
-              success: true,
-              articles: finalArticles,
-              pagination: { page: pageNum, limit: limitNum, total: finalArticles.length, totalPages: Math.ceil((Number(finalArticles.length) || 0) / limitNum) }
-            });
-          }
+          // Return sample articles directly instead of trying to insert
+          console.log(`Returning ${sampleArticles.length} sample articles directly`);
+          return res.json({
+            success: true,
+            articles: sampleArticles.map((article, index) => ({
+              ...article,
+              id: index + 1,
+              createdAt: new Date(),
+              updatedAt: new Date()
+            })),
+            pagination: { page: pageNum, limit: limitNum, total: sampleArticles.length, totalPages: Math.ceil((Number(sampleArticles.length) || 0) / limitNum) }
+          });
         } catch (sampleError) {
           console.warn('Failed to add sample articles:', sampleError);
         }
