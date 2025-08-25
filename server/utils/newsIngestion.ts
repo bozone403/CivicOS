@@ -68,10 +68,16 @@ function parseRss(xml: string): FeedItem[] {
 export async function ingestNewsFeeds(): Promise<{ inserted: number; skipped: number }> {
   let inserted = 0;
   let skipped = 0;
+  
+  console.log('Starting RSS ingestion...');
+  
   for (const feed of FEEDS) {
     try {
+      console.log(`Processing feed: ${feed.name} (${feed.url})`);
       const xml = await fetchFeed(feed.url);
       const items = parseRss(xml);
+      console.log(`Parsed ${items.length} items from ${feed.name}`);
+      
       for (const item of items) {
         try {
           // Skip if URL already exists (unique)
@@ -80,7 +86,8 @@ export async function ingestNewsFeeds(): Promise<{ inserted: number; skipped: nu
             skipped++;
             continue;
           }
-          await db.insert(newsArticles).values({
+          
+          const insertResult = await db.insert(newsArticles).values({
             title: item.title.slice(0, 512),
             content: item.description || null,
             url: item.link,
@@ -90,15 +97,21 @@ export async function ingestNewsFeeds(): Promise<{ inserted: number; skipped: nu
             publishedAt: item.pubDate ? new Date(item.pubDate) : null,
             summary: item.description || null,
           });
+          
+          console.log(`Inserted article: ${item.title} from ${feed.name}`);
           inserted++;
-        } catch {
+        } catch (insertError) {
+          console.error(`Failed to insert article from ${feed.name}:`, insertError);
           skipped++;
         }
       }
-    } catch {
+    } catch (feedError) {
+      console.error(`Failed to process feed ${feed.name}:`, feedError);
       // Continue other feeds
     }
   }
+  
+  console.log(`RSS ingestion completed: ${inserted} inserted, ${skipped} skipped`);
   return { inserted, skipped };
 }
 

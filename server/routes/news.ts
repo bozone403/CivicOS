@@ -487,4 +487,75 @@ export function registerNewsRoutes(app: Express) {
       res.status(500).json({ success: false, message: 'Failed to refresh news' });
     }
   });
+
+  // Test RSS ingestion step by step
+  app.get("/api/news/test-rss", async (req: Request, res: Response) => {
+    try {
+      console.log('Testing RSS ingestion...');
+      
+      // Test one feed manually
+      const testFeed = {
+        name: 'CBC News',
+        url: 'https://www.cbc.ca/cmlink/rss-topstories',
+        category: 'politics'
+      };
+      
+      try {
+        const xml = await fetchFeed(testFeed.url);
+        console.log('XML fetched, length:', xml.length);
+        
+        const items = parseRss(xml);
+        console.log('Items parsed:', items.length);
+        
+        if (items.length > 0) {
+          const firstItem = items[0];
+          console.log('First item:', firstItem);
+          
+          // Try to insert
+          const insertResult = await db.insert(newsArticles).values({
+            title: firstItem.title.slice(0, 512),
+            content: firstItem.description || null,
+            url: firstItem.link,
+            source: testFeed.name,
+            author: null,
+            category: testFeed.category,
+            publishedAt: firstItem.pubDate ? new Date(firstItem.pubDate) : null,
+            summary: firstItem.description || null,
+          });
+          
+          console.log('Insert successful:', insertResult);
+          
+          res.json({
+            success: true,
+            message: 'RSS test successful',
+            xmlLength: xml.length,
+            itemsParsed: items.length,
+            firstItem,
+            insertResult
+          });
+        } else {
+          res.json({
+            success: false,
+            message: 'No items parsed from RSS',
+            xmlLength: xml.length,
+            itemsParsed: 0
+          });
+        }
+      } catch (feedError) {
+        console.error('Feed error:', feedError);
+        res.json({
+          success: false,
+          message: 'Feed processing failed',
+          error: feedError.message
+        });
+      }
+    } catch (error) {
+      console.error('RSS test error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'RSS test failed',
+        error: error.message
+      });
+    }
+  });
 } 
