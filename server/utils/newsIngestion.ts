@@ -14,12 +14,42 @@ const FEEDS: { name: string; url: string; category: string }[] = [
   { name: 'CBC Politics', url: 'https://www.cbc.ca/cmlink/rss-politics', category: 'politics' },
   { name: 'CTV Politics', url: 'https://www.ctvnews.ca/rss/politics/ctvnews-ca-politics-public-rss-1.822301', category: 'politics' },
   { name: 'Global News Politics', url: 'https://globalnews.ca/politics/feed/', category: 'politics' },
+  // Alternative feeds that might be more accessible
+  { name: 'CBC News', url: 'https://www.cbc.ca/cmlink/rss-topstories', category: 'politics' },
+  { name: 'CTV News', url: 'https://www.ctvnews.ca/rss/ctvnews-ca-top-stories-public-rss-1.822289', category: 'politics' },
+  { name: 'Global News', url: 'https://globalnews.ca/feed/', category: 'politics' },
+  { name: 'Toronto Star', url: 'https://www.thestar.com/feed.xml', category: 'politics' },
+  { name: 'National Post', url: 'https://nationalpost.com/feed/', category: 'politics' },
 ];
 
 async function fetchFeed(url: string): Promise<string> {
-  const res = await fetch(url, { headers: { 'User-Agent': 'CivicOSBot/1.0 (+https://civicos.ca)' } });
-  if (!res.ok) throw new Error(`Failed to fetch feed ${url}: ${res.status}`);
-  return await res.text();
+  try {
+    const res = await fetch(url, { 
+      headers: { 
+        'User-Agent': 'CivicOSBot/1.0 (+https://civicos.ca)',
+        'Accept': 'application/rss+xml, application/xml, text/xml, */*',
+        'Accept-Language': 'en-US,en;q=0.9',
+        'Cache-Control': 'no-cache'
+      },
+      // Add timeout and other options
+      signal: AbortSignal.timeout(10000) // 10 second timeout
+    });
+    
+    if (!res.ok) {
+      console.warn(`Failed to fetch feed ${url}: ${res.status} ${res.statusText}`);
+      throw new Error(`Failed to fetch feed ${url}: ${res.status}`);
+    }
+    
+    const text = await res.text();
+    if (!text || text.trim().length === 0) {
+      throw new Error(`Empty response from ${url}`);
+    }
+    
+    return text;
+  } catch (error) {
+    console.warn(`Error fetching ${url}:`, error);
+    throw error;
+  }
 }
 
 function parseRss(xml: string): FeedItem[] {
