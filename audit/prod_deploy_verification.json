@@ -1,5 +1,25 @@
 {
-  "when": "2025-08-25T02:42:39.709Z",
+  "when": "2025-08-25T02:41:32.000Z",
   "apiBase": "https://civicos.onrender.com",
-  "verified": true
+  "webBase": "https://civicos.ca",
+  "verified": true,
+  "status": {
+    "frontend": "operational",
+    "backend": "degraded",
+    "database": "operational"
+  },
+  "endpoints": {
+    "health": "200",
+    "dashboard": "200",
+    "politicians": "502",
+    "petitions": "502",
+    "bills": "502",
+    "news": "503",
+    "legal": "503",
+    "contacts": "503",
+    "elections": "503",
+    "procurement": "503",
+    "ai/health": "503"
+  },
+  "notes": "Frontend fully operational at civicos.ca. Backend API services returning 502/503 errors, indicating services not running. Database connection verified. Build artifacts created successfully."
 }
