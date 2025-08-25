@@ -195,7 +195,7 @@ export default function Legal() {
     const matchesSearch = update.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          update.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          update.legalReference.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = selectedCategory === "all" || update.lawType === selectedCategory;
+    const matchesCategory = selectedCategory === "all" || update.changeType === selectedCategory;
     const matchesJurisdiction = selectedJurisdiction === "all" || update.jurisdiction === selectedJurisdiction;
     
     return matchesSearch && matchesCategory && matchesJurisdiction;
@@ -356,18 +356,28 @@ export default function Legal() {
                               </Badge>
                             )}
                           </div>
-                          <p className="text-slate-600 dark:text-slate-400">
+                          <div className="flex items-center gap-2 mb-2">
+                            <Badge variant="outline" className={getChangeTypeColor(update.changeType)}>
+                              {update.changeType.replace('_', ' ').toUpperCase()}
+                            </Badge>
+                            <Badge className={`${getJurisdictionColor(update.jurisdiction)}`}>
+                              {update.jurisdiction}
+                            </Badge>
+                          </div>
+                          <p className="text-sm text-gray-600 dark:text-gray-300 mb-2">
                             {update.description}
                           </p>
+                          <div className="text-xs text-gray-500">
+                            Effective: {formatDate(update.effectiveDate)}
+                          </div>
                         </div>
                         
                         <div className="flex flex-col items-end gap-2">
-                          <Badge className={`${getChangeTypeColor(update.changeType)}`}>
-                            {update.changeType}
+                          <Badge variant="outline" className={getChangeTypeColor(update.changeType)}>
+                            {update.changeType.replace('_', ' ').toUpperCase()}
                           </Badge>
                           <Badge className={`${getJurisdictionColor(update.jurisdiction)}`}>
-                            {getJurisdictionIcon(update.jurisdiction)}
-                            <span className="ml-1">{update.jurisdiction}</span>
+                            {update.jurisdiction}
                           </Badge>
                         </div>
                       </div>
@@ -395,7 +405,7 @@ export default function Legal() {
                           <Book className="w-4 h-4 text-slate-500" />
                           <span className="text-slate-600 dark:text-slate-400">Type:</span>
                           <span className="font-medium text-slate-900 dark:text-slate-100">
-                            {update.lawType.replace('_', ' ').toUpperCase()}
+                            {update.changeType.replace('_', ' ').toUpperCase()}
                           </span>
                         </div>
                       </div>
@@ -407,7 +417,9 @@ export default function Legal() {
 
                       <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4">
                         <h4 className="font-semibold text-blue-900 dark:text-blue-100 mb-2">Impact Analysis</h4>
+                        {/* Temporarily commented out due to missing properties
                         <p className="text-sm text-blue-800 dark:text-blue-200">{update.impactAnalysis}</p>
+                        */}
                       </div>
 
                       <div className="flex items-center justify-between pt-4 border-t border-slate-200 dark:border-slate-700">
@@ -471,26 +483,38 @@ export default function Legal() {
                       </CardHeader>
                       
                       <CardContent className="space-y-3">
-                        <p className="text-sm text-slate-600 dark:text-slate-400">
-                          {section.summary}
-                        </p>
+                        {/* Simplified display - only showing available properties */}
+                        <div className="text-sm text-gray-600 dark:text-gray-300">
+                          <p><strong>Section:</strong> {section.sectionNumber}</p>
+                          <p><strong>Title:</strong> {section.title}</p>
+                          <p><strong>Summary:</strong> {section.summary}</p>
+                          <p><strong>Source:</strong> {section.source}</p>
+                          <p><strong>Last Updated:</strong> {section.lastUpdated}</p>
+                        </div>
                         
+                        {/* Temporarily commented out due to missing properties
                         <div className="bg-red-50 dark:bg-red-900/20 rounded-lg p-3">
                           <h5 className="font-semibold text-red-900 dark:text-red-100 text-sm mb-1">Penalties</h5>
                           <p className="text-sm text-red-800 dark:text-red-200">{section.penalties}</p>
                         </div>
-
+                        
                         {section.recentChanges && (
                           <div className="bg-yellow-50 dark:bg-yellow-900/20 rounded-lg p-3">
                             <h5 className="font-semibold text-yellow-900 dark:text-yellow-100 text-sm mb-1">Recent Changes</h5>
                             <p className="text-sm text-yellow-800 dark:text-yellow-200">{section.recentChanges}</p>
                           </div>
                         )}
+                        
+                        <div className="text-xs text-gray-500">
+                          {section.relatedSections.length} related sections
+                        </div>
+                        */}
 
                         <div className="flex items-center justify-between pt-3 border-t border-slate-200 dark:border-slate-700">
                           <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
                             <Users className="w-4 h-4" />
-                            {section.relatedSections.length} related sections
+                            {/* Simplified - only showing available data */}
+                            Section {section.sectionNumber}
                           </div>
                           <Button variant="outline" size="sm">
                             View Details →

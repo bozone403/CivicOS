@@ -1,6 +1,7 @@
 import { ResponseFormatter } from "../utils/responseFormatter.js";
 import { db } from "../db.js";
 import { sql } from 'drizzle-orm';
+import { legalActs, legalCases } from "../../shared/schema.js";
 import { legalIngestionService } from '../utils/legalIngestion.js';
 import jwt from "jsonwebtoken";
 // JWT Auth middleware
@@ -181,57 +182,39 @@ export function registerLegalRoutes(app) {
             }
         ]
     };
-    // Root legal endpoint (DB-first for acts/cases, no synthetic fallback; on-demand scrape if empty)
-    app.get('/api/legal', async (req, res) => {
+    // Get all legal data
+    app.get("/api/legal", async (req, res) => {
         try {
-            // Temporarily disable database queries due to schema mismatch
-            // TODO: Fix database schema to match the expected fields
-            // Provide fallback data until database schema is fixed
-            const fallbackActs = [
-                {
-                    id: 1,
-                    title: "Sample Legal Act",
-                    actNumber: "S-1",
-                    summary: "This is a sample legal act for demonstration purposes",
-                    source: "System",
-                    sourceUrl: "#",
-                    lastUpdated: new Date().toISOString()
-                }
-            ];
-            const fallbackCases = [
-                {
-                    id: 1,
-                    caseNumber: "2024-001",
-                    title: "Sample Legal Case",
-                    summary: "This is a sample legal case for demonstration purposes",
-                    source: "System",
-                    sourceUrl: "#",
-                    lastUpdated: new Date().toISOString()
-                }
-            ];
+            // Try to get data from database first
+            let acts = [];
+            let cases = [];
+            let sections = [];
+            try {
+                // Get legal acts from database
+                acts = await db.select().from(legalActs).limit(50);
+                // Get legal cases from database
+                cases = await db.select().from(legalCases).limit(50);
+                // Note: criminal_code_sections table exists but may be empty
+                // We'll use the hardcoded data as fallback for now
+                sections = canadianLaws.criminalCode;
+            }
+            catch (dbError) {
+                console.error('Database query failed, using fallback data:', dbError);
+                // Fallback to hardcoded data if database fails
+                acts = canadianLaws.federalActs;
+                cases = []; // canadianLaws doesn't have a cases property
+                sections = canadianLaws.criminalCode;
+            }
             const payload = {
-                acts: fallbackActs,
-                cases: fallbackCases,
-                sections: [],
-                message: "Legal data retrieved successfully (fallback mode - database schema needs fixing)"
+                acts: acts.length > 0 ? acts : canadianLaws.federalActs,
+                cases: cases.length > 0 ? cases : [],
+                sections: sections.length > 0 ? sections : canadianLaws.criminalCode,
+                message: acts.length > 0 ? "Legal data retrieved from database" : "Legal data retrieved (fallback mode)"
             };
-            // Use direct response instead of ResponseFormatter to avoid any potential issues
-            return res.status(200).json({
-                success: true,
-                data: payload,
-                message: "Legal data retrieved successfully",
-                timestamp: new Date().toISOString()
-            });
+            return ResponseFormatter.success(res, payload, "Legal data retrieved successfully", 200, payload.acts.length + payload.cases.length + payload.sections.length);
         }
         catch (error) {
-            return res.status(500).json({
-                success: false,
-                error: {
-                    code: "INTERNAL_ERROR",
-                    message: `Failed to fetch legal data: ${error.message}`
-                },
-                timestamp: new Date().toISOString()
-            });
+            return ResponseFormatter.databaseError(res, `Failed to fetch legal data: ${error.message}`);
         }
     });
     // Get legal database

@@ -33,7 +33,7 @@ interface LegalHierarchy {
   };
 }
 
-export default function LegalSystemWidget({ liveData = true }: { liveData?: boolean }) {
+export default function LegalSystemWidget() {
   const { data: criminalCode = [], isLoading: criminalLoading } = useQuery<CriminalCodeSection[]>({
     queryKey: ['/api/legal/criminal-code']
   });

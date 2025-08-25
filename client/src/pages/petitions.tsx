@@ -122,7 +122,7 @@ export default function Petitions() {
     },
   });
 
-  const handleSignPetition = async (petitionId: number) => {
+  const handleSignPetition = async () => {
     if (!user) {
       toast({
         title: "Authentication required",
@@ -134,7 +134,7 @@ export default function Petitions() {
     setShowSignDialog(true);
   };
 
-  const handleSavePetition = async (petitionId: number) => {
+  const handleSavePetition = async () => {
     if (!user) {
       toast({
         title: "Authentication required",
@@ -148,6 +148,23 @@ export default function Petitions() {
       title: "Feature coming soon",
       description: "Save functionality will be available soon.",
     });
+  };
+
+  const handleSharePetition = async (petitionId: number, platform: string) => {
+    const petition = petitions.find(p => p.id === petitionId);
+    if (!petition) return;
+    
+    const shareUrl = `${window.location.origin}/petitions?id=${petitionId}`;
+    const shareText = `Sign this petition: ${petition.title} on CivicOS`;
+    
+    if (platform === 'twitter') {
+      window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(shareUrl)}`, '_blank');
+    } else if (platform === 'civicsocial') {
+      toast({
+        title: "Feature coming soon",
+        description: "CivicSocial sharing will be available soon.",
+      });
+    }
   };
 
   const handleCreatePetition = async () => {
@@ -380,7 +397,7 @@ export default function Petitions() {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => handleSavePetition(petition.id)}
+                    onClick={() => handleSavePetition()}
                     disabled={createPetitionMutation.isPending}
                   >
                     <Bookmark className="w-4 h-4 mr-1" />
@@ -406,7 +423,7 @@ export default function Petitions() {
                 </div>
                 <Button
                   size="sm"
-                  onClick={() => handleSignPetition(petition.id)}
+                  onClick={() => handleSignPetition()}
                   disabled={signPetitionMutation.isPending}
                 >
                   Sign Petition
@@ -426,7 +443,7 @@ export default function Petitions() {
       )}
 
       {/* Petition Detail Dialog */}
-      <Dialog open={!!selectedPetition} onOpenChange={setSelectedPetition}>
+      <Dialog open={!!selectedPetition} onOpenChange={(open) => !open && setSelectedPetition(null)}>
         <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
           {selectedPetition && (
             <div>
@@ -477,7 +494,7 @@ export default function Petitions() {
                     <Button 
                       variant="outline" 
                       size="sm"
-                      onClick={() => handleSavePetition(selectedPetition.id)}
+                      onClick={() => handleSavePetition()}
                     >
                       <Bookmark className="w-4 h-4 mr-2" />
                       Save
@@ -492,7 +509,7 @@ export default function Petitions() {
                     </Button>
                     <Button 
                       size="sm"
-                      onClick={() => handleSignPetition(selectedPetition.id)}
+                      onClick={() => handleSignPetition()}
                     >
                       Sign Petition
                     </Button>

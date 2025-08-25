@@ -54,7 +54,7 @@ interface BiasAnalysis {
   articleCount: number;
 }
 
-export default function ComprehensiveNewsWidget({ liveData = true }: { liveData?: boolean }) {
+export default function ComprehensiveNewsWidget() {
   const { data: articles = [], isLoading: articlesLoading } = useQuery<NewsArticle[]>({
     queryKey: ['/api/news/comprehensive']
   });

@@ -34,7 +34,11 @@ export function registerPoliticiansRoutes(app) {
     app.get('/api/politicians', async (req, res) => {
         const startTime = Date.now();
         try {
-            const { level, jurisdiction, party, search, location } = req.query;
+            const { level, jurisdiction, party, search, location, limit = '50', page = '1' } = req.query;
+            // Parse pagination
+            const limitNum = Math.min(parseInt(limit) || 50, 100);
+            const pageNum = Math.max(parseInt(page) || 1, 1);
+            const offset = (pageNum - 1) * limitNum;
             // Strict DB-first
             const conditions = [];
             if (level)
@@ -50,9 +54,16 @@ export function registerPoliticiansRoutes(app) {
                 const q = String(location);
                 conditions.push(or(like(politicians.jurisdiction, `%${q}%`), like(politicians.constituency, `%${q}%`)));
             }
-            let politiciansData = conditions.length
-                ? await db.select().from(politicians).where(and(...conditions)).orderBy(desc(politicians.updatedAt))
-                : await db.select().from(politicians).orderBy(desc(politicians.updatedAt));
+            // Get total count for pagination
+            const totalCountQuery = conditions.length > 0
+                ? db.select({ count: count() }).from(politicians).where(and(...conditions))
+                : db.select({ count: count() }).from(politicians);
+            const [totalCountResult] = await totalCountQuery;
+            const totalCount = totalCountResult?.count || 0;
+            // Get politicians with pagination
+            let politiciansData = conditions.length > 0
+                ? await db.select().from(politicians).where(and(...conditions)).orderBy(desc(politicians.updatedAt)).limit(limitNum).offset(offset)
+                : await db.select().from(politicians).orderBy(desc(politicians.updatedAt)).limit(limitNum).offset(offset);
             // If empty, try to trigger on-demand sync but don't fail if it doesn't work
             if (!politiciansData || politiciansData.length === 0) {
                 try {
@@ -61,7 +72,9 @@ export function registerPoliticiansRoutes(app) {
                     if (parliamentMembersCount[0]?.count > 0) {
                         await syncIncumbentPoliticiansFromParliament();
                         // Re-read after sync attempt
-                        politiciansData = await db.select().from(politicians).orderBy(desc(politicians.updatedAt));
+                        politiciansData = conditions.length > 0
+                            ? await db.select().from(politicians).where(and(...conditions)).orderBy(desc(politicians.updatedAt)).limit(limitNum).offset(offset)
+                            : await db.select().from(politicians).orderBy(desc(politicians.updatedAt)).limit(limitNum).offset(offset);
                     }
                 }
                 catch (syncError) {
@@ -69,8 +82,34 @@ export function registerPoliticiansRoutes(app) {
                     console.error('Politician sync failed:', syncError);
                 }
             }
+            // Format response data
+            const formattedPoliticians = politiciansData.map(politician => ({
+                id: politician.id,
+                name: politician.name,
+                position: politician.position,
+                party: politician.party,
+                jurisdiction: politician.jurisdiction,
+                constituency: politician.constituency,
+                level: politician.level,
+                email: politician.contactInfo?.email || null,
+                phone: politician.contactInfo?.phone || null,
+                website: politician.contactInfo?.website || null,
+                image: politician.image,
+                bio: politician.bio || politician.biography,
+                trustScore: politician.trustScore,
+                isIncumbent: politician.isIncumbent,
+                createdAt: politician.createdAt,
+                updatedAt: politician.updatedAt
+            }));
             const processingTime = Date.now() - startTime;
-            return ResponseFormatter.success(res, politiciansData || [], "Politicians data retrieved successfully", 200, politiciansData?.length || 0, undefined, processingTime);
+            // Calculate pagination info
+            const totalPages = Math.ceil(totalCount / limitNum);
+            return ResponseFormatter.success(res, formattedPoliticians, "Politicians data retrieved successfully", 200, formattedPoliticians.length, {
+                page: pageNum,
+                limit: limitNum,
+                total: totalCount,
+                totalPages
+            }, processingTime);
         }
         catch (error) {
             console.error('Politicians API error:', error);

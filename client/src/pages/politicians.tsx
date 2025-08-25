@@ -101,8 +101,8 @@ export default function Politicians() {
   // Filter politicians - ensure politicians is always an array
   const filteredPoliticians = (politicians || []).filter(politician => {
     const matchesSearch = politician.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         politician.riding.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         politician.party.toLowerCase().includes(searchTerm.toLowerCase());
+                         politician.party.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         (politician.riding && politician.riding.toLowerCase().includes(searchTerm.toLowerCase()));
     const matchesParty = partyFilter === "all" || politician.party === partyFilter;
     const matchesLevel = levelFilter === "all" || politician.level === levelFilter;
     
@@ -217,9 +217,9 @@ export default function Politicians() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Levels</SelectItem>
-                  {levels.map(level => (
-                    <SelectItem key={level} value={level}>{level}</SelectItem>
-                  ))}
+                  {Array.from(new Set(politicians.map(p => p.level).filter(Boolean))).map((level) => (
+                      <SelectItem key={level} value={level!}>{level}</SelectItem>
+                    ))}
                 </SelectContent>
               </Select>
             </div>

@@ -41,19 +41,15 @@ export function registerBillsRoutes(app: Express) {
               
               try {
                 await db.insert(bills).values({
-                  billNumber,
                   title: title || `Bill ${billNumber}`,
                   status: 'Active',
                   introducedDate: new Date().toISOString().split('T')[0],
                   description: item?.bill?.name || item?.description || `Bill ${billNumber} from Parliament`,
                   category: item?.bill?.category || 'Legislation',
-                  jurisdiction: 'Federal',
-                  sponsor: item?.bill?.sponsor || 'Parliament of Canada',
-                  keyProvisions: item?.bill?.summary || 'Legislation introduced in Parliament',
-                  amendments: item?.bill?.amendments || [],
-                  votingDeadline: item?.bill?.deadline || null,
-                  source: 'OpenParliament',
-                  sourceUrl: item?.bill?.url || `https://openparliament.ca/bill/${billNumber}/`
+                  billNumber: billNumber,
+                  summary: item?.bill?.summary || 'Legislation introduced in Parliament',
+                  fullText: item?.bill?.summary || 'Legislation introduced in Parliament',
+                  sponsorName: item?.bill?.sponsor || 'Parliament of Canada'
                 });
               } catch (insertError) {
                 console.warn(`Failed to insert bill ${billNumber}:`, insertError);
