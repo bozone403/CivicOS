@@ -69,13 +69,19 @@ export function registerNewsRoutes(app: Express) {
         ? await base.where(whereCombined).orderBy(desc(newsArticles.publishedAt ?? newsArticles.createdAt)).limit(limitNum).offset(offset)
         : await base.orderBy(desc(newsArticles.publishedAt ?? newsArticles.createdAt)).limit(limitNum).offset(offset);
 
+      console.log(`Initial query: found ${articles.length} articles, total: ${total}`);
+      console.log('Articles:', articles);
+
       // If no articles found, try RSS ingestion first
       if (articles.length === 0) {
+        console.log('No articles found, attempting RSS ingestion...');
         try {
           await ingestNewsFeeds();
           const retryArticles = whereCombined
             ? await base.where(whereCombined).orderBy(desc(newsArticles.publishedAt ?? newsArticles.createdAt)).limit(limitNum).offset(offset)
             : await base.orderBy(desc(newsArticles.publishedAt ?? newsArticles.createdAt)).limit(limitNum).offset(offset);
+          
+          console.log(`After RSS ingestion: found ${retryArticles.length} articles`);
           
           if (retryArticles.length > 0) {
             return res.json({
@@ -91,6 +97,7 @@ export function registerNewsRoutes(app: Express) {
 
       // If still no articles after RSS ingestion, add sample government news
       if (articles.length === 0) {
+        console.log('Still no articles, adding sample government news...');
         try {
           console.log('Adding sample government news articles...');
           
