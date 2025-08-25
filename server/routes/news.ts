@@ -69,11 +69,10 @@ export function registerNewsRoutes(app: Express) {
         ? await base.where(whereCombined).orderBy(desc(newsArticles.publishedAt ?? newsArticles.createdAt)).limit(limitNum).offset(offset)
         : await base.orderBy(desc(newsArticles.publishedAt ?? newsArticles.createdAt)).limit(limitNum).offset(offset);
 
-      // If no articles found, try to ingest news feeds
+      // If no articles found, try RSS ingestion first
       if (articles.length === 0) {
         try {
           await ingestNewsFeeds();
-          // Retry the query after ingestion
           const retryArticles = whereCombined
             ? await base.where(whereCombined).orderBy(desc(newsArticles.publishedAt ?? newsArticles.createdAt)).limit(limitNum).offset(offset)
             : await base.orderBy(desc(newsArticles.publishedAt ?? newsArticles.createdAt)).limit(limitNum).offset(offset);
@@ -85,88 +84,88 @@ export function registerNewsRoutes(app: Express) {
               pagination: { page: pageNum, limit: limitNum, total: retryArticles.length, totalPages: Math.ceil((Number(retryArticles.length) || 0) / limitNum) }
             });
           }
-
-          // If still no articles after ingestion, add sample government news
-          if (retryArticles.length === 0) {
-            try {
-              console.log('Adding sample government news articles...');
-              
-              const sampleArticles = [
-                {
-                  title: "Federal Government Announces New Climate Action Plan",
-                  content: "The Canadian government has unveiled a comprehensive climate action plan aimed at reducing emissions by 40% by 2030. The plan includes new regulations for oil and gas, incentives for clean energy, and support for electric vehicle adoption.",
-                  summary: "New climate action plan targets 40% emissions reduction by 2030 with oil and gas regulations and clean energy incentives.",
-                  category: "environment",
-                  source: "Government of Canada",
-                  publishedAt: new Date()
-                },
-                {
-                  title: "Parliament Passes New Digital Privacy Legislation",
-                  content: "Bill C-27, the Digital Charter Implementation Act, has been passed by Parliament. This legislation strengthens consumer privacy protection, regulates artificial intelligence, and establishes new enforcement mechanisms for data protection.",
-                  summary: "New digital privacy law strengthens consumer protection and AI regulation with enhanced enforcement powers.",
-                  category: "technology",
-                  source: "Parliament of Canada",
-                  publishedAt: new Date(Date.now() - 86400000) // 1 day ago
-                },
-                {
-                  title: "Federal Budget 2025: Focus on Healthcare and Infrastructure",
-                  content: "The 2025 federal budget prioritizes healthcare system improvements, infrastructure development, and support for Indigenous communities. Key investments include $2.5 billion for healthcare modernization and $4.8 billion for infrastructure projects.",
-                  summary: "2025 budget allocates $2.5B for healthcare and $4.8B for infrastructure with Indigenous community support.",
-                  category: "economy",
-                  source: "Department of Finance",
-                  publishedAt: new Date(Date.now() - 172800000) // 2 days ago
-                },
-                {
-                  title: "New Immigration Policy Aims to Address Labour Shortages",
-                  content: "The government has announced changes to immigration policy to better address labour shortages in key sectors. The new policy includes faster processing for skilled workers, expanded pathways for international students, and support for family reunification.",
-                  summary: "Immigration policy changes target labour shortages with faster skilled worker processing and student pathways.",
-                  category: "politics",
-                  source: "Immigration, Refugees and Citizenship Canada",
-                  publishedAt: new Date(Date.now() - 259200000) // 3 days ago
-                },
-                {
-                  title: "Parliamentary Committee Recommends Electoral Reform",
-                  content: "A parliamentary committee has released its report on electoral reform, recommending a mixed-member proportional representation system. The report suggests this would better represent voter preferences while maintaining regional representation.",
-                  summary: "Committee recommends mixed-member proportional representation for better voter representation and regional balance.",
-                  category: "politics",
-                  source: "Parliament of Canada",
-                  publishedAt: new Date(Date.now() - 345600000) // 4 days ago
-                }
-              ];
-
-              // Insert sample articles directly
-              for (const article of sampleArticles) {
-                try {
-                  await db.insert(newsArticles).values({
-                    title: article.title,
-                    content: article.content,
-                    summary: article.summary,
-                    category: article.category,
-                    source: article.source,
-                    publishedAt: article.publishedAt
-                  });
-                  console.log(`Inserted sample article: ${article.title}`);
-                } catch (insertError) {
-                  console.warn('Failed to insert sample article:', insertError);
-                }
-              }
-
-              // Retry query one more time
-              const finalArticles = await base.orderBy(desc(newsArticles.publishedAt ?? newsArticles.createdAt)).limit(limitNum).offset(offset);
-              if (finalArticles.length > 0) {
-                console.log(`Successfully retrieved ${finalArticles.length} articles after adding samples`);
-                return res.json({
-                  success: true,
-                  articles: finalArticles,
-                  pagination: { page: pageNum, limit: limitNum, total: finalArticles.length, totalPages: Math.ceil((Number(finalArticles.length) || 0) / limitNum) }
-                });
-              }
-            } catch (sampleError) {
-              console.warn('Failed to add sample articles:', sampleError);
-            }
-          }
         } catch (ingestionError) {
           console.warn('News ingestion failed:', ingestionError);
+        }
+      }
+
+      // If still no articles after RSS ingestion, add sample government news
+      if (articles.length === 0) {
+        try {
+          console.log('Adding sample government news articles...');
+          
+          const sampleArticles = [
+            {
+              title: "Federal Government Announces New Climate Action Plan",
+              content: "The Canadian government has unveiled a comprehensive climate action plan aimed at reducing emissions by 40% by 2030. The plan includes new regulations for oil and gas, incentives for clean energy, and support for electric vehicle adoption.",
+              summary: "New climate action plan targets 40% emissions reduction by 2030 with oil and gas regulations and clean energy incentives.",
+              category: "environment",
+              source: "Government of Canada",
+              publishedAt: new Date()
+            },
+            {
+              title: "Parliament Passes New Digital Privacy Legislation",
+              content: "Bill C-27, the Digital Charter Implementation Act, has been passed by Parliament. This legislation strengthens consumer privacy protection, regulates artificial intelligence, and establishes new enforcement mechanisms for data protection.",
+              summary: "New digital privacy law strengthens consumer protection and AI regulation with enhanced enforcement powers.",
+              category: "technology",
+              source: "Parliament of Canada",
+              publishedAt: new Date(Date.now() - 86400000) // 1 day ago
+            },
+            {
+              title: "Federal Budget 2025: Focus on Healthcare and Infrastructure",
+              content: "The 2025 federal budget prioritizes healthcare system improvements, infrastructure development, and support for Indigenous communities. Key investments include $2.5 billion for healthcare modernization and $4.8 billion for infrastructure projects.",
+              summary: "2025 budget allocates $2.5B for healthcare and $4.8B for infrastructure with Indigenous community support.",
+              category: "economy",
+              source: "Department of Finance",
+              publishedAt: new Date(Date.now() - 172800000) // 2 days ago
+            },
+            {
+              title: "New Immigration Policy Aims to Address Labour Shortages",
+              content: "The government has announced changes to immigration policy to better address labour shortages in key sectors. The new policy includes faster processing for skilled workers, expanded pathways for international students, and support for family reunification.",
+              summary: "Immigration policy changes target labour shortages with faster skilled worker processing and student pathways.",
+              category: "politics",
+              source: "Immigration, Refugees and Citizenship Canada",
+              publishedAt: new Date(Date.now() - 259200000) // 3 days ago
+            },
+            {
+              title: "Parliamentary Committee Recommends Electoral Reform",
+              content: "A parliamentary committee has released its report on electoral reform, recommending a mixed-member proportional representation system. The report suggests this would better represent voter preferences while maintaining regional representation.",
+              summary: "Committee recommends mixed-member proportional representation for better voter representation and regional balance.",
+              category: "politics",
+              source: "Parliament of Canada",
+              publishedAt: new Date(Date.now() - 345600000) // 4 days ago
+            }
+          ];
+
+          // Insert sample articles directly
+          for (const article of sampleArticles) {
+            try {
+              await db.insert(newsArticles).values({
+                title: article.title,
+                content: article.content,
+                summary: article.summary,
+                category: article.category,
+                source: article.source,
+                publishedAt: article.publishedAt
+              });
+              console.log(`Inserted sample article: ${article.title}`);
+            } catch (insertError) {
+              console.warn('Failed to insert sample article:', insertError);
+            }
+          }
+
+          // Retry query one more time
+          const finalArticles = await base.orderBy(desc(newsArticles.publishedAt ?? newsArticles.createdAt)).limit(limitNum).offset(offset);
+          if (finalArticles.length > 0) {
+            console.log(`Successfully retrieved ${finalArticles.length} articles after adding samples`);
+            return res.json({
+              success: true,
+              articles: finalArticles,
+              pagination: { page: pageNum, limit: limitNum, total: finalArticles.length, totalPages: Math.ceil((Number(finalArticles.length) || 0) / limitNum) }
+            });
+          }
+        } catch (sampleError) {
+          console.warn('Failed to add sample articles:', sampleError);
         }
       }
 
