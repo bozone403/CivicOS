@@ -492,4 +492,58 @@ export function registerNewsRoutes(app: Express) {
       res.status(500).json({ success: false, message: 'Failed to refresh news' });
     }
   });
+
+  // Test database insert directly
+  app.get("/api/news/test-insert", async (req: Request, res: Response) => {
+    try {
+      console.log('Testing direct database insert...');
+      
+      const testArticle = {
+        title: "Test Article - Database Insert Test",
+        content: "This is a test article to verify database insert functionality is working.",
+        summary: "Test article for database verification.",
+        category: "test",
+        source: "Test Source",
+        publishedAt: new Date()
+      };
+      
+      try {
+        const insertResult = await db.insert(newsArticles).values({
+          title: testArticle.title,
+          content: testArticle.content,
+          summary: testArticle.summary,
+          category: testArticle.category,
+          source: testArticle.source,
+          publishedAt: testArticle.publishedAt
+        });
+        
+        console.log('Test insert successful:', insertResult);
+        
+        // Try to retrieve it
+        const retrieved = await db.select().from(newsArticles).where(eq(newsArticles.title, testArticle.title));
+        console.log('Retrieved test article:', retrieved);
+        
+        res.json({
+          success: true,
+          message: 'Test insert successful',
+          insertResult,
+          retrieved: retrieved.length > 0 ? 'Article found' : 'Article not found'
+        });
+      } catch (insertError) {
+        console.error('Test insert failed:', insertError);
+        res.json({
+          success: false,
+          message: 'Test insert failed',
+          error: insertError.message
+        });
+      }
+    } catch (error) {
+      console.error('Test endpoint error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Test endpoint failed',
+        error: error.message
+      });
+    }
+  });
 } 
