@@ -247,7 +247,7 @@ export function registerNewsRoutes(app: Express) {
   });
   
   // Test database insert directly
-  app.get("/api/news/test-insert", async (req: Request, res: Response) => {
+  app.get("/api/news-debug/test-insert", async (req: Request, res: Response) => {
     try {
       console.log('Testing direct database insert...');
       
