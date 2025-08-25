@@ -108,8 +108,7 @@ export function registerNewsRoutes(app: Express) {
       // If still no articles after RSS ingestion, add sample government news
       if (articles.length === 0) {
         console.log('Still no articles, adding sample government news...');
-        try {
-          console.log('Adding sample government news articles...');
+        console.log('Adding sample government news articles...');
           
           const sampleArticles = [
             {
@@ -166,9 +165,6 @@ export function registerNewsRoutes(app: Express) {
             })),
             pagination: { page: pageNum, limit: limitNum, total: sampleArticles.length, totalPages: Math.ceil((Number(sampleArticles.length) || 0) / limitNum) }
           });
-        } catch (sampleError) {
-          console.warn('Failed to add sample articles:', sampleError);
-        }
       }
 
       res.json({
