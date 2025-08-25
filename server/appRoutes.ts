@@ -3,7 +3,7 @@ import express from "express";
 import { storage } from "./storage.js";
 import simpleNotificationsRouter from "./simpleNotifications.js";
 // import civicSocialRouter from "./civicSocial.js"; // Temporarily disabled
-import aiRoutes from "./aiRoutes.js";
+import aiRoutes from "./routes/ai.js";
 import searchRouter from "./routes/search.js";
 import dashboardRouter from "./routes/dashboard.js";
 import path from "path";
@@ -120,6 +120,25 @@ export async function registerRoutes(app: Express): Promise<void> {
 
   // AI routes (mounted once)
   app.use("/api/ai", aiRoutes);
+  
+  // Test route to verify routing is working
+  app.get('/api/test', (req, res) => {
+    res.json({ message: 'Test route working', timestamp: new Date().toISOString() });
+  });
+  
+  // Simple AI test route
+  app.get('/api/ai-test', (req, res) => {
+    res.json({ message: 'AI test route working', timestamp: new Date().toISOString() });
+  });
+  
+  // Simple AI endpoint for testing
+  app.get('/api/ai-simple', (req, res) => {
+    res.json({ 
+      success: true, 
+      message: "Simple AI endpoint working", 
+      timestamp: new Date().toISOString() 
+    });
+  });
 
   // Search routes (no auth required for search)
   app.use("/api/search", searchRouter);

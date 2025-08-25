@@ -13,6 +13,7 @@ router.get('/health', async (req, res) => {
       models: health.model ? ['active'] : [],
       message: health.message,
       provider: health.provider,
+      isMock: health.isMock,
       timestamp: new Date().toISOString()
     });
   } catch (error) {
@@ -22,6 +23,7 @@ router.get('/health', async (req, res) => {
       models: [],
       message: 'AI service unavailable, using mock data',
       provider: 'Mock',
+      isMock: true,
       timestamp: new Date().toISOString()
     });
   }
@@ -45,6 +47,7 @@ router.post('/chat', async (req, res) => {
       confidence: response.confidence,
       provider: response.provider,
       model: response.model,
+      isMock: response.isMock,
       timestamp: new Date().toISOString(),
       context: context || {}
     });
@@ -56,6 +59,7 @@ router.post('/chat', async (req, res) => {
       confidence: fallbackResponse.confidence,
       provider: fallbackResponse.provider,
       model: fallbackResponse.model,
+      isMock: fallbackResponse.isMock,
       timestamp: new Date().toISOString(),
       context: req.body.context || {}
     });
@@ -81,10 +85,11 @@ router.post('/analyze/politician', async (req, res) => {
       analysis: response.response,
       confidence: response.confidence,
       provider: response.provider,
+      isMock: response.isMock,
       timestamp: new Date().toISOString()
     });
   } catch (error) {
-    // console.error removed for production
+    console.error('Failed to analyze politician:', error);
     res.status(500).json({
       error: 'Failed to analyze politician',
       fallback: 'Politician analysis is temporarily unavailable. Please check the Politicians section for detailed information.',
@@ -112,10 +117,11 @@ router.post('/analyze/bill', async (req, res) => {
       analysis: response.response,
       confidence: response.confidence,
       provider: response.provider,
+      isMock: response.isMock,
       timestamp: new Date().toISOString()
     });
   } catch (error) {
-    // console.error removed for production
+    console.error('Failed to analyze bill:', error);
     res.status(500).json({
       error: 'Failed to analyze bill',
       fallback: 'Bill analysis is temporarily unavailable. Please check the Bills & Voting section for detailed information.',
@@ -143,10 +149,11 @@ router.post('/factcheck', async (req, res) => {
       factCheck: response.response,
       confidence: response.confidence,
       provider: response.provider,
+      isMock: response.isMock,
       timestamp: new Date().toISOString()
     });
   } catch (error) {
-    // console.error removed for production
+    console.error('Failed to fact-check claim:', error);
     res.status(500).json({
       error: 'Failed to fact-check claim',
       fallback: 'Fact-checking is temporarily unavailable. Please consult reliable news sources for verification.',
@@ -174,10 +181,11 @@ router.post('/civic-guide', async (req, res) => {
       guidance: response.response,
       confidence: response.confidence,
       provider: response.provider,
+      isMock: response.isMock,
       timestamp: new Date().toISOString()
     });
   } catch (error) {
-    // console.error removed for production
+    console.error('Failed to provide civic guidance:', error);
     res.status(500).json({
       error: 'Failed to provide civic guidance',
       fallback: 'Civic guidance is temporarily unavailable. Please visit canada.ca or contact your local government office.',
@@ -202,13 +210,16 @@ router.get('/status', async (req, res) => {
         civicGuidance: true
       },
       provider: health.provider,
+      model: health.model,
+      isMock: health.isMock,
       message: health.message,
       timestamp: new Date().toISOString()
     });
   } catch (error) {
+    console.error('AI status check failed:', error);
     res.status(500).json({
       service: 'CivicOS AI',
-      status: 'offline',
+      status: 'degraded',
       features: {
         chat: false,
         politicianAnalysis: false,
@@ -216,7 +227,10 @@ router.get('/status', async (req, res) => {
         factChecking: false,
         civicGuidance: false
       },
-      message: 'AI service is currently unavailable',
+      provider: 'Mock',
+      model: 'mock-civic-data',
+      isMock: true,
+      message: 'AI service unavailable, using mock data',
       timestamp: new Date().toISOString()
     });
   }

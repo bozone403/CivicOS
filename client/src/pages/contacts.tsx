@@ -17,7 +17,7 @@ interface ContactInfo {
   position: string;
   party?: string;
   constituency?: string;
-  level: 'Federal' | 'Provincial' | 'Municipal';
+  level: 'Federal' | 'Provincial' | 'Municipal' | null;
   jurisdiction: string;
   
   // Primary Contact
@@ -81,6 +81,13 @@ interface ContactInfo {
     address: string;
     hours: string;
   }>;
+  
+  // Real API fields
+  contactInfo: Record<string, any>;
+  socialMedia: Record<string, any>;
+  trustScore: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 interface GovernmentService {
@@ -117,9 +124,9 @@ export default function ContactsPage() {
   const [selectedContact, setSelectedContact] = useState<ContactInfo | null>(null);
   const [selectedService, setSelectedService] = useState<GovernmentService | null>(null);
 
-  // Fetch government officials from comprehensive data service
-  const { data: officials = [], isLoading, error } = useQuery<ContactInfo[]>({
-    queryKey: ["/api/contacts/officials"],
+  // Fetch contacts from API
+  const { data: contacts = [], isLoading, error } = useQuery<ContactInfo[]>({
+    queryKey: ['/api/contacts/officials'],
     queryFn: async () => {
       try {
         const result = await apiRequest('/api/contacts/officials', 'GET');
@@ -130,144 +137,12 @@ export default function ContactsPage() {
         // Fallback for direct array response
         return Array.isArray(result) ? result : [];
       } catch (error) {
-        // console.error removed for production
-        // Return comprehensive fallback data if API fails
-        return [
-          {
-            id: 1,
-            name: "Mark Carney",
-            position: "Prime Minister",
-            party: "Liberal",
-            constituency: "Ottawa Centre",
-            level: "Federal",
-            jurisdiction: "Federal",
-            primaryPhone: "613-992-4211",
-            primaryEmail: "mark.carney@parl.gc.ca",
-            primaryOffice: "Centre Block, Parliament Hill",
-            constituencyPhone: "613-992-4211",
-            constituencyEmail: "mark.carney@parl.gc.ca",
-            constituencyAddress: "131 Queen Street, Ottawa, ON K1A 0A6",
-            constituencyHours: "Monday-Friday 9:00 AM - 5:00 PM",
-            parliamentPhone: "613-992-4211",
-            parliamentEmail: "mark.carney@parl.gc.ca",
-            parliamentOffice: "Centre Block, Parliament Hill",
-            parliamentAddress: "111 Wellington Street, Ottawa, ON K1A 0A6",
-            chiefOfStaffPhone: "613-992-4212",
-            chiefOfStaffEmail: "chiefofstaff.carney@parl.gc.ca",
-            pressSecretaryPhone: "613-992-4213",
-            pressSecretaryEmail: "press.carney@parl.gc.ca",
-            schedulerPhone: "613-992-4214",
-            schedulerEmail: "scheduler.carney@parl.gc.ca",
-            website: "https://www.liberal.ca/team/mark-carney/",
-            twitter: "@MarkCarney",
-            facebook: "MarkCarneyPM",
-            instagram: "markcarneypm",
-            linkedin: "mark-carney-pm",
-            emergencyPhone: "613-992-4215",
-            afterHoursPhone: "613-992-4216",
-            faxNumber: "613-992-4217",
-            mailingAddress: "House of Commons, Ottawa, ON K1A 0A6",
-            officeHours: "Monday-Friday 9:00 AM - 5:00 PM",
-            townHallSchedule: "Monthly town halls, next: August 15, 2025",
-            nextAvailableAppointment: "August 5, 2025 at 2:00 PM",
-            portfolios: ["Prime Minister", "Intergovernmental Affairs"],
-            committees: ["Cabinet", "Economic Committee"],
-            caucusRole: "Prime Minister",
-            emailResponseTime: "Within 24 hours",
-            phoneResponseTime: "Within 2 hours",
-            meetingAvailability: "By appointment, 2 weeks notice required"
-          },
-          {
-            id: 2,
-            name: "Pierre Poilievre",
-            position: "Leader of the Opposition",
-            party: "Conservative",
-            constituency: "Carleton",
-            level: "Federal",
-            jurisdiction: "Federal",
-            primaryPhone: "613-992-6776",
-            primaryEmail: "pierre.poilievre@parl.gc.ca",
-            primaryOffice: "West Block, Parliament Hill",
-            constituencyPhone: "613-992-6776",
-            constituencyEmail: "pierre.poilievre@parl.gc.ca",
-            constituencyAddress: "131 Queen Street, Ottawa, ON K1A 0A6",
-            constituencyHours: "Monday-Friday 9:00 AM - 5:00 PM",
-            parliamentPhone: "613-992-6776",
-            parliamentEmail: "pierre.poilievre@parl.gc.ca",
-            parliamentOffice: "West Block, Parliament Hill",
-            parliamentAddress: "111 Wellington Street, Ottawa, ON K1A 0A6",
-            chiefOfStaffPhone: "613-992-6777",
-            chiefOfStaffEmail: "chiefofstaff.poilievre@parl.gc.ca",
-            pressSecretaryPhone: "613-992-6778",
-            pressSecretaryEmail: "press.poilievre@parl.gc.ca",
-            schedulerPhone: "613-992-6779",
-            schedulerEmail: "scheduler.poilievre@parl.gc.ca",
-            website: "https://www.conservative.ca/team/pierre-poilievre/",
-            twitter: "@PierrePoilievre",
-            facebook: "PierrePoilievreCPC",
-            instagram: "pierrepoilievre",
-            linkedin: "pierre-poilievre-cpc",
-            emergencyPhone: "613-992-6780",
-            afterHoursPhone: "613-992-6781",
-            faxNumber: "613-992-6782",
-            mailingAddress: "House of Commons, Ottawa, ON K1A 0A6",
-            officeHours: "Monday-Friday 9:00 AM - 5:00 PM",
-            townHallSchedule: "Bi-weekly town halls, next: August 8, 2025",
-            nextAvailableAppointment: "August 3, 2025 at 10:00 AM",
-            portfolios: ["Leader of the Opposition", "Economic Affairs"],
-            committees: ["Opposition", "Finance Committee"],
-            caucusRole: "Leader of the Opposition",
-            emailResponseTime: "Within 48 hours",
-            phoneResponseTime: "Within 4 hours",
-            meetingAvailability: "By appointment, 1 week notice required"
-          },
-          {
-            id: 3,
-            name: "Jagmeet Singh",
-            position: "Leader of the New Democratic Party",
-            party: "NDP",
-            constituency: "Burnaby South",
-            level: "Federal",
-            jurisdiction: "Federal",
-            primaryPhone: "613-992-2874",
-            primaryEmail: "jagmeet.singh@parl.gc.ca",
-            primaryOffice: "West Block, Parliament Hill",
-            constituencyPhone: "604-775-5323",
-            constituencyEmail: "jagmeet.singh@parl.gc.ca",
-            constituencyAddress: "4658 Kingsway, Burnaby, BC V5H 2B5",
-            constituencyHours: "Monday-Friday 9:00 AM - 5:00 PM",
-            parliamentPhone: "613-992-2874",
-            parliamentEmail: "jagmeet.singh@parl.gc.ca",
-            parliamentOffice: "West Block, Parliament Hill",
-            parliamentAddress: "111 Wellington Street, Ottawa, ON K1A 0A6",
-            chiefOfStaffPhone: "613-992-2875",
-            chiefOfStaffEmail: "chiefofstaff.singh@parl.gc.ca",
-            pressSecretaryPhone: "613-992-2876",
-            pressSecretaryEmail: "press.singh@parl.gc.ca",
-            schedulerPhone: "613-992-2877",
-            schedulerEmail: "scheduler.singh@parl.gc.ca",
-            website: "https://www.ndp.ca/team/jagmeet-singh/",
-            twitter: "@theJagmeetSingh",
-            facebook: "JagmeetSinghNDP",
-            instagram: "jagmeetsinghndp",
-            linkedin: "jagmeet-singh-ndp",
-            emergencyPhone: "613-992-2878",
-            afterHoursPhone: "613-992-2879",
-            faxNumber: "613-992-2880",
-            mailingAddress: "House of Commons, Ottawa, ON K1A 0A6",
-            officeHours: "Monday-Friday 9:00 AM - 5:00 PM",
-            townHallSchedule: "Monthly town halls, next: August 12, 2025",
-            nextAvailableAppointment: "August 7, 2025 at 3:00 PM",
-            portfolios: ["NDP Leader", "Social Justice"],
-            committees: ["NDP Caucus", "Health Committee"],
-            caucusRole: "Leader of the New Democratic Party",
-            emailResponseTime: "Within 24 hours",
-            phoneResponseTime: "Within 2 hours",
-            meetingAvailability: "By appointment, 1 week notice required"
-          }
-        ];
+        console.error('Failed to fetch contacts:', error);
+        return [];
       }
     },
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    retry: 2,
   });
 
   const { data: jurisdictions = [] } = useQuery<string[]>({
@@ -629,7 +504,7 @@ export default function ContactsPage() {
     return matchesSearch && matchesCategory;
   });
 
-  const filteredContacts = officials.filter(contact => {
+  const filteredContacts = contacts.filter(contact => {
     const matchesSearch = contact.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          contact.position.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          contact.constituency?.toLowerCase().includes(searchTerm.toLowerCase());

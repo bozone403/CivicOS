@@ -26,40 +26,24 @@ import { useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 
 interface DashboardStats {
-  totalVotes: number;
   activeBills: number;
-  politiciansTracked: number;
-  petitionsSigned: number;
-  civicPoints: number;
-  trustScore: number;
-  totalOfficials?: number;
-  recentActivity: Array<{
-    id: string;
-    type: string;
-    title: string;
-    timestamp: string;
-    icon: string;
-  }>;
+  totalPoliticians: number;
+  totalPetitions: number;
+  platformStatus: string;
+  lastUpdated: string;
 }
 
 export default function Dashboard() {
   const { user } = useAuth();
 
   const { data: stats, isLoading, error } = useQuery<DashboardStats>({
-    queryKey: ['/api/dashboard/stats'],
+    queryKey: ['/api/dashboard'],
     queryFn: async () => {
       try {
-        // Try authenticated endpoint first
-        const result = await apiRequest('/api/dashboard/stats', 'GET');
-        return result;
+        const result = await apiRequest('/api/dashboard', 'GET');
+        return result.data; // Extract the data property from the response
       } catch (error) {
-        // If authentication fails, try public endpoint
-        try {
-          const publicResult = await apiRequest('/api/dashboard/public-stats', 'GET');
-          return publicResult;
-        } catch (publicError) {
-          throw error; // Throw original error if both fail
-        }
+        throw error;
       }
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
@@ -86,15 +70,49 @@ export default function Dashboard() {
     );
   }
 
+  // Use only real data - no fallbacks
   const currentStats = stats || {
-    totalVotes: 0,
     activeBills: 0,
-    politiciansTracked: 0,
-    petitionsSigned: 0,
-    civicPoints: 0,
-    trustScore: 100,
-    recentActivity: []
+    totalPoliticians: 0,
+    totalPetitions: 0,
+    platformStatus: 'unknown',
+    lastUpdated: new Date().toISOString()
   };
+
+  // Only show stats that are actually available from the API
+  const hasData = currentStats.activeBills > 0 || currentStats.totalPoliticians > 0 || currentStats.totalPetitions > 0;
+
+  if (!hasData) {
+    return (
+      <div className="space-y-6">
+        {/* Welcome Section */}
+        <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg p-6 text-white">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold">
+                Welcome back, {user?.firstName || user?.lastName || user?.email || 'Citizen'}!
+              </h1>
+              <p className="text-blue-100 mt-2">
+                Stay engaged with Canadian democracy. Your voice matters.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Empty State */}
+        <div className="text-center py-12">
+          <div className="text-gray-400 mb-4">
+            <Activity className="h-16 w-16 mx-auto" />
+          </div>
+          <h3 className="text-lg font-medium text-gray-900 mb-2">No Dashboard Data Available</h3>
+          <p className="text-gray-500 mb-4">
+            Dashboard statistics will appear here once data is available from the platform.
+          </p>
+          <Button onClick={() => window.location.reload()}>Refresh</Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -108,24 +126,23 @@ export default function Dashboard() {
             <p className="text-blue-100 mt-2">
               Stay engaged with Canadian democracy. Your voice matters.
             </p>
+            <div className="flex items-center gap-2 mt-3">
+              <div className={`w-2 h-2 rounded-full ${currentStats.platformStatus === 'operational' ? 'bg-green-300' : 'bg-red-300'}`} />
+              <span className="text-sm text-blue-100">
+                Platform: {currentStats.platformStatus}
+              </span>
+            </div>
           </div>
           <div className="text-right">
-            <div className="text-2xl font-bold">{currentStats.civicPoints}</div>
-            <div className="text-blue-100 text-sm">Civic Points</div>
+            <div className="text-xs text-blue-200 mt-1">
+              Last updated: {new Date(currentStats.lastUpdated).toLocaleDateString()}
+            </div>
           </div>
         </div>
       </div>
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <AnimatedCardWithIcon
-          icon={<Vote className="h-4 w-4" />}
-          title="Total Votes"
-          description="Bills and petitions voted on"
-          value={currentStats.totalVotes}
-          trend="up"
-        />
-        
         <AnimatedCardWithIcon
           icon={<FileText className="h-4 w-4" />}
           title="Active Bills"
@@ -138,130 +155,53 @@ export default function Dashboard() {
           icon={<Users className="h-4 w-4" />}
           title="Officials"
           description="Total in database"
-          value={currentStats.totalOfficials ?? currentStats.politiciansTracked}
+          value={currentStats.totalPoliticians}
           trend="up"
         />
         
         <AnimatedCardWithIcon
           icon={<Target className="h-4 w-4" />}
-          title="Petitions Signed"
-          description="Causes you support"
-          value={currentStats.petitionsSigned}
+          title="Petitions"
+          description="Available petitions"
+          value={currentStats.totalPetitions}
           trend="up"
+        />
+
+        <AnimatedCardWithIcon
+          icon={<Shield className="h-4 w-4" />}
+          title="Platform Status"
+          description="System health"
+          value={currentStats.platformStatus === 'operational' ? 'Healthy' : 'Issues'}
+          trend={currentStats.platformStatus === 'operational' ? 'up' : 'down'}
         />
       </div>
 
-      {/* Trust Score & Achievements */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <Card className="lg:col-span-2">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Shield className="h-5 w-5 text-green-600" />
-              Trust Score & Achievements
-            </CardTitle>
-            <CardDescription>
-              Your civic engagement level and recent achievements
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="text-2xl font-bold text-green-600">
-                  {currentStats.trustScore}%
-                </div>
-                <div className="text-sm text-muted-foreground">Trust Score</div>
-              </div>
-              <div className="w-32 h-2 bg-gray-200 rounded-full overflow-hidden">
-                <div 
-                  className="h-full bg-green-600 rounded-full transition-all duration-500"
-                  style={{ width: `${currentStats.trustScore}%` }}
-                />
-              </div>
-            </div>
-            
-            <div className="grid grid-cols-2 gap-4">
-              <div className="text-center p-4 bg-blue-50 rounded-lg">
-                <Award className="h-8 w-8 text-blue-600 mx-auto mb-2" />
-                <div className="text-lg font-semibold">Level {Math.floor(currentStats.civicPoints / 100) + 1}</div>
-                <div className="text-sm text-muted-foreground">Civic Champion</div>
-              </div>
-              <div className="text-center p-4 bg-purple-50 rounded-lg">
-                <Sparkles className="h-8 w-8 text-purple-600 mx-auto mb-2" />
-                <div className="text-lg font-semibold">{Math.floor(currentStats.civicPoints / 50)}</div>
-                <div className="text-sm text-muted-foreground">Badges Earned</div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Activity className="h-5 w-5 text-blue-600" />
-              Recent Activity
-            </CardTitle>
-            <CardDescription>
-              Your latest civic engagement activities
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {currentStats.recentActivity.length > 0 ? (
-                currentStats.recentActivity.map((activity, index) => (
-                  <div 
-                    key={activity.id}
-                    className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 transition-colors"
-                    style={{ animationDelay: `${index * 100}ms` }}
-                  >
-                    <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                      {activity.icon === 'vote' && <Vote className="h-4 w-4 text-blue-600" />}
-                      {activity.icon === 'petition' && <Target className="h-4 w-4 text-green-600" />}
-                      {activity.icon === 'comment' && <MessageSquare className="h-4 w-4 text-purple-600" />}
-                    </div>
-                    <div className="flex-1">
-                      <div className="text-sm font-medium">{activity.title}</div>
-                      <div className="text-xs text-muted-foreground">{activity.timestamp}</div>
-                    </div>
-                  </div>
-                ))
-              ) : (
-                <div className="text-center py-8 text-gray-500">
-                  <Activity className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-                  <p>No recent activity</p>
-                  <p className="text-sm">Start engaging to see your activity here</p>
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Quick Actions */}
+      {/* Platform Status */}
       <Card>
         <CardHeader>
-          <CardTitle>Quick Actions</CardTitle>
+          <CardTitle className="flex items-center gap-2">
+            <Activity className="h-5 w-5 text-blue-600" />
+            Platform Status
+          </CardTitle>
           <CardDescription>
-            Jump into civic engagement activities
+            Current system status and data availability
           </CardDescription>
         </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <Button variant="outline" className="h-20 flex-col gap-2">
-              <Vote className="h-6 w-6" />
-              <span>Vote on Bills</span>
-            </Button>
-            <Button variant="outline" className="h-20 flex-col gap-2">
-              <Users className="h-6 w-6" />
-              <span>Track Politicians</span>
-            </Button>
-            <Button variant="outline" className="h-20 flex-col gap-2">
-              <FileText className="h-6 w-6" />
-              <span>Read News</span>
-            </Button>
-            <Button variant="outline" className="h-20 flex-col gap-2">
-              <MessageSquare className="h-6 w-6" />
-              <span>Join Discussion</span>
-            </Button>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="text-center p-4 bg-blue-50 rounded-lg">
+              <div className="text-lg font-semibold text-blue-600">
+                {currentStats.platformStatus === 'operational' ? '✅ Operational' : '⚠️ Issues'}
+              </div>
+              <div className="text-sm text-muted-foreground">System Status</div>
+            </div>
+            <div className="text-center p-4 bg-green-50 rounded-lg">
+              <Calendar className="h-8 w-8 text-green-600 mx-auto mb-2" />
+              <div className="text-lg font-semibold">
+                {new Date(currentStats.lastUpdated).toLocaleDateString()}
+              </div>
+              <div className="text-sm text-muted-foreground">Last Updated</div>
+            </div>
           </div>
         </CardContent>
       </Card>

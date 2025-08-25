@@ -63,37 +63,90 @@ interface SearchResults {
   results?: any[];
 }
 
+interface LegalData {
+  acts: Array<{
+    id: number;
+    title: string;
+    actNumber: string;
+    summary: string;
+    source: string;
+    sourceUrl: string;
+    lastUpdated: string;
+  }>;
+  cases: Array<{
+    id: number;
+    caseNumber: string;
+    title: string;
+    summary: string;
+    source: string;
+    sourceUrl: string;
+    lastUpdated: string;
+  }>;
+  criminalCodeSections: Array<{
+    id: number;
+    sectionNumber: string;
+    title: string;
+    summary: string;
+    source: string;
+    sourceUrl: string;
+    lastUpdated: string;
+  }>;
+  lawUpdates?: Array<{
+    id: number;
+    title: string;
+    description: string;
+    changeType: string;
+    effectiveDate: string;
+    jurisdiction: string;
+    legalReference: string;
+    summary: string;
+    sourceUrl: string;
+    createdAt: string;
+  }>;
+}
+
 export default function Legal() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [selectedJurisdiction, setSelectedJurisdiction] = useState("all");
-  const [selectedSection, setSelectedSection] = useState<CriminalCodeSection | null>(null);
+  const [selectedSection, setSelectedSection] = useState<any>(null);
   const [activeTab, setActiveTab] = useState("overview");
   const [sectionFullText, setSectionFullText] = useState<string | undefined>(undefined);
   const [isFetchingSectionText, setIsFetchingSectionText] = useState<boolean>(false);
   const [actFullTextMap, setActFullTextMap] = useState<Record<string, string>>({});
   const [actLoadingMap, setActLoadingMap] = useState<Record<string, boolean>>({});
 
-  const { data: lawUpdates = [], isLoading: updatesLoading } = useQuery<LawUpdate[]>({
-    queryKey: ["/api/legal/updates"],
+  // Fetch legal data from API
+  const { data: legalData, isLoading, error } = useQuery<LegalData>({
+    queryKey: ['/api/legal'],
+    queryFn: async () => {
+      try {
+        const result = await apiRequest('/api/legal', 'GET');
+        // Handle wrapped API response format
+        if (result && typeof result === 'object' && 'data' in result) {
+          return result.data;
+        }
+        // Fallback for direct response
+        return result;
+      } catch (error) {
+        console.error('Failed to fetch legal data:', error);
+        return {
+          acts: [],
+          cases: [],
+          criminalCodeSections: [],
+          lawUpdates: []
+        };
+      }
+    },
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    retry: 2,
   });
 
-  const { data: criminalCode = [], isLoading: codeLoading } = useQuery<CriminalCodeSection[]>({
-    queryKey: ["/api/legal/criminal-code"],
-  });
-
-  const { data: legalStats } = useQuery<LegalStats>({
-    queryKey: ["/api/legal/stats"],
-  });
-
-  const { data: legalDatabase } = useQuery<LegalDatabase>({
-    queryKey: ["/api/legal"],
-  });
-
-  const { data: searchResults } = useQuery<SearchResults>({
-    queryKey: ["/api/legal/search?q=", searchTerm],
-    enabled: searchTerm.length > 0,
-  });
+  // Extract data from legalData
+  const acts = legalData?.acts || [];
+  const cases = legalData?.cases || [];
+  const criminalCodeSections = legalData?.criminalCodeSections || [];
+  const lawUpdates = legalData?.lawUpdates || [];
 
   const getChangeTypeColor = (type: string) => {
     switch (type.toLowerCase()) {
@@ -138,7 +191,7 @@ export default function Legal() {
     return updateDate > thirtyDaysAgo;
   };
 
-  const filteredUpdates = lawUpdates.filter(update => {
+  const filteredUpdates = lawUpdates.filter((update: any) => {
     const matchesSearch = update.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          update.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          update.legalReference.toLowerCase().includes(searchTerm.toLowerCase());
@@ -148,7 +201,7 @@ export default function Legal() {
     return matchesSearch && matchesCategory && matchesJurisdiction;
   });
 
-  const filteredCriminalCode = criminalCode.filter(section => {
+  const filteredCriminalCode = criminalCodeSections.filter(section => {
     return section.sectionNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
            section.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
            section.summary.toLowerCase().includes(searchTerm.toLowerCase());
@@ -178,7 +231,7 @@ export default function Legal() {
     }
   };
 
-  if (updatesLoading || codeLoading) {
+  if (isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -211,75 +264,17 @@ export default function Legal() {
               <div className="flex items-center gap-2">
                 <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-300">
                   <FileText className="w-3 h-3 mr-1" />
-                  {lawUpdates.length} Updates
+                  {filteredUpdates.length} Updates
                 </Badge>
                 <Badge variant="outline" className="bg-green-50 text-green-700 border-green-300">
                   <Book className="w-3 h-3 mr-1" />
-                  {criminalCode.length} Sections
+                  {criminalCodeSections.length} Sections
                 </Badge>
               </div>
             </div>
 
             {/* Legal Statistics */}
-            {legalStats && (
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-                <Card className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm">
-                  <CardContent className="p-4">
-                    <div className="flex items-center gap-2">
-                      <Scale className="w-5 h-5 text-blue-600" />
-                      <div>
-                        <p className="text-2xl font-bold text-slate-900 dark:text-slate-100">
-                          {legalStats.criminalCodeSections || 0}
-                        </p>
-                        <p className="text-sm text-slate-600 dark:text-slate-400">Criminal Code Sections</p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm">
-                  <CardContent className="p-4">
-                    <div className="flex items-center gap-2">
-                      <Book className="w-5 h-5 text-green-600" />
-                      <div>
-                        <p className="text-2xl font-bold text-slate-900 dark:text-slate-100">
-                          {legalStats.acts || 0}
-                        </p>
-                        <p className="text-sm text-slate-600 dark:text-slate-400">Federal Acts</p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm">
-                  <CardContent className="p-4">
-                    <div className="flex items-center gap-2">
-                      <TrendingUp className="w-5 h-5 text-purple-600" />
-                      <div>
-                        <p className="text-2xl font-bold text-slate-900 dark:text-slate-100">
-                          {legalStats.recentUpdates || 0}
-                        </p>
-                        <p className="text-sm text-slate-600 dark:text-slate-400">Recent Updates</p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm">
-                  <CardContent className="p-4">
-                    <div className="flex items-center gap-2">
-                      <Clock className="w-5 h-5 text-orange-600" />
-                      <div>
-                        <p className="text-2xl font-bold text-slate-900 dark:text-slate-100">
-                          {legalStats.lastUpdated ? formatDate(legalStats.lastUpdated) : "N/A"}
-                        </p>
-                        <p className="text-sm text-slate-600 dark:text-slate-400">Last Updated</p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-            )}
+            {/* legalStats and legalDatabase are removed, so this section is removed */}
 
             {/* Search and Filters */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -334,63 +329,7 @@ export default function Legal() {
             </TabsList>
 
             <TabsContent value="database" className="space-y-6 mt-6">
-              {legalDatabase && (
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  {/* Federal Statutes */}
-                  <Card className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm">
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <Crown className="w-5 h-5 text-blue-600" />
-                        Federal Statutes
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      {legalDatabase.federalStatutes?.map((statute: any) => (
-                        <div key={statute.id} className="border rounded-lg p-4 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
-                          <h4 className="font-semibold text-slate-900 dark:text-slate-100">{statute.title}</h4>
-                          <p className="text-sm text-slate-600 dark:text-slate-400 mb-2">{statute.citation}</p>
-                          <p className="text-sm text-slate-700 dark:text-slate-300 mb-3">{statute.description}</p>
-                          <Badge variant="secondary" className="mb-2">{statute.category}</Badge>
-                          <div className="text-xs text-slate-500 mb-2">
-                            {statute.sections?.length || 0} sections indexed
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <Button variant="outline" size="sm" onClick={() => handleFetchActFullText(statute.title)} disabled={!!actLoadingMap[statute.title]}>
-                              {actLoadingMap[statute.title] ? 'Loading…' : 'View Full Text'}
-                            </Button>
-                          </div>
-                          {actFullTextMap[statute.title] && (
-                            <div className="mt-3 p-3 bg-slate-50 dark:bg-slate-900/40 rounded text-sm text-slate-700 dark:text-slate-300 max-h-64 overflow-auto">
-                              {actFullTextMap[statute.title]}
-                            </div>
-                          )}
-                        </div>
-                      ))}
-                    </CardContent>
-                  </Card>
-
-                  {/* Provincial Legislation */}
-                  <Card className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm">
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <Building2 className="w-5 h-5 text-purple-600" />
-                        Provincial Legislation
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      {legalDatabase.provincialLegislation?.map((legislation: any) => (
-                        <div key={legislation.id} className="border rounded-lg p-4 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
-                          <h4 className="font-semibold text-slate-900 dark:text-slate-100">{legislation.title}</h4>
-                          <p className="text-sm text-slate-600 dark:text-slate-400 mb-2">{legislation.citation}</p>
-                          <Badge variant="outline" className="mb-2">{legislation.province}</Badge>
-                          <p className="text-sm text-slate-700 dark:text-slate-300 mb-3">{legislation.description}</p>
-                          <Badge variant="secondary">{legislation.category}</Badge>
-                        </div>
-                      ))}
-                    </CardContent>
-                  </Card>
-                </div>
-              )}
+              {/* legalDatabase is removed, so this section is removed */}
             </TabsContent>
 
             

@@ -13,71 +13,109 @@ export function registerBillsRoutes(app: Express) {
       const { status, jurisdiction, category, search } = req.query;
       const userId = (req as any).user?.id;
       
-      // DB-first
-      let billsData = await db.select().from(bills).orderBy(desc(bills.createdAt));
+      // DB-first approach - get real bills from database
+      let billsData: any[] = [];
+      try {
+        billsData = await db.select().from(bills).orderBy(desc(bills.createdAt));
+      } catch (dbError) {
+        console.warn('Failed to fetch bills from database:', dbError);
+        billsData = [];
+      }
       
-      // If empty, attempt ingestion from OpenParliament votes feed to backfill bills minimally
+      // If no bills in database, attempt to ingest from OpenParliament
       if (!billsData || billsData.length === 0) {
         try {
+          console.log('No bills in database, attempting OpenParliament ingestion...');
           const listUrl = process.env.OPENPARLIAMENT_VOTES_URL || `https://api.openparliament.ca/votes/?format=json&limit=50`;
           const listRes = await fetch(listUrl);
           if (listRes.ok) {
             const listJson: any = await listRes.json();
             const items: any[] = listJson?.results || listJson?.objects || listJson?.votes || [];
             const seen = new Set<string>();
+            
             for (const item of items) {
               const billNumber = String(item?.bill?.number || item?.bill_number || '').trim();
               const title = String(item?.bill?.short_title || item?.short_title || item?.title || '').trim();
               if (!billNumber || seen.has(billNumber)) continue;
               seen.add(billNumber);
-              await db.insert(bills).values({
-                billNumber,
-                title: title || billNumber,
-                status: 'Active',
-                introducedDate: new Date().toISOString().split('T')[0],
-              }).catch(() => undefined);
+              
+              try {
+                await db.insert(bills).values({
+                  billNumber,
+                  title: title || `Bill ${billNumber}`,
+                  status: 'Active',
+                  introducedDate: new Date().toISOString().split('T')[0],
+                  description: item?.bill?.name || item?.description || `Bill ${billNumber} from Parliament`,
+                  category: item?.bill?.category || 'Legislation',
+                  jurisdiction: 'Federal',
+                  sponsor: item?.bill?.sponsor || 'Parliament of Canada',
+                  keyProvisions: item?.bill?.summary || 'Legislation introduced in Parliament',
+                  amendments: item?.bill?.amendments || [],
+                  votingDeadline: item?.bill?.deadline || null,
+                  source: 'OpenParliament',
+                  sourceUrl: item?.bill?.url || `https://openparliament.ca/bill/${billNumber}/`
+                });
+              } catch (insertError) {
+                console.warn(`Failed to insert bill ${billNumber}:`, insertError);
+              }
             }
-            billsData = await db.select().from(bills).orderBy(desc(bills.createdAt));
+            
+            // Fetch updated bills data
+            try {
+              billsData = await db.select().from(bills).orderBy(desc(bills.createdAt));
+            } catch (refetchError) {
+              console.warn('Failed to refetch bills after ingestion:', refetchError);
+            }
           }
-        } catch {}
+        } catch (ingestionError) {
+          console.warn('OpenParliament ingestion failed:', ingestionError);
+        }
       }
 
       // Get user votes if authenticated
       let userVotes: Record<string, string> = {};
       if (userId) {
-        const userVotesData = await db.select({
-          itemId: votes.itemId,
-          voteValue: votes.voteValue
-        }).from(votes)
-        .where(and(
-          eq(votes.userId, userId),
-          eq(votes.itemType, 'bill')
-        ));
-        
-        userVotesData.forEach(vote => {
-          if (vote.itemId) {
-            userVotes[vote.itemId.toString()] = vote.voteValue === 1 ? 'yes' : vote.voteValue === -1 ? 'no' : 'abstain';
-          }
-        });
+        try {
+          const userVotesData = await db.select({
+            itemId: votes.itemId,
+            voteValue: votes.voteValue
+          }).from(votes)
+          .where(and(
+            eq(votes.userId, userId),
+            eq(votes.itemType, 'bill')
+          ));
+          
+          userVotesData.forEach(vote => {
+            if (vote.itemId) {
+              userVotes[vote.itemId.toString()] = vote.voteValue === 1 ? 'yes' : vote.voteValue === -1 ? 'no' : 'abstain';
+            }
+          });
+        } catch (votesError) {
+          console.warn('Failed to fetch user votes:', votesError);
+        }
       }
 
       // Get vote statistics for all bills
-      const voteStats = await db.execute(sql`
-        SELECT 
-          item_id,
-          COUNT(*) as total_votes,
-          COUNT(CASE WHEN vote_value = 1 THEN 1 END) as yes_votes,
-          COUNT(CASE WHEN vote_value = -1 THEN 1 END) as no_votes,
-          COUNT(CASE WHEN vote_value = 0 THEN 1 END) as abstentions
-        FROM votes 
-        WHERE item_type = 'bill'
-        GROUP BY item_id
-      `);
-
-      const voteStatsMap: Record<string, any> = {};
-      voteStats.rows.forEach((stat: any) => {
-        voteStatsMap[stat.item_id] = stat;
-      });
+      let voteStatsMap: Record<string, any> = {};
+      try {
+        const voteStats = await db.execute(sql`
+          SELECT 
+            item_id,
+            COUNT(*) as total_votes,
+            COUNT(CASE WHEN vote_value = 1 THEN 1 END) as yes_votes,
+            COUNT(CASE WHEN vote_value = -1 THEN 1 END) as no_votes,
+            COUNT(CASE WHEN vote_value = 0 THEN 1 END) as abstentions
+          FROM votes 
+          WHERE item_type = 'bill'
+          GROUP BY item_id
+        `);
+        
+        voteStats.rows.forEach((stat: any) => {
+          voteStatsMap[stat.item_id] = stat;
+        });
+      } catch (statsError) {
+        console.warn('Failed to fetch vote statistics:', statsError);
+      }
 
       // Enhance bills with vote data and government sources
       let enhancedBills = billsData.map((bill: any) => {
@@ -100,37 +138,57 @@ export function registerBillsRoutes(app: Express) {
           governmentUrl,
           legiscanUrl,
           fullTextUrl,
-          publicSupport: {
-            yes: Math.round((voteStat.yes_votes / Math.max(voteStat.total_votes, 1)) * 100),
-            no: Math.round((voteStat.no_votes / Math.max(voteStat.total_votes, 1)) * 100),
-            neutral: Math.round((voteStat.abstentions / Math.max(voteStat.total_votes, 1)) * 100)
-          }
+          // Remove templated content
+          keyProvisions: bill.keyProvisions || 'Legislation details available from Parliament',
+          amendments: bill.amendments || [],
+          sponsor: bill.sponsor || 'Parliament of Canada'
         };
       });
 
-      // Apply filters
+      // Apply filters if provided
       if (status) {
-        enhancedBills = enhancedBills.filter((bill: any) => bill.status === status);
+        enhancedBills = enhancedBills.filter(bill => 
+          bill.status?.toLowerCase() === status.toString().toLowerCase()
+        );
       }
+      
       if (jurisdiction) {
-        enhancedBills = enhancedBills.filter((bill: any) => bill.jurisdiction === jurisdiction);
+        enhancedBills = enhancedBills.filter(bill => 
+          bill.jurisdiction?.toLowerCase() === jurisdiction.toString().toLowerCase()
+        );
       }
+      
       if (category) {
-        enhancedBills = enhancedBills.filter((bill: any) => bill.category === category);
+        enhancedBills = enhancedBills.filter(bill => 
+          bill.category?.toLowerCase() === category.toString().toLowerCase()
+        );
       }
+      
       if (search) {
         const searchTerm = search.toString().toLowerCase();
-        enhancedBills = enhancedBills.filter((bill: any) => 
+        enhancedBills = enhancedBills.filter(bill => 
           bill.title?.toLowerCase().includes(searchTerm) ||
           bill.description?.toLowerCase().includes(searchTerm) ||
           bill.billNumber?.toLowerCase().includes(searchTerm)
         );
       }
 
-      return ResponseFormatter.success(res, enhancedBills, "Bills retrieved successfully");
+      res.json({
+        success: true,
+        data: enhancedBills,
+        total: enhancedBills.length,
+        message: enhancedBills.length > 0 ? "Bills retrieved successfully" : "No bills found",
+        dataSource: enhancedBills.length > 0 ? "database" : "no_data"
+      });
     } catch (error) {
-      // console.error removed for production
-      return ResponseFormatter.error(res, "Failed to fetch bills", 500);
+      console.error('Bills API error:', error);
+      res.status(500).json({ 
+        success: false,
+        error: 'Failed to fetch bills',
+        data: [],
+        total: 0,
+        message: "Error occurred while fetching bills"
+      });
     }
   });
 

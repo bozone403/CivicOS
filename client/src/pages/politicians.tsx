@@ -39,35 +39,31 @@ interface Politician {
   name: string;
   party: string;
   position: string;
-  riding: string;
-  level: string;
-  jurisdiction: string;
-  image?: string;
-  trustScore: number;
-  civicLevel: string;
-  recentActivity: string;
-  policyPositions: string[];
-  votingRecord: { yes: number; no: number; abstain: number };
-  contactInfo: {
-    email?: string;
-    phone?: string;
-    office?: string;
-    website?: string;
-    social?: {
-      twitter?: string;
-      facebook?: string;
-    };
-  };
-  bio: string;
-  keyAchievements: string[];
-  committees: string[];
-  expenses: {
-    travel: number;
-    hospitality: number;
-    office: number;
-    total: number;
-    year: string;
-  };
+  riding: string | null;
+  level?: string;
+  jurisdiction?: string;
+  image?: string | null;
+  trustScore?: number;
+  civicLevel?: string;
+  recentActivity?: string;
+  policyPositions?: string[];
+  votingRecord: Record<string, any>;
+  contactInfo: Record<string, any>;
+  bio?: string;
+  keyAchievements?: string[];
+  committees?: string[];
+  expenses?: Record<string, any>;
+  // Real API fields
+  partyAffiliation?: string | null;
+  constituency: string;
+  electionDate?: string | null;
+  termStart?: string | null;
+  termEnd?: string | null;
+  isIncumbent: boolean;
+  biography?: string | null;
+  socialMedia: Record<string, any>;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export default function Politicians() {
@@ -90,188 +86,11 @@ export default function Politicians() {
         // Fallback for direct array response
         return Array.isArray(result) ? result : [];
       } catch (error) {
-        // console.error removed for production
-        // Return comprehensive fallback data if API fails
-        return [
-  {
-    id: 1,
-    name: "Mark Carney",
-    party: "Liberal",
-    position: "Prime Minister",
-            riding: "Ottawa Centre",
-    level: "Federal",
-            jurisdiction: "Federal",
-            image: "/assets/mark-carney.jpg",
-            trustScore: 85,
-            civicLevel: "Gold",
-            recentActivity: "Announced climate finance framework",
-            policyPositions: ["Climate Action", "Economic Reform", "Housing Affordability"],
-            votingRecord: { yes: 156, no: 23, abstain: 12 },
-            contactInfo: {
-              email: "mark.carney@parl.gc.ca",
-              phone: "613-992-4211",
-              office: "Centre Block, Parliament Hill",
-              website: "https://www.liberal.ca/team/mark-carney/",
-              social: {
-                twitter: "@MarkCarney",
-                facebook: "MarkCarneyPM"
-              }
-            },
-            bio: "Former Governor of the Bank of England and Bank of Canada, now serving as Prime Minister of Canada.",
-            keyAchievements: ["Climate Finance Framework", "Economic Recovery Plan", "Housing Initiative"],
-            committees: ["Cabinet", "Economic Committee", "Climate Action"],
-            expenses: {
-              travel: 45000,
-              hospitality: 12000,
-              office: 85000,
-              total: 142000,
-              year: "2025"
-            }
-  },
-  {
-    id: 2,
-    name: "Pierre Poilievre",
-    party: "Conservative",
-    position: "Leader of the Opposition",
-            riding: "Carleton",
-    level: "Federal",
-            jurisdiction: "Federal",
-            image: "/assets/pierre-poilievre.jpg",
-            trustScore: 72,
-            civicLevel: "Silver",
-            recentActivity: "Criticized government spending in Question Period",
-            policyPositions: ["Fiscal Responsibility", "Reduced Regulation", "Energy Independence"],
-            votingRecord: { yes: 89, no: 167, abstain: 8 },
-            contactInfo: {
-              email: "pierre.poilievre@parl.gc.ca",
-              phone: "613-992-6776",
-              office: "West Block, Parliament Hill",
-              website: "https://www.conservative.ca/team/pierre-poilievre/",
-              social: {
-                twitter: "@PierrePoilievre",
-                facebook: "PierrePoilievreCPC"
-              }
-            },
-            bio: "Conservative Party leader and Member of Parliament for Carleton, focusing on economic issues.",
-            keyAchievements: ["Opposition Leadership", "Economic Criticism", "Party Unity"],
-            committees: ["Opposition", "Finance Committee", "Public Accounts"],
-            expenses: {
-              travel: 38000,
-              hospitality: 8500,
-              office: 72000,
-              total: 118500,
-              year: "2025"
-            }
-  },
-  {
-    id: 3,
-    name: "Jagmeet Singh",
-    party: "NDP",
-    position: "Leader of the New Democratic Party",
-            riding: "Burnaby South",
-    level: "Federal",
-            jurisdiction: "Federal",
-            image: "/assets/jagmeet-singh.jpg",
-            trustScore: 78,
-            civicLevel: "Gold",
-            recentActivity: "Advocated for universal pharmacare",
-            policyPositions: ["Universal Healthcare", "Worker Rights", "Climate Justice"],
-            votingRecord: { yes: 134, no: 45, abstain: 15 },
-            contactInfo: {
-              email: "jagmeet.singh@parl.gc.ca",
-              phone: "613-992-2874",
-              office: "West Block, Parliament Hill",
-              website: "https://www.ndp.ca/team/jagmeet-singh/",
-              social: {
-                twitter: "@theJagmeetSingh",
-                facebook: "JagmeetSinghNDP"
-              }
-            },
-            bio: "NDP leader and Member of Parliament for Burnaby South, advocating for social justice and workers' rights.",
-            keyAchievements: ["Universal Pharmacare", "Worker Protection", "Climate Action"],
-            committees: ["NDP Caucus", "Health Committee", "Justice Committee"],
-            expenses: {
-              travel: 32000,
-              hospitality: 6800,
-              office: 65000,
-              total: 103800,
-              year: "2025"
-            }
-  },
-  {
-    id: 4,
-    name: "Yves-François Blanchet",
-    party: "Bloc Québécois",
-    position: "Leader of the Bloc Québécois",
-            riding: "Beloeil—Chambly",
-    level: "Federal",
-            jurisdiction: "Federal",
-            image: "/assets/yves-francois-blanchet.jpg",
-            trustScore: 65,
-            civicLevel: "Silver",
-            recentActivity: "Defended Quebec's language laws",
-            policyPositions: ["Quebec Sovereignty", "French Language Rights", "Provincial Autonomy"],
-            votingRecord: { yes: 67, no: 112, abstain: 25 },
-            contactInfo: {
-              email: "yves-francois.blanchet@parl.gc.ca",
-              phone: "613-992-6776",
-              office: "West Block, Parliament Hill",
-              website: "https://www.blocquebecois.org/equipe/yves-francois-blanchet/",
-              social: {
-                twitter: "@yfblanchet",
-                facebook: "YvesFrancoisBlanchet"
-              }
-            },
-            bio: "Bloc Québécois leader and Member of Parliament for Beloeil—Chambly, advocating for Quebec's interests.",
-            keyAchievements: ["Quebec Language Rights", "Provincial Autonomy", "Cultural Protection"],
-            committees: ["Bloc Caucus", "Official Languages", "Heritage Committee"],
-            expenses: {
-              travel: 28000,
-              hospitality: 5200,
-              office: 58000,
-              total: 91200,
-              year: "2025"
-            }
-  },
-  {
-    id: 5,
-    name: "Elizabeth May",
-    party: "Green",
-    position: "Leader of the Green Party",
-            riding: "Saanich—Gulf Islands",
-    level: "Federal",
-            jurisdiction: "Federal",
-            image: "/assets/elizabeth-may.jpg",
-            trustScore: 82,
-            civicLevel: "Gold",
-    recentActivity: "Introduced climate emergency motion",
-    policyPositions: ["Climate Action", "Environmental Protection", "Social Justice"],
-            votingRecord: { yes: 145, no: 34, abstain: 15 },
-            contactInfo: {
-              email: "elizabeth.may@parl.gc.ca",
-              phone: "613-992-4211",
-              office: "Centre Block, Parliament Hill",
-              website: "https://www.greenparty.ca/en/team/elizabeth-may/",
-              social: {
-                twitter: "@ElizabethMay",
-                facebook: "ElizabethMayGreen"
-              }
-            },
-            bio: "Green Party leader and Member of Parliament for Saanich—Gulf Islands, environmental advocate.",
-            keyAchievements: ["Climate Emergency Declaration", "Environmental Legislation", "Parliamentary Reform"],
-            committees: ["Green Caucus", "Environment Committee", "Climate Action"],
-            expenses: {
-              travel: 25000,
-              hospitality: 4200,
-              office: 52000,
-              total: 81200,
-              year: "2025"
-            }
-          }
-        ];
+        console.error('Failed to fetch politicians:', error);
+        return [];
       }
     },
-    staleTime: 10 * 60 * 1000, // 10 minutes
+    staleTime: 5 * 60 * 1000, // 5 minutes
     retry: 2,
   });
 
@@ -304,10 +123,10 @@ export default function Politicians() {
 
   const getLevelIcon = (level: string) => {
     switch (level.toLowerCase()) {
-      case "federal": return <Crown className="w-4 h-4" />;
-      case "provincial": return <Building2 className="w-4 h-4" />;
-      case "municipal": return <Globe className="w-4 h-4" />;
-      default: return <Users className="w-4 h-4" />;
+      case "federal": return <Crown className="w-4 h-4 text-yellow-600" />;
+      case "provincial": return <Building2 className="w-4 h-4 text-blue-600" />;
+      case "municipal": return <MapPin className="w-4 h-4 text-green-600" />;
+      default: return <Users className="w-4 h-4 text-gray-600" />;
     }
   };
 
@@ -428,9 +247,9 @@ export default function Politicians() {
                     </CardDescription>
                   </div>
                   <div className="flex items-center gap-1">
-                    {getLevelIcon(politician.level)}
-                    <span className={`text-sm font-medium ${getTrustScoreColor(politician.trustScore)}`}>
-                      {politician.trustScore}%
+                    {getLevelIcon(politician.level || "")}
+                    <span className={`text-sm font-medium ${getTrustScoreColor(politician.trustScore || 0)}`}>
+                      {politician.trustScore || 0}%
                     </span>
                   </div>
                 </div>
@@ -449,21 +268,21 @@ export default function Politicians() {
                     <div className="space-y-3">
                   <div className="flex items-center text-sm text-gray-600 dark:text-gray-300">
                     <MapPin className="w-4 h-4 mr-2" />
-                    {politician.riding}
+                    {politician.riding || politician.constituency || "N/A"}
                       </div>
 
                   <div className="text-sm text-gray-600 dark:text-gray-300">
-                    <strong>Recent:</strong> {politician.recentActivity}
+                    <strong>Recent:</strong> {politician.recentActivity || "No recent activity"}
                       </div>
 
                   <div className="flex items-center justify-between text-xs text-gray-500">
                     <div className="flex items-center gap-1">
                       <Vote className="w-3 h-3" />
-                      {politician.votingRecord.yes + politician.votingRecord.no + politician.votingRecord.abstain} votes
+                      {(politician.votingRecord?.yes || 0) + (politician.votingRecord?.no || 0) + (politician.votingRecord?.abstain || 0)} votes
                         </div>
                     <div className="flex items-center gap-1">
                       <DollarSign className="w-3 h-3" />
-                      {formatCurrency(politician.expenses.total)} ({politician.expenses.year})
+                      {formatCurrency(politician.expenses?.total || 0)} ({politician.expenses?.year || "N/A"})
                         </div>
                       </div>
 
@@ -471,7 +290,6 @@ export default function Politicians() {
                         <Button
                           size="sm"
                           variant="outline"
-                          className="flex-1"
                       onClick={() => setSelectedPolitician(politician)}
                         >
                       View Details
@@ -550,13 +368,13 @@ export default function Politicians() {
                   <TabsContent value="overview" className="space-y-4">
                       <div>
                       <h3 className="font-semibold mb-2">Biography</h3>
-                      <p className="text-sm text-gray-600 dark:text-gray-300">{selectedPolitician.bio}</p>
+                      <p className="text-sm text-gray-600 dark:text-gray-300">{selectedPolitician.bio || "No biography available."}</p>
                           </div>
                     
                     <div>
                       <h3 className="font-semibold mb-2">Key Achievements</h3>
                       <ul className="list-disc list-inside space-y-1">
-                        {selectedPolitician.keyAchievements.map((achievement, index) => (
+                        {selectedPolitician.keyAchievements?.map((achievement, index) => (
                           <li key={index} className="text-sm text-gray-600 dark:text-gray-300">
                             {achievement}
                           </li>
@@ -567,7 +385,7 @@ export default function Politicians() {
                       <div>
                       <h3 className="font-semibold mb-2">Policy Positions</h3>
                       <div className="flex flex-wrap gap-2">
-                        {selectedPolitician.policyPositions.map((position, index) => (
+                        {selectedPolitician.policyPositions?.map((position, index) => (
                           <Badge key={index} variant="outline">
                             {position}
                           </Badge>
@@ -579,15 +397,15 @@ export default function Politicians() {
                   <TabsContent value="voting" className="space-y-4">
                       <div className="grid grid-cols-3 gap-4">
                       <div className="text-center">
-                          <div className="text-2xl font-bold text-green-600">{selectedPolitician.votingRecord.yes}</div>
+                          <div className="text-2xl font-bold text-green-600">{selectedPolitician.votingRecord?.yes || 0}</div>
                         <div className="text-sm text-gray-500">Yes Votes</div>
                         </div>
                       <div className="text-center">
-                          <div className="text-2xl font-bold text-red-600">{selectedPolitician.votingRecord.no}</div>
+                          <div className="text-2xl font-bold text-red-600">{selectedPolitician.votingRecord?.no || 0}</div>
                         <div className="text-sm text-gray-500">No Votes</div>
                         </div>
                       <div className="text-center">
-                          <div className="text-2xl font-bold text-gray-600">{selectedPolitician.votingRecord.abstain}</div>
+                          <div className="text-2xl font-bold text-gray-600">{selectedPolitician.votingRecord?.abstain || 0}</div>
                         <div className="text-sm text-gray-500">Abstained</div>
                       </div>
                     </div>
@@ -597,19 +415,19 @@ export default function Politicians() {
                     <div className="grid grid-cols-2 gap-4">
                       <div>
                         <div className="text-sm text-gray-500">Travel</div>
-                        <div className="font-semibold">{formatCurrency(selectedPolitician.expenses.travel)}</div>
+                        <div className="font-semibold">{formatCurrency(selectedPolitician.expenses?.travel || 0)}</div>
                       </div>
                       <div>
                         <div className="text-sm text-gray-500">Hospitality</div>
-                        <div className="font-semibold">{formatCurrency(selectedPolitician.expenses.hospitality)}</div>
+                        <div className="font-semibold">{formatCurrency(selectedPolitician.expenses?.hospitality || 0)}</div>
                       </div>
                       <div>
                         <div className="text-sm text-gray-500">Office</div>
-                        <div className="font-semibold">{formatCurrency(selectedPolitician.expenses.office)}</div>
+                        <div className="font-semibold">{formatCurrency(selectedPolitician.expenses?.office || 0)}</div>
                       </div>
                     <div>
-                        <div className="text-sm text-gray-500">Total ({selectedPolitician.expenses.year})</div>
-                        <div className="font-semibold">{formatCurrency(selectedPolitician.expenses.total)}</div>
+                        <div className="text-sm text-gray-500">Total ({selectedPolitician.expenses?.year || "N/A"})</div>
+                        <div className="font-semibold">{formatCurrency(selectedPolitician.expenses?.total || 0)}</div>
                       </div>
                     </div>
                   </TabsContent>

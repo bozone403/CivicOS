@@ -73,197 +73,32 @@ export default function News() {
         // Fallback for direct array response
         return Array.isArray(result) ? result : [];
       } catch (error) {
-        // console.error removed for production
-        // Return comprehensive fallback data if API fails
-        return [
-          {
-            id: "1",
-            title: "Mark Carney Outlines Economic Vision in First Major Speech as PM",
-            summary: "Prime Minister Mark Carney delivered his first major economic address, focusing on climate finance integration and housing market reforms.",
-            source: "CBC News",
-            sourceId: 1,
-            url: "https://www.cbc.ca/news/politics/carney-economic-vision-2025",
-            publishedAt: "2025-07-24T18:30:00Z",
-            category: "Politics",
-            region: "National",
-            credibility: 95,
-            bias: "Center",
-            readTime: 5,
-            tags: ["Mark Carney", "Economy", "Prime Minister", "Climate Finance"],
-            verified: true
-          },
-          {
-            id: "2", 
-            title: "Canadian Dollar Strengthens Following Carney Transition",
-            summary: "The Canadian dollar has gained ground against major currencies as markets express confidence in the new Carney administration.",
-            source: "Financial Post",
-            sourceId: 2,
-            url: "https://financialpost.com/markets/currencies/cad-strength-carney",
-            publishedAt: "2025-07-24T16:15:00Z",
-            category: "Economics",
-            region: "National",
-            credibility: 89,
-            bias: "Center-Right",
-            readTime: 3,
-            tags: ["Currency", "Markets", "Mark Carney", "Economy"],
-            verified: true
-          },
-          {
-            id: "3",
-            title: "Housing Market Response to Carney's Policy Announcements",
-            summary: "Real estate analysts examine the potential impact of new housing affordability measures announced by the Carney government.",
-            source: "Globe and Mail",
-            sourceId: 3,
-            url: "https://theglobeandmail.com/real-estate/housing-carney-policy",
-            publishedAt: "2025-07-24T14:20:00Z",
-            category: "Real Estate",
-            region: "National", 
-            credibility: 92,
-            bias: "Center",
-            readTime: 7,
-            tags: ["Housing", "Real Estate", "Policy", "Mark Carney"],
-            verified: true
-          },
-          {
-            id: "4",
-            title: "Opposition Parties React to New Climate Finance Bill",
-            summary: "Conservative and NDP leaders respond to the government's landmark climate finance legislation introduced in Parliament.",
-            source: "CTV News",
-            sourceId: 4,
-            url: "https://www.ctvnews.ca/politics/opposition-reacts-climate-bill",
-            publishedAt: "2025-07-24T12:45:00Z",
-            category: "Politics",
-            region: "National",
-            credibility: 88,
-            bias: "Center",
-            readTime: 4,
-            tags: ["Climate Policy", "Opposition", "Parliament", "Environment"],
-            verified: true
-          },
-          {
-            id: "5",
-            title: "AI Regulation Framework Receives Mixed Industry Response",
-            summary: "Technology companies and civil society groups weigh in on the government's proposed artificial intelligence regulation bill.",
-            source: "TechCrunch",
-            sourceId: 5,
-            url: "https://techcrunch.com/2025/07/24/canada-ai-regulation-response",
-            publishedAt: "2025-07-24T10:30:00Z",
-            category: "Technology",
-            region: "National",
-            credibility: 85,
-            bias: "Center-Left",
-            readTime: 6,
-            tags: ["Artificial Intelligence", "Regulation", "Technology", "Policy"],
-            verified: true
-          },
-          {
-            id: "6",
-            title: "Universal Pharmacare Bill Introduced in Parliament",
-            summary: "Health Minister Jean-Yves Duclos introduces landmark legislation to provide universal prescription drug coverage for all Canadians.",
-            source: "CBC News",
-            sourceId: 1,
-            url: "https://www.cbc.ca/news/health/pharmacare-bill-introduced",
-            publishedAt: "2025-07-24T09:15:00Z",
-            category: "Healthcare",
-            region: "National",
-            credibility: 95,
-            bias: "Center",
-            readTime: 5,
-            tags: ["Healthcare", "Pharmacare", "Jean-Yves Duclos", "Universal Coverage"],
-            verified: true
-          },
-          {
-            id: "7",
-            title: "Bank of Canada Maintains Interest Rate Amid Economic Uncertainty",
-            summary: "The central bank holds its key interest rate steady at 5.0% while monitoring inflation and economic growth indicators.",
-            source: "Financial Post",
-            sourceId: 2,
-            url: "https://financialpost.com/news/economy/bank-of-canada-rate-decision",
-            publishedAt: "2025-07-24T08:00:00Z",
-            category: "Economics",
-            region: "National",
-            credibility: 91,
-            bias: "Center-Right",
-            readTime: 4,
-            tags: ["Bank of Canada", "Interest Rates", "Economy", "Inflation"],
-            verified: true
-          },
-          {
-            id: "8",
-            title: "Quebec Language Law Amendments Spark National Debate",
-            summary: "Proposed changes to Quebec's language laws generate discussion about linguistic rights and provincial autonomy.",
-            source: "Le Devoir",
-            sourceId: 6,
-            url: "https://www.ledevoir.com/politique/quebec/langue-loi-debats",
-            publishedAt: "2025-07-24T07:30:00Z",
-            category: "Politics",
-            region: "Quebec",
-            credibility: 87,
-            bias: "Center-Left",
-            readTime: 6,
-            tags: ["Quebec", "Language Laws", "Provincial Politics", "Cultural Rights"],
-            verified: true
-          }
-        ];
+        console.error('Failed to fetch news:', error);
+        return [];
       }
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
     retry: 2,
   });
 
-  // Mock news sources data (could be from API)
-  const newsSources: NewsSource[] = [
-  {
-    id: 1,
-    name: "CBC News",
-      url: "https://www.cbc.ca",
-    credibility: 95,
-    bias: "Center",
-    region: "National",
-    type: "Public Broadcaster",
-    verified: true
-  },
-  {
-    id: 2,
-      name: "Financial Post",
-      url: "https://financialpost.com",
-      credibility: 89,
-    bias: "Center-Right",
-    region: "National",
-      type: "Business News",
-    verified: true
-  },
-  {
-    id: 3,
-      name: "Globe and Mail",
-      url: "https://theglobeandmail.com",
-      credibility: 92,
-    bias: "Center",
-    region: "National",
-      type: "Newspaper",
-    verified: true
-  },
-  {
-    id: 4,
-      name: "CTV News",
-      url: "https://www.ctvnews.ca",
-      credibility: 88,
-      bias: "Center",
-    region: "National",
-      type: "Television Network",
-    verified: true
-  },
-  {
-    id: 5,
-    name: "National Post",
-    url: "https://nationalpost.com",
-    credibility: 87,
-    bias: "Right",
-    region: "National",
-    type: "Newspaper",
-    verified: true
-    }
-  ];
+  // Get news sources from API or use empty array if not available
+  const { data: newsSources = [] } = useQuery<NewsSource[]>({
+    queryKey: ['/api/news/sources'],
+    queryFn: async () => {
+      try {
+        const result = await apiRequest('/api/news/sources', 'GET');
+        if (result && typeof result === 'object' && 'data' in result) {
+          return Array.isArray(result.data) ? result.data : [];
+        }
+        return Array.isArray(result) ? result : [];
+      } catch (error) {
+        console.error('Failed to fetch news sources:', error);
+        return [];
+      }
+    },
+    staleTime: 10 * 60 * 1000, // 10 minutes
+    retry: 1,
+  });
 
   const filteredArticles = articles.filter(article => {
     const matchesSearch = article.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -412,78 +247,79 @@ export default function News() {
               </div>
             </div>
 
-            {/* Articles Grid */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-              {filteredArticles.map((article) => (
-                <Card key={article.id} className="cursor-pointer hover:shadow-lg transition-shadow">
-                  <CardHeader className="pb-4">
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <CardTitle className="text-lg leading-tight hover:text-blue-600 transition-colors" 
-                                  onClick={() => setSelectedArticle(article)}>
-                          {article.title}
-                        </CardTitle>
-                        <div className="flex items-center gap-2 mt-2">
-                          <Badge className={getBiasColor(article.bias)}>
-                            {article.bias}
-                          </Badge>
-                      <Badge variant="outline" className="text-xs">
-                        {article.category}
-                      </Badge>
-                          {article.verified && (
-                            <CheckCircle className="w-4 h-4 text-green-600" />
-                          )}
+            {/* News Articles Grid */}
+            {articles.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {filteredArticles.map((article) => (
+                  <Card key={article.id} className="hover:shadow-lg transition-shadow cursor-pointer">
+                    <CardHeader className="pb-3">
+                      <div className="flex items-start justify-between">
+                        <Badge variant="outline" className="text-xs">
+                          {article.category}
+                        </Badge>
+                        <div className="flex items-center gap-1 text-xs text-gray-500">
+                          <Clock className="w-3 h-3" />
+                          {formatTimeAgo(article.publishedAt)}
                         </div>
                       </div>
-                    </div>
-                  </CardHeader>
-                  
-                  <CardContent>
-                    <div className="space-y-3">
-                      <p className="text-sm text-gray-600 dark:text-gray-300 line-clamp-3">
-                      {article.summary}
-                    </p>
-                    
-                    <div className="flex items-center justify-between text-xs text-gray-500">
-                        <div className="flex items-center gap-4">
-                          <div className="flex items-center gap-1">
-                            <Globe className="w-3 h-3" />
-                            {article.source}
+                      <CardTitle className="text-lg leading-tight line-clamp-2">
+                        {article.title}
+                      </CardTitle>
+                      <CardDescription className="line-clamp-3">
+                        {article.summary}
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="pt-0">
+                      <div className="flex items-center justify-between text-sm text-gray-600 mb-3">
+                        <div className="flex items-center gap-2">
+                          <div className="w-6 h-6 bg-gray-200 rounded-full flex items-center justify-center">
+                            {article.source.charAt(0)}
                           </div>
-                          <div className="flex items-center gap-1">
-                        <Clock className="w-3 h-3" />
-                            {formatTimeAgo(article.publishedAt)}
-                          </div>
+                          <span>{article.source}</span>
                         </div>
-                        <div className={`flex items-center gap-1 ${getCredibilityColor(article.credibility)}`}>
+                        <div className="flex items-center gap-1">
                           <Shield className="w-3 h-3" />
-                          {article.credibility}%
+                          <span className={getCredibilityColor(article.credibility)}>
+                            {article.credibility}%
+                          </span>
                         </div>
                       </div>
-                      
-                      <div className="flex gap-2 pt-2">
-                        <Button 
-                          size="sm" 
-                          variant="outline" 
-                          className="flex-1"
+                      <div className="flex items-center justify-between">
+                        <div className="flex gap-2">
+                          {article.tags.slice(0, 2).map((tag, index) => (
+                            <Badge key={index} variant="secondary" className="text-xs">
+                              {tag}
+                            </Badge>
+                          ))}
+                        </div>
+                        <Button
+                          size="sm"
+                          variant="outline"
                           onClick={() => setSelectedArticle(article)}
                         >
-                          Read More
-                        </Button>
-                        <Button 
-                          size="sm" 
-                          variant="outline" 
-                          className="px-3"
-                          onClick={() => window.open(article.url, '_blank')}
-                        >
-                          <ExternalLink className="w-4 h-4" />
+                          <Eye className="w-4 h-4 mr-1" />
+                          Read
                         </Button>
                       </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-16">
+                <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                  <Globe className="w-12 h-12 text-gray-400" />
+                </div>
+                <h3 className="text-xl font-semibold text-gray-900 mb-2">No News Articles Available</h3>
+                <p className="text-gray-600 mb-6 max-w-md mx-auto">
+                  There are currently no news articles available. Check back later for updates on Canadian politics and civic affairs.
+                </p>
+                <div className="flex items-center justify-center gap-2 text-sm text-gray-500">
+                  <Clock className="w-4 h-4" />
+                  <span>Last updated: {new Date().toLocaleDateString()}</span>
+                </div>
+              </div>
+            )}
 
             {filteredArticles.length === 0 && !isLoading && (
               <div className="text-center py-12">

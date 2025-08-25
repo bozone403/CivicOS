@@ -471,10 +471,9 @@ app.get("/health", (_req, res) => {
   // Run database migrations on startup
   setTimeout(async () => {
     try {
-      // Temporarily disabled due to TypeScript compilation issues
-      // const migrateModule = await import('./migrate.js') as any;
-      // await migrateModule.runMigrations();
-      logger.info({ msg: "Database migrations temporarily disabled" });
+      const migrateModule = await import('./migrate.js') as any;
+      await migrateModule.runMigrations();
+      logger.info({ msg: "Database migrations completed successfully" });
     } catch (error) {
       logger.error({ msg: "Failed to run database migrations", error });
     }

@@ -12,9 +12,19 @@ interface Bill {
   status: string;
   category: string;
   jurisdiction: string;
-  votesFor: number;
-  votesAgainst: number;
-  userVote?: 'for' | 'against' | null;
+  billNumber: string;
+  introducedDate: string;
+  sponsor: string;
+  keyProvisions: string;
+  userVote?: 'yes' | 'no' | 'abstain' | null;
+  voteStats?: {
+    total_votes: number;
+    yes_votes: number;
+    no_votes: number;
+    abstentions: number;
+  };
+  governmentUrl?: string;
+  legiscanUrl?: string;
 }
 
 export default function BillsVotingWidget() {
@@ -24,8 +34,15 @@ export default function BillsVotingWidget() {
       try {
         const response = await api.get('/api/bills');
         const data = await response.json();
-        // ResponseFormatter wraps data in { success: true, data: [...], message: "..." }
-        return data?.data || [];
+        // Handle the new API response format
+        if (data?.success && Array.isArray(data?.data)) {
+          return data.data;
+        } else if (Array.isArray(data)) {
+          return data;
+        } else {
+          console.warn('Unexpected bills API response format:', data);
+          return [];
+        }
       } catch (error) {
         console.error('Failed to fetch bills:', error);
         return [];
@@ -70,6 +87,23 @@ export default function BillsVotingWidget() {
     );
   }
 
+  // Handle empty state properly
+  if (!bills || bills.length === 0) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Recent Bills</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="text-center py-6">
+            <p className="text-sm text-gray-500 mb-2">No bills available</p>
+            <p className="text-xs text-gray-400">Check back later for new legislation</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
   const recentBills = bills.slice(0, 3);
 
   const getStatusColor = (status: string) => {
@@ -87,6 +121,15 @@ export default function BillsVotingWidget() {
     return total > 0 ? Math.round((forVotes / total) * 100) : 0;
   };
 
+  const handleVote = async (billId: string, voteValue: 'yes' | 'no' | 'abstain') => {
+    try {
+      // TODO: Implement actual voting API call
+      console.log(`Voting ${voteValue} on bill ${billId}`);
+    } catch (error) {
+      console.error('Failed to submit vote:', error);
+    }
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -97,26 +140,101 @@ export default function BillsVotingWidget() {
           {recentBills.map((bill: Bill) => (
             <div key={bill.id} className="border-b border-gray-200 pb-4 last:border-b-0">
               <div className="flex items-start justify-between mb-2">
-                <h4 className="font-medium text-sm">{bill.title}</h4>
-                <Badge className={getStatusColor(bill.status)} variant="secondary">
+                <div className="flex-1">
+                  <h4 className="font-medium text-sm mb-1">{bill.title}</h4>
+                  <p className="text-xs text-gray-500 mb-1">
+                    Bill {bill.billNumber} • {bill.jurisdiction}
+                  </p>
+                  {bill.sponsor && (
+                    <p className="text-xs text-gray-400">Sponsored by {bill.sponsor}</p>
+                  )}
+                </div>
+                <Badge className={getStatusColor(bill.status)}>
                   {bill.status}
                 </Badge>
               </div>
-              <p className="text-xs text-gray-600 mb-2 line-clamp-2">
-                {bill.description}
-              </p>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <span className="text-xs text-gray-500">
-                    {getVotePercentage(bill.votesFor, bill.votesAgainst)}% support
-                  </span>
-                  <span className="text-xs text-gray-400">
-                    ({bill.votesFor + bill.votesAgainst} votes)
-                  </span>
+              
+              {bill.description && (
+                <p className="text-xs text-gray-600 mb-3 line-clamp-2">
+                  {bill.description}
+                </p>
+              )}
+              
+              {bill.keyProvisions && bill.keyProvisions !== 'Legislation details available from Parliament' && (
+                <p className="text-xs text-gray-500 mb-3">
+                  <strong>Key Provisions:</strong> {bill.keyProvisions}
+                </p>
+              )}
+              
+              {bill.voteStats && bill.voteStats.total_votes > 0 && (
+                <div className="mb-3">
+                  <div className="flex justify-between text-xs text-gray-500 mb-1">
+                    <span>Public Opinion</span>
+                    <span>{bill.voteStats.total_votes} votes</span>
+                  </div>
+                  <div className="flex gap-2 text-xs">
+                    <span className="text-green-600">
+                      👍 {bill.voteStats.yes_votes} ({getVotePercentage(bill.voteStats.yes_votes, bill.voteStats.no_votes)}%)
+                    </span>
+                    <span className="text-red-600">
+                      👎 {bill.voteStats.no_votes} ({getVotePercentage(bill.voteStats.no_votes, bill.voteStats.yes_votes)}%)
+                    </span>
+                    {bill.voteStats.abstentions > 0 && (
+                      <span className="text-gray-600">
+                        🤷 {bill.voteStats.abstentions}
+                      </span>
+                    )}
+                  </div>
                 </div>
-                <Button size="sm" variant="outline">
-                  Vote
+              )}
+              
+              <div className="flex gap-2 mb-3">
+                <Button 
+                  size="sm" 
+                  variant={bill.userVote === 'yes' ? 'default' : 'outline'}
+                  onClick={() => handleVote(bill.id, 'yes')}
+                  className="flex-1"
+                >
+                  👍 Support
                 </Button>
+                <Button 
+                  size="sm" 
+                  variant={bill.userVote === 'no' ? 'default' : 'outline'}
+                  onClick={() => handleVote(bill.id, 'no')}
+                  className="flex-1"
+                >
+                  👎 Oppose
+                </Button>
+                <Button 
+                  size="sm" 
+                  variant={bill.userVote === 'abstain' ? 'default' : 'outline'}
+                  onClick={() => handleVote(bill.id, 'abstain')}
+                >
+                  🤷 Abstain
+                </Button>
+              </div>
+              
+              <div className="flex gap-2 text-xs">
+                {bill.governmentUrl && (
+                  <a 
+                    href={bill.governmentUrl} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="text-blue-600 hover:underline"
+                  >
+                    Parliament Link
+                  </a>
+                )}
+                {bill.legiscanUrl && (
+                  <a 
+                    href={bill.legiscanUrl} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="text-blue-600 hover:underline"
+                  >
+                    LegiScan
+                  </a>
+                )}
               </div>
             </div>
           ))}
