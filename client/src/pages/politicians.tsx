@@ -318,7 +318,7 @@ export default function Politicians() {
                         >
                           <Share2 className="w-4 h-4" />
                         </Button>
-                    {politician.contactInfo.email && (
+                    {politician.contactInfo?.email && (
                       <Button size="sm" variant="outline" className="px-3">
                         <Mail className="w-4 h-4" />
                         </Button>
@@ -434,9 +434,9 @@ export default function Politicians() {
 
                   <TabsContent value="contact" className="space-y-4">
                     <div className="grid grid-cols-1 gap-4">
-                      {selectedPolitician.contactInfo.email && (
+                      {selectedPolitician.contactInfo?.email && (
                         <div className="flex items-center gap-2">
-                          <Mail className="w-4 h-4" />
+                          <Mail className="w-4 h-4 text-gray-500" />
                           <a href={`mailto:${selectedPolitician.contactInfo.email}`} className="text-blue-600 hover:underline">
                             {selectedPolitician.contactInfo.email}
                           </a>
