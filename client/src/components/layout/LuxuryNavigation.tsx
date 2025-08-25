@@ -54,7 +54,8 @@ import {
   UserPlus,
   MessageCircle,
   Newspaper,
-  FileSignature
+  FileSignature,
+  LayoutDashboard
 } from "lucide-react";
 
 interface NavItem {
@@ -79,21 +80,12 @@ const navigationSections = [
   {
     title: "Democracy",
     items: [
-      { title: "Dashboard", href: "/dashboard", icon: Home },
-      // { title: "Bills", href: "/bills", icon: FileText }, // Removed - duplicates /voting functionality
-      { title: "Bills & Voting", href: "/voting", icon: Vote },
-      { title: "Elections", href: "/elections", icon: Crown },
+      { title: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+      { title: "Bills & Voting", href: "/bills", icon: Vote },
+      { title: "Petitions", href: "/petitions", icon: FileText },
+      { title: "News & Media", href: "/news", icon: Newspaper },
       { title: "Politicians", href: "/politicians", icon: Users },
       { title: "Contact Officials", href: "/contacts", icon: MessageSquare },
-    ]
-  },
-  {
-    title: "Legal & Rights",
-    items: [
-      { title: "Legal System", href: "/legal", icon: Gavel },
-      { title: "Your Rights", href: "/rights", icon: Shield },
-      { title: "Constitutional Cases", href: "/cases", icon: Scale },
-      // Removed Legal Search (consolidated into /legal)
     ]
   },
   {
@@ -103,7 +95,6 @@ const navigationSections = [
       { title: "Lobbyist Mapping", href: "/lobbyists", icon: Eye },
       { title: "Procurement Tracker", href: "/procurement", icon: Building },
       { title: "Document Leaks", href: "/leaks", icon: Archive },
-      { title: "FOI Requests", href: "/foi", icon: Eye },
       { title: "Whistleblower Portal", href: "/whistleblower", icon: AlertTriangle },
       { title: "Corruption Patterns", href: "/corruption", icon: Activity },
     ]

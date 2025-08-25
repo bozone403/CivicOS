@@ -79,6 +79,42 @@ export function registerNewsRoutes(app: Express) {
       res.json({ success: true, articles: [], pagination: { page: 1, limit: 0, total: 0, totalPages: 0 } });
     }
   });
+
+  // Get news sources
+  app.get("/api/news/sources", async (req: Request, res: Response) => {
+    try {
+      // Return a list of available news sources
+      const sources = [
+        'CBC News',
+        'CTV News', 
+        'Global News',
+        'Toronto Star',
+        'National Post',
+        'The Globe and Mail',
+        'CBC Radio-Canada',
+        'CTV News Channel',
+        'Global News Network',
+        'CityNews',
+        'CP24',
+        'BNN Bloomberg',
+        'CBC News Network',
+        'CTV News Channel',
+        'Global News Network'
+      ];
+      
+      res.json({
+        success: true,
+        sources,
+        message: "News sources retrieved successfully"
+      });
+    } catch (error) {
+      res.status(500).json({ 
+        success: false, 
+        message: "Failed to retrieve news sources",
+        sources: []
+      });
+    }
+  });
   
   // Get single news article (DB with auto-ingest fallback)
   app.get("/api/news/:id", async (req: Request, res: Response) => {
