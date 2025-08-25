@@ -71,8 +71,9 @@ export function registerNewsRoutes(app: Express) {
 
       console.log(`Initial query: found ${articles.length} articles, total: ${total}`);
       console.log('Articles:', articles);
+      console.log('Articles length check:', articles.length === 0);
 
-      // If no articles found, try RSS ingestion first
+      // Always try to add sample articles if we have none
       if (articles.length === 0) {
         console.log('No articles found, attempting RSS ingestion...');
         try {
@@ -145,9 +146,11 @@ export function registerNewsRoutes(app: Express) {
           ];
 
           // Insert sample articles directly
+          console.log('Starting to insert sample articles...');
           for (const article of sampleArticles) {
             try {
-              await db.insert(newsArticles).values({
+              console.log(`Attempting to insert: ${article.title}`);
+              const insertResult = await db.insert(newsArticles).values({
                 title: article.title,
                 content: article.content,
                 summary: article.summary,
@@ -155,9 +158,10 @@ export function registerNewsRoutes(app: Express) {
                 source: article.source,
                 publishedAt: article.publishedAt
               });
-              console.log(`Inserted sample article: ${article.title}`);
+              console.log(`Inserted sample article: ${article.title}`, insertResult);
             } catch (insertError) {
-              console.warn('Failed to insert sample article:', insertError);
+              console.error('Failed to insert sample article:', insertError);
+              console.error('Error details:', insertError.message, insertError.stack);
             }
           }
 
