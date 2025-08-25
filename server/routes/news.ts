@@ -146,8 +146,7 @@ export function registerNewsRoutes(app: Express) {
                     summary: article.summary,
                     category: article.category,
                     source: article.source,
-                    publishedAt: article.publishedAt,
-                    tags: article.tags
+                    publishedAt: article.publishedAt
                   });
                 } catch (insertError) {
                   console.warn('Failed to insert sample article:', insertError);
