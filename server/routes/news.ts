@@ -89,6 +89,8 @@ export function registerNewsRoutes(app: Express) {
           // If still no articles after ingestion, add sample government news
           if (retryArticles.length === 0) {
             try {
+              console.log('Adding sample government news articles...');
+              
               const sampleArticles = [
                 {
                   title: "Federal Government Announces New Climate Action Plan",
@@ -96,8 +98,7 @@ export function registerNewsRoutes(app: Express) {
                   summary: "New climate action plan targets 40% emissions reduction by 2030 with oil and gas regulations and clean energy incentives.",
                   category: "environment",
                   source: "Government of Canada",
-                  publishedAt: new Date(),
-                  tags: ["climate", "environment", "policy", "emissions"]
+                  publishedAt: new Date()
                 },
                 {
                   title: "Parliament Passes New Digital Privacy Legislation",
@@ -105,8 +106,7 @@ export function registerNewsRoutes(app: Express) {
                   summary: "New digital privacy law strengthens consumer protection and AI regulation with enhanced enforcement powers.",
                   category: "technology",
                   source: "Parliament of Canada",
-                  publishedAt: new Date(Date.now() - 86400000), // 1 day ago
-                  tags: ["privacy", "technology", "AI", "legislation"]
+                  publishedAt: new Date(Date.now() - 86400000) // 1 day ago
                 },
                 {
                   title: "Federal Budget 2025: Focus on Healthcare and Infrastructure",
@@ -114,8 +114,7 @@ export function registerNewsRoutes(app: Express) {
                   summary: "2025 budget allocates $2.5B for healthcare and $4.8B for infrastructure with Indigenous community support.",
                   category: "economy",
                   source: "Department of Finance",
-                  publishedAt: new Date(Date.now() - 172800000), // 2 days ago
-                  tags: ["budget", "healthcare", "infrastructure", "Indigenous"]
+                  publishedAt: new Date(Date.now() - 172800000) // 2 days ago
                 },
                 {
                   title: "New Immigration Policy Aims to Address Labour Shortages",
@@ -123,8 +122,7 @@ export function registerNewsRoutes(app: Express) {
                   summary: "Immigration policy changes target labour shortages with faster skilled worker processing and student pathways.",
                   category: "politics",
                   source: "Immigration, Refugees and Citizenship Canada",
-                  publishedAt: new Date(Date.now() - 259200000), // 3 days ago
-                  tags: ["immigration", "labour", "policy", "skilled workers"]
+                  publishedAt: new Date(Date.now() - 259200000) // 3 days ago
                 },
                 {
                   title: "Parliamentary Committee Recommends Electoral Reform",
@@ -132,12 +130,11 @@ export function registerNewsRoutes(app: Express) {
                   summary: "Committee recommends mixed-member proportional representation for better voter representation and regional balance.",
                   category: "politics",
                   source: "Parliament of Canada",
-                  publishedAt: new Date(Date.now() - 345600000), // 4 days ago
-                  tags: ["electoral reform", "democracy", "proportional representation", "voting"]
+                  publishedAt: new Date(Date.now() - 345600000) // 4 days ago
                 }
               ];
 
-              // Insert sample articles
+              // Insert sample articles directly
               for (const article of sampleArticles) {
                 try {
                   await db.insert(newsArticles).values({
@@ -148,6 +145,7 @@ export function registerNewsRoutes(app: Express) {
                     source: article.source,
                     publishedAt: article.publishedAt
                   });
+                  console.log(`Inserted sample article: ${article.title}`);
                 } catch (insertError) {
                   console.warn('Failed to insert sample article:', insertError);
                 }
@@ -156,6 +154,7 @@ export function registerNewsRoutes(app: Express) {
               // Retry query one more time
               const finalArticles = await base.orderBy(desc(newsArticles.publishedAt ?? newsArticles.createdAt)).limit(limitNum).offset(offset);
               if (finalArticles.length > 0) {
+                console.log(`Successfully retrieved ${finalArticles.length} articles after adding samples`);
                 return res.json({
                   success: true,
                   articles: finalArticles,
@@ -485,77 +484,6 @@ export function registerNewsRoutes(app: Express) {
       res.json({ success: true, ...result });
     } catch (error) {
       res.status(500).json({ success: false, message: 'Failed to refresh news' });
-    }
-  });
-
-  // Test RSS ingestion step by step
-  app.get("/api/news/test-rss", async (req: Request, res: Response) => {
-    try {
-      console.log('Testing RSS ingestion...');
-      
-      // Test one feed manually
-      const testFeed = {
-        name: 'CBC News',
-        url: 'https://www.cbc.ca/cmlink/rss-topstories',
-        category: 'politics'
-      };
-      
-      try {
-        const xml = await fetchFeed(testFeed.url);
-        console.log('XML fetched, length:', xml.length);
-        
-        const items = parseRss(xml);
-        console.log('Items parsed:', items.length);
-        
-        if (items.length > 0) {
-          const firstItem = items[0];
-          console.log('First item:', firstItem);
-          
-          // Try to insert
-          const insertResult = await db.insert(newsArticles).values({
-            title: firstItem.title.slice(0, 512),
-            content: firstItem.description || null,
-            url: firstItem.link,
-            source: testFeed.name,
-            author: null,
-            category: testFeed.category,
-            publishedAt: firstItem.pubDate ? new Date(firstItem.pubDate) : null,
-            summary: firstItem.description || null,
-          });
-          
-          console.log('Insert successful:', insertResult);
-          
-          res.json({
-            success: true,
-            message: 'RSS test successful',
-            xmlLength: xml.length,
-            itemsParsed: items.length,
-            firstItem,
-            insertResult
-          });
-        } else {
-          res.json({
-            success: false,
-            message: 'No items parsed from RSS',
-            xmlLength: xml.length,
-            itemsParsed: 0
-          });
-        }
-      } catch (feedError) {
-        console.error('Feed error:', feedError);
-        res.json({
-          success: false,
-          message: 'Feed processing failed',
-          error: feedError.message
-        });
-      }
-    } catch (error) {
-      console.error('RSS test error:', error);
-      res.status(500).json({
-        success: false,
-        message: 'RSS test failed',
-        error: error.message
-      });
     }
   });
 } 
