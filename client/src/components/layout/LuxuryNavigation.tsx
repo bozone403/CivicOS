@@ -94,7 +94,6 @@ const navigationSections = [
       { title: "Campaign Finance", href: "/finance", icon: DollarSign },
       { title: "Lobbyist Mapping", href: "/lobbyists", icon: Eye },
       { title: "Procurement Tracker", href: "/procurement", icon: Building },
-      { title: "Document Leaks", href: "/leaks", icon: Archive },
       { title: "Whistleblower Portal", href: "/whistleblower", icon: AlertTriangle },
       { title: "Corruption Patterns", href: "/corruption", icon: Activity },
     ]
