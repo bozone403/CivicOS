@@ -43,6 +43,40 @@ export function registerNewsRoutes(app: Express) {
     });
   });
   
+  // Simple news endpoint that always returns sample articles
+  app.get("/api/news-simple", async (req: Request, res: Response) => {
+    const sampleArticles = [
+      {
+        id: 1,
+        title: "Federal Government Announces New Climate Action Plan",
+        content: "The Canadian government has unveiled a comprehensive climate action plan aimed at reducing emissions by 40% by 2030.",
+        summary: "New climate action plan targets 40% emissions reduction by 2030.",
+        category: "environment",
+        source: "Government of Canada",
+        publishedAt: new Date(),
+        createdAt: new Date(),
+        updatedAt: new Date()
+      },
+      {
+        id: 2,
+        title: "Parliament Passes New Digital Privacy Legislation",
+        content: "Bill C-27, the Digital Charter Implementation Act, has been passed by Parliament.",
+        summary: "New digital privacy law strengthens consumer protection and AI regulation.",
+        category: "technology",
+        source: "Parliament of Canada",
+        publishedAt: new Date(Date.now() - 86400000),
+        createdAt: new Date(),
+        updatedAt: new Date()
+      }
+    ];
+    
+    res.json({
+      success: true,
+      articles: sampleArticles,
+      pagination: { page: 1, limit: 20, total: sampleArticles.length, totalPages: 1 }
+    });
+  });
+  
   // Get all news articles
   app.get("/api/news", async (req: Request, res: Response) => {
     try {
