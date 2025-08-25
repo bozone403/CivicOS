@@ -69,14 +69,40 @@ export function registerNewsRoutes(app: Express) {
         ? await base.where(whereCombined).orderBy(desc(newsArticles.publishedAt ?? newsArticles.createdAt)).limit(limitNum).offset(offset)
         : await base.orderBy(desc(newsArticles.publishedAt ?? newsArticles.createdAt)).limit(limitNum).offset(offset);
 
+      // If no articles found, try to ingest news feeds
+      if (articles.length === 0) {
+        try {
+          await ingestNewsFeeds();
+          // Retry the query after ingestion
+          const retryArticles = whereCombined
+            ? await base.where(whereCombined).orderBy(desc(newsArticles.publishedAt ?? newsArticles.createdAt)).limit(limitNum).offset(offset)
+            : await base.orderBy(desc(newsArticles.publishedAt ?? newsArticles.createdAt)).limit(limitNum).offset(offset);
+          
+          if (retryArticles.length > 0) {
+            return res.json({
+              success: true,
+              articles: retryArticles,
+              pagination: { page: pageNum, limit: limitNum, total: retryArticles.length, totalPages: Math.ceil((Number(retryArticles.length) || 0) / limitNum) }
+            });
+          }
+        } catch (ingestionError) {
+          console.warn('News ingestion failed:', ingestionError);
+        }
+      }
+
       res.json({
         success: true,
         articles,
         pagination: { page: pageNum, limit: limitNum, total, totalPages: Math.ceil((Number(total) || 0) / limitNum) }
       });
     } catch (error) {
-      // Graceful fallback
-      res.json({ success: true, articles: [], pagination: { page: 1, limit: 0, total: 0, totalPages: 0 } });
+      console.error('News fetch error:', error);
+      // Better fallback - don't set limit to 0
+      res.json({ 
+        success: true, 
+        articles: [], 
+        pagination: { page: 1, limit: 20, total: 0, totalPages: 0 } 
+      });
     }
   });
 
