@@ -34,6 +34,15 @@ const updateNewsArticleSchema = z.object({
 
 export function registerNewsRoutes(app: Express) {
   
+  // Simple test endpoint
+  app.get("/api/news/test", async (req: Request, res: Response) => {
+    res.json({
+      success: true,
+      message: "News test endpoint working",
+      timestamp: new Date().toISOString()
+    });
+  });
+  
   // Get all news articles
   app.get("/api/news", async (req: Request, res: Response) => {
     try {
