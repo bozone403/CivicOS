@@ -589,7 +589,7 @@ export default function Legal() {
                       </CardHeader>
                       <CardContent>
                         <div className="space-y-2">
-                          {selectedSection.relatedSections.map((relatedSection, index) => (
+                          {selectedSection.relatedSections.map((relatedSection: string, index: number) => (
                             <Badge key={index} variant="outline" className="mr-2 mb-2">
                               Section {relatedSection}
                             </Badge>
