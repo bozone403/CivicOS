@@ -141,6 +141,24 @@ export function registerNewsRoutes(app: Express) {
       });
     }
   });
+
+  // Manual news ingestion endpoint
+  app.post("/api/news/ingest", async (req: Request, res: Response) => {
+    try {
+      const result = await ingestNewsFeeds();
+      res.json({
+        success: true,
+        message: "News ingestion completed",
+        result
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: "News ingestion failed",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
   
   // Get single news article (DB with auto-ingest fallback)
   app.get("/api/news/:id", async (req: Request, res: Response) => {
