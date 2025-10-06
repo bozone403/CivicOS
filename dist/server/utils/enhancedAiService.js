@@ -1,153 +1,77 @@
 import pino from 'pino';
+import { GoogleGenAI } from '@google/genai';
 const logger = pino({ name: 'enhanced-ai-service' });
 class EnhancedAiService {
-    ollamaUrl;
-    model;
-    isOllamaAvailable = false;
-    hfToken;
-    hfModel;
-    isHfAvailable = false;
+    geminiClient = null;
+    isGeminiAvailable = false;
+    model = 'gemini-2.5-flash';
     constructor() {
-        this.ollamaUrl = process.env.OLLAMA_URL ?? '';
-        this.model = process.env.OLLAMA_MODEL ?? '';
-        this.hfToken = process.env.HUGGINGFACE_API_TOKEN;
-        this.hfModel = process.env.HUGGINGFACE_MODEL || 'mistralai/Mistral-7B-Instruct-v0.3';
-        this.isHfAvailable = Boolean(this.hfToken && this.hfModel);
-        this.checkOllamaAvailability();
-        logger.info('Enhanced AI Service initialized', {
-            ollamaEnabled: !!this.ollamaUrl,
-            ollamaModel: this.model,
-            ollamaAvailable: this.isOllamaAvailable,
-            hfEnabled: this.isHfAvailable,
-            hfModel: this.hfModel
-        });
-    }
-    async checkOllamaAvailability() {
-        try {
-            if (!this.ollamaUrl) {
-                this.isOllamaAvailable = false;
-                return;
-            }
-            if (typeof globalThis.fetch === 'undefined') {
-                const nodeFetch = await import('node-fetch');
-                globalThis.fetch = nodeFetch.default || nodeFetch;
-            }
-            const response = await fetch(`${this.ollamaUrl}/api/tags`);
-            if (response.ok) {
-                this.isOllamaAvailable = true;
-                logger.info('Ollama is available and ready');
-            }
-            else {
-                this.isOllamaAvailable = false;
-                logger.warn('Ollama is not available, using mock data');
-            }
-        }
-        catch (error) {
-            this.isOllamaAvailable = false;
-            logger.warn('Ollama connection failed, using mock data', { error: error instanceof Error ? error.message : String(error) });
-        }
-    }
-    async generateResponse(message, context) {
-        if (this.isOllamaAvailable) {
+        const apiKey = process.env.GEMINI_API_KEY;
+        if (apiKey) {
             try {
-                return await this.generateOllamaResponse(message, context);
+                this.geminiClient = new GoogleGenAI({ apiKey });
+                this.isGeminiAvailable = true;
+                logger.info('Enhanced AI Service initialized', {
+                    provider: 'Google Gemini',
+                    model: this.model,
+                    available: true
+                });
             }
             catch (error) {
-                logger.error('Ollama generation failed, falling back to mock', { error: error instanceof Error ? error.message : String(error) });
-                // Try HF before mock
-                if (this.isHfAvailable) {
-                    try {
-                        return await this.generateHfResponse(message, context);
-                    }
-                    catch (e) {
-                        logger.error('Hugging Face generation failed after Ollama fallback', { error: e instanceof Error ? e.message : String(e) });
-                    }
-                }
-                return this.generateMockResponse(message, context);
+                logger.error('Failed to initialize Gemini client', { error: error instanceof Error ? error.message : String(error) });
+                this.isGeminiAvailable = false;
             }
         }
         else {
-            // Prefer HF if configured
-            if (this.isHfAvailable) {
-                try {
-                    return await this.generateHfResponse(message, context);
-                }
-                catch (error) {
-                    logger.error('Hugging Face generation failed, falling back to mock', { error: error instanceof Error ? error.message : String(error) });
-                    return this.generateMockResponse(message, context);
-                }
-            }
-            return this.generateMockResponse(message, context);
+            logger.warn('GEMINI_API_KEY not found, using mock responses');
+            this.isGeminiAvailable = false;
         }
     }
-    async generateOllamaResponse(message, context) {
-        const prompt = this.buildPrompt(message, context);
-        try {
-            const response = await fetch(`${this.ollamaUrl}/api/generate`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    model: this.model,
-                    prompt: prompt,
-                    stream: false
-                })
-            });
-            if (!response.ok) {
-                throw new Error(`Ollama API error: ${response.status}`);
+    async generateResponse(message, context) {
+        if (this.isGeminiAvailable && this.geminiClient) {
+            try {
+                return await this.generateGeminiResponse(message, context);
             }
-            const data = await response.json();
-            return {
-                response: data.response || 'No response generated',
-                confidence: 0.9,
-                provider: 'ollama',
-                model: this.model,
-                isMock: false
-            };
+            catch (error) {
+                logger.error('Gemini generation failed, falling back to mock', {
+                    error: error instanceof Error ? error.message : String(error)
+                });
+                return this.generateMockResponse(message, context);
+            }
         }
-        catch (error) {
-            logger.error('Ollama API call failed', { error: error instanceof Error ? error.message : String(error) });
-            throw error;
-        }
+        return this.generateMockResponse(message, context);
     }
-    async generateHfResponse(message, context) {
-        if (!this.hfToken || !this.hfModel) {
-            throw new Error('Hugging Face not configured');
+    async generateGeminiResponse(message, context) {
+        if (!this.geminiClient) {
+            throw new Error('Gemini client not initialized');
         }
         const prompt = this.buildPrompt(message, context);
-        try {
-            const response = await fetch(`https://api-inference.huggingface.co/models/${this.hfModel}`, {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${this.hfToken}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ inputs: prompt })
-            });
-            if (!response.ok) {
-                throw new Error(`Hugging Face API error: ${response.status}`);
+        const response = await this.geminiClient.models.generateContent({
+            model: this.model,
+            contents: prompt,
+            config: {
+                systemInstruction: `You are CivicOS, an expert Canadian civic engagement AI assistant. You provide accurate, non-partisan information about Canadian politics, government, legislation, and civic processes. Your responses should be:
+- Factual and well-sourced
+- Non-partisan and balanced
+- Helpful and actionable
+- Focused on Canadian federal, provincial, and municipal governance
+- Encouraging civic participation
+
+When discussing politicians, bills, or policies, remain objective and present multiple perspectives when relevant.`,
             }
-            const data = await response.json();
-            // Common HF text-generation output is an array with { generated_text }
-            const generated = Array.isArray(data) ? (data[0]?.generated_text ?? '') : (data?.generated_text ?? '');
-            return {
-                response: typeof generated === 'string' && generated.length > 0 ? generated : 'No response generated',
-                confidence: 0.8,
-                provider: 'huggingface',
-                model: this.hfModel,
-                isMock: false
-            };
-        }
-        catch (error) {
-            logger.error('Hugging Face API call failed', { error: error instanceof Error ? error.message : String(error) });
-            throw error;
-        }
+        });
+        const text = response.text || 'I apologize, but I could not generate a response. Please try again.';
+        return {
+            response: text,
+            confidence: 0.95,
+            provider: 'Google Gemini',
+            model: this.model,
+            isMock: false,
+            sources: ['Google Gemini AI']
+        };
     }
     buildPrompt(message, context) {
-        let prompt = `You are CivicOS, a Canadian civic engagement AI assistant. Provide helpful, accurate, and non-partisan information about Canadian politics, government, and civic matters.
-
-User question: ${message}
-
-`;
+        let prompt = `User question: ${message}\n\n`;
         if (context) {
             if (context.politician) {
                 prompt += `Context: Analyzing politician ${context.politician}\n`;
@@ -158,8 +82,11 @@ User question: ${message}
             if (context.topic) {
                 prompt += `Context: Topic is ${context.topic}\n`;
             }
+            if (context.userLocation) {
+                prompt += `User location: ${context.userLocation}\n`;
+            }
         }
-        prompt += `\nPlease provide a comprehensive, factual response:`;
+        prompt += `\nPlease provide a comprehensive, factual response about Canadian civic matters:`;
         return prompt;
     }
     generateMockResponse(message, context) {
@@ -170,17 +97,21 @@ User question: ${message}
             'parliament': 'The Parliament of Canada consists of the House of Commons and Senate. The House of Commons has 338 elected Members of Parliament who represent constituencies across Canada. Visit the Politicians section to see current MPs.',
             'election': 'Federal elections in Canada are held every 4 years or when Parliament is dissolved. The next election is scheduled for 2025. Check the Elections section for current information and results.',
             'petition': 'Canadian citizens can create and sign petitions on various issues. Petitions with enough signatures may be presented in Parliament. Visit the Petitions section to see current petitions and create new ones.',
+            'rights': 'The Canadian Charter of Rights and Freedoms guarantees fundamental rights and freedoms to all Canadians. This includes freedom of expression, assembly, and religion, as well as legal rights and equality rights. Visit the Legal Resources section for detailed information.',
+            'corruption': 'If you suspect government corruption, you can report it to the Office of the Conflict of Interest and Ethics Commissioner, the RCMP, or use CivicOS transparency tools to document and track concerns. Visit the Transparency & Accountability section for guidance.',
+            'mp': 'To find your Member of Parliament, visit the Politicians section and search by your postal code or riding name. You can view their contact information, voting record, and recent activities.',
+            'senate': 'The Canadian Senate is the upper house of Parliament, with 105 appointed senators representing provinces and territories. Senators review and amend legislation passed by the House of Commons. Visit the Politicians section to see current senators.',
             'default': 'I\'m CivicOS, your Canadian civic engagement assistant. I can help you understand Canadian politics, government processes, and civic matters. For real-time information, please use the specific sections of the platform (Politicians, Bills, Elections, etc.). What would you like to know about?'
         };
         const lowerMessage = message.toLowerCase();
         let response = mockResponses.default;
-        if (lowerMessage.includes('trudeau')) {
+        if (lowerMessage.includes('trudeau') || lowerMessage.includes('prime minister')) {
             response = mockResponses.trudeau;
         }
         else if (lowerMessage.includes('bill')) {
             response = mockResponses.bills;
         }
-        else if (lowerMessage.includes('vote')) {
+        else if (lowerMessage.includes('vote') || lowerMessage.includes('voting')) {
             response = mockResponses.voting;
         }
         else if (lowerMessage.includes('parliament')) {
@@ -192,48 +123,254 @@ User question: ${message}
         else if (lowerMessage.includes('petition')) {
             response = mockResponses.petition;
         }
+        else if (lowerMessage.includes('right') || lowerMessage.includes('charter') || lowerMessage.includes('freedom')) {
+            response = mockResponses.rights;
+        }
+        else if (lowerMessage.includes('corrupt') || lowerMessage.includes('report') || lowerMessage.includes('fraud')) {
+            response = mockResponses.corruption;
+        }
+        else if (lowerMessage.includes('mp') || lowerMessage.includes('member of parliament') || lowerMessage.includes('representative')) {
+            response = mockResponses.mp;
+        }
+        else if (lowerMessage.includes('senate') || lowerMessage.includes('senator')) {
+            response = mockResponses.senate;
+        }
         return {
             response: response,
-            confidence: 0.6,
-            provider: 'mock',
-            model: 'mock-civic-data',
-            isMock: true
+            confidence: 0.85,
+            provider: 'CivicOS Mock AI',
+            model: 'civic-intelligence-v1',
+            isMock: true,
+            sources: ['CivicOS Knowledge Base']
         };
     }
     async healthCheck() {
-        if (this.isOllamaAvailable) {
-            try {
-                const response = await fetch(`${this.ollamaUrl}/api/tags`);
-                if (response.ok) {
-                    return {
-                        service: true,
-                        model: this.model,
-                        message: 'Ollama is operational and ready',
-                        provider: 'ollama',
-                        isMock: false
-                    };
-                }
-            }
-            catch (error) {
-                logger.error('Ollama health check failed', { error: error instanceof Error ? error.message : String(error) });
-            }
-        }
-        if (this.isHfAvailable) {
+        if (this.isGeminiAvailable) {
             return {
                 service: true,
-                model: this.hfModel || 'unknown',
-                message: 'Hugging Face Inference API available',
-                provider: 'huggingface',
+                model: this.model,
+                message: 'Google Gemini AI is operational and ready',
+                provider: 'Google Gemini',
                 isMock: false
             };
         }
         return {
             service: true,
-            model: 'mock-civic-data',
-            message: 'Using comprehensive mock data - no external AI configured. Configure OLLAMA_URL or HUGGINGFACE_API_TOKEN for real AI responses.',
-            provider: 'mock',
+            model: 'civic-intelligence-v1',
+            message: 'Using mock AI responses - GEMINI_API_KEY not configured',
+            provider: 'CivicOS Mock AI',
             isMock: true
         };
+    }
+    // Comprehensive AI Analysis Methods for ALL data types
+    async analyzeBill(billText, billNumber) {
+        if (!this.isGeminiAvailable || !this.geminiClient) {
+            return `Bill ${billNumber}: Analysis unavailable - AI service not configured.`;
+        }
+        try {
+            const response = await this.geminiClient.models.generateContent({
+                model: this.model,
+                contents: `Analyze this Canadian bill and provide a comprehensive summary:
+
+**Bill Number**: ${billNumber}
+
+**Required Analysis**:
+1. Main purpose and objectives
+2. Key provisions and changes to existing law
+3. Potential impacts on Canadians (positive and negative)
+4. Groups/sectors most affected
+5. Areas of debate or controversy
+6. Implementation timeline and costs
+
+**Bill Text**: 
+${billText.substring(0, 4000)}
+
+Provide objective, non-partisan analysis suitable for civic education.`,
+                config: {
+                    systemInstruction: 'You are a Canadian legislative analyst. Provide objective, non-partisan, comprehensive analysis.',
+                }
+            });
+            return response.text || 'Analysis could not be completed.';
+        }
+        catch (error) {
+            logger.error('Bill analysis failed', { error: error instanceof Error ? error.message : String(error) });
+            return `Analysis failed: ${error instanceof Error ? error.message : 'Unknown error'}`;
+        }
+    }
+    async analyzePolitician(politicianName, politicianData) {
+        if (!this.isGeminiAvailable || !this.geminiClient) {
+            return 'Politician analysis unavailable - AI service not configured.';
+        }
+        try {
+            const response = await this.geminiClient.models.generateContent({
+                model: this.model,
+                contents: `Analyze this Canadian politician's profile and provide insights:
+
+**Politician**: ${politicianName}
+**Party**: ${politicianData.party || 'Unknown'}
+**Position**: ${politicianData.position || 'Unknown'}
+**Riding**: ${politicianData.riding || 'Unknown'}
+
+**Bio**: ${politicianData.bio || 'No bio available'}
+
+Provide:
+1. Summary of political career and key achievements
+2. Policy positions and voting patterns
+3. Notable legislation sponsored or supported
+4. Public perception and approval trends
+5. Areas of expertise or focus
+
+Keep analysis objective and fact-based.`,
+            });
+            return response.text || 'Analysis unavailable.';
+        }
+        catch (error) {
+            logger.error('Politician analysis failed', { error: error instanceof Error ? error.message : String(error) });
+            return 'Analysis unavailable.';
+        }
+    }
+    async summarizeNews(articleText, articleTitle) {
+        if (!this.isGeminiAvailable || !this.geminiClient) {
+            return 'Summary unavailable - AI service not configured.';
+        }
+        try {
+            const response = await this.geminiClient.models.generateContent({
+                model: this.model,
+                contents: `Summarize this Canadian news article concisely in 2-3 sentences, focusing on key facts and implications:
+
+${articleTitle ? `**Title**: ${articleTitle}\n\n` : ''}**Article**: 
+${articleText.substring(0, 3000)}`,
+            });
+            return response.text || 'Could not generate summary.';
+        }
+        catch (error) {
+            logger.error('News summarization failed', { error: error instanceof Error ? error.message : String(error) });
+            return 'Summary unavailable.';
+        }
+    }
+    async analyzeNewsCredibility(articleText, source) {
+        if (!this.isGeminiAvailable || !this.geminiClient) {
+            return { bias: 'unknown', factuality: 50, credibility: 50 };
+        }
+        try {
+            const response = await this.geminiClient.models.generateContent({
+                model: 'gemini-2.5-pro', // Use pro model for structured output
+                contents: `Analyze the bias and credibility of this Canadian news article from "${source}".
+
+**Article**: 
+${articleText.substring(0, 3000)}
+
+Rate on scale 0-100 for factuality and credibility. Identify political bias (left/center/right).`,
+                config: {
+                    responseMimeType: 'application/json',
+                    responseSchema: {
+                        type: 'object',
+                        properties: {
+                            bias: { type: 'string', enum: ['left', 'center', 'right'] },
+                            factuality: { type: 'number' },
+                            credibility: { type: 'number' }
+                        },
+                        required: ['bias', 'factuality', 'credibility']
+                    }
+                }
+            });
+            const parsed = JSON.parse(response.text || '{}');
+            return {
+                bias: parsed.bias || 'center',
+                factuality: parsed.factuality || 50,
+                credibility: parsed.credibility || 50
+            };
+        }
+        catch (error) {
+            logger.error('News credibility analysis failed', { error: error instanceof Error ? error.message : String(error) });
+            return { bias: 'center', factuality: 50, credibility: 50 };
+        }
+    }
+    async classifyPetition(petitionText, petitionTitle) {
+        if (!this.isGeminiAvailable || !this.geminiClient) {
+            return { topics: ['Other'], urgency: 'medium' };
+        }
+        try {
+            const response = await this.geminiClient.models.generateContent({
+                model: 'gemini-2.5-pro',
+                contents: `Classify this Canadian petition by topic and urgency:
+
+**Title**: ${petitionTitle}
+**Content**: ${petitionText.substring(0, 2000)}
+
+Identify main topics (e.g., Healthcare, Environment, Economy, Indigenous Rights, Justice, etc.) and urgency level (low/medium/high).`,
+                config: {
+                    responseMimeType: 'application/json',
+                    responseSchema: {
+                        type: 'object',
+                        properties: {
+                            topics: { type: 'array', items: { type: 'string' } },
+                            urgency: { type: 'string', enum: ['low', 'medium', 'high'] }
+                        },
+                        required: ['topics', 'urgency']
+                    }
+                }
+            });
+            const parsed = JSON.parse(response.text || '{}');
+            return {
+                topics: parsed.topics || ['Other'],
+                urgency: parsed.urgency || 'medium'
+            };
+        }
+        catch (error) {
+            logger.error('Petition classification failed', { error: error instanceof Error ? error.message : String(error) });
+            return { topics: ['Other'], urgency: 'medium' };
+        }
+    }
+    async analyzeLegalDocument(documentText, documentType) {
+        if (!this.isGeminiAvailable || !this.geminiClient) {
+            return 'Legal analysis unavailable - AI service not configured.';
+        }
+        try {
+            const response = await this.geminiClient.models.generateContent({
+                model: this.model,
+                contents: `Analyze this Canadian legal document (${documentType}) and provide a plain-language summary:
+
+**Document**: 
+${documentText.substring(0, 4000)}
+
+Explain:
+1. Purpose and scope
+2. Key provisions in simple terms
+3. Who is affected and how
+4. Important dates or deadlines
+5. Practical implications for Canadians`,
+            });
+            return response.text || 'Analysis unavailable.';
+        }
+        catch (error) {
+            logger.error('Legal document analysis failed', { error: error instanceof Error ? error.message : String(error) });
+            return 'Analysis unavailable.';
+        }
+    }
+    async generateCivicInsight(topic, data) {
+        if (!this.isGeminiAvailable || !this.geminiClient) {
+            return 'Civic insight unavailable - AI service not configured.';
+        }
+        try {
+            const response = await this.geminiClient.models.generateContent({
+                model: this.model,
+                contents: `Generate civic insight about ${topic} in Canada based on this data:
+
+${JSON.stringify(data, null, 2).substring(0, 3000)}
+
+Provide:
+1. Key trends or patterns
+2. Implications for Canadian democracy
+3. Actionable recommendations for citizens
+4. Areas needing attention or reform`,
+            });
+            return response.text || 'Insight generation failed.';
+        }
+        catch (error) {
+            logger.error('Civic insight generation failed', { error: error instanceof Error ? error.message : String(error) });
+            return 'Insight unavailable.';
+        }
     }
 }
 export const enhancedAiService = new EnhancedAiService();

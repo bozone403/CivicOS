@@ -64,20 +64,17 @@ router.post('/chat', async (req, res) => {
 // Politician analysis endpoint
 router.post('/analyze/politician', async (req, res) => {
     try {
-        const { politicianId, name } = req.body;
+        const { politicianId, name, politicianData } = req.body;
         if (!politicianId && !name) {
             return res.status(400).json({
                 error: 'Politician ID or name is required'
             });
         }
-        const prompt = `Analyze politician: ${name || politicianId}. Provide comprehensive analysis including voting patterns, policy positions, and political alignment.`;
-        const response = await enhancedAiService.generateResponse(prompt);
+        const analysis = await enhancedAiService.analyzePolitician(name || politicianId, politicianData || {});
         res.json({
             politicianId: politicianId || name,
-            analysis: response.response,
-            confidence: response.confidence,
-            provider: response.provider,
-            isMock: response.isMock,
+            analysis,
+            provider: 'Google Gemini',
             timestamp: new Date().toISOString()
         });
     }
@@ -99,14 +96,11 @@ router.post('/analyze/bill', async (req, res) => {
                 error: 'Bill ID or title is required'
             });
         }
-        const prompt = `Analyze Canadian bill: ${title || billId}. ${content ? `Content: ${content}` : ''} Provide summary, key provisions, and impact assessment.`;
-        const response = await enhancedAiService.generateResponse(prompt);
+        const analysis = await enhancedAiService.analyzeBill(content || `Bill ${title || billId}`, billId || title);
         res.json({
             billId: billId || title,
-            analysis: response.response,
-            confidence: response.confidence,
-            provider: response.provider,
-            isMock: response.isMock,
+            analysis,
+            provider: 'Google Gemini',
             timestamp: new Date().toISOString()
         });
     }
@@ -177,6 +171,108 @@ router.post('/civic-guide', async (req, res) => {
         });
     }
 });
+// News analysis and summarization
+router.post('/analyze/news', async (req, res) => {
+    try {
+        const { articleText, articleTitle, source } = req.body;
+        if (!articleText) {
+            return res.status(400).json({
+                error: 'Article text is required'
+            });
+        }
+        const summary = await enhancedAiService.summarizeNews(articleText, articleTitle);
+        const credibility = await enhancedAiService.analyzeNewsCredibility(articleText, source || 'Unknown');
+        res.json({
+            summary,
+            credibility,
+            provider: 'Google Gemini',
+            timestamp: new Date().toISOString()
+        });
+    }
+    catch (error) {
+        console.error('Failed to analyze news:', error);
+        res.status(500).json({
+            error: 'Failed to analyze news',
+            fallback: 'News analysis is temporarily unavailable.',
+            timestamp: new Date().toISOString()
+        });
+    }
+});
+// Petition classification
+router.post('/analyze/petition', async (req, res) => {
+    try {
+        const { petitionText, petitionTitle } = req.body;
+        if (!petitionText || !petitionTitle) {
+            return res.status(400).json({
+                error: 'Petition text and title are required'
+            });
+        }
+        const classification = await enhancedAiService.classifyPetition(petitionText, petitionTitle);
+        res.json({
+            classification,
+            provider: 'Google Gemini',
+            timestamp: new Date().toISOString()
+        });
+    }
+    catch (error) {
+        console.error('Failed to classify petition:', error);
+        res.status(500).json({
+            error: 'Failed to classify petition',
+            fallback: 'Petition classification is temporarily unavailable.',
+            timestamp: new Date().toISOString()
+        });
+    }
+});
+// Legal document analysis
+router.post('/analyze/legal', async (req, res) => {
+    try {
+        const { documentText, documentType } = req.body;
+        if (!documentText) {
+            return res.status(400).json({
+                error: 'Document text is required'
+            });
+        }
+        const analysis = await enhancedAiService.analyzeLegalDocument(documentText, documentType || 'legal document');
+        res.json({
+            analysis,
+            provider: 'Google Gemini',
+            timestamp: new Date().toISOString()
+        });
+    }
+    catch (error) {
+        console.error('Failed to analyze legal document:', error);
+        res.status(500).json({
+            error: 'Failed to analyze legal document',
+            fallback: 'Legal document analysis is temporarily unavailable.',
+            timestamp: new Date().toISOString()
+        });
+    }
+});
+// Civic insights generation
+router.post('/civic-insights', async (req, res) => {
+    try {
+        const { topic, data } = req.body;
+        if (!topic || !data) {
+            return res.status(400).json({
+                error: 'Topic and data are required'
+            });
+        }
+        const insights = await enhancedAiService.generateCivicInsight(topic, data);
+        res.json({
+            insights,
+            provider: 'Google Gemini',
+            timestamp: new Date().toISOString()
+        });
+    }
+    catch (error) {
+        console.error('Failed to generate civic insights:', error);
+        res.status(500).json({
+            error: 'Failed to generate civic insights',
+            fallback: 'Civic insights generation is temporarily unavailable.',
+            timestamp: new Date().toISOString()
+        });
+    }
+});
 // AI service status endpoint
 router.get('/status', async (req, res) => {
     try {
@@ -188,6 +284,10 @@ router.get('/status', async (req, res) => {
                 chat: true,
                 politicianAnalysis: true,
                 billAnalysis: true,
+                newsAnalysis: true,
+                petitionClassification: true,
+                legalAnalysis: true,
+                civicInsights: true,
                 factChecking: true,
                 civicGuidance: true
             },
@@ -207,6 +307,10 @@ router.get('/status', async (req, res) => {
                 chat: false,
                 politicianAnalysis: false,
                 billAnalysis: false,
+                newsAnalysis: false,
+                petitionClassification: false,
+                legalAnalysis: false,
+                civicInsights: false,
                 factChecking: false,
                 civicGuidance: false
             },

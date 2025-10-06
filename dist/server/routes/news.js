@@ -29,6 +29,46 @@ const updateNewsArticleSchema = z.object({
     isPublished: z.boolean().optional()
 });
 export function registerNewsRoutes(app) {
+    // Simple test endpoint
+    app.get("/api/news-test", async (req, res) => {
+        res.json({
+            success: true,
+            message: "News test endpoint working",
+            timestamp: new Date().toISOString()
+        });
+    });
+    // Simple news endpoint that always returns sample articles
+    app.get("/api/news-simple", async (req, res) => {
+        const sampleArticles = [
+            {
+                id: 1,
+                title: "Federal Government Announces New Climate Action Plan",
+                content: "The Canadian government has unveiled a comprehensive climate action plan aimed at reducing emissions by 40% by 2030.",
+                summary: "New climate action plan targets 40% emissions reduction by 2030.",
+                category: "environment",
+                source: "Government of Canada",
+                publishedAt: new Date(),
+                createdAt: new Date(),
+                updatedAt: new Date()
+            },
+            {
+                id: 2,
+                title: "Parliament Passes New Digital Privacy Legislation",
+                content: "Bill C-27, the Digital Charter Implementation Act, has been passed by Parliament.",
+                summary: "New digital privacy law strengthens consumer protection and AI regulation.",
+                category: "technology",
+                source: "Parliament of Canada",
+                publishedAt: new Date(Date.now() - 86400000),
+                createdAt: new Date(),
+                updatedAt: new Date()
+            }
+        ];
+        res.json({
+            success: true,
+            articles: sampleArticles,
+            pagination: { page: 1, limit: 20, total: sampleArticles.length, totalPages: 1 }
+        });
+    });
     // Get all news articles
     app.get("/api/news", async (req, res) => {
         try {
@@ -54,15 +94,164 @@ export function registerNewsRoutes(app) {
             const articles = whereCombined
                 ? await base.where(whereCombined).orderBy(desc(newsArticles.publishedAt ?? newsArticles.createdAt)).limit(limitNum).offset(offset)
                 : await base.orderBy(desc(newsArticles.publishedAt ?? newsArticles.createdAt)).limit(limitNum).offset(offset);
-            res.json({
+            // Return articles directly from database (no on-demand ingestion)
+            return res.json({
                 success: true,
                 articles,
-                pagination: { page: pageNum, limit: limitNum, total, totalPages: Math.ceil((Number(total) || 0) / limitNum) }
+                pagination: { page: pageNum, limit: limitNum, total, totalPages: Math.ceil((Number(total) || 0) / limitNum) },
+                message: articles.length === 0 ? 'No news articles found. RSS feeds are synced in the background.' : undefined
             });
         }
         catch (error) {
-            // Graceful fallback
-            res.json({ success: true, articles: [], pagination: { page: 1, limit: 0, total: 0, totalPages: 0 } });
+            console.error('News API error:', error);
+            return res.status(500).json({
+                success: false,
+                error: 'Failed to fetch news articles',
+                articles: [],
+                pagination: { page: 1, limit: 20, total: 0, totalPages: 0 }
+            });
+        }
+    });
+    // Background RSS ingestion endpoint (admin only)
+    app.post("/api/news/ingest", jwtAuth, requirePermission('admin.news.manage'), async (req, res) => {
+        try {
+            await ingestNewsFeeds();
+            res.json({ success: true, message: 'News ingestion completed successfully' });
+        }
+        catch (error) {
+            console.error('News ingestion failed:', error);
+            res.status(500).json({ success: false, error: 'News ingestion failed' });
+        }
+    });
+    // Add sample government news (for testing)
+    app.post("/api/news/add-samples", jwtAuth, requirePermission('admin.news.manage'), async (req, res) => {
+        try {
+            const sampleArticles = [
+                {
+                    id: 1,
+                    title: "Federal Government Announces New Climate Action Plan",
+                    content: "The Canadian government has unveiled a comprehensive climate action plan aimed at reducing emissions by 40% by 2030. The plan includes new regulations for oil and gas, incentives for clean energy, and support for electric vehicle adoption.",
+                    summary: "New climate action plan targets 40% emissions reduction by 2030 with oil and gas regulations and clean energy incentives.",
+                    category: "environment",
+                    source: "Government of Canada",
+                    publishedAt: new Date(),
+                    createdAt: new Date(),
+                    updatedAt: new Date()
+                },
+                {
+                    id: 2,
+                    title: "Parliament Passes New Digital Privacy Legislation",
+                    content: "Bill C-27, the Digital Charter Implementation Act, has been passed by Parliament. This legislation strengthens consumer privacy protection, regulates artificial intelligence, and establishes new enforcement mechanisms for data protection.",
+                    summary: "New digital privacy law strengthens consumer protection and AI regulation with enhanced enforcement powers.",
+                    category: "technology",
+                    source: "Parliament of Canada",
+                    publishedAt: new Date(Date.now() - 86400000), // 1 day ago
+                    createdAt: new Date(),
+                    updatedAt: new Date()
+                },
+                {
+                    id: 3,
+                    title: "Federal Budget 2025: Focus on Healthcare and Infrastructure",
+                    content: "The 2025 federal budget prioritizes healthcare system improvements, infrastructure development, and support for Indigenous communities. Key investments include $2.5 billion for healthcare modernization and $4.8 billion for infrastructure projects.",
+                    summary: "2025 budget allocates $2.5B for healthcare and $4.8B for infrastructure with Indigenous community support.",
+                    category: "economy",
+                    source: "Department of Finance",
+                    publishedAt: new Date(Date.now() - 172800000), // 2 days ago
+                    createdAt: new Date(),
+                    updatedAt: new Date()
+                },
+                {
+                    id: 4,
+                    title: "New Immigration Policy Aims to Address Labour Shortages",
+                    content: "The government has announced changes to immigration policy to better address labour shortages in key sectors. The new policy includes faster processing for skilled workers, expanded pathways for international students, and support for family reunification.",
+                    summary: "Immigration policy changes target labour shortages with faster skilled worker processing and student pathways.",
+                    category: "politics",
+                    source: "Immigration, Refugees and Citizenship Canada",
+                    publishedAt: new Date(Date.now() - 259200000), // 3 days ago
+                    createdAt: new Date(),
+                    updatedAt: new Date()
+                },
+                {
+                    id: 5,
+                    title: "Parliamentary Committee Recommends Electoral Reform",
+                    content: "A parliamentary committee has released its report on electoral reform, recommending a mixed-member proportional representation system. The report suggests this would better represent voter preferences while maintaining regional representation.",
+                    summary: "Committee recommends mixed-member proportional representation for better voter representation and regional balance.",
+                    category: "politics",
+                    source: "Parliament of Canada",
+                    publishedAt: new Date(Date.now() - 345600000), // 4 days ago
+                    createdAt: new Date(),
+                    updatedAt: new Date()
+                }
+            ];
+            // Insert samples into database
+            for (const article of sampleArticles) {
+                await db.insert(newsArticles).values({
+                    title: article.title,
+                    content: article.content,
+                    summary: article.summary,
+                    category: article.category,
+                    source: article.source,
+                    publishedAt: article.publishedAt,
+                });
+            }
+            res.json({ success: true, message: 'Sample articles added successfully', count: sampleArticles.length });
+        }
+        catch (error) {
+            console.error('Failed to add samples:', error);
+            res.status(500).json({ success: false, error: 'Failed to add sample articles' });
+        }
+    });
+    // Get news sources
+    app.get("/api/news/sources", async (req, res) => {
+        try {
+            // Return a list of available news sources
+            const sources = [
+                'CBC News',
+                'CTV News',
+                'Global News',
+                'Toronto Star',
+                'National Post',
+                'The Globe and Mail',
+                'CBC Radio-Canada',
+                'CTV News Channel',
+                'Global News Network',
+                'CityNews',
+                'CP24',
+                'BNN Bloomberg',
+                'CBC News Network',
+                'CTV News Channel',
+                'Global News Network'
+            ];
+            res.json({
+                success: true,
+                sources,
+                message: "News sources retrieved successfully"
+            });
+        }
+        catch (error) {
+            res.status(500).json({
+                success: false,
+                message: "Failed to retrieve news sources",
+                sources: []
+            });
+        }
+    });
+    // Manual news ingestion endpoint
+    app.post("/api/news/ingest", async (req, res) => {
+        try {
+            const result = await ingestNewsFeeds();
+            res.json({
+                success: true,
+                message: "News ingestion completed",
+                result
+            });
+        }
+        catch (error) {
+            res.status(500).json({
+                success: false,
+                message: "News ingestion failed",
+                error: error instanceof Error ? error.message : "Unknown error"
+            });
         }
     });
     // Get single news article (DB with auto-ingest fallback)
