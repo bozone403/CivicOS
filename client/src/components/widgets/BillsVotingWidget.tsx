@@ -44,7 +44,7 @@ export default function BillsVotingWidget() {
           return [];
         }
       } catch (error) {
-        console.error('Failed to fetch bills:', error);
+        // console.error removed for production
         return [];
       }
     },
@@ -121,12 +121,12 @@ export default function BillsVotingWidget() {
     return total > 0 ? Math.round((forVotes / total) * 100) : 0;
   };
 
-  const handleVote = async (billId: string, voteValue: 'yes' | 'no' | 'abstain') => {
+  const handleVote = async (_billId: string, _voteValue: 'yes' | 'no' | 'abstain') => {
     try {
       // TODO: Implement actual voting API call
-      console.log(`Voting ${voteValue} on bill ${billId}`);
+      // console.log removed for production
     } catch (error) {
-      console.error('Failed to submit vote:', error);
+      // console.error removed for production
     }
   };
 
