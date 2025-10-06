@@ -27,6 +27,28 @@ The application uses a custom `dev-replit.sh` script that:
 2. Starts the frontend dev server on port 5000
 3. Frontend proxies API requests to backend
 
+### Authentication Warmup (Replit Autoscale Support)
+**Problem Solved**: Authentication "failed to fetch" errors when backend server is sleeping
+**Solution**: Intelligent server warmup + retry strategy
+
+**How It Works**:
+1. **Health Check Ping**: Before auth requests, pings `/health` endpoint until server wakes
+2. **Exponential Backoff**: Retries with increasing delays (500ms → 5000ms max)
+3. **Loading States**: Shows user-friendly loading during warmup
+4. **Timeout Protection**: 30-second max warmup time with graceful error handling
+5. **JWT Persistence**: Tokens stored in localStorage to reduce login frequency
+
+**Files**:
+- `client/src/lib/serverWarmup.ts` - Warmup utility with retry logic
+- `client/src/hooks/useAuth.ts` - Auth hook with warmup integration
+- `client/src/pages/auth.tsx` - Login/register pages with warmup support
+
+**Benefits**:
+- ✅ Login/register works even when server sleeping (autoscale deployments)
+- ✅ Automatic retry with user feedback
+- ✅ Production-ready for Replit autoscale
+- ✅ No "failed to fetch" errors
+
 ### Key Files
 - `client/vite.config.ts` - Frontend dev server config with API proxy
 - `server/index.ts` - Backend Express server

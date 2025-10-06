@@ -89,10 +89,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  // Login mutation
+  // Login mutation with server warmup support
   const loginMutation = useMutation({
     mutationFn: async (credentials: { email: string; password: string }) => {
-      const response = await apiRequest('/api/auth/login', 'POST', credentials);
+      // Import warmup utility dynamically to avoid circular deps
+      const { apiRequestWithWarmup } = await import('@/lib/serverWarmup');
+      
+      const response = await apiRequestWithWarmup('/api/auth/login', 'POST', credentials, {
+        maxRetries: 10,
+        initialDelay: 500,
+        timeout: 30000, // 30 seconds total
+      });
       
       if (!response.token) {
         throw new Error('No token received from server');
@@ -113,7 +120,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     },
   });
 
-  // Register mutation
+  // Register mutation with server warmup support
   const registerMutation = useMutation({
     mutationFn: async (userData: { 
       email: string; 
@@ -121,7 +128,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       firstName: string; 
       lastName: string 
     }) => {
-      const response = await apiRequest('/api/auth/register', 'POST', userData);
+      // Import warmup utility dynamically to avoid circular deps
+      const { apiRequestWithWarmup } = await import('@/lib/serverWarmup');
+      
+      const response = await apiRequestWithWarmup('/api/auth/register', 'POST', userData, {
+        maxRetries: 10,
+        initialDelay: 500,
+        timeout: 30000, // 30 seconds total
+      });
       
       if (!response.token) {
         throw new Error('No token received from server');

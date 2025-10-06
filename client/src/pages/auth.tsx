@@ -161,7 +161,13 @@ export default function Auth() {
 
   const loginMutation = useMutation({
     mutationFn: async (credentials: { email: string; password: string }) => {
-      const result = await apiRequest("/api/auth/login", "POST", credentials);
+      // Use warmup utility for server wake-up support
+      const { apiRequestWithWarmup } = await import('@/lib/serverWarmup');
+      const result = await apiRequestWithWarmup("/api/auth/login", "POST", credentials, {
+        maxRetries: 10,
+        initialDelay: 500,
+        timeout: 30000,
+      });
       if (result.token) localStorage.setItem('civicos-jwt', result.token);
       return result;
     },
@@ -182,7 +188,13 @@ export default function Auth() {
 
   const registerMutation = useMutation({
     mutationFn: async (data: typeof registerData) => {
-      return apiRequest("/api/auth/register", "POST", data);
+      // Use warmup utility for server wake-up support
+      const { apiRequestWithWarmup } = await import('@/lib/serverWarmup');
+      return apiRequestWithWarmup("/api/auth/register", "POST", data, {
+        maxRetries: 10,
+        initialDelay: 500,
+        timeout: 30000,
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
