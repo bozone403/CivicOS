@@ -25,8 +25,22 @@ export default defineConfig({
     },
   },
   server: {
-    port: 5173,
-    host: true,
+    port: 5000,
+    host: '0.0.0.0',
+    strictPort: true,
+    hmr: {
+      clientPort: 5000,
+    },
+    proxy: {
+      '/api': {
+        target: 'http://localhost:5001',
+        changeOrigin: true,
+      },
+      '/health': {
+        target: 'http://localhost:5001',
+        changeOrigin: true,
+      },
+    },
   },
   define: {
     // Ensure development mode is properly detected

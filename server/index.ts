@@ -464,8 +464,8 @@ app.get("/health", (_req, res) => {
   // ALWAYS serve the app on the correct port for Render
   // Render uses PORT environment variable
   const PORT = process.env.PORT || 5001;
-  httpServer.listen(PORT, () => {
-    logger.info({ msg: `Server running on port ${PORT}`, environment: process.env.NODE_ENV });
+  httpServer.listen(PORT, '0.0.0.0', () => {
+    logger.info({ msg: `Server running on 0.0.0.0:${PORT}`, environment: process.env.NODE_ENV });
   });
   
   // Run database migrations on startup

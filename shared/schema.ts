@@ -798,13 +798,13 @@ export const votingItems = pgTable("voting_items", {
 
 // User follows table
 export const userFollows = pgTable("user_follows", {
-  id: serial("id").primaryKey(),
+  id: serial("id"),
   userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   followId: varchar("follow_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 },
 (table) => [
-  primaryKey(table.userId, table.followId), // Prevent duplicate follows
+  primaryKey({ columns: [table.userId, table.followId] }), // Prevent duplicate follows
   index("IDX_user_follows_user_id").on(table.userId),
   index("IDX_user_follows_follow_id").on(table.followId),
   index("IDX_user_follows_created_at").on(table.createdAt),
