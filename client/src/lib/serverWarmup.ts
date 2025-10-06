@@ -27,10 +27,10 @@ export class ServerWarmupError extends Error {
  */
 export async function waitForServerWakeup(options: WarmupOptions = {}): Promise<void> {
   const {
-    maxRetries = 10,
+    maxRetries = 20,
     initialDelay = 500,
     maxDelay = 5000,
-    timeout = 30000,
+    timeout = 60000,
   } = options;
 
   const startTime = Date.now();

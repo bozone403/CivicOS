@@ -96,9 +96,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const { apiRequestWithWarmup } = await import('@/lib/serverWarmup');
       
       const response = await apiRequestWithWarmup('/api/auth/login', 'POST', credentials, {
-        maxRetries: 10,
+        maxRetries: 20,
         initialDelay: 500,
-        timeout: 30000, // 30 seconds total
+        timeout: 60000, // 60 seconds total
       });
       
       if (!response.token) {
@@ -132,9 +132,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const { apiRequestWithWarmup } = await import('@/lib/serverWarmup');
       
       const response = await apiRequestWithWarmup('/api/auth/register', 'POST', userData, {
-        maxRetries: 10,
+        maxRetries: 20,
         initialDelay: 500,
-        timeout: 30000, // 30 seconds total
+        timeout: 60000, // 60 seconds total
       });
       
       if (!response.token) {
