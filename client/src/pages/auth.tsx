@@ -844,7 +844,7 @@ export default function Auth() {
 
         {/* Footer */}
         <div className="text-center mt-6 sm:mt-8 text-xs text-slate-500 dark:text-slate-400">
-          <p>Built by Jordan Kenneth Boisclair</p>
+          <p>Built by <a href="https://clairwoodfoundation.org" target="_blank" rel="noopener noreferrer" className="text-red-600 hover:underline">Clairwood Foundation</a> & <a href="https://iron-oak.ca" target="_blank" rel="noopener noreferrer" className="text-red-600 hover:underline">Iron & Oak</a></p>
           <p>© 2025 CivicOS™ - All rights reserved</p>
         </div>
       </div>

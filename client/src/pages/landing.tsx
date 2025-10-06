@@ -620,7 +620,7 @@ export default function Landing() {
               <div className="text-sm text-gray-600 space-y-2">
                 <p>CivicOS Platform</p>
                 <p>Digital Government Services</p>
-                <p>Built by Jordan Kenneth Boisclair</p>
+                <p>Built by <a href="https://clairwoodfoundation.org" target="_blank" rel="noopener noreferrer" className="text-red-600 hover:underline">Clairwood Foundation</a> & <a href="https://iron-oak.ca" target="_blank" rel="noopener noreferrer" className="text-red-600 hover:underline">Iron & Oak</a></p>
                 <p>© 2025 All rights reserved</p>
               </div>
             </div>
@@ -641,7 +641,7 @@ export default function Landing() {
               </span>
             </div>
             <div className="text-xs">
-              © 2025 CivicOS. Built by Jordan Kenneth Boisclair. All rights reserved.
+              © 2025 CivicOS. Built by <a href="https://clairwoodfoundation.org" target="_blank" rel="noopener noreferrer" className="text-red-600 hover:underline">Clairwood Foundation</a> & <a href="https://iron-oak.ca" target="_blank" rel="noopener noreferrer" className="text-red-600 hover:underline">Iron & Oak</a>. All rights reserved.
             </div>
           </div>
         </div>

@@ -466,8 +466,8 @@ export default function Terms() {
                 <div>
                   <h4 className="font-bold text-gray-900 mb-2">Legal Inquiries:</h4>
                   <p>
-                    <strong>Jordan Kenneth Boisclair</strong><br />
-                    Legal & Compliance Officer<br />
+                    <strong><a href="https://clairwoodfoundation.org" target="_blank" rel="noopener noreferrer" className="text-red-600 hover:underline">Clairwood Foundation</a> & <a href="https://iron-oak.ca" target="_blank" rel="noopener noreferrer" className="text-red-600 hover:underline">Iron & Oak Strategic Solutions</a></strong><br />
+                    Legal & Compliance Officers<br />
                     <strong>Email:</strong> legal@civicos.ca<br />
                     <strong>Address:</strong> CivicOS Legal Department<br />
                     Toronto, Ontario, Canada

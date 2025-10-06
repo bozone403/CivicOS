@@ -121,19 +121,21 @@ export default function Contact() {
               </CardContent>
             </Card>
             
-            {/* Platform Creator */}
+            {/* Platform Creators */}
             <Card>
               <CardHeader>
-                <CardTitle className="text-xl font-black text-gray-900">Platform Creator</CardTitle>
+                <CardTitle className="text-xl font-black text-gray-900">Platform Creators</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  <h3 className="font-bold text-gray-900">Jordan Kenneth Boisclair</h3>
+                  <h3 className="font-bold text-gray-900">
+                    <a href="https://clairwoodfoundation.org" target="_blank" rel="noopener noreferrer" className="text-red-600 hover:underline">Clairwood Foundation</a> & <a href="https://iron-oak.ca" target="_blank" rel="noopener noreferrer" className="text-red-600 hover:underline">Iron & Oak Strategic Solutions</a>
+                  </h3>
                   <p className="text-gray-700 font-medium">
-                    Founder & Lead Developer of CivicOS
+                    Founders & Developers of CivicOS
                   </p>
                   <p className="text-gray-600 text-sm">
-                    Independent Canadian developer committed to government transparency 
+                    Independent Canadian organizations committed to government transparency 
                     and democratic accountability. Not affiliated with any political party 
                     or government entity.
                   </p>

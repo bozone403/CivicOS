@@ -392,7 +392,7 @@ export default function Privacy() {
             </CardHeader>
             <CardContent>
               <div className="space-y-3 text-gray-700 font-medium">
-                <p><strong>Jordan Kenneth Boisclair</strong><br />Privacy Officer & Platform Creator</p>
+                <p><strong><a href="https://clairwoodfoundation.org" target="_blank" rel="noopener noreferrer" className="text-red-600 hover:underline">Clairwood Foundation</a> & <a href="https://iron-oak.ca" target="_blank" rel="noopener noreferrer" className="text-red-600 hover:underline">Iron & Oak Strategic Solutions</a></strong><br />Privacy Officers & Platform Creators</p>
                 <p><strong>Email:</strong> privacy@civicos.ca</p>
                 <p><strong>Address:</strong> CivicOS Privacy Office<br />Toronto, Ontario, Canada</p>
                 <p><strong>Response Time:</strong> We respond to privacy inquiries within 5 business days</p>
