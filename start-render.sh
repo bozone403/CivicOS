@@ -25,10 +25,6 @@ echo "========================"
 echo "📋 Step 1: Environment Configuration"
 export NODE_ENV=production
 export RENDER=true
-# Note: AI_SERVICE_ENABLED and OLLAMA_ENABLED are set in render.yaml
-# and should not be overridden here
-export USE_MOCK_AI=false
-export AI_READY=true
 # Real-only data ingestion defaults
 export DATA_SYNC_ENABLED=true
 export AUTO_INGEST_ON_START=true
@@ -36,9 +32,6 @@ export AUTO_INGEST_ON_START=true
 echo "✅ Environment configured:"
 echo "   - NODE_ENV: $NODE_ENV"
 echo "   - RENDER: $RENDER"
-echo "   - AI_SERVICE_ENABLED: $AI_SERVICE_ENABLED"
-echo "   - USE_MOCK_AI: $USE_MOCK_AI"
-echo "   - OLLAMA_ENABLED: $OLLAMA_ENABLED"
 echo "   - DATA_SYNC_ENABLED: $DATA_SYNC_ENABLED"
 echo "   - AUTO_INGEST_ON_START: $AUTO_INGEST_ON_START"
 echo ""
