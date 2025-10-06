@@ -19,7 +19,7 @@ export function registerBillsRoutes(app) {
             // If no bills in database, attempt to ingest from OpenParliament
             if (!billsData || billsData.length === 0) {
                 try {
-                    console.log('No bills in database, attempting OpenParliament ingestion...');
+                    // console.log removed for production
                     const listUrl = process.env.OPENPARLIAMENT_VOTES_URL || `https://api.openparliament.ca/votes/?format=json&limit=50`;
                     const listRes = await fetch(listUrl);
                     if (listRes.ok) {
@@ -152,7 +152,7 @@ export function registerBillsRoutes(app) {
             });
         }
         catch (error) {
-            console.error('Bills API error:', error);
+            // console.error removed for production
             res.status(500).json({
                 success: false,
                 error: 'Failed to fetch bills',

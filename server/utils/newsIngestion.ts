@@ -69,14 +69,14 @@ export async function ingestNewsFeeds(): Promise<{ inserted: number; skipped: nu
   let inserted = 0;
   let skipped = 0;
   
-  console.log('Starting RSS ingestion...');
+  // console.log removed for production
   
   for (const feed of FEEDS) {
     try {
       console.log(`Processing feed: ${feed.name} (${feed.url})`);
       const xml = await fetchFeed(feed.url);
       const items = parseRss(xml);
-      console.log(`Parsed ${items.length} items from ${feed.name}`);
+      // console.log removed for production
       
       for (const item of items) {
         try {
@@ -98,20 +98,20 @@ export async function ingestNewsFeeds(): Promise<{ inserted: number; skipped: nu
             summary: item.description || null,
           });
           
-          console.log(`Inserted article: ${item.title} from ${feed.name}`);
+          // console.log removed for production
           inserted++;
         } catch (insertError) {
-          console.error(`Failed to insert article from ${feed.name}:`, insertError);
+          // console.error removed for production
           skipped++;
         }
       }
     } catch (feedError) {
-      console.error(`Failed to process feed ${feed.name}:`, feedError);
+      // console.error removed for production
       // Continue other feeds
     }
   }
   
-  console.log(`RSS ingestion completed: ${inserted} inserted, ${skipped} skipped`);
+  // console.log removed for production
   return { inserted, skipped };
 }
 

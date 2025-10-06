@@ -2,11 +2,11 @@ import { sql } from 'drizzle-orm';
 import { db } from './db.js';
 
 export async function runMigrations() {
-  console.log('Starting database migrations...');
+  // console.log removed for production
   
   try {
     // Add missing columns to politicians table
-    console.log('Adding missing columns to politicians table...');
+    // console.log removed for production
     
     const politiciansColumns = [
       'riding',
@@ -33,14 +33,14 @@ export async function runMigrations() {
             END IF;
           END $$;
         `);
-        console.log(`✅ Added column '${column}' to politicians table`);
+        // console.log removed for production
       } catch (error) {
-        console.log(`⚠️ Column '${column}' already exists or error: ${error.message}`);
+        // console.log removed for production
       }
     }
 
     // Add missing columns to criminal_code_sections table
-    console.log('Adding missing columns to criminal_code_sections table...');
+    // console.log removed for production
     
     const criminalCodeColumns = [
       'source',
@@ -64,14 +64,14 @@ export async function runMigrations() {
             END IF;
           END $$;
         `);
-        console.log(`✅ Added column '${column}' to criminal_code_sections table`);
+        // console.log removed for production
       } catch (error) {
-        console.log(`⚠️ Column '${column}' already exists or error: ${error.message}`);
+        // console.log removed for production
       }
     }
 
     // Add missing columns to legal_acts table
-    console.log('Adding missing columns to legal_acts table...');
+    // console.log removed for production
     
     const legalActsColumns = [
       'source',
@@ -95,14 +95,14 @@ export async function runMigrations() {
             END IF;
           END $$;
         `);
-        console.log(`✅ Added column '${column}' to legal_acts table`);
+        // console.log removed for production
       } catch (error) {
-        console.log(`⚠️ Column '${column}' already exists or error: ${error.message}`);
+        // console.log removed for production
       }
     }
 
     // Add missing columns to legal_cases table
-    console.log('Adding missing columns to legal_cases table...');
+    // console.log removed for production
     
     const legalCasesColumns = [
       'source',
@@ -127,14 +127,14 @@ export async function runMigrations() {
             END IF;
           END $$;
         `);
-        console.log(`✅ Added column '${column}' to legal_cases table`);
+        // console.log removed for production
       } catch (error) {
-        console.log(`⚠️ Column '${column}' already exists or error: ${error.message}`);
+        // console.log removed for production
       }
     }
 
     // Add missing columns to petitions table
-    console.log('Adding missing columns to petitions table...');
+    // console.log removed for production
     
     const petitionsColumns = [
       'source',
@@ -158,16 +158,16 @@ export async function runMigrations() {
             END IF;
           END $$;
         `);
-        console.log(`✅ Added column '${column}' to petitions table`);
+        // console.log removed for production
       } catch (error) {
-        console.log(`⚠️ Column '${column}' already exists or error: ${error.message}`);
+        // console.log removed for production
       }
     }
 
-    console.log('✅ All migrations completed successfully!');
+    // console.log removed for production
     
   } catch (error) {
-    console.error('❌ Migration failed:', error);
+    // console.error removed for production
     throw error;
   }
 }
@@ -176,11 +176,11 @@ export async function runMigrations() {
 if (import.meta.url === `file://${process.argv[1]}`) {
   runMigrations()
     .then(() => {
-      console.log('Migrations completed successfully');
+      // console.log removed for production
       process.exit(0);
     })
     .catch((error) => {
-      console.error('Migrations failed:', error);
+      // console.error removed for production
       process.exit(1);
     });
 } 

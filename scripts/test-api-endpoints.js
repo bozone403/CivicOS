@@ -6,39 +6,39 @@ const BASE_URL = 'https://civicos.onrender.com';
 
 async function testEndpoint(endpoint, description) {
   try {
-    console.log(`🔍 Testing: ${description}`);
+    // console.log removed for production
     const response = await fetch(`${BASE_URL}${endpoint}`);
     const data = await response.json();
     
     if (response.ok) {
-      console.log(`  ✅ Status: ${response.status}`);
+      // console.log removed for production
       if (data.success !== undefined) {
-        console.log(`  📊 Success: ${data.success}`);
+        // console.log removed for production
       }
       if (data.data && Array.isArray(data.data)) {
-        console.log(`  📈 Records: ${data.data.length}`);
+        // console.log removed for production
       }
       if (data.count !== undefined) {
-        console.log(`  🔢 Count: ${data.count}`);
+        // console.log removed for production
       }
       if (data.message) {
-        console.log(`  💬 Message: ${data.message}`);
+        // console.log removed for production
       }
     } else {
-      console.log(`  ❌ Status: ${response.status}`);
+      // console.log removed for production
       if (data.error) {
-        console.log(`  🚨 Error: ${data.error}`);
+        // console.log removed for production
       }
     }
-    console.log('');
+    // console.log removed for production
   } catch (error) {
-    console.log(`  ❌ Failed: ${error.message}`);
-    console.log('');
+    // console.log removed for production
+    // console.log removed for production
   }
 }
 
 async function testAllEndpoints() {
-  console.log('🚀 Testing CivicOS API Endpoints\n');
+  // console.log removed for production
   
   const endpoints = [
     { path: '/api/health', desc: 'Health Check' },
@@ -59,7 +59,7 @@ async function testAllEndpoints() {
     await new Promise(resolve => setTimeout(resolve, 500));
   }
   
-  console.log('✅ API endpoint testing complete!');
+  // console.log removed for production
 }
 
 testAllEndpoints().catch(console.error);

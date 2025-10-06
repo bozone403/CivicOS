@@ -16,7 +16,7 @@ export function registerElectionsRoutes(app: Express) {
         ...electionData
       });
     } catch (error) {
-      console.error('Failed to fetch elections:', error);
+      // console.error removed for production
       res.status(500).json({
         success: false,
         message: 'Failed to fetch election data',
@@ -54,7 +54,7 @@ export function registerElectionsRoutes(app: Express) {
         ...filteredData
       });
     } catch (error) {
-      console.error('Failed to fetch elections by type:', error);
+      // console.error removed for production
       res.status(500).json({
         success: false,
         message: 'Failed to fetch election data by type',
@@ -76,7 +76,7 @@ export function registerElectionsRoutes(app: Express) {
         electionId: id
       });
     } catch (error) {
-      console.error('Failed to fetch election details:', error);
+      // console.error removed for production
       res.status(500).json({
         success: false,
         message: 'Failed to fetch election details',
@@ -110,7 +110,7 @@ export function registerElectionsRoutes(app: Express) {
         stats
       });
     } catch (error) {
-      console.error('Failed to fetch election stats:', error);
+      // console.error removed for production
       res.status(500).json({
         success: false,
         message: 'Failed to fetch election statistics',
@@ -139,7 +139,7 @@ export function registerElectionsRoutes(app: Express) {
         results: electionData
       });
     } catch (error) {
-      console.error('Failed to search elections:', error);
+      // console.error removed for production
       res.status(500).json({
         success: false,
         message: 'Failed to search elections',
@@ -175,7 +175,7 @@ export function registerElectionsRoutes(app: Express) {
         countdowns: countdowns.sort((a: any, b: any) => a.daysRemaining - b.daysRemaining)
       });
     } catch (error) {
-      console.error('Failed to fetch election countdowns:', error);
+      // console.error removed for production
       res.status(500).json({
         success: false,
         message: 'Failed to fetch election countdowns',

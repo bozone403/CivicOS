@@ -15,12 +15,12 @@ const pool = new Pool({
 });
 
 async function verifyDatabaseHealth() {
-  console.log('🔍 Verifying CivicOS Database Health...\n');
+  // console.log removed for production
   
   try {
     // Test connection
     const result = await pool.query('SELECT NOW() as current_time');
-    console.log(`✅ Database connection: ${result.rows[0].current_time}`);
+    // console.log removed for production
     
     // Check table counts
     const tables = [
@@ -29,23 +29,23 @@ async function verifyDatabaseHealth() {
       'criminal_code_sections', 'social_posts', 'announcements'
     ];
     
-    console.log('\n📊 Table Record Counts:');
+    // console.log removed for production
     for (const table of tables) {
       try {
         const countResult = await pool.query(`SELECT COUNT(*) as count FROM ${table}`);
         const count = countResult.rows[0].count;
-        console.log(`  ${table}: ${count} records`);
+        // console.log removed for production
         
         if (count === 0) {
-          console.log(`    ⚠️  Table ${table} is empty - needs data population`);
+          // console.log removed for production
         }
       } catch (error) {
-        console.log(`  ❌ ${table}: Error - ${error.message}`);
+        // console.log removed for production
       }
     }
     
     // Check specific data issues
-    console.log('\n🔍 Data Quality Checks:');
+    // console.log removed for production
     
     // Check politicians table structure
     const politicianColumns = await pool.query(`
@@ -55,7 +55,7 @@ async function verifyDatabaseHealth() {
       ORDER BY ordinal_position
     `);
     
-    console.log('\n  Politicians table columns:');
+    // console.log removed for production
     politicianColumns.rows.forEach(col => {
       console.log(`    ${col.column_name}: ${col.data_type} (${col.is_nullable === 'YES' ? 'nullable' : 'not null'})`);
     });
@@ -63,7 +63,7 @@ async function verifyDatabaseHealth() {
     // Check for sample data
     const samplePoliticians = await pool.query('SELECT id, name, position, jurisdiction FROM politicians LIMIT 3');
     if (samplePoliticians.rows.length > 0) {
-      console.log('\n  Sample politicians:');
+      // console.log removed for production
       samplePoliticians.rows.forEach(p => {
         console.log(`    ${p.name} - ${p.position} (${p.jurisdiction})`);
       });
@@ -72,16 +72,16 @@ async function verifyDatabaseHealth() {
     // Check bills table
     const sampleBills = await pool.query('SELECT id, title, status FROM bills LIMIT 3');
     if (sampleBills.rows.length > 0) {
-      console.log('\n  Sample bills:');
+      // console.log removed for production
       sampleBills.rows.forEach(b => {
-        console.log(`    ${b.title} - ${b.status}`);
+        // console.log removed for production
       });
     }
     
     // Check petitions table
     const samplePetitions = await pool.query('SELECT id, title, status, current_signatures FROM petitions LIMIT 3');
     if (samplePetitions.rows.length > 0) {
-      console.log('\n  Sample petitions:');
+      // console.log removed for production
       samplePetitions.rows.forEach(p => {
         console.log(`    ${p.title} - ${p.status} (${p.current_signatures} signatures)`);
       });
@@ -90,34 +90,34 @@ async function verifyDatabaseHealth() {
     // Check news table
     const sampleNews = await pool.query('SELECT id, title, source FROM news_articles LIMIT 3');
     if (sampleNews.rows.length > 0) {
-      console.log('\n  Sample news:');
+      // console.log removed for production
       sampleNews.rows.forEach(n => {
-        console.log(`    ${n.title} - ${n.source}`);
+        // console.log removed for production
       });
     }
     
     // Check legal table
     const sampleLegal = await pool.query('SELECT id, title, type FROM legal_acts LIMIT 3');
     if (sampleLegal.rows.length > 0) {
-      console.log('\n  Sample legal acts:');
+      // console.log removed for production
       sampleLegal.rows.forEach(l => {
-        console.log(`    ${l.title} - ${l.type}`);
+        // console.log removed for production
       });
     }
     
   } catch (error) {
-    console.error('❌ Database verification failed:', error.message);
+    // console.error removed for production
   }
 }
 
 async function populateSampleData() {
-  console.log('\n🚀 Populating Sample Data...\n');
+  // console.log removed for production
   
   try {
     // Check if politicians table has data
     const politicianCount = await pool.query('SELECT COUNT(*) as count FROM politicians');
     if (politicianCount.rows[0].count === 0) {
-      console.log('📝 Adding sample politicians...');
+      // console.log removed for production
       
       const samplePoliticians = [
         {
@@ -161,13 +161,13 @@ async function populateSampleData() {
           ON CONFLICT (id) DO NOTHING
         `, Object.values(politician));
       }
-      console.log('✅ Sample politicians added');
+      // console.log removed for production
     }
     
     // Check if bills table has data
     const billCount = await pool.query('SELECT COUNT(*) as count FROM bills');
     if (billCount.rows[0].count === 0) {
-      console.log('📝 Adding sample bills...');
+      // console.log removed for production
       
       const sampleBills = [
         {
@@ -207,13 +207,13 @@ async function populateSampleData() {
           ON CONFLICT (id) DO NOTHING
         `, Object.values(bill));
       }
-      console.log('✅ Sample bills added');
+      // console.log removed for production
     }
     
     // Check if petitions table has data
     const petitionCount = await pool.query('SELECT COUNT(*) as count FROM petitions');
     if (petitionCount.rows[0].count === 0) {
-      console.log('📝 Adding sample petitions...');
+      // console.log removed for production
       
       const samplePetitions = [
         {
@@ -249,13 +249,13 @@ async function populateSampleData() {
           ON CONFLICT (id) DO NOTHING
         `, Object.values(petition));
       }
-      console.log('✅ Sample petitions added');
+      // console.log removed for production
     }
     
     // Check if news table has data
     const newsCount = await pool.query('SELECT COUNT(*) as count FROM news_articles');
     if (newsCount.rows[0].count === 0) {
-      console.log('📝 Adding sample news...');
+      // console.log removed for production
       
       const sampleNews = [
         {
@@ -291,13 +291,13 @@ async function populateSampleData() {
           ON CONFLICT (id) DO NOTHING
         `, Object.values(news));
       }
-      console.log('✅ Sample news added');
+      // console.log removed for production
     }
     
     // Check if legal table has data
     const legalCount = await pool.query('SELECT COUNT(*) as count FROM legal_acts');
     if (legalCount.rows[0].count === 0) {
-      console.log('📝 Adding sample legal acts...');
+      // console.log removed for production
       
       const sampleLegal = [
         {
@@ -331,11 +331,11 @@ async function populateSampleData() {
           ON CONFLICT (id) DO NOTHING
         `, Object.values(legal));
       }
-      console.log('✅ Sample legal acts added');
+      // console.log removed for production
     }
     
   } catch (error) {
-    console.error('❌ Error populating sample data:', error.message);
+    // console.error removed for production
   }
 }
 
@@ -344,11 +344,11 @@ async function main() {
     await verifyDatabaseHealth();
     await populateSampleData();
     
-    console.log('\n✅ Database verification and population complete!');
-    console.log('\n🔍 Re-run verification to see updated counts...');
+    // console.log removed for production
+    // console.log removed for production
     
   } catch (error) {
-    console.error('❌ Main execution failed:', error.message);
+    // console.error removed for production
   } finally {
     await pool.end();
   }

@@ -33,7 +33,7 @@ export default function PetitionsWidget() {
           return [];
         }
       } catch (error) {
-        console.error("Failed to fetch petitions:", error);
+        // console.error removed for production
         return [];
       }
     },

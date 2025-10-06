@@ -103,7 +103,7 @@ export function registerNewsRoutes(app) {
             });
         }
         catch (error) {
-            console.error('News API error:', error);
+            // console.error removed for production
             return res.status(500).json({
                 success: false,
                 error: 'Failed to fetch news articles',
@@ -119,7 +119,7 @@ export function registerNewsRoutes(app) {
             res.json({ success: true, message: 'News ingestion completed successfully' });
         }
         catch (error) {
-            console.error('News ingestion failed:', error);
+            // console.error removed for production
             res.status(500).json({ success: false, error: 'News ingestion failed' });
         }
     });
@@ -197,7 +197,7 @@ export function registerNewsRoutes(app) {
             res.json({ success: true, message: 'Sample articles added successfully', count: sampleArticles.length });
         }
         catch (error) {
-            console.error('Failed to add samples:', error);
+            // console.error removed for production
             res.status(500).json({ success: false, error: 'Failed to add sample articles' });
         }
     });

@@ -199,7 +199,7 @@ export function registerLegalRoutes(app) {
                 sections = canadianLaws.criminalCode;
             }
             catch (dbError) {
-                console.error('Database query failed, using fallback data:', dbError);
+                // console.error removed for production
                 // Fallback to hardcoded data if database fails
                 acts = canadianLaws.federalActs;
                 cases = []; // canadianLaws doesn't have a cases property

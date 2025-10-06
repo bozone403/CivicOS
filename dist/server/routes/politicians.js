@@ -79,7 +79,7 @@ export function registerPoliticiansRoutes(app) {
                 }
                 catch (syncError) {
                     // Log sync error but don't fail the request
-                    console.error('Politician sync failed:', syncError);
+                    // console.error removed for production
                 }
             }
             // Format response data
@@ -112,7 +112,7 @@ export function registerPoliticiansRoutes(app) {
             }, processingTime);
         }
         catch (error) {
-            console.error('Politicians API error:', error);
+            // console.error removed for production
             return ResponseFormatter.databaseError(res, `Failed to fetch politicians: ${error.message}`);
         }
     });

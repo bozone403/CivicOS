@@ -52,7 +52,7 @@ router.get('/', async (req, res) => {
         });
     }
     catch (error) {
-        console.error('Dashboard error:', error);
+        // console.error removed for production
         res.status(500).json({
             success: false,
             error: 'Failed to fetch dashboard data',
@@ -114,7 +114,7 @@ router.get('/public', async (req, res) => {
         });
     }
     catch (error) {
-        console.error('Public dashboard error:', error);
+        // console.error removed for production
         res.status(500).json({
             success: false,
             error: 'Failed to fetch public dashboard data',
@@ -176,7 +176,7 @@ router.get('/public-stats', async (req, res) => {
         });
     }
     catch (error) {
-        console.error('Public stats error:', error);
+        // console.error removed for production
         res.status(500).json({
             success: false,
             error: 'Failed to fetch public stats',

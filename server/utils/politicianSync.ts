@@ -37,14 +37,14 @@ export async function syncIncumbentPoliticiansFromParliament(): Promise<number> 
         }
       } catch (mpError) {
         // Log individual MP sync errors but continue with others
-        console.error('Failed to sync MP:', mp, mpError);
+        // console.error removed for production
         continue;
       }
     }
     
     return upserts;
   } catch (error) {
-    console.error('Politician sync failed:', error);
+    // console.error removed for production
     return 0; // Return 0 on error instead of throwing
   }
 }

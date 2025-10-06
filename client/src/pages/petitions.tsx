@@ -67,7 +67,7 @@ export default function Petitions() {
         // Fallback for direct array response
         return Array.isArray(result) ? result : [];
       } catch (error) {
-        console.error('Failed to fetch petitions:', error);
+        // console.error removed for production
         return [];
       }
     },

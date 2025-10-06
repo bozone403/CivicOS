@@ -45,7 +45,7 @@ export function registerProcurementRoutes(app) {
             });
         }
         catch (error) {
-            console.error('Procurement API error:', error);
+            // console.error removed for production
             res.status(500).json({
                 success: false,
                 error: 'Failed to fetch procurement data',
@@ -79,7 +79,7 @@ export function registerProcurementRoutes(app) {
             });
         }
         catch (error) {
-            console.error(`Procurement API error for ${req.params.jurisdiction}:`, error);
+            // console.error removed for production
             res.status(500).json({
                 success: false,
                 error: 'Failed to fetch procurement data for jurisdiction',
@@ -121,7 +121,7 @@ export function registerProcurementRoutes(app) {
             });
         }
         catch (error) {
-            console.error('Procurement stats API error:', error);
+            // console.error removed for production
             res.status(500).json({
                 success: false,
                 error: 'Failed to fetch procurement statistics',

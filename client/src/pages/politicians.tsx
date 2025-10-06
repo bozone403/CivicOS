@@ -86,7 +86,7 @@ export default function Politicians() {
         // Fallback for direct array response
         return Array.isArray(result) ? result : [];
       } catch (error) {
-        console.error('Failed to fetch politicians:', error);
+        // console.error removed for production
         return [];
       }
     },

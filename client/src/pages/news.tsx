@@ -73,7 +73,7 @@ export default function News() {
         // Fallback for direct array response
         return Array.isArray(result) ? result : [];
       } catch (error) {
-        console.error('Failed to fetch news:', error);
+        // console.error removed for production
         return [];
       }
     },
@@ -92,7 +92,7 @@ export default function News() {
         }
         return Array.isArray(result) ? result : [];
       } catch (error) {
-        console.error('Failed to fetch news sources:', error);
+        // console.error removed for production
         return [];
       }
     },

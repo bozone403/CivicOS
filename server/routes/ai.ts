@@ -89,7 +89,7 @@ router.post('/analyze/politician', async (req, res) => {
       timestamp: new Date().toISOString()
     });
   } catch (error) {
-    console.error('Failed to analyze politician:', error);
+    // console.error removed for production
     res.status(500).json({
       error: 'Failed to analyze politician',
       fallback: 'Politician analysis is temporarily unavailable. Please check the Politicians section for detailed information.',
@@ -121,7 +121,7 @@ router.post('/analyze/bill', async (req, res) => {
       timestamp: new Date().toISOString()
     });
   } catch (error) {
-    console.error('Failed to analyze bill:', error);
+    // console.error removed for production
     res.status(500).json({
       error: 'Failed to analyze bill',
       fallback: 'Bill analysis is temporarily unavailable. Please check the Bills & Voting section for detailed information.',
@@ -153,7 +153,7 @@ router.post('/factcheck', async (req, res) => {
       timestamp: new Date().toISOString()
     });
   } catch (error) {
-    console.error('Failed to fact-check claim:', error);
+    // console.error removed for production
     res.status(500).json({
       error: 'Failed to fact-check claim',
       fallback: 'Fact-checking is temporarily unavailable. Please consult reliable news sources for verification.',
@@ -185,7 +185,7 @@ router.post('/civic-guide', async (req, res) => {
       timestamp: new Date().toISOString()
     });
   } catch (error) {
-    console.error('Failed to provide civic guidance:', error);
+    // console.error removed for production
     res.status(500).json({
       error: 'Failed to provide civic guidance',
       fallback: 'Civic guidance is temporarily unavailable. Please visit canada.ca or contact your local government office.',
@@ -215,7 +215,7 @@ router.post('/analyze/news', async (req, res) => {
       timestamp: new Date().toISOString()
     });
   } catch (error) {
-    console.error('Failed to analyze news:', error);
+    // console.error removed for production
     res.status(500).json({
       error: 'Failed to analyze news',
       fallback: 'News analysis is temporarily unavailable.',
@@ -243,7 +243,7 @@ router.post('/analyze/petition', async (req, res) => {
       timestamp: new Date().toISOString()
     });
   } catch (error) {
-    console.error('Failed to classify petition:', error);
+    // console.error removed for production
     res.status(500).json({
       error: 'Failed to classify petition',
       fallback: 'Petition classification is temporarily unavailable.',
@@ -274,7 +274,7 @@ router.post('/analyze/legal', async (req, res) => {
       timestamp: new Date().toISOString()
     });
   } catch (error) {
-    console.error('Failed to analyze legal document:', error);
+    // console.error removed for production
     res.status(500).json({
       error: 'Failed to analyze legal document',
       fallback: 'Legal document analysis is temporarily unavailable.',
@@ -302,7 +302,7 @@ router.post('/civic-insights', async (req, res) => {
       timestamp: new Date().toISOString()
     });
   } catch (error) {
-    console.error('Failed to generate civic insights:', error);
+    // console.error removed for production
     res.status(500).json({
       error: 'Failed to generate civic insights',
       fallback: 'Civic insights generation is temporarily unavailable.',
@@ -337,7 +337,7 @@ router.get('/status', async (req, res) => {
       timestamp: new Date().toISOString()
     });
   } catch (error) {
-    console.error('AI status check failed:', error);
+    // console.error removed for production
     res.status(500).json({
       service: 'CivicOS AI',
       status: 'degraded',

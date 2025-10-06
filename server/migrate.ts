@@ -2,11 +2,11 @@ import { sql } from 'drizzle-orm';
 import { db } from './db.js';
 
 export async function runMigrations() {
-  console.log('Starting database migrations...');
+  // console.log removed for production
   
   try {
     // First, drop any incorrectly named columns that were created in previous migrations
-    console.log('Cleaning up incorrectly named columns...');
+    // console.log removed for production
     
     const columnsToDrop = [
       'civicLevel',
@@ -28,14 +28,14 @@ export async function runMigrations() {
           END $$;`;
         
         await db.execute(sql.raw(sqlQuery));
-        console.log(`✅ Dropped column '${column}' from politicians table`);
+        // console.log removed for production
       } catch (error) {
         console.log(`⚠️ Column '${column}' doesn't exist or error: ${error instanceof Error ? error.message : String(error)}`);
       }
     }
 
     // Add missing columns to politicians table with correct snake_case names
-    console.log('Adding missing columns to politicians table...');
+    // console.log removed for production
     
     const politiciansColumns = [
       { name: 'riding', type: 'text' },
@@ -62,14 +62,14 @@ export async function runMigrations() {
           END $$;`;
         
         await db.execute(sql.raw(sqlQuery));
-        console.log(`✅ Added column '${column.name}' to politicians table`);
+        // console.log removed for production
       } catch (error) {
         console.log(`⚠️ Column '${column.name}' already exists or error: ${error instanceof Error ? error.message : String(error)}`);
       }
     }
 
     // Add missing columns to criminal_code_sections table
-    console.log('Adding missing columns to criminal_code_sections table...');
+    // console.log removed for production
     
     const criminalCodeColumns = [
       { name: 'source', type: 'varchar(255)' },
@@ -90,14 +90,14 @@ export async function runMigrations() {
           END $$;`;
         
         await db.execute(sql.raw(sqlQuery));
-        console.log(`✅ Added column '${column.name}' to criminal_code_sections table`);
+        // console.log removed for production
       } catch (error) {
         console.log(`⚠️ Column '${column.name}' already exists or error: ${error instanceof Error ? error.message : String(error)}`);
       }
     }
 
     // Add missing columns to legal_acts table
-    console.log('Adding missing columns to legal_acts table...');
+    // console.log removed for production
     
     const legalActsColumns = [
       { name: 'source', type: 'varchar(255)' },
@@ -118,14 +118,14 @@ export async function runMigrations() {
           END $$;`;
         
         await db.execute(sql.raw(sqlQuery));
-        console.log(`✅ Added column '${column.name}' to legal_acts table`);
+        // console.log removed for production
       } catch (error) {
         console.log(`⚠️ Column '${column.name}' already exists or error: ${error instanceof Error ? error.message : String(error)}`);
       }
     }
 
     // Add missing columns to legal_cases table
-    console.log('Adding missing columns to legal_cases table...');
+    // console.log removed for production
     
     const legalCasesColumns = [
       { name: 'source', type: 'varchar(255)' },
@@ -147,14 +147,14 @@ export async function runMigrations() {
           END $$;`;
         
         await db.execute(sql.raw(sqlQuery));
-        console.log(`✅ Added column '${column.name}' to legal_cases table`);
+        // console.log removed for production
       } catch (error) {
         console.log(`⚠️ Column '${column.name}' already exists or error: ${error instanceof Error ? error.message : String(error)}`);
       }
     }
 
     // Add missing columns to petitions table
-    console.log('Adding missing columns to petitions table...');
+    // console.log removed for production
     
     const petitionsColumns = [
       { name: 'source', type: 'varchar(255)' },
@@ -175,16 +175,16 @@ export async function runMigrations() {
           END $$;`;
         
         await db.execute(sql.raw(sqlQuery));
-        console.log(`✅ Added column '${column.name}' to petitions table`);
+        // console.log removed for production
       } catch (error) {
         console.log(`⚠️ Column '${column.name}' already exists or error: ${error instanceof Error ? error.message : String(error)}`);
       }
     }
 
-    console.log('✅ All migrations completed successfully!');
+    // console.log removed for production
     
   } catch (error) {
-    console.error('❌ Migration failed:', error);
+    // console.error removed for production
     throw error;
   }
 }
@@ -193,11 +193,11 @@ export async function runMigrations() {
 if (import.meta.url === `file://${process.argv[1]}`) {
   runMigrations()
     .then(() => {
-      console.log('Migrations completed successfully');
+      // console.log removed for production
       process.exit(0);
     })
     .catch((error) => {
-      console.error('Migrations failed:', error);
+      // console.error removed for production
       process.exit(1);
     });
 }

@@ -21,11 +21,11 @@ function logTest(name, passed, details = '') {
   testResults.total++;
   if (passed) {
     testResults.passed++;
-    console.log(`✅ ${name}`);
+    // console.log removed for production
   } else {
     testResults.failed++;
-    console.log(`❌ ${name}`);
-    if (details) console.log(`   Details: ${details}`);
+    // console.log removed for production
+    if (details) // console.log removed for production
   }
   testResults.details.push({ name, passed, details });
 }
@@ -61,27 +61,27 @@ async function testEndpoint(endpoint, expectedStatus = 200, description = '') {
 }
 
 async function runTests() {
-  console.log('🚀 Starting Comprehensive Production Fixes Test\n');
-  console.log(`Testing against: ${BASE_URL}\n`);
+  // console.log removed for production
+  // console.log removed for production
 
   // Test 1: API Health
-  console.log('🔍 Testing API Health...');
+  // console.log removed for production
   await testEndpoint('/api/health', 200, 'Health Check');
 
   // Test 2: Dashboard (should now be public)
-  console.log('\n📊 Testing Dashboard...');
+  // console.log removed for production
   await testEndpoint('/api/dashboard', 200, 'Public Dashboard');
   await testEndpoint('/api/dashboard/public', 200, 'Public Stats');
   await testEndpoint('/api/dashboard/public-stats', 200, 'Public Stats Endpoint');
 
   // Test 3: Procurement (should not crash)
-  console.log('\n🏗️ Testing Procurement...');
+  // console.log removed for production
   await testEndpoint('/api/procurement', 200, 'Procurement Data');
   await testEndpoint('/api/procurement/stats', 200, 'Procurement Stats');
   await testEndpoint('/api/procurement/federal', 200, 'Procurement by Department');
 
   // Test 4: Bills (should not have templated data)
-  console.log('\n📜 Testing Bills...');
+  // console.log removed for production
   const billsResponse = await testEndpoint('/api/bills', 200, 'Bills Data');
   if (billsResponse && billsResponse.status === 200) {
     try {
@@ -103,7 +103,7 @@ async function runTests() {
   }
 
   // Test 5: AI Service (should indicate mock status clearly)
-  console.log('\n🤖 Testing AI Service...');
+  // console.log removed for production
   const aiStatusResponse = await testEndpoint('/api/ai/status', 200, 'AI Status');
   if (aiStatusResponse && aiStatusResponse.status === 200) {
     try {
@@ -120,63 +120,63 @@ async function runTests() {
   }
 
   // Test 6: Politicians (should work)
-  console.log('\n👥 Testing Politicians...');
+  // console.log removed for production
   await testEndpoint('/api/politicians', 200, 'Politicians Data');
 
   // Test 7: Petitions (should work)
-  console.log('\n📝 Testing Petitions...');
+  // console.log removed for production
   await testEndpoint('/api/petitions', 200, 'Petitions Data');
 
   // Test 8: News (should work)
-  console.log('\n📰 Testing News...');
+  // console.log removed for production
   await testEndpoint('/api/news', 200, 'News Data');
 
   // Test 9: Legal (should work)
-  console.log('\n⚖️ Testing Legal...');
+  // console.log removed for production
   await testEndpoint('/api/legal', 200, 'Legal Data');
 
   // Test 10: Social (should not crash)
-  console.log('\n🌐 Testing Social...');
+  // console.log removed for production
   await testEndpoint('/api/social/feed', 401, 'Social Feed (Auth Required)');
 
   // Test 11: Error Handling
-  console.log('\n🚨 Testing Error Handling...');
+  // console.log removed for production
   await testEndpoint('/api/nonexistent', 404, '404 Handling');
 
   // Summary
-  console.log('\n📋 Test Summary');
+  // console.log removed for production
   console.log('='.repeat(50));
-  console.log(`Total Tests: ${testResults.total}`);
-  console.log(`Passed: ${testResults.passed} ✅`);
-  console.log(`Failed: ${testResults.failed} ❌`);
+  // console.log removed for production
+  // console.log removed for production
+  // console.log removed for production
   console.log(`Success Rate: ${((testResults.passed / testResults.total) * 100).toFixed(1)}%`);
 
   if (testResults.failed > 0) {
-    console.log('\n❌ Failed Tests:');
+    // console.log removed for production
     testResults.details
       .filter(test => !test.passed)
       .forEach(test => console.log(`   - ${test.name}: ${test.details}`));
   }
 
-  console.log('\n🎯 Critical Fixes Status:');
-  console.log('✅ Procurement API - Fixed 500 errors');
-  console.log('✅ Dashboard - Now public');
-  console.log('✅ Bills API - Removed templated data');
-  console.log('✅ AI Service - Clear mock status');
-  console.log('✅ Error Handling - Graceful fallbacks');
-  console.log('✅ Frontend Components - No fallback data');
+  // console.log removed for production
+  // console.log removed for production
+  // console.log removed for production
+  // console.log removed for production
+  // console.log removed for production
+  // console.log removed for production
+  // console.log removed for production
 
   if (testResults.failed === 0) {
-    console.log('\n🎉 All critical production fixes are working!');
+    // console.log removed for production
     process.exit(0);
   } else {
-    console.log('\n⚠️ Some tests failed. Please review the issues above.');
+    // console.log removed for production
     process.exit(1);
   }
 }
 
 // Run tests
 runTests().catch(error => {
-  console.error('Test execution failed:', error);
+  // console.error removed for production
   process.exit(1);
 });

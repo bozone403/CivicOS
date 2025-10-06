@@ -15,15 +15,15 @@ const pool = new Pool({
 });
 
 async function populateDatabase() {
-  console.log('🚀 Populating CivicOS Database with Essential Data...\n');
+  // console.log removed for production
   
   try {
     // Test connection
     const result = await pool.query('SELECT NOW() as current_time');
-    console.log(`✅ Database connection: ${result.rows[0].current_time}`);
+    // console.log removed for production
     
     // 1. Populate Politicians Table
-    console.log('\n📝 Populating Politicians Table...');
+    // console.log removed for production
     const politicianData = [
       {
         name: 'Justin Trudeau',
@@ -76,13 +76,13 @@ async function populateDatabase() {
           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
         `, Object.values(politician).slice(0, 10));
       } catch (error) {
-        console.log(`  ⚠️  Politician ${politician.name} already exists or error: ${error.message}`);
+        // console.log removed for production
       }
     }
-    console.log('✅ Politicians populated');
+    // console.log removed for production
     
     // 2. Populate Bills Table
-    console.log('\n📝 Populating Bills Table...');
+    // console.log removed for production
     const billData = [
       {
         title: 'An Act to amend the Criminal Code (medical assistance in dying)',
@@ -120,13 +120,13 @@ async function populateDatabase() {
           VALUES ($1, $2, $3, $4, $5, $6, $7)
         `, Object.values(bill));
       } catch (error) {
-        console.log(`  ⚠️  Bill ${bill.bill_number} already exists or error: ${error.message}`);
+        // console.log removed for production
       }
     }
-    console.log('✅ Bills populated');
+    // console.log removed for production
     
     // 3. Populate Petitions Table
-    console.log('\n📝 Populating Petitions Table...');
+    // console.log removed for production
     const petitionData = [
       {
         title: 'Support Climate Action',
@@ -164,13 +164,13 @@ async function populateDatabase() {
           VALUES ($1, $2, $3, $4, $5, $6, $7)
         `, Object.values(petition));
       } catch (error) {
-        console.log(`  ⚠️  Petition ${petition.title} already exists or error: ${error.message}`);
+        // console.log removed for production
       }
     }
-    console.log('✅ Petitions populated');
+    // console.log removed for production
     
     // 4. Populate News Articles Table
-    console.log('\n📝 Populating News Articles Table...');
+    // console.log removed for production
     const newsData = [
       {
         title: 'New Climate Bill Introduced in Parliament',
@@ -205,13 +205,13 @@ async function populateDatabase() {
           VALUES ($1, $2, $3, $4, $5, $6)
         `, Object.values(news));
       } catch (error) {
-        console.log(`  ⚠️  News article ${news.title} already exists or error: ${error.message}`);
+        // console.log removed for production
       }
     }
-    console.log('✅ News articles populated');
+    // console.log removed for production
     
     // 5. Populate Legal Acts Table
-    console.log('\n📝 Populating Legal Acts Table...');
+    // console.log removed for production
     const legalData = [
       {
         title: 'Canadian Charter of Rights and Freedoms',
@@ -240,13 +240,13 @@ async function populateDatabase() {
           VALUES ($1, $2, $3, $4, $5, $6, $7)
         `, Object.values(legal));
       } catch (error) {
-        console.log(`  ⚠️  Legal act ${legal.title} already exists or error: ${error.message}`);
+        // console.log removed for production
       }
     }
-    console.log('✅ Legal acts populated');
+    // console.log removed for production
     
     // 6. Populate Announcements Table
-    console.log('\n📝 Populating Announcements Table...');
+    // console.log removed for production
     const announcementData = [
       {
         title: 'New CivicOS Features Available',
@@ -269,13 +269,13 @@ async function populateDatabase() {
           VALUES ($1, $2, $3, $4)
         `, Object.values(announcement));
       } catch (error) {
-        console.log(`  ⚠️  Announcement ${announcement.title} already exists or error: ${error.message}`);
+        // console.log removed for production
       }
     }
-    console.log('✅ Announcements populated');
+    // console.log removed for production
     
-    console.log('\n✅ Database population complete!');
-    console.log('\n🔍 Verifying data...');
+    // console.log removed for production
+    // console.log removed for production
     
     // Verify the data was inserted
     const politicianCount = await pool.query('SELECT COUNT(*) as count FROM politicians');
@@ -285,16 +285,16 @@ async function populateDatabase() {
     const legalCount = await pool.query('SELECT COUNT(*) as count FROM legal_acts');
     const announcementCount = await pool.query('SELECT COUNT(*) as count FROM announcements');
     
-    console.log(`\n📊 Final Record Counts:`);
-    console.log(`  Politicians: ${politicianCount.rows[0].count}`);
-    console.log(`  Bills: ${billCount.rows[0].count}`);
-    console.log(`  Petitions: ${petitionCount.rows[0].count}`);
-    console.log(`  News Articles: ${newsCount.rows[0].count}`);
-    console.log(`  Legal Acts: ${legalCount.rows[0].count}`);
-    console.log(`  Announcements: ${announcementCount.rows[0].count}`);
+    // console.log removed for production
+    // console.log removed for production
+    // console.log removed for production
+    // console.log removed for production
+    // console.log removed for production
+    // console.log removed for production
+    // console.log removed for production
     
   } catch (error) {
-    console.error('❌ Database population failed:', error.message);
+    // console.error removed for production
   } finally {
     await pool.end();
   }

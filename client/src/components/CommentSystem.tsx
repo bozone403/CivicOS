@@ -84,7 +84,7 @@ export function CommentSystem({
         const response = await apiRequest(`/api/social/comments/${targetType}/${targetId}`, 'GET');
         return response || [];
       } catch (error) {
-        console.error('Failed to fetch comments:', error);
+        // console.error removed for production
         return [];
       }
     },

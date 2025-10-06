@@ -129,7 +129,7 @@ export default function Legal() {
         // Fallback for direct response
         return result;
       } catch (error) {
-        console.error('Failed to fetch legal data:', error);
+        // console.error removed for production
         return {
           acts: [],
           cases: [],
