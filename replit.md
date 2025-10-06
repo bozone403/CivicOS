@@ -48,17 +48,36 @@ Required environment variables (already configured in Replit):
 - **Social Features**: User profiles, messaging, and community engagement
 - **Transparency Tools**: Campaign finance tracking, procurement monitoring
 
-### AI Implementation (Simplified - October 6, 2025)
-- **Provider**: CivicOS Mock AI (built-in, no external dependencies)
-- **Model**: civic-intelligence-v1
+### AI Implementation (Google Gemini - October 6, 2025)
+- **Provider**: Google Gemini AI (via GEMINI_API_KEY secret) ✅
+- **Model**: gemini-2.5-flash (chat, analysis) + gemini-2.5-pro (structured data)
+- **Status**: Fully operational with comprehensive analysis capabilities
 - **Features**: 
-  - Canadian civic-specific responses (bills, voting, rights, corruption reporting, etc.)
-  - No API keys required ✅
-  - Zero cost ✅
-  - Fully functional chatbot interface
-- **File**: `server/utils/enhancedAiService.ts`
-- **Endpoint**: `/api/ai/chat` and `/api/ai/health`
-- **Note**: Previously used Ollama/Hugging Face - now simplified to mock AI with excellent Canadian civic knowledge
+  - **Chat**: Canadian civic-specific conversational AI
+  - **Bill Analysis**: Comprehensive legislative analysis with impact assessment
+  - **Politician Analysis**: Career summaries, voting patterns, policy positions
+  - **News Analysis**: Credibility scoring, bias detection, summarization
+  - **Petition Classification**: Topic categorization and urgency assessment
+  - **Legal Document Analysis**: Plain-language explanations of legal texts
+  - **Civic Insights**: Data-driven recommendations for civic engagement
+  - **Fact-Checking**: Evidence-based verification of claims
+- **Files**: 
+  - `server/utils/enhancedAiService.ts` - AI service with 9 analysis methods
+  - `server/routes/ai.ts` - AI API endpoints
+- **Endpoints**: 
+  - `/api/ai/chat` - General chatbot
+  - `/api/ai/analyze/bill` - Bill analysis
+  - `/api/ai/analyze/politician` - Politician analysis
+  - `/api/ai/analyze/news` - News credibility + summarization
+  - `/api/ai/analyze/petition` - Petition classification
+  - `/api/ai/analyze/legal` - Legal document analysis
+  - `/api/ai/civic-insights` - Civic insights generation
+  - `/api/ai/factcheck` - Fact-checking
+  - `/api/ai/civic-guide` - Civic guidance
+  - `/api/ai/health` - Health check
+  - `/api/ai/status` - Full feature status
+- **Cost**: ~$1-7 per million tokens (very affordable for civic use)
+- **Fallback**: Mock AI responses if Gemini unavailable
 
 ### Project Structure
 ```
