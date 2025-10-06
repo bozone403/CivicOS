@@ -463,7 +463,7 @@ app.get("/health", (_req, res) => {
 
   // ALWAYS serve the app on the correct port for Render
   // Render uses PORT environment variable
-  const PORT = process.env.PORT || 5001;
+  const PORT = parseInt(process.env.PORT || '5001', 10);
   httpServer.listen(PORT, '0.0.0.0', () => {
     logger.info({ msg: `Server running on 0.0.0.0:${PORT}`, environment: process.env.NODE_ENV });
   });
