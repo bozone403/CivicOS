@@ -112,39 +112,39 @@ export function registerNewsRoutes(app: Express) {
         ? await base.where(whereCombined).orderBy(desc(newsArticles.publishedAt ?? newsArticles.createdAt)).limit(limitNum).offset(offset)
         : await base.orderBy(desc(newsArticles.publishedAt ?? newsArticles.createdAt)).limit(limitNum).offset(offset);
 
-      console.log(`Initial query: found ${articles.length} articles, total: ${total}`);
-      console.log('Articles:', articles);
-      console.log('Articles length check:', articles.length === 0);
+      // Return articles directly from database (no on-demand ingestion)
+      return res.json({
+        success: true,
+        articles,
+        pagination: { page: pageNum, limit: limitNum, total, totalPages: Math.ceil((Number(total) || 0) / limitNum) },
+        message: articles.length === 0 ? 'No news articles found. RSS feeds are synced in the background.' : undefined
+      });
+    } catch (error) {
+      console.error('News API error:', error);
+      return res.status(500).json({
+        success: false,
+        error: 'Failed to fetch news articles',
+        articles: [],
+        pagination: { page: 1, limit: 20, total: 0, totalPages: 0 }
+      });
+    }
+  });
 
-      // Always try to add sample articles if we have none
-      if (articles.length === 0) {
-        console.log('No articles found, attempting RSS ingestion...');
-        try {
-          await ingestNewsFeeds();
-          const retryArticles = whereCombined
-            ? await base.where(whereCombined).orderBy(desc(newsArticles.publishedAt ?? newsArticles.createdAt)).limit(limitNum).offset(offset)
-            : await base.orderBy(desc(newsArticles.publishedAt ?? newsArticles.createdAt)).limit(limitNum).offset(offset);
-          
-          console.log(`After RSS ingestion: found ${retryArticles.length} articles`);
-          
-          if (retryArticles.length > 0) {
-            return res.json({
-              success: true,
-              articles: retryArticles,
-              pagination: { page: pageNum, limit: limitNum, total: retryArticles.length, totalPages: Math.ceil((Number(retryArticles.length) || 0) / limitNum) }
-            });
-          }
-        } catch (ingestionError) {
-          console.warn('News ingestion failed:', ingestionError);
-        }
-      }
+  // Background RSS ingestion endpoint (admin only)
+  app.post("/api/news/ingest", jwtAuth, requirePermission('admin.news.manage'), async (req: Request, res: Response) => {
+    try {
+      await ingestNewsFeeds();
+      res.json({ success: true, message: 'News ingestion completed successfully' });
+    } catch (error) {
+      console.error('News ingestion failed:', error);
+      res.status(500).json({ success: false, error: 'News ingestion failed' });
+    }
+  });
 
-      // If still no articles after RSS ingestion, add sample government news
-      if (articles.length === 0) {
-        console.log('Still no articles, adding sample government news...');
-        console.log('Adding sample government news articles...');
-          
-          const sampleArticles = [
+  // Add sample government news (for testing)
+  app.post("/api/news/add-samples", jwtAuth, requirePermission('admin.news.manage'), async (req: Request, res: Response) => {
+    try {
+      const sampleArticles = [
             {
               id: 1,
               title: "Federal Government Announces New Climate Action Plan",
@@ -200,35 +200,24 @@ export function registerNewsRoutes(app: Express) {
               createdAt: new Date(),
               updatedAt: new Date()
             }
-          ];
+      ];
 
-          // Return sample articles directly instead of trying to insert
-          console.log(`Returning ${sampleArticles.length} sample articles directly`);
-          return res.json({
-            success: true,
-            articles: sampleArticles.map((article, index) => ({
-              ...article,
-              id: index + 1,
-              createdAt: new Date(),
-              updatedAt: new Date()
-            })),
-            pagination: { page: pageNum, limit: limitNum, total: sampleArticles.length, totalPages: Math.ceil((Number(sampleArticles.length) || 0) / limitNum) }
-          });
+      // Insert samples into database
+      for (const article of sampleArticles) {
+        await db.insert(newsArticles).values({
+          title: article.title,
+          content: article.content,
+          summary: article.summary,
+          category: article.category as any,
+          source: article.source,
+          publishedAt: article.publishedAt,
+        });
       }
 
-      res.json({
-        success: true,
-        articles,
-        pagination: { page: pageNum, limit: limitNum, total, totalPages: Math.ceil((Number(total) || 0) / limitNum) }
-      });
+      res.json({ success: true, message: 'Sample articles added successfully', count: sampleArticles.length });
     } catch (error) {
-      console.error('News fetch error:', error);
-      // Better fallback - don't set limit to 0
-      res.json({ 
-        success: true, 
-        articles: [], 
-        pagination: { page: 1, limit: 20, total: 0, totalPages: 0 } 
-      });
+      console.error('Failed to add samples:', error);
+      res.status(500).json({ success: false, error: 'Failed to add sample articles' });
     }
   });
 

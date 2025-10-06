@@ -421,7 +421,7 @@ export default function About() {
             </p>
             
             <p className="text-base font-bold text-yellow-800 bg-yellow-100 p-4 rounded-lg border border-yellow-300">
-              Built by Jordan Kenneth Boisclair • Independent Canadian Developer • Not affiliated with any government
+              Built by <a href="https://clairwoodfoundation.org" target="_blank" rel="noopener noreferrer" className="text-red-600 hover:underline">Clairwood Foundation</a> and <a href="https://iron-oak.ca" target="_blank" rel="noopener noreferrer" className="text-red-600 hover:underline">Iron & Oak Strategic Solutions</a> • Independent Canadian Organizations • Not affiliated with any government
             </p>
           </div>
         </div>
