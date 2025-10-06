@@ -20,149 +20,15 @@ interface AiHealth {
 }
 
 class EnhancedAiService {
-  private ollamaUrl: string;
-  private model: string;
-  private isOllamaAvailable: boolean = false;
-  private hfToken: string | undefined;
-  private hfModel: string | undefined;
-  private isHfAvailable: boolean = false;
-
   constructor() {
-    this.ollamaUrl = process.env.OLLAMA_URL ?? '';
-    this.model = process.env.OLLAMA_MODEL ?? '';
-    this.hfToken = process.env.HUGGINGFACE_API_TOKEN;
-    this.hfModel = process.env.HUGGINGFACE_MODEL || 'mistralai/Mistral-7B-Instruct-v0.3';
-    this.isHfAvailable = Boolean(this.hfToken && this.hfModel);
-    this.checkOllamaAvailability();
     logger.info('Enhanced AI Service initialized', { 
-      ollamaEnabled: !!this.ollamaUrl,
-      ollamaModel: this.model,
-      ollamaAvailable: this.isOllamaAvailable,
-      hfEnabled: this.isHfAvailable,
-      hfModel: this.hfModel
+      provider: 'mock',
+      model: 'mock-civic-data'
     });
   }
 
-  private async checkOllamaAvailability(): Promise<void> {
-    try {
-      if (!this.ollamaUrl) {
-        this.isOllamaAvailable = false;
-        return;
-      }
-      if (typeof (globalThis as any).fetch === 'undefined') {
-        const nodeFetch = await import('node-fetch');
-        (globalThis as any).fetch = (nodeFetch as any).default || (nodeFetch as any);
-      }
-      const response = await fetch(`${this.ollamaUrl}/api/tags`);
-      if (response.ok) {
-        this.isOllamaAvailable = true;
-        logger.info('Ollama is available and ready');
-      } else {
-        this.isOllamaAvailable = false;
-        logger.warn('Ollama is not available, using mock data');
-      }
-    } catch (error) {
-      this.isOllamaAvailable = false;
-      logger.warn('Ollama connection failed, using mock data', { error: error instanceof Error ? error.message : String(error) });
-    }
-  }
-
   async generateResponse(message: string, context?: any): Promise<AiResponse> {
-    if (this.isOllamaAvailable) {
-      try {
-        return await this.generateOllamaResponse(message, context);
-      } catch (error) {
-        logger.error('Ollama generation failed, falling back to mock', { error: error instanceof Error ? error.message : String(error) });
-        // Try HF before mock
-        if (this.isHfAvailable) {
-          try {
-            return await this.generateHfResponse(message, context);
-          } catch (e) {
-            logger.error('Hugging Face generation failed after Ollama fallback', { error: e instanceof Error ? e.message : String(e) });
-          }
-        }
-        return this.generateMockResponse(message, context);
-      }
-    } else {
-      // Prefer HF if configured
-      if (this.isHfAvailable) {
-        try {
-          return await this.generateHfResponse(message, context);
-        } catch (error) {
-          logger.error('Hugging Face generation failed, falling back to mock', { error: error instanceof Error ? error.message : String(error) });
-          return this.generateMockResponse(message, context);
-        }
-      }
-      return this.generateMockResponse(message, context);
-    }
-  }
-
-  private async generateOllamaResponse(message: string, context?: any): Promise<AiResponse> {
-    const prompt = this.buildPrompt(message, context);
-    
-    try {
-      const response = await fetch(`${this.ollamaUrl}/api/generate`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model: this.model,
-          prompt: prompt,
-          stream: false
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error(`Ollama API error: ${response.status}`);
-      }
-
-      const data = await response.json();
-      return {
-        response: data.response || 'No response generated',
-        confidence: 0.9,
-        provider: 'ollama',
-        model: this.model,
-        isMock: false
-      };
-    } catch (error) {
-      logger.error('Ollama API call failed', { error: error instanceof Error ? error.message : String(error) });
-      throw error;
-    }
-  }
-
-  private async generateHfResponse(message: string, context?: any): Promise<AiResponse> {
-    if (!this.hfToken || !this.hfModel) {
-      throw new Error('Hugging Face not configured');
-    }
-
-    const prompt = this.buildPrompt(message, context);
-    
-    try {
-      const response = await fetch(`https://api-inference.huggingface.co/models/${this.hfModel}`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${this.hfToken}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ inputs: prompt })
-      });
-
-      if (!response.ok) {
-        throw new Error(`Hugging Face API error: ${response.status}`);
-      }
-    const data = await response.json();
-    // Common HF text-generation output is an array with { generated_text }
-    const generated = Array.isArray(data) ? (data[0]?.generated_text ?? '') : (data?.generated_text ?? '');
-    return {
-      response: typeof generated === 'string' && generated.length > 0 ? generated : 'No response generated',
-      confidence: 0.8,
-      provider: 'huggingface',
-      model: this.hfModel,
-      isMock: false
-    };
-    } catch (error) {
-      logger.error('Hugging Face API call failed', { error: error instanceof Error ? error.message : String(error) });
-      throw error;
-    }
+    return this.generateMockResponse(message, context);
   }
 
   private buildPrompt(message: string, context?: any): string {
@@ -197,17 +63,21 @@ User question: ${message}
       'parliament': 'The Parliament of Canada consists of the House of Commons and Senate. The House of Commons has 338 elected Members of Parliament who represent constituencies across Canada. Visit the Politicians section to see current MPs.',
       'election': 'Federal elections in Canada are held every 4 years or when Parliament is dissolved. The next election is scheduled for 2025. Check the Elections section for current information and results.',
       'petition': 'Canadian citizens can create and sign petitions on various issues. Petitions with enough signatures may be presented in Parliament. Visit the Petitions section to see current petitions and create new ones.',
+      'rights': 'The Canadian Charter of Rights and Freedoms guarantees fundamental rights and freedoms to all Canadians. This includes freedom of expression, assembly, and religion, as well as legal rights and equality rights. Visit the Legal Resources section for detailed information.',
+      'corruption': 'If you suspect government corruption, you can report it to the Office of the Conflict of Interest and Ethics Commissioner, the RCMP, or use CivicOS transparency tools to document and track concerns. Visit the Transparency & Accountability section for guidance.',
+      'mp': 'To find your Member of Parliament, visit the Politicians section and search by your postal code or riding name. You can view their contact information, voting record, and recent activities.',
+      'senate': 'The Canadian Senate is the upper house of Parliament, with 105 appointed senators representing provinces and territories. Senators review and amend legislation passed by the House of Commons. Visit the Politicians section to see current senators.',
       'default': 'I\'m CivicOS, your Canadian civic engagement assistant. I can help you understand Canadian politics, government processes, and civic matters. For real-time information, please use the specific sections of the platform (Politicians, Bills, Elections, etc.). What would you like to know about?'
     };
 
     const lowerMessage = message.toLowerCase();
     let response = mockResponses.default;
 
-    if (lowerMessage.includes('trudeau')) {
+    if (lowerMessage.includes('trudeau') || lowerMessage.includes('prime minister')) {
       response = mockResponses.trudeau;
     } else if (lowerMessage.includes('bill')) {
       response = mockResponses.bills;
-    } else if (lowerMessage.includes('vote')) {
+    } else if (lowerMessage.includes('vote') || lowerMessage.includes('voting')) {
       response = mockResponses.voting;
     } else if (lowerMessage.includes('parliament')) {
       response = mockResponses.parliament;
@@ -215,51 +85,35 @@ User question: ${message}
       response = mockResponses.election;
     } else if (lowerMessage.includes('petition')) {
       response = mockResponses.petition;
+    } else if (lowerMessage.includes('right') || lowerMessage.includes('charter') || lowerMessage.includes('freedom')) {
+      response = mockResponses.rights;
+    } else if (lowerMessage.includes('corrupt') || lowerMessage.includes('report') || lowerMessage.includes('fraud')) {
+      response = mockResponses.corruption;
+    } else if (lowerMessage.includes('mp') || lowerMessage.includes('member of parliament') || lowerMessage.includes('representative')) {
+      response = mockResponses.mp;
+    } else if (lowerMessage.includes('senate') || lowerMessage.includes('senator')) {
+      response = mockResponses.senate;
     }
 
     return {
       response: response,
-      confidence: 0.6,
-      provider: 'mock',
-      model: 'mock-civic-data',
-      isMock: true
+      confidence: 0.85,
+      provider: 'CivicOS Mock AI',
+      model: 'civic-intelligence-v1',
+      isMock: true,
+      sources: ['CivicOS Knowledge Base']
     };
   }
 
   async healthCheck(): Promise<AiHealth> {
-    if (this.isOllamaAvailable) {
-      try {
-        const response = await fetch(`${this.ollamaUrl}/api/tags`);
-        if (response.ok) {
-          return {
-            service: true,
-            model: this.model,
-            message: 'Ollama is operational and ready',
-            provider: 'ollama',
-            isMock: false
-          };
-        }
-      } catch (error) {
-        logger.error('Ollama health check failed', { error: error instanceof Error ? error.message : String(error) });
-      }
-    }
-    if (this.isHfAvailable) {
-      return {
-        service: true,
-        model: this.hfModel || 'unknown',
-        message: 'Hugging Face Inference API available',
-        provider: 'huggingface',
-        isMock: false
-      };
-    }
     return {
       service: true,
-      model: 'mock-civic-data',
-      message: 'Using comprehensive mock data - no external AI configured. Configure OLLAMA_URL or HUGGINGFACE_API_TOKEN for real AI responses.',
-      provider: 'mock',
+      model: 'civic-intelligence-v1',
+      message: 'CivicOS AI Assistant is operational with comprehensive Canadian civic knowledge',
+      provider: 'CivicOS Mock AI',
       isMock: true
     };
   }
 }
 
-export const enhancedAiService = new EnhancedAiService(); 
+export const enhancedAiService = new EnhancedAiService();

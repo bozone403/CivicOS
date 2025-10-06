@@ -511,43 +511,6 @@ app.get("/health", (_req, res) => {
     logger.info({ msg: "Data sync disabled by env (DATA_SYNC_ENABLED != 'true')" });
   }
   
-  // Initialize Ollama AI service for production (enhanced with robust error handling)
-  if (process.env.NODE_ENV === 'production' && process.env.OLLAMA_ENABLED === 'true' && process.env.AI_SERVICE_ENABLED === 'true') {
-    // Start Ollama initialization in background - don't wait for completion
-    setTimeout(async () => {
-      try {
-        logger.info({ msg: "Starting Ollama initialization process..." });
-        
-        // Import the enhanced Ollama manager
-        const OllamaManagerModule = await import('./initOllama.js');
-        const OllamaManager = OllamaManagerModule.default;
-        const manager = new OllamaManager();
-        
-        // Run health check first
-        const health = await manager.healthCheck();
-        logger.info({ msg: "Ollama health check", status: health });
-        
-        if (!health.service) {
-          logger.warn({ msg: "Ollama service not available - AI will use fallback responses" });
-        } else if (!health.model) {
-          logger.info({ msg: "Ollama service available but model missing - attempting initialization" });
-          
-          // Try to initialize model in background
-          const initSuccess = await manager.initialize();
-          if (initSuccess) {
-            logger.info({ msg: "✅ Ollama and Mistral model successfully initialized" });
-          } else {
-            logger.warn({ msg: "⚠️ Ollama initialization failed - using fallback responses" });
-          }
-        } else {
-          logger.info({ msg: "✅ Ollama service and model are both ready" });
-        }
-      } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : String(error);
-        logger.error({ msg: "Error during Ollama initialization", error: errorMessage });
-      }
-    }, 45000); // Increased delay to let Ollama binary start properly
-  }
   // Run admin permission bootstrap (non-blocking)
   setTimeout(async () => {
     try {
