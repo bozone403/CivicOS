@@ -44,9 +44,21 @@ Required environment variables (already configured in Replit):
 ### Main Features
 - **Political Intelligence Hub**: Track 128,000+ Canadian politicians, bills, and voting records
 - **Civic Engagement Suite**: Petitions, discussions, and democratic participation
-- **AI-Powered Assistance**: Civic chatbot and content analysis
+- **AI-Powered Assistance**: Civic chatbot with Canadian civic knowledge (no external API keys required)
 - **Social Features**: User profiles, messaging, and community engagement
 - **Transparency Tools**: Campaign finance tracking, procurement monitoring
+
+### AI Implementation (Simplified - October 6, 2025)
+- **Provider**: CivicOS Mock AI (built-in, no external dependencies)
+- **Model**: civic-intelligence-v1
+- **Features**: 
+  - Canadian civic-specific responses (bills, voting, rights, corruption reporting, etc.)
+  - No API keys required ✅
+  - Zero cost ✅
+  - Fully functional chatbot interface
+- **File**: `server/utils/enhancedAiService.ts`
+- **Endpoint**: `/api/ai/chat` and `/api/ai/health`
+- **Note**: Previously used Ollama/Hugging Face - now simplified to mock AI with excellent Canadian civic knowledge
 
 ### Project Structure
 ```
